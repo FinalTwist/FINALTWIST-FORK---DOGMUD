@@ -520,13 +520,15 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 			},
 
 			Worn:         buildWornSlots(user.Character),
-			Bandolier:    buildBandolierContainer(user.Character),
-			ComponentBag: buildComponentBagContainer(user.Character),
+			Bandolier:    buildBandolierContainer(user.Character, user.UserId),
+			ComponentBag: buildComponentBagContainer(user.Character, user.UserId),
 		}
 
 		// Fill the items list
 		for _, itm := range user.Character.Items {
-			payload.Inventory.Backpack.Items = append(payload.Inventory.Backpack.Items, newInventory_Item(itm))
+			d := newInventory_Item(itm)
+			d.Name = itm.NameFor(user.UserId) // their own view of a finder-only bauble
+			payload.Inventory.Backpack.Items = append(payload.Inventory.Backpack.Items, d)
 		}
 
 		if !all {
@@ -976,7 +978,7 @@ func buildWornSlots(c *characters.Character) []GMCPCharModule_Payload_Slot {
 
 // buildBandolierContainer returns the potion bandolier sub-inventory when a
 // bandolier belt is worn, or nil otherwise.
-func buildBandolierContainer(c *characters.Character) *GMCPCharModule_Payload_Container {
+func buildBandolierContainer(c *characters.Character, viewerUserId int) *GMCPCharModule_Payload_Container {
 
 	beltSpec := c.Equipment.Belt.GetSpec()
 	if !beltSpec.IsBandolier {
@@ -991,14 +993,16 @@ func buildBandolierContainer(c *characters.Character) *GMCPCharModule_Payload_Co
 		},
 	}
 	for _, itm := range c.PotionItems {
-		cont.Items = append(cont.Items, newInventory_Item(itm))
+		d := newInventory_Item(itm)
+		d.Name = itm.NameFor(viewerUserId) // the wearer's own view
+		cont.Items = append(cont.Items, d)
 	}
 	return cont
 }
 
 // buildComponentBagContainer returns the component-bag sub-inventory when a
 // component bag is worn, or nil otherwise.
-func buildComponentBagContainer(c *characters.Character) *GMCPCharModule_Payload_Container {
+func buildComponentBagContainer(c *characters.Character, viewerUserId int) *GMCPCharModule_Payload_Container {
 
 	if c.Equipment.ComponentBag.ItemId < 1 {
 		return nil
@@ -1013,7 +1017,9 @@ func buildComponentBagContainer(c *characters.Character) *GMCPCharModule_Payload
 		},
 	}
 	for _, itm := range contents {
-		cont.Items = append(cont.Items, newInventory_Item(itm))
+		d := newInventory_Item(itm)
+		d.Name = itm.NameFor(viewerUserId) // the wearer's own view
+		cont.Items = append(cont.Items, d)
 	}
 	return cont
 }

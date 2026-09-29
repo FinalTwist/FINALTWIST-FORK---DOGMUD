@@ -56,6 +56,46 @@ func TestAuthoredKeyword(t *testing.T) {
 	}
 }
 
+// A loaded item's whole name, compared after NFKC, lower case and collapsed
+// spaces, so a model cannot pass a real item's name off by case, spacing or
+// fullwidth letters (spec S3). The bauble carrier does not count.
+func TestAuthoredName(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		10:           {ItemId: 10, Name: `Hooded Lantern`, NameSimple: `lamp`},
+		12:           {ItemId: 12, Name: `A Beeswax Votive Candle`, NameSimple: `candle`},
+		13:           {ItemId: 13, Name: `Amber`, NameSimple: `amber`},
+		14:           {ItemId: 14, Name: `Iron Dagger`, NameSimple: `dagger`},
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`},
+	})
+	defer restore()
+	for name, want := range map[string]bool{
+		`Hooded Lantern`:                   true,
+		`hooded lantern`:                   true,
+		"  Hooded\U000000A0\t Lantern ":    true,
+		"\U0000FF28ooded \U0000FF2Cantern": true, // fullwidth H and L
+		`Hooded Lanterns`:                  false,
+		`Lantern`:                          false,
+		`Curious Trinket`:                  false,
+		// Near-misses of a loaded item's authored name still count as that
+		// item (review of the exact-match gap): a leading article, trailing
+		// punctuation, or a hyphen standing in for a space must not let a
+		// model dodge the collision check by rephrasing.
+		`The Hooded Lantern`:    true, // leading article stripped
+		`Hooded Lantern.`:       true, // trailing punctuation stripped
+		`Beeswax Votive Candle`: true, // authored name itself carries the article
+		// An unrelated name that merely starts with the letter sequence "A "
+		// is not the article-stripped form of anything: only an exact
+		// normalised match counts.
+		`Amber Bead`: false,
+		// Double-space collapsing still works after the extended normalisation.
+		`Iron  Dagger`: true,
+	} {
+		if AuthoredName(name) != want {
+			t.Errorf("AuthoredName(%q) = %v, want %v", name, !want, want)
+		}
+	}
+}
+
 // A real item beats a bauble that the name matches in full too, wherever
 // each is in the list; an explicit N. above 1 keeps list order.
 func TestRealItemsBeatBaublesOnFullMatches(t *testing.T) {
@@ -93,13 +133,14 @@ func TestAuthoredKeywordIsSafeWhileItemsAreWritten(t *testing.T) {
 		defer close(done)
 		for i := 0; i < 2000; i++ {
 			_ = AuthoredKeyword(`lantern`)
+			_ = AuthoredName(`Hooded Lantern`)
 		}
 	}()
 	for i := 0; i < 200; i++ {
 		RegisterTestItemSpec(&ItemSpec{ItemId: 1000 + i, Name: `Test Candle`, NameSimple: `candle`})
 	}
 	<-done
-	if !AuthoredKeyword(`candle`) || !AuthoredKeyword(`lantern`) {
+	if !AuthoredKeyword(`candle`) || !AuthoredKeyword(`lantern`) || !AuthoredName(`test candle`) {
 		t.Fatal("the snapshot follows every write")
 	}
 }

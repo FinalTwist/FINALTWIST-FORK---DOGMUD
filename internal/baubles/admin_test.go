@@ -91,10 +91,10 @@ func TestApplyRegenerated(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusFallback, Generator: GeneratorLocal, Stolen: true, Region: `Marches`})
 
-	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: GenericTrinket(TierAverage, nil), Generator: GeneratorLocal}, `Admin`); err == nil {
+	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: GenericTrinket(TierAverage, nil), Generator: GeneratorLocal}, `Admin`, first); err == nil {
 		t.Fatal("a generic answer never replaces a record")
 	}
-	got, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Tokens: 90, PromptVersion: 1}, `Admin`)
+	got, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Tokens: 90, PromptVersion: 1}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,5 +118,45 @@ func TestPromptPreviewSeamAndIds(t *testing.T) {
 	}
 	if !LooksLikeId(`b0000012`) || !LooksLikeId(`B0000012`) || LooksLikeId(`doll`) || LooksLikeId(`b`) {
 		t.Fatal("id shapes")
+	}
+}
+
+// Regenerating takes the new result's key, both ways (spec S3).
+func TestApplyRegeneratedSetsPlayerKey(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusReady, Generator: GeneratorOpenAI, PlayerKey: true})
+	got, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.PlayerKey {
+		t.Fatal("named again on the server's key: no longer a player-key record")
+	}
+}
+
+// A value a player's own key proposes on regen is not trusted, even clamped
+// into the tier: the server rolls it, mirroring Mint (spec S3). Regen never
+// sets FinderUserId today, so this path is unreachable in production, but it
+// must not reopen S3 if a later change does.
+func TestApplyRegeneratedRollsPlayerKeyValue(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusFallback, Generator: GeneratorLocal})
+
+	high := goodReply()
+	high.Value = 14 // inside average (10 to 15), so a clamp alone would keep it
+	got, err := ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI, PlayerKey: true}, `Admin`, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Value != TierAverage.Range().Min || got.ValueProposed != 14 || !got.PlayerKey {
+		t.Fatalf("rolled by the server (first die: the tier's minimum), proposal kept: %+v", got)
+	}
+
+	got, err = ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI}, `Admin`, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Value != 14 {
+		t.Fatalf("a server-key value stands: %+v", got)
 	}
 }

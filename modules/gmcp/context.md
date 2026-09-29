@@ -381,6 +381,13 @@ narration, which reads the three-verdict `SightDecision` and treats
 `Char.Enemies` has no "a figure" middle ground: it matches the prompt's
 existing binary behaviour (`CanSeeClearly`).
 
+## Item names are per-viewer (finder-only baubles, owner ruling 2026-09-29)
+
+Item names in the backpack, the bandolier, the component bag and
+`Room.Info.Contents.Items` are the recipient's own view
+(`items.Item.NameFor(user.UserId)`), so a finder reads their own
+finder-only bauble; every other payload uses the viewer-agnostic name.
+
 ## Module index
 
 Every `gmcp.<Name>.go` file follows the same shape: register in `init()`, emit

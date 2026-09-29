@@ -378,14 +378,45 @@ plain carrier ("Curious Trinket").
   a household "Stub of Candle"; `steal` names household baubles on its own.
   `N.name` above 1 keeps plain list order over every item. `AuthoredKeyword(word)` (in
   itemspec.go) is whether a loaded item answers to a word, as its keyword or
-  any word of its name: `internal/baubles` keeps bauble keywords off those. It reads
-  a snapshot (`authoredWords`, an atomic pointer) that every writer of the
-  items map rebuilds (`rebuildAuthoredKeywords`: the load, `SaveItemSpec`,
+  any word of its name: `internal/baubles` keeps bauble keywords off those.
+  `AuthoredName(name)` is whether a loaded item's whole name matches after
+  NFKC, lower case and collapsed spaces (`normalizeItemName`);
+  `baubles.CleanReply` refuses such a name. Both read one snapshot
+  (`authored`, an atomic pointer to words and names together) that every
+  writer of the items map rebuilds (`rebuildAuthoredKeywords`: the load, `SaveItemSpec`,
   `DeleteItemSpec`, `CreateNewItemFile`, the test seeders), never the live
   map: it runs on the bauble goroutine, off the mud lock, and a range over
   the map racing a write is a fatal error. Everything that finds items by name
   goes through `NameMatch` via `FindMatchIn`, so `get`, `drop`, `look`,
   `appraise`, `sell`, `give` and `N.name` all behave the same.
+- **Finder-only baubles** (`BaubleView.Finder` set: `internal/baubles`
+  `Record.KeptToFinder`, a player key's text the server could not
+  moderate). Every viewer-agnostic accessor (`GetSpec`, `Name`,
+  `DisplayName`, `GetLongDescription`, ...) shows the generic trinket; only
+  the viewer-aware ones in `bauble_viewer.go` (`GetSpecFor`,
+  `DisplayNameFor`, `NameFor`, `LongDescriptionFor`) show the finder's own
+  text, and only to `BaubleView.FinderUserId`; each is the other
+  viewer-agnostic accessor's twin, call them only where the output reaches
+  that one viewer (the repo-root guard `bauble_finder_view_guard_test.go`
+  pins every caller and its call count). `displayNameFrom` and
+  `longDescriptionFrom` are the spec-taking bodies of `DisplayName` and
+  `GetLongDescription`. Matching is viewer-agnostic,
+  so such a bauble matches ONLY by its generic words (`trinket`, `bauble`,
+  the generic name), for everyone INCLUDING its finder: a hidden word that
+  matched would confirm it to anyone who typed it (`look horse`), and as a
+  whole-word match (strength 3) it would beat a real "Horseshoe" the word
+  only starts (strength 2), so `get horse` would take the trinket. The
+  trade-off: the finder reads "Painted Wooden Horse" but refers to it as a
+  trinket. Moderated player-key and server-key baubles have no `Finder` and
+  match by their real words as above.
+- **Model-safe accessors** (`bauble_model.go`): `ModelName` and
+  `ModelDescription` show any bauble whose text a player's own key wrote
+  (`BaubleView.PlayerText`), moderated or not, as its carrier's own spec
+  ("Curious Trinket"). Anything a language model is told uses these (the AI
+  companion's perception, scene and actions).
+- A bauble is never enchanted (`enchantments.ApplyTier` returns at once):
+  an item with a `Spec` never consults the catalog again, so a baked
+  bauble would outlive a retire and the finder-only view.
 - `IsSpecial()` is false for a bauble. Any code that rebuilds an item from
   its ItemId alone (`items.New(id)`) drops the link; the sell path has its
   own bauble branch for this reason. Display code that groups items by

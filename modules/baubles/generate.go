@@ -19,6 +19,7 @@ const schemaOverhead = 300
 var (
 	errNoRoute     = errors.New(`no key to name it with`)
 	errBreakerOpen = errors.New(`the server key's breaker is open`)
+	errSlotsBusy   = errors.New(`all generation slots busy`)
 )
 
 // generate is the baubles.GeneratorFunc this module installs. It runs on a
@@ -28,21 +29,9 @@ var (
 //
 // The route: the finder's own key first, when they allowed it on the key
 // page (apiframework.PurposeFinds); then the server's key, reserved against
-// the one daily budget every feature shares; else no name.
+// the one daily budget every feature shares; else no name. Player-key text
+// the server cannot moderate is kept to its finder (moderate).
 func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (baubles.GenResult, error) {
-	// A fixed number of calls at once. A find beyond that is not queued
-	// (queuing would only make the player wait longer): it is a generic
-	// trinket.
-	m.mu.Lock()
-	slots := m.slots
-	m.mu.Unlock()
-	select {
-	case slots <- struct{}{}:
-		defer func() { <-slots }()
-	default:
-		return baubles.GenResult{}, errors.New(`all generation slots busy`)
-	}
-
 	cfg := m.snapshot()
 	msgs := buildMessages(req)
 	chat := apiframework.Chat{
@@ -56,6 +45,11 @@ func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (b
 	}
 
 	content, tokens, model, playerKey, report, err := m.name(ctx, cfg, req, chat)
+	if errors.Is(err, errSlotsBusy) {
+		// Refused at the door, not a call that failed: it counts in no
+		// statistic (m.count) and feeds no breaker, as before this slice.
+		return baubles.GenResult{}, err
+	}
 	m.count(playerKey, err != nil)
 	if cfg.LogRequests {
 		mudlog.Info(`baubles`, `action`, `model call`, `zone`, req.Place.Zone, `tier`, string(req.Tier),
@@ -72,14 +66,19 @@ func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (b
 	// answered) instead of being paid for again and again.
 	reply, err := baubles.ParseReply(content)
 	if err == nil {
-		_, err = baubles.CleanReply(reply)
+		// Keep the cleaned text: it is what is moderated and what the
+		// world shows. A player-key reply already passed the allowlist in
+		// name (refusedByAllowlist); it is not checked again here, where a
+		// refusal would feed the player's breaker. baubles.Generate holds
+		// every generator to it all the same.
+		reply, err = baubles.CleanReply(reply)
 	}
 	report(err)
 	if err != nil {
 		return baubles.GenResult{}, err
 	}
 
-	moderated, err := m.moderate(cfg, reply, playerKey)
+	moderated, finderOnly, err := m.moderate(cfg, reply, playerKey)
 	if err != nil {
 		return baubles.GenResult{}, err
 	}
@@ -92,7 +91,56 @@ func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (b
 		Tokens:        tokens,
 		Moderated:     moderated,
 		PlayerKey:     playerKey,
+		FinderOnly:    finderOnly,
 	}, nil
+}
+
+// moderationBreaker is the moderation check's OWN consumer breaker, apart
+// from ConsumerBaubles (review finding d): a naming call's success on the
+// server's key reports to ConsumerBaubles before moderation runs
+// (generate), and a breaker shared by both would have every good naming
+// call reset the run of failed checks, so it could never open; and failed
+// naming calls would count as moderation failures. It is fed only by
+// moderate, on both routes (apiframework.RecordConsumer), and read by
+// moderationPossible and moderate.
+const moderationBreaker = `baubles-moderation`
+
+// moderationPossible reports whether the server can moderate a reply now:
+// ModerateOutput on, a server key, and neither the provider breaker nor
+// the moderation breaker open. s and blocked (apiframework.Blocked read
+// once by the caller, moderate, against a single now) are passed in, so
+// the breakers are consulted exactly once per find: a moderate that
+// re-read them after this call could see the breaker open between the two
+// reads and refuse a player-key find that this decision already allowed,
+// rather than keeping it to its finder (finderOnly). Player-key text named
+// while moderation is not possible is kept to its finder (owner ruling
+// 2026-09-29), never shown to anyone else unmoderated.
+func moderationPossible(cfg Config, s apiframework.ServerSettings, blocked bool) bool {
+	return cfg.ModerateOutput && s.HasKey() && !blocked
+}
+
+// moderateReadForTest runs, when set, immediately after moderate takes its
+// one breaker read for a find, before that read is used. Nil outside
+// tests; it is how a test lands a breaker state change inside the window a
+// second, redundant read once raced with (fixed by this commit: the
+// breaker is now read exactly once per find, into blocked, in moderate).
+var moderateReadForTest = func() {}
+
+// refusedByAllowlist reports whether content, from a finder's own key, is
+// a usable answer (it parses and passes CleanReply) whose cleaned text
+// baubles.CheckPlayerKeyText refuses (ruling 15). That is not the key
+// failing: the caller tells its breaker nothing and goes on to the server's
+// route. An answer that does not parse or clean is not this; it goes on to
+// generate, which reports it to the player's breaker as before.
+func refusedByAllowlist(content string) bool {
+	reply, err := baubles.ParseReply(content)
+	if err != nil {
+		return false
+	}
+	if reply, err = baubles.CleanReply(reply); err != nil {
+		return false
+	}
+	return baubles.CheckPlayerKeyText(reply) != nil
 }
 
 // name makes the call on the first route that is open and returns the
@@ -108,17 +156,35 @@ func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenReq
 	if cfg.UsePlayerKeys && req.FinderUserId > 0 {
 		if r := apiframework.PlayerRelay(); r != nil {
 			if relayModel, ok := r.Model(req.FinderUserId, apiframework.PurposeFinds); ok {
-				content, tokens, report, err = viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)
-				if err == nil {
-					return content, tokens, relayModel, true, report, nil
-				}
-				report(err)
-				if ctx.Err() != nil {
-					return ``, 0, relayModel, true, func(error) {}, err
+				// The finder's own slot, never one of the server's: a busy
+				// one (their last find still naming) goes to the server.
+				if release, free := m.takeFinderSlot(req.FinderUserId); free {
+					content, tokens, report, err = viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)
+					release()
+					switch {
+					case err == nil && refusedByAllowlist(content):
+						// Plain enough for the model, not for other players
+						// (ruling 15): not the key's failure, so its breaker
+						// hears nothing, and the server's key names the find.
+					case err == nil:
+						return content, tokens, relayModel, true, report, nil
+					default:
+						report(err)
+						if ctx.Err() != nil {
+							return ``, 0, relayModel, true, func(error) {}, err
+						}
+					}
 				}
 			}
 		}
 	}
+	// The server key's model calls, MaxConcurrent at once. A slot covers
+	// the call only; moderation afterwards is free and not a model call.
+	release, free := m.takeServerSlot()
+	if !free {
+		return ``, 0, cfg.Model, false, func(error) {}, errSlotsBusy
+	}
+	defer release()
 	content, tokens, report, err = viaServer(ctx, cfg, chat)
 	return content, tokens, cfg.Model, false, report, err
 }
@@ -155,7 +221,11 @@ func viaPlayer(ctx context.Context, r apiframework.Relay, userId int, model stri
 		return ``, 0, report, err
 	}
 	reply := apiframework.DecodeChat(status, raw)
-	return reply.Content, reply.Tokens, report, reply.Err
+	// The count came through the player's browser, which they can write:
+	// held to what one request could cost before it is recorded (spec S3).
+	prompt := apiframework.EstimateTokens(chat.Messages) + schemaOverhead
+	tokens, _ := apiframework.Charged(reply.Tokens, true, status, prompt, chat.MaxTokens, true)
+	return reply.Content, tokens, report, reply.Err
 }
 
 // viaServer names the find on the server's key: leave from the breakers
@@ -229,50 +299,67 @@ func transient(ex apiframework.Exchange) bool {
 	return ex.Status == 0 || ex.Status == http.StatusTooManyRequests || ex.Status >= 500
 }
 
-// moderate checks the name and description when ModerateOutput is on,
+// moderate checks the name, keyword (NameSimple), description and material
 // through the server's key (a player's key page reaches no moderation
-// endpoint). The policy, decided and pinned by test:
+// endpoint). The policy, decided and pinned by test (spec S3, ruling 15,
+// owner ruling 2026-09-29):
 //
 //   - A flag always keeps the text out of the world: a generic trinket.
-//   - A find named on the server's key whose check cannot be made (no
-//     server key, the provider breaker open, the check failing) is kept
-//     out too, as before: the server vouches for what its own key makes.
-//   - A find named on the finder's own key whose check cannot be made is
-//     accepted unmoderated (Moderated false in its record, where `bauble
-//     show` and `bauble retire` find it), the same rule the AI companion
-//     follows on a player's key. So a working player key never turns into a
-//     trinket because the server's route is down.
+//   - Server-key text: checked when ModerateOutput is on, and kept out when
+//     the check cannot be made or fails; not checked when it is off.
+//   - Player-key text: checked whenever the server can
+//     (moderationPossible), and then a failed check keeps it out too.
+//     When the server cannot check it, no call is made and it is kept to
+//     its finder (finderOnly: everyone else reads the generic trinket).
+//   - Every check made, on either route, is recorded on the moderation
+//     breaker alone (apiframework.RecordConsumer), never the provider's
+//     and never the naming breaker. A flag is the check working.
 //
-// The check is free and is not a model call, so it reserves nothing and
-// feeds no breaker; it does not try while the provider breaker is open.
-func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (bool, error) {
-	if !cfg.ModerateOutput {
-		return false, nil
-	}
-	unavailable := func(cause error) (bool, error) {
-		if playerKey {
-			return false, nil
-		}
-		return false, cause
-	}
+// The check is free and is not a model call, so it reserves nothing. The
+// server settings, the clock and the breakers are read once here (blocked)
+// and passed on; nothing below re-reads apiframework.Blocked, so a breaker
+// that opens mid-decision cannot turn an already-decided player-key find
+// into a refusal instead of finderOnly.
+func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (moderated bool, finderOnly bool, err error) {
+	now := time.Now()
 	s := apiframework.Server()
-	if !s.HasKey() {
-		return unavailable(errNoRoute)
+	blocked := apiframework.Blocked(moderationBreaker, now)
+	moderateReadForTest()
+	possible := moderationPossible(cfg, s, blocked)
+	if playerKey && !possible {
+		return false, true, nil
 	}
-	if apiframework.BreakerOpen(time.Now()) {
-		return unavailable(errBreakerOpen)
+	if !cfg.ModerateOutput {
+		return false, false, nil
+	}
+	if !s.HasKey() {
+		return false, false, errNoRoute
+	}
+	if blocked {
+		return false, false, errBreakerOpen
+	}
+	// Every field a player reads or types. CleanReply always leaves a
+	// keyword (the model's, a word of the name, or "trinket"); a material
+	// it found too long is empty and not sent.
+	texts := []string{reply.Name, reply.NameSimple, reply.Description}
+	if reply.Material != `` {
+		texts = append(texts, reply.Material)
 	}
 	flags, err := apiframework.Moderate(s.Endpoint, cfg.ModerationModel, time.Duration(cfg.TimeoutSeconds)*time.Second,
-		[]string{reply.Name, reply.Description}, apiframework.CarriesNoPlayerData, nil)
+		texts, apiframework.CarriesNoPlayerData, nil)
+	// Enough failed checks in a row, on either route, open the moderation
+	// breaker: later player-key finds are then kept to their finders, and
+	// server-key finds refused, until it closes. A flag is the check working.
+	apiframework.RecordConsumer(moderationBreaker, err, now)
 	if err != nil {
-		return unavailable(fmt.Errorf(`moderation: %w`, err))
+		return false, false, fmt.Errorf(`moderation: %w`, err)
 	}
 	for _, f := range flags {
 		if f {
-			return false, errors.New(`moderation flagged the reply`)
+			return false, false, errors.New(`moderation flagged the reply`)
 		}
 	}
-	return true, nil
+	return true, false, nil
 }
 
 func errString(err error) string {

@@ -19,7 +19,10 @@ import (
 // natural curiosity (a crystal, a rough gem, a fossil, a piece of bone).
 // Version 4: a pickpocketed find is lifted from a person (taken_from, the
 // NPC's authored name) and is pocket-sized (size_rule).
-const PromptVersion = 4
+// Version 5: every text field is asked for in plain ASCII letters and
+// ' " - , . ! ? with a space after each sentence, the characters the
+// player-key allowlist accepts (baubles.CheckPlayerKeyText, ruling 15).
+const PromptVersion = 5
 
 // maxSearchedDescription caps the searched feature's description, in bytes.
 const maxSearchedDescription = 400
@@ -50,6 +53,7 @@ var systemPrompt = strings.Join([]string{
 	baubles.WeightGuidance,
 	`value: a whole number of gold inside the range the request gives; plainer objects sit low in the range, finer or more unusual ones higher.`,
 	`Do not repeat or closely copy any name in avoid_names.`,
+	`Characters: write name, name_simple, description and material in plain ASCII only, using the letters A to Z and a to z, spaces, and the marks ' " - , . ! ? and nothing else: no digits, no accented or non-Latin letters, no colons, semicolons, slashes or other symbols, and no curly quotes or long dashes (use ' " and - instead). Put a space after every sentence, never a full stop joined straight to the next word.`,
 }, "\n\n")
 
 // promptPlace is the user message: the find, as structured data. Every field

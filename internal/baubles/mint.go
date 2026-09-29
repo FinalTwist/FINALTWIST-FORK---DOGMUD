@@ -84,6 +84,12 @@ func Mint(o MintOpts) (items.Item, Record, error) {
 	}
 
 	limited := ApplyLimitsFor(res.Reply, tier, source)
+	if res.PlayerKey {
+		// A value a player's own key proposed is not trusted, even clamped
+		// into the tier: the server rolls it. ValueProposed keeps what the
+		// key said, for the record (spec S3).
+		limited.Reply.Value = tier.RollValue(randn)
+	}
 	rec, err := Create(Record{
 		Status:         status,
 		Name:           limited.Reply.Name,

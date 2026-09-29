@@ -319,7 +319,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   route; a conversation summary carries only what was said to her.
 - **perception.go**: `describeSituation`, what the companion can currently
   perceive, as words (no numbers, no hidden creatures, no secret exits, no
-  hidden containers, no container contents).
+  hidden containers, no container contents). Every item name and
+  description told to the model goes through `items.Item.ModelName` and
+  `ModelDescription`: text a player's own key wrote, moderated or not,
+  never reaches a model prompt (spec S3).
 - **mind.go**: `Mind` (schema 2: memories, facts, promises, summaries,
   opinion and its audit log), migration from schema 1, save/load. Every
   writer of text into her mind (`addLine`, `addMemory`, `addFact`,

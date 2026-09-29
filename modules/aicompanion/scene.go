@@ -146,7 +146,7 @@ func buildScene(mob *mobs.Mob, owner *users.UserRecord, p *Profile, mind *Mind, 
 			}
 			item := it
 			t := thing{
-				Kind: `item`, Name: item.Name(), Class: `lying here`,
+				Kind: `item`, Name: item.ModelName(), Class: `lying here`,
 				Key:  fmt.Sprintf(`item:%d@%d`, item.ItemId, room.RoomId),
 				Item: item, HasItem: true, Score: 0.3,
 			}
@@ -275,7 +275,7 @@ func buildScene(mob *mobs.Mob, owner *users.UserRecord, p *Profile, mind *Mind, 
 			continue
 		}
 		item := it
-		sc.Carried = append(sc.Carried, thing{Ref: fmt.Sprintf(`p%d`, i+1), Kind: `carried`, Name: item.Name(),
+		sc.Carried = append(sc.Carried, thing{Ref: fmt.Sprintf(`p%d`, i+1), Kind: `carried`, Name: item.ModelName(),
 			Class: itemClass(&item), Item: item, HasItem: true, Key: fmt.Sprintf(`own:%d`, item.ItemId)})
 	}
 	wi := 0
@@ -285,7 +285,7 @@ func buildScene(mob *mobs.Mob, owner *users.UserRecord, p *Profile, mind *Mind, 
 		}
 		wi++
 		item := it
-		sc.Worn = append(sc.Worn, thing{Ref: fmt.Sprintf(`w%d`, wi), Kind: `worn`, Name: item.Name(),
+		sc.Worn = append(sc.Worn, thing{Ref: fmt.Sprintf(`w%d`, wi), Kind: `worn`, Name: item.ModelName(),
 			Class: itemClass(&item), Item: item, HasItem: true, Key: fmt.Sprintf(`worn:%d`, item.ItemId)})
 	}
 

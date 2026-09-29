@@ -1,5 +1,7 @@
 package baubles
 
+import "hash/fnv"
+
 // The generic trinket: what every bauble is when it is not named by the
 // model. That is always the case with no OpenAI API key, and it is the
 // fallback whenever the model is switched off, over budget, too slow, fails,
@@ -50,4 +52,13 @@ func GenericTrinket(tier ValueTier, randn func(n int) int) Reply {
 		WeightLbs:   float64(tenths) / 10,
 		Value:       tier.RollValue(randn),
 	}
+}
+
+// genericDescriptionFor is one of genericDescriptions, the same one every
+// time for the same record id: what everyone but its finder reads for a
+// finder-only bauble (Record.View).
+func genericDescriptionFor(id string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(id))
+	return genericDescriptions[h.Sum32()%uint32(len(genericDescriptions))]
 }

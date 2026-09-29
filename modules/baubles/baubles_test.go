@@ -41,15 +41,18 @@ const goodContent = `{"name":"Painted Wooden Horse","name_simple":"horse","descr
 // flagged, and records the last chat request body and whether the right
 // key came with it (never the key itself).
 type fakeOpenAI struct {
-	srv       *httptest.Server
-	content   string
-	status    int
-	flagged   bool
-	modStatus int  // when set, the moderation endpoint answers this status
-	hang      bool // chat calls answer only after a second
-	chats     int32
-	lastBody  atomic.Value
-	rightAuth atomic.Bool
+	srv            *httptest.Server
+	content        string
+	status         int
+	flagged        bool
+	modStatus      int          // when set, the moderation endpoint answers this status
+	flagWord       string       // when set, any moderation input containing it is flagged
+	lastModeration atomic.Value // the last moderation inputs, newline-joined
+	moderations    int32        // moderation calls made, status answered or not
+	hang           bool         // chat calls answer only after a second
+	chats          int32
+	lastBody       atomic.Value
+	rightAuth      atomic.Bool
 }
 
 func newFakeOpenAI(t *testing.T) *fakeOpenAI {
@@ -74,11 +77,24 @@ func newFakeOpenAI(t *testing.T) *fakeOpenAI {
 			}
 			_ = json.NewEncoder(w).Encode(resp)
 		case strings.HasSuffix(r.URL.Path, `/moderations`):
+			atomic.AddInt32(&f.moderations, 1)
 			if f.modStatus != 0 {
 				w.WriteHeader(f.modStatus)
 				return
 			}
-			fmt.Fprintf(w, `{"results":[{"flagged":%t},{"flagged":false}]}`, f.flagged)
+			// One result per input, as the real endpoint answers (and as
+			// apiframework.Moderate requires).
+			var in struct {
+				Input []string `json:"input"`
+			}
+			_ = json.Unmarshal(body, &in)
+			f.lastModeration.Store(strings.Join(in.Input, "\n"))
+			results := make([]string, len(in.Input))
+			for i, text := range in.Input {
+				flag := (i == 0 && f.flagged) || (f.flagWord != `` && strings.Contains(text, f.flagWord))
+				results[i] = fmt.Sprintf(`{"flagged":%t}`, flag)
+			}
+			fmt.Fprintf(w, `{"results":[%s]}`, strings.Join(results, `,`))
 		default:
 			w.WriteHeader(404)
 		}
@@ -318,29 +334,73 @@ func TestARefusedBaubleModelNeverPausesTheCompanion(t *testing.T) {
 	} else {
 		apiframework.Release(apiframework.ConsumerCompanion, tk)
 	}
-	if !strings.Contains(m.info().Detail, `own breaker is open`) {
-		t.Fatal("status says it is baubles' own breaker")
+	if !strings.Contains(m.info().Detail, `naming breaker is open`) {
+		t.Fatal("status says it is baubles' own naming breaker")
 	}
 }
 
-// Moderation policy (analysis item 7): a flag always keeps a find out; a
-// check that cannot be made keeps out a find the server's key named, but
-// never turns a find the finder's own key named into a trinket.
-func TestModerationOutageNeverSpoilsAPlayerKeyFind(t *testing.T) {
+// Moderation policy (spec S3; owner ruling 2026-09-29): a flag always keeps
+// a find out, and a check that is made and fails keeps out a find on EITHER
+// key. Every failed check is held against the moderation breaker alone,
+// never the naming breaker and never the provider's the companion shares.
+func TestModerationOutageRefusesAPlayerKeyFind(t *testing.T) {
 	f := newFakeOpenAI(t)
 	f.modStatus = 500
 	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
 	if _, err := m.generate(context.Background(), request()); err == nil {
 		t.Fatal("the server's key: no check, no name")
 	}
-	apiframework.SetRelay(&fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: f})
-	res, err := m.generate(context.Background(), request())
-	if err != nil || !res.PlayerKey || res.Moderated {
-		t.Fatalf("the finder's key: named, unmoderated: %+v %v", res, err)
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: f}
+	apiframework.SetRelay(relay)
+	if _, err := m.generate(context.Background(), request()); err == nil || relay.sends != 1 {
+		t.Fatalf("the finder's key named it, the check failed: refused (sends=%d)", relay.sends)
+	}
+	// Both failed checks, the server-key one and the player-key one, are on
+	// the moderation breaker; the naming breaker and the provider's hold none.
+	if n := apiframework.Shared().ConsumerFailures(moderationBreaker); n != 2 ||
+		apiframework.Shared().ConsumerFailures(apiframework.ConsumerBaubles) != 0 || apiframework.BreakerFailures() != 0 {
+		t.Fatalf("the moderation breaker holds both failed checks (%d), the naming breaker and the provider's none", n)
 	}
 	f.modStatus, f.flagged = 0, true
 	if _, err := m.generate(context.Background(), request()); err == nil {
-		t.Fatal("a flag keeps even a player-key find out")
+		t.Fatal("a flag keeps a player-key find out")
+	}
+	f.flagged = false
+	if res, err := m.generate(context.Background(), request()); err != nil || !res.PlayerKey || !res.Moderated || res.FinderOnly {
+		t.Fatalf("a clean check: named on the finder's key, moderated, everyone's: %+v %v", res, err)
+	}
+}
+
+// The moderation breaker is read exactly once per find (H2 Task 10 review):
+// moderationPossible's own read and moderate's later, separate read used to
+// be two live reads of the same breaker a few statements apart. A breaker
+// that tripped open in that gap (another find's failed check, on another
+// goroutine) made the SECOND read see it open when the FIRST, which gated
+// whether a player-key find is even attempted, had already decided it was
+// closed: the find was then refused outright (errBreakerOpen) rather than
+// honouring the decision moderationPossible had already made for it. moderate
+// now takes one read (blocked) and never re-reads apiframework.Blocked, so a
+// later change to the breaker cannot reach a decision already taken.
+func TestModerationBreakerIsReadOnceNotReRead(t *testing.T) {
+	f := newFakeOpenAI(t)
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: f}
+	apiframework.SetRelay(relay)
+
+	t.Cleanup(func() { moderateReadForTest = func() {} })
+	// Lands right where the old code's second, redundant read ran: the
+	// breaker was closed for moderate's one true read (moderationPossible
+	// said the find could be attempted) and only opens here.
+	moderateReadForTest = func() {
+		apiframework.Shared().SetConsumerBreakerForTest(moderationBreaker, 5, time.Now().Add(time.Minute))
+	}
+
+	res, err := m.generate(context.Background(), request())
+	if errors.Is(err, errBreakerOpen) {
+		t.Fatalf("the breaker opening after the one read must not refuse a find that read already allowed: %+v %v", res, err)
+	}
+	if err != nil || !res.PlayerKey || !res.Moderated || res.FinderOnly {
+		t.Fatalf("the read at decision time was closed, so the find is named and moderated as usual: %+v %v", res, err)
 	}
 }
 
@@ -484,7 +544,7 @@ func (r *fakeRelay) Result(userId int, err error) { r.results = append(r.results
 
 func TestFindersOwnKeyNamesTheirFind(t *testing.T) {
 	serverSide := newFakeOpenAI(t)
-	m := testModule(t, serverSide, nil)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
 	player := newFakeOpenAI(t)
 	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: player}
 	apiframework.SetRelay(relay)
@@ -493,7 +553,7 @@ func TestFindersOwnKeyNamesTheirFind(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !res.PlayerKey || res.Model != `player-model` || relay.sends != 1 || atomic.LoadInt32(&serverSide.chats) != 0 {
+	if !res.PlayerKey || !res.Moderated || res.Model != `player-model` || relay.sends != 1 || atomic.LoadInt32(&serverSide.chats) != 0 {
 		t.Fatalf("named on the finder's key alone: %+v sends=%d server=%d", res, relay.sends, serverSide.chats)
 	}
 	if relay.carries != apiframework.CarriesNoPlayerData {
@@ -512,7 +572,7 @@ func TestFindersOwnKeyNamesTheirFind(t *testing.T) {
 
 func TestFindersKeyOnlyWhenAllowed(t *testing.T) {
 	serverSide := newFakeOpenAI(t)
-	m := testModule(t, serverSide, nil)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
 	relay := &fakeRelay{allowed: map[int]bool{8: true}, model: `player-model`, provider: newFakeOpenAI(t)}
 	apiframework.SetRelay(relay)
 
@@ -521,7 +581,7 @@ func TestFindersKeyOnlyWhenAllowed(t *testing.T) {
 		t.Fatalf("not allowed: the server's key: %+v %v sends=%d", res, err, relay.sends)
 	}
 
-	m2 := testModule(t, serverSide, func(c *Config) { c.UsePlayerKeys = false })
+	m2 := testModule(t, serverSide, func(c *Config) { c.UsePlayerKeys, c.ModerateOutput = false, true })
 	relay.allowed[7] = true
 	apiframework.SetRelay(relay)
 	if res, _ := m2.generate(context.Background(), request()); res.PlayerKey || relay.sends != 0 {
@@ -531,7 +591,7 @@ func TestFindersKeyOnlyWhenAllowed(t *testing.T) {
 
 func TestFindersKeyFailingFallsBackToTheServer(t *testing.T) {
 	serverSide := newFakeOpenAI(t)
-	m := testModule(t, serverSide, nil)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
 	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, fail: true, provider: newFakeOpenAI(t)}
 	apiframework.SetRelay(relay)
 
@@ -550,7 +610,7 @@ func TestFindersKeyFailingFallsBackToTheServer(t *testing.T) {
 // falls back to the server's key.
 func TestFindersUnusableReplyIsReportedForFindsOnly(t *testing.T) {
 	serverSide := newFakeOpenAI(t)
-	m := testModule(t, serverSide, nil)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
 	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, reply: `{"choices":[]}`, provider: newFakeOpenAI(t)}
 	apiframework.SetRelay(relay)
 
@@ -570,12 +630,17 @@ func TestNoKeyAtAll(t *testing.T) {
 	if _, err := m.generate(context.Background(), request()); !errors.Is(err, errNoRoute) {
 		t.Fatalf("no key anywhere: a generic trinket: %v", err)
 	}
-	// A finder's own key still names it; with no server key there is no
-	// moderation endpoint to reach, as on the companion's relay.
-	apiframework.SetRelay(&fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: f})
+	// With no server key nothing can moderate a finder's own key's text, so
+	// it is named there and kept to its finder (owner ruling 2026-09-29):
+	// FinderOnly, not Moderated, and no moderation call is made.
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: f}
+	apiframework.SetRelay(relay)
 	res, err := m.generate(context.Background(), request())
-	if err != nil || !res.PlayerKey || res.Moderated {
-		t.Fatalf("finder's key, unmoderated: %+v %v", res, err)
+	if err != nil || !res.PlayerKey || res.Moderated || !res.FinderOnly || relay.sends != 1 {
+		t.Fatalf("finder's key, kept to the finder: %+v %v sends=%d", res, err, relay.sends)
+	}
+	if got := f.lastModeration.Load(); got != nil {
+		t.Fatalf("nothing was sent to moderation: %v", got)
 	}
 }
 
@@ -667,7 +732,7 @@ func TestPickpocketPromptIsPocketSized(t *testing.T) {
 // they allowed finds, else the server's.
 func TestPickpocketUsesTheThiefsKeyFirst(t *testing.T) {
 	serverSide := newFakeOpenAI(t)
-	m := testModule(t, serverSide, nil)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
 	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
 	apiframework.SetRelay(relay)
 	req := request()
@@ -686,4 +751,204 @@ func TestPickpocketUsesTheThiefsKeyFirst(t *testing.T) {
 	if err != nil || res.PlayerKey || relay.sends != 1 || atomic.LoadInt32(&serverSide.chats) != 1 {
 		t.Fatalf("no consent, the server's key: %+v %v sends=%d", res, err, relay.sends)
 	}
+}
+
+// Where the server cannot moderate (no server key, ModerateOutput off, the
+// provider breaker or the moderation breaker open), a finder's own key still names
+// the find, and its text is kept to that finder (owner ruling 2026-09-29):
+// FinderOnly, not Moderated, and no moderation call is made.
+func TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly(t *testing.T) {
+	cases := map[string]func(t *testing.T, f *fakeOpenAI) *BaublesModule{
+		`no server key`: func(t *testing.T, f *fakeOpenAI) *BaublesModule {
+			m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+			server(t, f.srv.URL, ``, 2000000, 3)
+			return m
+		},
+		`moderation off`: func(t *testing.T, f *fakeOpenAI) *BaublesModule {
+			return testModule(t, f, nil)
+		},
+		`provider breaker open`: func(t *testing.T, f *fakeOpenAI) *BaublesModule {
+			m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+			apiframework.SetBreakerForTest(5, time.Now().Add(time.Minute))
+			return m
+		},
+		`moderation breaker open`: func(t *testing.T, f *fakeOpenAI) *BaublesModule {
+			m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+			apiframework.Shared().SetConsumerBreakerForTest(moderationBreaker, 0, time.Now().Add(time.Minute))
+			return m
+		},
+	}
+	for name, build := range cases {
+		f := newFakeOpenAI(t)
+		m := build(t, f)
+		relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
+		apiframework.SetRelay(relay)
+		res, err := m.generate(context.Background(), request())
+		if err != nil || !res.PlayerKey || res.Moderated || !res.FinderOnly || relay.sends != 1 {
+			t.Errorf("%v: named on the finder's key, kept to the finder: %+v %v sends=%d", name, res, err, relay.sends)
+		}
+		if got := f.lastModeration.Load(); got != nil {
+			t.Errorf("%v: no moderation call is made: %v", name, got)
+		}
+	}
+}
+
+// The moderation breaker is its own (review finding d): a server-key find
+// whose naming succeeds does not reset a run of failed checks, so checks
+// failing on both routes open it, and then a finder's own key's text is
+// kept to the finder with no check tried, while the naming breaker, which
+// saw only successes, stays closed. Sequence: server find, player find,
+// server find, each with the check failing (BreakerErrors 3).
+func TestFailedChecksOpenTheModerationBreakerAlone(t *testing.T) {
+	f := newFakeOpenAI(t)
+	f.modStatus = 500
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+	relay := &fakeRelay{allowed: map[int]bool{}, model: `player-model`, provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+
+	for i, playerKey := range []bool{false, true, false} {
+		relay.allowed[7] = playerKey
+		if _, err := m.generate(context.Background(), request()); err == nil {
+			t.Fatalf("find %d: the check failed, so it is refused", i)
+		}
+	}
+	if !apiframework.Blocked(moderationBreaker, time.Now()) {
+		t.Fatal("three failed checks in a row, whatever the route, open the moderation breaker")
+	}
+	if apiframework.Blocked(apiframework.ConsumerBaubles, time.Now()) || apiframework.BreakerOpen(time.Now()) {
+		t.Fatal("every naming call succeeded: the naming and provider breakers stay closed")
+	}
+
+	f.modStatus = 0
+	checks := atomic.LoadInt32(&f.moderations)
+	relay.allowed[7] = true
+	res, err := m.generate(context.Background(), request())
+	if err != nil || !res.FinderOnly || res.Moderated || atomic.LoadInt32(&f.moderations) != checks {
+		t.Fatalf("with the breaker open, the finder's text is kept to them, unchecked: %+v %v", res, err)
+	}
+	relay.allowed[7] = false
+	if _, err := m.generate(context.Background(), request()); !errors.Is(err, errBreakerOpen) {
+		t.Fatalf("and a server-key find is refused, unchecked: %v", err)
+	}
+}
+
+// Player-key text outside the allowlist (ruling 15) is not the finder's key
+// failing: their finds breaker hears nothing, and the find goes on to the
+// server's key, which names it.
+func TestPlayerKeyTextOutsideTheAllowlistFallsBackToTheServer(t *testing.T) {
+	serverSide := newFakeOpenAI(t)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
+	odd := strings.Replace(goodContent, `Painted Wooden Horse`, "Painted Wooden H\xc3\xb6rse", 1) // o with diaeresis, U+00F6
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, reply: chatBody(odd, 240), provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+	res, err := m.generate(context.Background(), request())
+	if err != nil || res.PlayerKey || res.Reply.Name != `Painted Wooden Horse` || relay.sends != 1 || atomic.LoadInt32(&serverSide.chats) != 1 {
+		t.Fatalf("refused on the finder's key, named on the server's: %+v %v sends=%d server=%d", res, err, relay.sends, serverSide.chats)
+	}
+	if len(relay.results) != 0 {
+		t.Fatalf("an allowlist refusal is not the finder's key failing: %v", relay.results)
+	}
+}
+
+// Curly quotes and dashes from a finder's own key are folded to ASCII
+// before the allowlist looks (ruling 15), so the find keeps its route.
+func TestPlayerKeyTypographyIsFoldedNotRefused(t *testing.T) {
+	serverSide := newFakeOpenAI(t)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
+	curly := strings.Replace(goodContent, `A child's toy horse, its red`, "A child\xe2\x80\x99s toy horse \xe2\x80\x94 its red", 1) // U+2019, U+2014
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, reply: chatBody(curly, 240), provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+	res, err := m.generate(context.Background(), request())
+	if err != nil || !res.PlayerKey || atomic.LoadInt32(&serverSide.chats) != 0 {
+		t.Fatalf("named on the finder's key: %+v %v server=%d", res, err, serverSide.chats)
+	}
+	if want := `A child's toy horse - its red paint flaking from the mane.`; res.Reply.Description != want {
+		t.Fatalf("the cleaned, folded text is what is kept:\n got %v\nwant %v", res.Reply.Description, want)
+	}
+}
+
+// Every text field is moderated, on every route (spec S3, ruling 15): the
+// name, the keyword players type, the description, and the material that
+// appraise shows.
+func TestEveryTextFieldIsModerated(t *testing.T) {
+	f := newFakeOpenAI(t)
+	f.flagWord = `pine`
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+	if _, err := m.generate(context.Background(), request()); err == nil {
+		t.Fatal("a flagged material refuses the find")
+	}
+	got, _ := f.lastModeration.Load().(string)
+	want := "Painted Wooden Horse\nhorse\nA child's toy horse, its red paint flaking from the mane.\npine"
+	if got != want {
+		t.Fatalf("name, keyword, description and material, in that order:\n got %v\nwant %v", got, want)
+	}
+}
+
+// The system prompt states the characters the player-key allowlist accepts
+// (ruling 15), so a model on either key is asked for text that passes.
+func TestSystemPromptStatesTheAllowedCharacters(t *testing.T) {
+	if PromptVersion < 5 {
+		t.Fatalf("the prompt changed: PromptVersion must be at least 5, is %d", PromptVersion)
+	}
+	for _, want := range []string{`plain ASCII`, `' " - , . ! ?`, `no colons`} {
+		if !strings.Contains(systemPrompt, want) {
+			t.Errorf("the system prompt does not say %v", want)
+		}
+	}
+}
+
+// A token count relayed through a player's browser is theirs to write: it
+// is held to what one request could cost before it reaches the record or
+// the statistics (spec S3).
+func TestARelayedTokenCountIsClamped(t *testing.T) {
+	serverSide := newFakeOpenAI(t)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, reply: chatBody(goodContent, 999999), provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+	res, err := m.generate(context.Background(), request())
+	if err != nil || !res.PlayerKey {
+		t.Fatalf("named on the finder's key: %+v %v", res, err)
+	}
+	most := apiframework.EstimateTokens(buildMessages(request())) + schemaOverhead + m.snapshot().MaxCompletionTokens
+	if res.Tokens != most {
+		t.Fatalf("clamped to the most one request costs (%d), got %d", most, res.Tokens)
+	}
+}
+
+// A relay call takes the finder's own slot (one in flight per finder), not
+// one of the server's shared slots (spec S3).
+func TestAFindersOwnKeyTakesTheirOwnSlot(t *testing.T) {
+	serverSide := newFakeOpenAI(t)
+	m := testModule(t, serverSide, func(c *Config) { c.MaxConcurrent, c.ModerateOutput = 1, true })
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+
+	m.slots <- struct{}{} // every server slot is busy
+	res, err := m.generate(context.Background(), request())
+	<-m.slots
+	if err != nil || !res.PlayerKey || relay.sends != 1 {
+		t.Fatalf("the finder's key names it with the server's slots full: %+v %v sends=%d", res, err, relay.sends)
+	}
+
+	release, ok := m.takeFinderSlot(7)
+	if !ok {
+		t.Fatal("the finder's slot is free again")
+	}
+	res, err = m.generate(context.Background(), request())
+	release()
+	if err != nil || res.PlayerKey || relay.sends != 1 || atomic.LoadInt32(&serverSide.chats) != 1 {
+		t.Fatalf("with their own call in flight, the server's key names it: %+v %v sends=%d", res, err, relay.sends)
+	}
+	if _, ok := m.takeFinderSlot(7); !ok {
+		t.Fatal("released")
+	}
+}
+
+// chatBody is a provider's chat completions answer with this content.
+func chatBody(content string, tokens int) string {
+	b, _ := json.Marshal(map[string]any{
+		`choices`: []any{map[string]any{`finish_reason`: `stop`, `message`: map[string]any{`content`: content}}},
+		`usage`:   map[string]any{`total_tokens`: tokens},
+	})
+	return string(b)
 }

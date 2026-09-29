@@ -105,17 +105,17 @@ func appraiseBauble(item items.Item, user *users.UserRecord, room *rooms.Room, m
 		return
 	}
 
-	spec := item.GetSpec()
-	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> turns <ansi fg="itemname">%s</ansi> over in their hands.`, mob.Character.Name, item.DisplayName()))
+	spec := item.GetSpecFor(user.UserId) // the appraisal reaches this player alone
+	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> turns <ansi fg="itemname">%s</ansi> over in their hands.`, mob.Character.Name, item.DisplayNameFor(user.UserId)))
 	room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> looks over something for <ansi fg="username">%s</ansi>.`, mob.Character.Name, user.Character.Name), user.UserId)
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "<ansi fg=\"itemname\">%s</ansi>\r\n", item.DisplayName())
+	fmt.Fprintf(&b, "<ansi fg=\"itemname\">%s</ansi>\r\n", item.DisplayNameFor(user.UserId))
 	if spec.Description != `` {
 		fmt.Fprintf(&b, "  %s\r\n", spec.Description)
 	}
-	if rec.Material != `` {
-		fmt.Fprintf(&b, "  Made of:  %s\r\n", rec.Material)
+	if material := rec.MaterialFor(user.UserId); material != `` {
+		fmt.Fprintf(&b, "  Made of:  %s\r\n", material)
 	}
 	fmt.Fprintf(&b, "  Weight:   %.1f lb\r\n", spec.Weight)
 	fmt.Fprintf(&b, "  Worth:    <ansi fg=\"gold\">%d gold</ansi>\r\n", spec.Value)

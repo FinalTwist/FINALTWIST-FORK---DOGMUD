@@ -311,7 +311,7 @@ func takeFromMob(actor Actor, m *mobs.Mob, extra []items.Item) StealResult {
 			}
 
 			stolenStuff = append(stolenStuff,
-				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, itemStolen.DisplayName()))
+				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, itemStolen.DisplayNameFor(actor.GetUserId())))
 		}
 
 		// A pickpocketed bauble, already out of the mark's pocket (or made
@@ -322,14 +322,14 @@ func takeFromMob(actor Actor, m *mobs.Mob, extra []items.Item) StealResult {
 				b.LeaveBaubleAt(``, 0, baubleNow())
 				actor.GetRoom().AddItem(b, false)
 				stolenStuff = append(stolenStuff,
-					fmt.Sprintf(`<ansi fg="itemname">%s</ansi> (too much to carry: it falls at your feet)`, b.DisplayName()))
+					fmt.Sprintf(`<ansi fg="itemname">%s</ansi> (too much to carry: it falls at your feet)`, b.DisplayNameFor(actor.GetUserId())))
 				continue
 			}
 			if actor.IsPlayer() {
 				events.AddToQueue(events.ItemOwnership{UserId: actor.GetUserId(), Item: b, Gained: true})
 			}
 			stolenStuff = append(stolenStuff,
-				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, b.DisplayName()))
+				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, b.DisplayNameFor(actor.GetUserId())))
 		}
 
 		if len(stolenStuff) == 0 {

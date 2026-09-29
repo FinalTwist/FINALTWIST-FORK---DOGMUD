@@ -204,7 +204,13 @@ func Edit(id string, field string, value string, admin string) (Record, error) {
 // answer (the admin `bauble regen` command). Provenance, status history and
 // the theft fields are kept. It refuses a generic trinket: regenerating is
 // for getting a NEW model name, and a failed call must not wipe one.
-func ApplyRegenerated(id string, res GenResult, admin string) (Record, error) {
+//
+// randn picks a player-key find's rolled value, mirroring Mint (spec S3): a
+// value a player's own key proposed is never trusted, even clamped, so the
+// server rolls it instead and keeps the proposal in ValueProposed. Pass
+// util.Rand in production, nil for the deterministic midpoint, a fixed
+// function in tests.
+func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, error) {
 	if res.Generator != GeneratorOpenAI {
 		return Record{}, errors.New(`the model did not answer; the record is unchanged`)
 	}
@@ -213,6 +219,9 @@ func ApplyRegenerated(id string, res GenResult, admin string) (Record, error) {
 		return Record{}, ErrNoRecord
 	}
 	limited := ApplyLimitsFor(res.Reply, rec.Tier, rec.Source)
+	if res.PlayerKey {
+		limited.Reply.Value = limited.Tier.RollValue(randn)
+	}
 	updated, ok := Update(id, func(r *Record) {
 		r.Name = limited.Reply.Name
 		r.NameSimple = limited.Reply.NameSimple
@@ -227,6 +236,7 @@ func ApplyRegenerated(id string, res GenResult, admin string) (Record, error) {
 		r.PromptVersion = res.PromptVersion
 		r.Tokens += res.Tokens
 		r.Moderated = res.Moderated
+		r.PlayerKey = res.PlayerKey
 		if r.Status == StatusFallback || r.Status == StatusRetired {
 			r.Status = StatusReady
 		}

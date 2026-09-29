@@ -20,7 +20,16 @@ was stolen, and how its text was generated.
 - **reply.go**: the strict JSON schema for a generation reply, parsing, and
   the numeric limits.
 - **record.go**: `Record`, its statuses, sources and generators, and `View`
-  (what the item layer shows, including the retired text).
+  (what the item layer shows, including the retired text). `KeptToFinder()`
+  is `PlayerKey && !Moderated`: DERIVED, never stored, so records named
+  before slice H are covered. Such a record's `View` is the generic
+  trinket (`genericName`, `genericNameSimple`, `genericDescriptionFor(id)`,
+  stable per id) with its own text in `BaubleView.Finder` for
+  `FoundByUserId` (none when that is 0); retired text wins over both.
+  `View` sets `BaubleView.PlayerText` for any `PlayerKey` record, so no
+  model prompt carries it (`items.Item.ModelName`).
+  `MaterialFor(viewerUserId)` is the material for the finder alone. Never
+  promotable (slice C takes only server-key moderated text).
 - **store.go**: the on-disk format: shards of `ShardSize` records
   (`catalog-NNNN.yaml`; ids start at 1, so shard 0 is B0000001 to
   B0000500, `shardOf`) plus `meta.yaml` with the next id. A record read from
@@ -78,14 +87,25 @@ was stolen, and how its text was generated.
   not name it: "Trinket", a simple description, value and weight at random
   within the tier.
 - **generate.go**: the generator seam (`SetGenerator`, `CurrentGenerator`),
-  `GenRequest`, `GenResult`, `Generate`, `RecentNames`.
+  `GenRequest`, `GenResult`, `Generate`, `RecentNames`. `Generate` refuses a
+  `PlayerKey` result that fails `CheckPlayerKeyText`, or is neither
+  `Moderated` nor `FinderOnly` with a finder, and any `FinderOnly` result
+  that is not `PlayerKey`; `RecentNames` skips `PlayerKey` records.
 - **validate.go**: `CleanReply` (the text checks the schema cannot make:
   NFKC, curly quotes, en and em dashes and the ellipsis folded to ASCII
   (`typographyFold`), invisible and format characters dropped (`cleanRune`),
   rune lengths, link-shaped text refused (`linkRE`), errors quoting at most
   60 runes (`quoteShort`)) and `PlainText`, which is `cleanLine`, so the room
-  text in a prompt is folded the same way.
-- **mint.go**: `Place`, `NewPlace`, `MintOpts`, `Mint`.
+  text in a prompt is folded the same way. An authored item's whole name is
+  refused (`items.AuthoredName`).
+- **playerkey.go**: `CheckPlayerKeyText`, the plain-text allowlist for text a
+  player's own key wrote, on the CLEANED name, keyword, description and
+  material: ASCII letters, space, `' " - , . ! ?`, and every run of periods
+  followed by a space, a `"` or the end.
+- **mint.go**: `Place`, `NewPlace`, `MintOpts`, `Mint`. `Mint` rolls a
+  `PlayerKey` find's value with `tier.RollValue`, keeping the key's
+  proposal in `ValueProposed`. `ApplyRegenerated` takes the new result's
+  `PlayerKey` (a regen is always server-key).
 - **sales.go**: `MarkSold`, `SalesSince`.
 - **theft.go**: `Theft`, `MarkStolen` (a household's bauble taken),
   `MarkHousehold`, `MarkVanished` (left untaken too long), `UntakenLimit`;
@@ -144,7 +164,7 @@ func CleanReply(r Reply) (Reply, error) // ErrUnusableReply
 func PlainText(s string) string
 
 type GenRequest struct { /* Tier, Source, Place, RoomTitle, RoomDescription, RoomNouns, Container, ContainerDescription, TimeOfDay, RecentNames, FinderUserId, Victim */ }
-type GenResult struct { /* Reply, Generator, Model, PromptVersion, Tokens, Moderated */ }
+type GenResult struct { /* Reply, Generator, Model, PromptVersion, Tokens, Moderated, PlayerKey, FinderOnly */ }
 type GeneratorFunc func(ctx context.Context, req GenRequest) (GenResult, error)
 func SetGenerator(fn GeneratorFunc, info func() GeneratorInfo)
 func CurrentGenerator() (GeneratorInfo, bool)
@@ -304,6 +324,14 @@ func ResetWindow(roomId int)
 
 ## Gotchas
 
+- **Finder-only text is fail-safe, not routed.** The catalog's
+  viewer-agnostic view of a finder-only record IS the generic trinket, so
+  every render path shows "Trinket" unless it asks the item layer for one
+  viewer's view (`items.Item.GetSpecFor` and kin), which only the
+  single-reader functions listed in the repo-root
+  `bauble_finder_view_guard_test.go` do, each with a pinned call count.
+  Never read a record's `Name`, `Description` or `Material` for display
+  outside the admin command; use the item accessors or `MaterialFor`.
 - **Admin edits go through `CleanReply` too**, so an admin cannot put
   markup, digits in a name, or a real item's keyword on a bauble by hand
   either. Value stays inside the tier; `ApplyRegenerated` refuses a generic

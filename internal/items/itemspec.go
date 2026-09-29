@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/text/unicode/norm"
+
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -539,48 +541,94 @@ func GetAllItemSpecsMap() map[int]*ItemSpec {
 	return out
 }
 
-// authoredWords is every word a loaded, authored item answers to (its
-// keyword and every word of its name), rebuilt by whatever writes the items map (a load,
-// an item saved, created or deleted), on the game loop. AuthoredKeyword is
-// read from goroutines off the mud lock (a bauble being named), and a range
-// over the live items map there, racing one of those writes, is a fatal
-// "concurrent map iteration and map write"; this snapshot is read instead.
-var authoredWords atomic.Pointer[map[string]bool]
+// authored is what loaded, authored items answer to: every keyword and word
+// of a name (words), and every whole name, normalised (names). It is
+// rebuilt by whatever writes the items map (a load, an item saved, created
+// or deleted), on the game loop, as ONE snapshot so the two sets always
+// agree. AuthoredKeyword and AuthoredName are read from goroutines off the
+// mud lock (a bauble being named), and a range over the live items map
+// there, racing one of those writes, is a fatal "concurrent map iteration
+// and map write"; this snapshot is read instead.
+type authoredSnapshot struct {
+	words map[string]bool
+	names map[string]bool
+}
+
+var authored atomic.Pointer[authoredSnapshot]
 
 // rebuildAuthoredKeywords takes the snapshot. Call after every change to
 // the items map, where the change is made.
 func rebuildAuthoredKeywords() {
-	set := make(map[string]bool, len(items)*2)
+	snap := &authoredSnapshot{
+		words: make(map[string]bool, len(items)*2),
+		names: make(map[string]bool, len(items)),
+	}
 	for id, spec := range items {
 		if id == BaubleItemId || spec == nil {
 			continue
 		}
 		if w := strings.ToLower(strings.TrimSpace(spec.NameSimple)); w != `` {
-			set[w] = true
+			snap.words[w] = true
 		}
 		// Every word of the name, not only its head noun: a bauble keyed
 		// "silver" would fully match `get silver` and take it over a real
 		// "Silver Dagger", which that word only partly matches.
 		for _, f := range strings.Fields(spec.Name) {
 			if w := headNoun(f); w != `` {
-				set[w] = true
+				snap.words[w] = true
 			}
 		}
+		if n := normalizeItemName(spec.Name); n != `` {
+			snap.names[n] = true
+		}
 	}
-	authoredWords.Store(&set)
+	authored.Store(snap)
 }
 
 // AuthoredKeyword reports whether word is what a real, authored item
 // answers to: its keyword (NameSimple), or any word of its name ("lantern"
 // and "hooded" for "Hooded Lantern"). The bauble carrier is not counted. Bauble keywords are kept off these so `get lantern` never picks
 // up a model-named trinket instead of the lantern. Safe from any goroutine:
-// it reads the snapshot (authoredWords), never the items map.
+// it reads the snapshot (authored), never the items map.
 func AuthoredKeyword(word string) bool {
-	set := authoredWords.Load()
-	if set == nil {
+	snap := authored.Load()
+	if snap == nil {
 		return false
 	}
-	return (*set)[strings.ToLower(strings.TrimSpace(word))]
+	return snap.words[strings.ToLower(strings.TrimSpace(word))]
+}
+
+// AuthoredName reports whether name is a real, authored item's whole name,
+// compared after normalizeItemName. The bauble carrier is not counted. A
+// bauble may not take one (baubles.CleanReply). Safe from any goroutine.
+func AuthoredName(name string) bool {
+	snap := authored.Load()
+	if snap == nil {
+		return false
+	}
+	return snap.names[normalizeItemName(name)]
+}
+
+// normalizeItemName is a name as AuthoredName compares it: NFKC (fullwidth
+// and other compatibility letters folded), lower case, every run of
+// Unicode space one plain space, trimmed; a hyphen counted as a space; one
+// leading article ("a", "an", "the", whole word) stripped; and trailing
+// punctuation (. ! ? , ; :) stripped. Applied to an authored name when the
+// snapshot is built, and to a candidate in AuthoredName, so "The Hooded
+// Lantern", "Hooded Lantern." and "A Beeswax Votive Candle" all normalise to
+// the same form as their plain "Hooded Lantern" / "Beeswax Votive Candle"
+// counterparts (review: the exact-match gap let those near-misses pass as
+// not-authored).
+func normalizeItemName(s string) string {
+	s = strings.ReplaceAll(strings.ToLower(norm.NFKC.String(s)), `-`, ` `)
+	fields := strings.Fields(s)
+	if len(fields) > 1 {
+		switch fields[0] {
+		case `a`, `an`, `the`:
+			fields = fields[1:]
+		}
+	}
+	return strings.TrimRight(strings.Join(fields, ` `), `.!?,;:`)
 }
 
 // headNoun is a name's last word as a keyword: lower case, with a

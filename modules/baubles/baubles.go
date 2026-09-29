@@ -34,6 +34,10 @@ type BaublesModule struct {
 	cfg   Config
 	slots chan struct{}
 
+	// finders holds the users with a find in flight on their own key: one
+	// at a time each, and never one of the server's slots (spec S3).
+	finders map[int]bool
+
 	// Today's calls by route, since boot, for `bauble status`.
 	stats struct {
 		day      string
@@ -97,6 +101,40 @@ func (m *BaublesModule) snapshot() Config {
 	return m.cfg
 }
 
+// takeServerSlot takes one of the server key's MaxConcurrent slots, or
+// reports none free. A find beyond them is not queued: it is a generic
+// trinket.
+func (m *BaublesModule) takeServerSlot() (release func(), ok bool) {
+	m.mu.Lock()
+	slots := m.slots
+	m.mu.Unlock()
+	select {
+	case slots <- struct{}{}:
+		return func() { <-slots }, true
+	default:
+		return nil, false
+	}
+}
+
+// takeFinderSlot takes the finder's own slot: one call on their key at a
+// time.
+func (m *BaublesModule) takeFinderSlot(userId int) (release func(), ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.finders[userId] {
+		return nil, false
+	}
+	if m.finders == nil {
+		m.finders = map[int]bool{}
+	}
+	m.finders[userId] = true
+	return func() {
+		m.mu.Lock()
+		delete(m.finders, userId)
+		m.mu.Unlock()
+	}, true
+}
+
 // count notes one call's route and outcome for the status view.
 func (m *BaublesModule) count(playerKey bool, failed bool) {
 	m.mu.Lock()
@@ -132,13 +170,23 @@ func (m *BaublesModule) info() baubles.GeneratorInfo {
 	detail := `Today: ` + itoa(server) + ` named on the server's key, ` + itoa(player) + ` on finders' own keys, ` + itoa(failures) + ` failed. ` +
 		`Server key tokens: ` + itoa(u.Tokens) + ` of ` + limitWords(u.Limit) + ` (baubles ` + itoa(mine) + `; one budget for every feature).`
 	if !s.HasKey() {
-		detail += ` No server key: only finders who allowed their own key get named finds.`
+		detail += ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find is a generic trinket.`
+	} else if !cfg.ModerateOutput {
+		detail += ` ModerateOutput is off: server-key finds are shown to everyone with no check (the operator's choice)`
+		if cfg.UsePlayerKeys {
+			detail += `, and finds named on finders' own keys are shown to those finders alone`
+		}
+		detail += `.`
+	}
+	if now := time.Now(); cfg.ModerateOutput && apiframework.Blocked(moderationBreaker, now) && !apiframework.BreakerOpen(now) {
+		detail += ` The moderation breaker is open (the moderation endpoint keeps failing): server-key finds are generic and finders' own keys' finds are shown to those finders alone until ` +
+			apiframework.BreakerUntil(moderationBreaker).Format(`15:04:05`) + `.`
 	}
 	if now := time.Now(); apiframework.Blocked(apiframework.ConsumerBaubles, now) {
 		if apiframework.BreakerOpen(now) {
 			detail += ` The provider breaker (every feature's) is open`
 		} else {
-			detail += ` Baubles' own breaker is open (the provider is fine; check Modules.baubles.Model)`
+			detail += ` Baubles' naming breaker is open (the provider is fine; check Modules.baubles.Model)`
 		}
 		if until := apiframework.BreakerUntil(apiframework.ConsumerBaubles); now.Before(until) {
 			detail += ` until ` + until.Format(`15:04:05`)

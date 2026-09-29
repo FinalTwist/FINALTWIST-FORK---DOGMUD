@@ -2,6 +2,7 @@ package baubles
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -58,6 +59,12 @@ type GenResult struct {
 	Tokens        int
 	Moderated     bool
 	PlayerKey     bool // named through the finder's own key, not the server's
+
+	// FinderOnly is player-key text the server could not moderate: its
+	// finder reads it, everyone else the generic trinket (the record derives
+	// it: Record.KeptToFinder; owner ruling 2026-09-29). Only ever with
+	// PlayerKey and a finder.
+	FinderOnly bool
 }
 
 // GeneratorFunc names one bauble. It blocks; it must respect ctx.
@@ -134,6 +141,23 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 		return generic()
 	}
 	cleaned, err := CleanReply(res.Reply)
+	if err == nil && (res.PlayerKey || res.FinderOnly) {
+		// Text a player's own key wrote is held to plain words, and is
+		// either moderated (everyone reads it) or kept to its finder
+		// (FinderOnly: the server could not moderate it; owner ruling
+		// 2026-09-29). Nothing else is ever finder-only (spec S3).
+		switch {
+		case !res.PlayerKey:
+			err = errors.New(`only text a player's own key wrote is kept to its finder`)
+		case res.Moderated:
+			res.FinderOnly = false // moderated text is everyone's
+			err = CheckPlayerKeyText(cleaned)
+		case res.FinderOnly && req.FinderUserId > 0:
+			err = CheckPlayerKeyText(cleaned)
+		default:
+			err = errors.New(`player-key text was neither moderated nor kept to its finder`)
+		}
+	}
 	if err != nil {
 		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
 		return generic()
@@ -152,13 +176,15 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 	return res
 }
 
-// RecentNames returns up to n names of model-named baubles found in the zone,
+// RecentNames returns up to n names of server-key model-named baubles found in the zone,
 // newest first, so the prompt can ask for something different.
 func RecentNames(zone string, n int) []string {
 	cat.mu.RLock()
 	recs := make([]*Record, 0, 32)
 	for _, r := range cat.records {
-		if r.Zone == zone && r.Generator == GeneratorOpenAI {
+		// Never a name a player's own key wrote: this list goes into
+		// every later find's prompt, on anyone's key (spec S3).
+		if r.Zone == zone && r.Generator == GeneratorOpenAI && !r.PlayerKey {
 			recs = append(recs, r)
 		}
 	}

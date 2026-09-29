@@ -319,7 +319,9 @@ func (d BaubleDelivery) deliver(res baubles.GenResult, randn func(n int) int) {
 	}
 
 	now := baubleNow()
-	name := itm.DisplayName()
+	// Every line naming it goes to the finder alone (who.send): their own
+	// view of a finder-only bauble. The room line below names no item.
+	name := itm.DisplayNameFor(d.UserId)
 
 	// A household keeps what is found in it. A find rolled as a household's
 	// stays theirs even with nobody of the household about now: its richer

@@ -236,8 +236,12 @@ func (i *Item) Validate() {
 }
 
 func (i *Item) GetLongDescription() string {
+	return i.longDescriptionFrom(i.GetSpec())
+}
 
-	iSpec := i.GetSpec()
+// longDescriptionFrom is GetLongDescription over a spec already resolved
+// (GetSpec, or GetSpecFor for one viewer).
+func (i *Item) longDescriptionFrom(iSpec ItemSpec) string {
 
 	longDesc := strings.Builder{}
 
@@ -490,6 +494,12 @@ func (i *Item) AttrString() string {
 }
 
 func (i *Item) DisplayName() string {
+	return i.displayNameFrom(i.GetSpec())
+}
+
+// displayNameFrom is DisplayName over a spec already resolved (GetSpec, or
+// GetSpecFor for one viewer).
+func (i *Item) displayNameFrom(spec ItemSpec) string {
 	if i.ItemId < 1 { // Used to represent item slots that are disabled
 		if i.ItemId == 0 { // Used to represent item slots that are empty
 			return `<ansi fg="item-nothing">-nothing-</ansi>`
@@ -499,7 +509,7 @@ func (i *Item) DisplayName() string {
 	}
 
 	prefix := ``
-	if i.GetSpec().QuestToken != `` {
+	if spec.QuestToken != `` {
 		prefix = `<ansi fg="questflag">★</ansi>`
 	}
 
@@ -519,7 +529,6 @@ func (i *Item) DisplayName() string {
 		suffix += `)</ansi>`
 	}
 
-	spec := i.GetSpec()
 	// Normalize the bare template name to canonical smart Title case. This is a
 	// no-op on canonical templates (casing.Title is idempotent) but self-heals
 	// stale per-instance name snapshots baked before the one-time template
@@ -626,6 +635,10 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 		// keyword (checked below like any item's), so it never outranks a
 		// real item the player named in full, and among partial matches
 		// FindMatchIn prefers the real item.
+		// A finder-only bauble's i.Name() is its generic name, so it matches
+		// by its generic words alone. Its hidden words never match, for its
+		// finder either: matching is viewer-agnostic, and a hidden word that
+		// matched would confirm the hidden text to anyone who typed it.
 		wordPart, wordFull := baubleWordMatch(input, simpleName, displayName, withoutPossessives(i.Name()))
 		baublePartial = wordPart || wordFull
 	}

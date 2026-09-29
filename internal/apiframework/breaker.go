@@ -289,6 +289,27 @@ func (k *Books) Record(consumer string, t Ticket, err error, now time.Time) {
 	k.b.record(t.provider, ProviderFailure(err), now, limit, cooldown)
 }
 
+// RecordConsumer counts one outcome against consumer's OWN breaker alone,
+// never the provider's: for a check that belongs to one feature but is not
+// a model call on the server's key (baubles' moderation of text a
+// player's own key wrote; owner ruling 2026-09-29). err nil is a success.
+// There is no ticket: the check never asked Allow for leave, so it is
+// never the half-open probe. Once an opened breaker's cooldown is up,
+// Blocked lets every such check through again (no probe is out), a
+// success resets the run without clearing the trip, and BreakerErrors
+// failures in a row open it for another cooldown. That is the right
+// shape for a free check that cannot overload anyone; a caller that needs
+// one-probe semantics uses Allow and Record.
+func RecordConsumer(consumer string, err error, now time.Time) {
+	shared.RecordConsumer(consumer, err, now)
+}
+
+// RecordConsumer on these books.
+func (k *Books) RecordConsumer(consumer string, err error, now time.Time) {
+	limit, cooldown := breakerSettings()
+	k.consumerBreaker(consumer).record(0, err != nil, now, limit, cooldown)
+}
+
 // Release hands a ticket back unjudged: the caller gave up on the call, or
 // its own door refused it, so it says nothing about the provider.
 func Release(consumer string, t Ticket) { shared.Release(consumer, t) }

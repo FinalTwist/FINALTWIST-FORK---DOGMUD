@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
 // Every code point the v10 review showed surviving CleanReply, plus the
@@ -145,5 +147,27 @@ func TestCleanReplyFoldsTypography(t *testing.T) {
 	}
 	if want := `A child's toy horse - its paint flaking - marked "Mara"... still loved.`; got.Description != want {
 		t.Errorf("description folded:\n got %q\nwant %q", got.Description, want)
+	}
+}
+
+// A bauble may not carry a real item's whole name, however it is cased or
+// spaced (spec S3): "Hooded Lantern" on a trinket would pass for the real
+// one in a shop list or a trade.
+func TestCleanReplyRefusesAnAuthoredItemsName(t *testing.T) {
+	restore := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		10: {ItemId: 10, Name: `Painted Wooden Horse`, NameSimple: `toyhorse`},
+	})
+	defer restore()
+	for _, name := range []string{`Painted Wooden Horse`, `painted  wooden horse`, "Painted\U000000A0Wooden Horse"} {
+		r := goodReply()
+		r.Name = name
+		if _, err := CleanReply(r); !errors.Is(err, ErrUnusableReply) {
+			t.Errorf("%q is a real item's name: refused, got %v", name, err)
+		}
+	}
+	r := goodReply()
+	r.Name = `Painted Wooden Horses`
+	if _, err := CleanReply(r); err != nil {
+		t.Fatalf("a name that is not a real item's passes: %v", err)
 	}
 }

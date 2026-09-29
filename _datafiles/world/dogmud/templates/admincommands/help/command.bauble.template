@@ -18,8 +18,9 @@ its name (<ansi fg="cyan">bauble show doll</ansi>).
   Counts by status, tier and namer; unsold value; sales in the
   last day and week; tokens spent; the busiest regions.
 
-<ansi fg="command">bauble list [n]</ansi>
+<ansi fg="command">bauble list [n] [playerkey|unmoderated|finderonly]</ansi>
   Sales totals, then the newest n records (default 10).
+  Only baubles named on a player's own key, those never moderated, or those shown to their finder alone.
 
 <ansi fg="command">bauble show <bauble></ansi>
   One record in full, including who last edited it.

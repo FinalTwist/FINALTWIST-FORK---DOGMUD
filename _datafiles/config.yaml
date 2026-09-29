@@ -2695,9 +2695,14 @@ Modules:
     TimeoutSeconds: 15
     MaxCompletionTokens: 800
     RetryTransient: false
-    MaxConcurrent: 4           # more finds at once than this are generic
-    # Check names with the moderation endpoint (needs the server's key);
-    # fails closed. A find named on a player's own key on a server with no
-    # key of its own is not moderated, as with the AI companion.
+    MaxConcurrent: 4           # server-key calls at once; more are generic
+    # Check the name, keyword, description and material with the moderation
+    # endpoint (needs the server's key). A flag, or a check that is made and
+    # fails, keeps the find out on either key. Server-key text that cannot
+    # be checked is kept out. Text a finder's own key wrote that cannot be
+    # checked (no server key, this off, a breaker open) is shown to its
+    # finder alone, a plain "Trinket" to everyone else. Either way it must
+    # be plain ASCII letters and ' " - , . ! ? (curly quotes and dashes are
+    # folded first); text that is not goes to the server's key.
     ModerateOutput: true
     LogRequests: false

@@ -704,3 +704,26 @@ func TestDecodeChatScrubsKeysFromErrorText(t *testing.T) {
 		t.Errorf("words ending in sk- are not keys, got %d bytes", len(got))
 	}
 }
+
+// A check that belongs to one feature but is not a model call on the
+// server's key (baubles' moderation of text a player's own key wrote)
+// counts against that feature's own breaker alone, never the provider's
+// the companion shares (owner ruling 2026-09-29).
+func TestRecordConsumerFeedsOnlyItsOwnBreaker(t *testing.T) {
+	k := NewBooksForTest()
+	now := time.Unix(1000, 0)
+	k.RecordConsumer(ConsumerBaubles, status(500), now)
+	k.RecordConsumer(ConsumerBaubles, status(500), now)
+	if !k.Blocked(ConsumerBaubles, now) {
+		t.Fatal("two failures open baubles' own breaker (BreakerErrors 2)")
+	}
+	if k.BreakerOpen(now) || k.BreakerFailures() != 0 || k.Blocked(ConsumerCompanion, now) {
+		t.Fatal("a provider-shaped failure (500) still never reaches the provider breaker or the companion")
+	}
+	k.ResetBreaker()
+	k.RecordConsumer(ConsumerBaubles, status(500), now)
+	k.RecordConsumer(ConsumerBaubles, nil, now)
+	if k.ConsumerFailures(ConsumerBaubles) != 0 {
+		t.Fatal("a success resets the run")
+	}
+}

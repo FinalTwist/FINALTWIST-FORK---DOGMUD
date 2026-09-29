@@ -505,7 +505,7 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 			return actionOutcome{Refused: `no such thing in the ` + t.Name}
 		}
 		return m.issue(c, mob, `take_from`, fmt.Sprintf(`%s %d:%s %s`, cmdCompanionTakeout, it.ItemId, it.UUID.String(), t.Name),
-			t.Key, it.Name(), t.Name, delay, round)
+			t.Key, it.ModelName(), t.Name, delay, round)
 
 	case `buy`:
 		if t.Kind != `ware` {
@@ -621,7 +621,7 @@ func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Roo
 	switch t.Kind {
 	case `item`, `carried`, `worn`:
 		item := t.Item
-		desc = plainText(item.GetLongDescription())
+		desc = plainText(item.ModelDescription())
 		emote = fmt.Sprintf(`looks closely at the %s.`, t.Name)
 	case `fixture`:
 		desc = t.FixtureDesc
@@ -658,7 +658,7 @@ func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Roo
 					inside = append(inside, `and more`)
 					break
 				}
-				inside = append(inside, ct.Items[i].Name())
+				inside = append(inside, ct.Items[i].ModelName())
 			}
 			if ct.Gold > 0 {
 				inside = append(inside, `some coins`)

@@ -197,6 +197,19 @@ func TestRecentNames(t *testing.T) {
 	}
 }
 
+// A name a player's own key wrote never goes into another find's prompt
+// (spec S3): RecentNames is sent to the model for every later find in the
+// zone, whoever's key names it.
+func TestRecentNamesSkipsPlayerKeyNames(t *testing.T) {
+	withCatalog(t)
+	_, _ = Create(Record{Name: `Old Cup`, Zone: `ashwick`, Generator: GeneratorOpenAI})
+	_, _ = Create(Record{Name: `Player Written`, Zone: `ashwick`, Generator: GeneratorOpenAI, PlayerKey: true})
+	got := RecentNames(`ashwick`, 5)
+	if len(got) != 1 || got[0] != `Old Cup` {
+		t.Fatalf("server-key names only: %v", got)
+	}
+}
+
 // A keyword a loaded, authored item answers to (its keyword or its head
 // noun) is refused as well as the fixed list, so `get lantern` is never a
 // model-named trinket (analysis: normal-item collisions).
@@ -305,5 +318,100 @@ func TestMintHoldsAPickpocketFindToThePocket(t *testing.T) {
 		Result: &GenResult{Reply: Reply{Name: `Silver Snuff Box`, NameSimple: `snuffbox`, Description: `A small silver snuff box with a hinged lid.`, WeightLbs: 1.9, Value: 90}, Generator: GeneratorOpenAI}})
 	if err != nil || rec.WeightLbs != 1.0 || rec.WeightProposed != 1.9 || rec.Source != SourcePickpocket {
 		t.Fatalf("pocket weight: %+v %v", rec, err)
+	}
+}
+
+// The engine holds every generator to the player-key rules, whatever the
+// module did (spec S3; owner ruling 2026-09-29): player-key text is plain,
+// and either moderated (everyone reads it) or kept to its finder
+// (FinderOnly, which needs a finder). Nothing else is ever finder-only.
+func TestGenerateHoldsPlayerKeyTextToItsRules(t *testing.T) {
+	odd := goodReply()
+	odd.Name = "P\U00000430inted Wooden Horse"
+	refused := map[string]struct {
+		res    GenResult
+		finder int
+	}{
+		`unmoderated, not kept to the finder`: {GenResult{Reply: goodReply(), PlayerKey: true}, 7},
+		`not plain`:                           {GenResult{Reply: odd, PlayerKey: true, Moderated: true}, 7},
+		`not plain, finder-only`:              {GenResult{Reply: odd, PlayerKey: true, FinderOnly: true}, 7},
+		`finder-only with no finder`:          {GenResult{Reply: goodReply(), PlayerKey: true, FinderOnly: true}, 0},
+		`finder-only on the server's key`:     {GenResult{Reply: goodReply(), FinderOnly: true}, 7},
+	}
+	for name, c := range refused {
+		c := c
+		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return c.res, nil })
+		if got := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: c.finder}, nil); got.Generator != GeneratorLocal {
+			t.Errorf("%v: a generic trinket, got %+v", name, got)
+		}
+	}
+	kept := map[string]struct {
+		res            GenResult
+		wantFinderOnly bool
+	}{
+		`moderated`:   {GenResult{Reply: goodReply(), PlayerKey: true, Moderated: true}, false},
+		`finder-only`: {GenResult{Reply: goodReply(), PlayerKey: true, FinderOnly: true}, true},
+		// Moderated wins over FinderOnly: moderated text is everyone's, so a
+		// module setting both must still come out unhidden from anyone else
+		// (Generate clears FinderOnly on the moderated branch).
+		`moderated and finder-only`: {GenResult{Reply: goodReply(), PlayerKey: true, Moderated: true, FinderOnly: true}, false},
+	}
+	for name, c := range kept {
+		c := c
+		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return c.res, nil })
+		got := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: 7}, nil)
+		if got.Generator != GeneratorOpenAI || !got.PlayerKey || got.FinderOnly != c.wantFinderOnly {
+			t.Errorf("%v: used as it came: %+v", name, got)
+		}
+	}
+}
+
+// A player's own key proposes a value the server does not trust, even
+// clamped: Mint rolls it in the tier instead, keeping the proposal for the
+// record (spec S3). A server-key value is kept, clamped.
+func TestMintRollsAPlayerKeyFindsValue(t *testing.T) {
+	withCatalog(t)
+	r := goodReply()
+	r.Value = 14 // inside average (10 to 15), so a clamp alone would keep it
+	res := GenResult{Reply: r, Generator: GeneratorOpenAI, Moderated: true, PlayerKey: true}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), Tier: TierAverage, Result: &res, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Value != TierAverage.Range().Min || rec.ValueProposed != 14 || !rec.PlayerKey {
+		t.Fatalf("rolled by the server (first die: the tier's minimum), proposal kept: %+v", rec)
+	}
+
+	res.PlayerKey = false
+	_, rec, err = Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), Tier: TierAverage, Result: &res, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Value != 14 {
+		t.Fatalf("a server-key value stands: %+v", rec)
+	}
+}
+
+// A finder-only result reaches the record kept to the finder Mint records
+// (owner ruling 2026-09-29), whatever GenResult.FinderOnly said: the record
+// derives it from PlayerKey and Moderated. A regeneration, always on the
+// server's key, makes it everyone's.
+func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
+	withCatalog(t)
+	// FinderOnly deliberately left false: the record must not trust it.
+	res := GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, PlayerKey: true, Moderated: false}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), FinderUserId: 7, Tier: TierAverage, Result: &res, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rec.KeptToFinder() || rec.FoundByUserId != 7 || rec.View().Finder == nil {
+		t.Fatalf("finder-only, kept to user 7: %+v", rec)
+	}
+	got, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.KeptToFinder() || got.PlayerKey || got.View().Finder != nil {
+		t.Fatalf("named again on the server's key: everyone's: %+v", got)
 	}
 }

@@ -131,6 +131,9 @@ func CleanReply(r Reply) (Reply, error) {
 	if strings.IndexFunc(r.Name, unicode.IsDigit) >= 0 {
 		return bad(`name has digits: %s`, quoteShort(r.Name))
 	}
+	if authoredName(r.Name) {
+		return bad(`name is a real item's: %s`, quoteShort(r.Name))
+	}
 	if n := utf8.RuneCountInString(r.Description); n < minDescriptionLen || n > maxDescriptionLen {
 		return bad(`description length %d`, n)
 	}
@@ -169,6 +172,9 @@ func usableKeyword(w string) bool {
 
 // authoredKeyword is items.AuthoredKeyword. A variable for tests.
 var authoredKeyword = items.AuthoredKeyword
+
+// authoredName is items.AuthoredName. A variable for tests.
+var authoredName = items.AuthoredName
 
 // PlainText is cleanLine: room text sent in a prompt gets the same NFKC,
 // typography fold and invisible/format character drops as model output,

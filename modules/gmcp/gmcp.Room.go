@@ -254,7 +254,7 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		for _, itm := range room.Items {
 			payload.Contents.Items = append(payload.Contents.Items, GMCPRoomModule_Payload_Contents_Item{
 				Id:        itm.ShorthandId(),
-				Name:      itm.Name(),
+				Name:      itm.NameFor(user.UserId), // their own view of a finder-only bauble
 				QuestFlag: itm.GetSpec().QuestToken != ``,
 			})
 		}

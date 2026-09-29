@@ -193,7 +193,7 @@ func Inventory(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			//
 			// Did not find match, search item name for a possible match.
 			//
-			for _, part := range util.BreakIntoParts(item.Name()) {
+			for _, part := range util.BreakIntoParts(item.NameFor(user.UserId)) {
 				if strings.HasPrefix(part, rest) {
 					itemList = append(itemList, item)
 					break
@@ -271,12 +271,13 @@ func Inventory(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 		// Use base name for stacked display — enchant adjectives are
 		// revealed via look/identify, not the inventory list.
-		iName := item.Name()
-		iNameFormatted := fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, item.Name())
+		baseName := item.NameFor(user.UserId) // their own view of a finder-only bauble
+		iName := baseName
+		iNameFormatted := fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, baseName)
 
 		if isSpoiled {
-			iName = fmt.Sprintf(`%s (turned)`, item.Name())
-			iNameFormatted = fmt.Sprintf(`<ansi fg="8">%s (turned)</ansi>`, item.Name())
+			iName = fmt.Sprintf(`%s (turned)`, baseName)
+			iNameFormatted = fmt.Sprintf(`<ansi fg="8">%s (turned)</ansi>`, baseName)
 		} else if iSpec.Subtype == items.Drinkable || iSpec.Subtype == items.Edible || iSpec.Subtype == items.Usable || iSpec.Type == items.Lockpicks {
 			if iSpec.Uses > 0 {
 				iName = fmt.Sprintf(`%s (%d)`, iName, item.Uses)

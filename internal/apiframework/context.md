@@ -34,8 +34,11 @@ keep its own key, budget or breaker.
   `ConsumerBaubles`, `Hold`, `Reserve`, `Settle`, `HasRoom`, `Usage`,
   `ConsumerUsage`, `Today`, `SeedTokens`, `SaveBudget`, `ErrOverBudget`, and
   the test helpers `ResetBudgetForTest`, `SetSpentForTest`, `SetClockForTest`.
-- **breaker.go**: the server key's breakers. `Allow`, `Record`, `Release`
-  and `Ticket` (`Probing`); `Blocked`, `BreakerOpen`, `BreakerUntil`,
+- **breaker.go**: the server key's breakers. `Allow`, `Record`, `Release`,
+  `RecordConsumer` (one outcome against a consumer's own breaker alone, no
+  ticket and so never the half-open probe: for a feature's check that is
+  not a model call, such as baubles' moderation, which uses its own
+  consumer name `baubles-moderation`) and `Ticket` (`Probing`); `Blocked`, `BreakerOpen`, `BreakerUntil`,
   `BreakerFailures`, `ConsumerFailures`, `ResetBreaker`; `ProviderFailure` and
   `StatusError` (`KeyOrProvider`), which `DecodeChat` returns for a non-200
   reply; test helpers `SetBreakerForTest`, `SetConsumerBreakerForTest`.
