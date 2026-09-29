@@ -237,3 +237,49 @@ func TestFleeParity_FlightHalvesTheCost(t *testing.T) {
 		t.Fatalf("flying paid %d, grounded %d; flight must pay less", fm.staminaUse, ground.staminaUse)
 	}
 }
+
+func TestFleeParity_Resolve(t *testing.T) {
+	seedFleeConditions(t)
+	north := map[string]exit.RoomExit{"north": {RoomId: fleeParityNorthId}}
+	two := map[string]exit.RoomExit{"north": {RoomId: fleeParityNorthId}, "east": {RoomId: fleeParityEastId}}
+	rows := []struct {
+		row      fleeRow
+		escaped  bool
+		exitName string
+		grappled bool
+		noExit   bool
+		state    combatphase.State
+	}{
+		{fleeRow{name: "escapes through the only exit", engage: true, resolve: true, exits: north}, true, "north", false, false, combatphase.Idle},
+		{fleeRow{name: "takes the preferred exit", engage: true, resolve: true, exits: two, preferred: "east"}, true, "east", false, false, combatphase.Idle},
+		{fleeRow{name: "no exit returns to the fight", engage: true, resolve: true}, false, "", false, true, combatphase.Engaged},
+		{fleeRow{name: "grappled mid-flee returns to the fight", engage: true, resolve: true, exits: north, between: clinch}, false, "", true, false, combatphase.Engaged},
+	}
+	for _, tc := range rows {
+		t.Run(tc.row.name, func(t *testing.T) {
+			p, m := fleeBoth(t, tc.row)
+			for who, s := range map[string]fleeSide{"player": p, "mob": m} {
+				o := s.outcome
+				if !o.Fleeing || !o.Resolved {
+					t.Fatalf("%s outcome %+v, want a resolved flee", who, o)
+				}
+				if o.Escaped() != tc.escaped || o.ExitName != tc.exitName || o.Grappled != tc.grappled || o.NoExit != tc.noExit {
+					t.Errorf("%s outcome = %+v, want escaped=%v exit=%q grappled=%v noExit=%v", who, o, tc.escaped, tc.exitName, tc.grappled, tc.noExit)
+				}
+				if s.state != tc.state {
+					t.Errorf("%s state = %v, want %v", who, s.state, tc.state)
+				}
+			}
+		})
+	}
+}
+
+func TestResolveFlee_NotDisengagingIsNotAFlee(t *testing.T) {
+	c := newFleeParityChar()
+	engageForFlee(t, c)
+	room := &rooms.Room{RoomId: fleeParityRoomId}
+	u := &users.UserRecord{UserId: fleeParityUserId, Character: c}
+	if o := ResolveFlee(NewUserActorInRoom(u, room), room); o.Fleeing || o.Resolved {
+		t.Fatalf("an engaged fighter resolved a flee: %+v", o)
+	}
+}
