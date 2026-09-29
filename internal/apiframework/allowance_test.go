@@ -3,6 +3,7 @@ package apiframework
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 // R1, R3, R4, R8, R41: every charge is checked, and a refusal anywhere
@@ -94,5 +95,84 @@ func TestARefusalNamesItsCounter(t *testing.T) {
 	}
 	if RefusedBy(nil) != `` || RefusedBy(errors.New(`other`)) != `` {
 		t.Fatal("anything else names no counter")
+	}
+}
+
+// R14, R15, R20: a relayed count is held between nothing and its hold; a
+// server-key count is trusted, overage included; no counter goes negative.
+func TestSettleClampsAndFloors(t *testing.T) {
+	ResetBudgetForTest(``)
+	c := Charge{Dim: DimCompanionStranger, UserId: 2, Limit: 10000}
+	relay, _ := budget.reserve(ConsumerCompanion, 400, 0, 0, false, []Charge{c})
+	budget.settle(relay, 5000, false)
+	if Allowance(DimCompanionStranger, 2) != 400 {
+		t.Fatalf("a relayed count never charges past its hold: %d", Allowance(DimCompanionStranger, 2))
+	}
+	relay2, _ := budget.reserve(ConsumerCompanion, 400, 0, 0, false, []Charge{c})
+	budget.settle(relay2, -900, false)
+	if Allowance(DimCompanionStranger, 2) != 400 {
+		t.Fatalf("nor below nothing: %d", Allowance(DimCompanionStranger, 2))
+	}
+	if u := Today(); u.Tokens != 0 || u.Outstanding != 0 {
+		t.Fatalf("a relayed settlement touches nothing of the server's: %+v", u)
+	}
+
+	owner := Charge{Dim: DimCompanionOwner, UserId: 5}
+	h, _ := budget.reserve(ConsumerCompanion, 300, 0, 0, true, []Charge{owner})
+	budget.settle(h, 450, false)
+	share := 0
+	for _, cu := range Today().ByConsumer {
+		if cu.Consumer == ConsumerCompanion {
+			share = cu.Tokens
+		}
+	}
+	if Today().Tokens != 450 || share != 450 || Allowance(DimCompanionOwner, 5) != 450 || Today().Outstanding != 0 {
+		t.Fatalf("server-key overage is charged everywhere: total=%d share=%d owner=%d", Today().Tokens, share, Allowance(DimCompanionOwner, 5))
+	}
+
+	// Both counters set below the hold, so the refund would take them
+	// negative: the allowance and the server total (budget.go:186) floor.
+	h2, _ := budget.reserve(ConsumerCompanion, 300, 0, 0, true, []Charge{owner})
+	shared.SetAllowanceForTest(DimCompanionOwner, 5, 100)
+	SetSpentForTest(100, 300)
+	budget.settle(h2, 0, false)
+	if Allowance(DimCompanionOwner, 5) != 0 {
+		t.Fatalf("an allowance floors at nothing: %d", Allowance(DimCompanionOwner, 5))
+	}
+	if u := Today(); u.Tokens != 0 || u.Outstanding != 0 {
+		t.Fatalf("the server total floors at nothing: %+v", u)
+	}
+}
+
+// R17, R21: a hold made yesterday gives nothing back to today's
+// allowances, and its overage is still charged.
+func TestAHoldFromYesterdayRefundsNoAllowance(t *testing.T) {
+	ResetBudgetForTest(``)
+	day1 := time.Date(2026, 9, 26, 23, 59, 0, 0, time.UTC)
+	SetClockForTest(func() time.Time { return day1 })
+	t.Cleanup(func() { SetClockForTest(time.Now) })
+	owner := Charge{Dim: DimCompanionOwner, UserId: 5}
+	stranger := Charge{Dim: DimCompanionStranger, UserId: 2}
+	hs, _ := budget.reserve(ConsumerCompanion, 900, 0, 0, true, []Charge{owner})
+	hs2, _ := budget.reserve(ConsumerCompanion, 100, 0, 0, true, []Charge{owner})
+	hr, _ := budget.reserve(ConsumerCompanion, 400, 0, 0, false, []Charge{stranger})
+
+	SetClockForTest(func() time.Time { return day1.Add(2 * time.Minute) })
+	if Allowance(DimCompanionOwner, 5) != 0 || Allowance(DimCompanionStranger, 2) != 0 {
+		t.Fatal("a new day's allowances start at nothing")
+	}
+	shared.SetAllowanceForTest(DimCompanionOwner, 5, 500)
+	shared.SetAllowanceForTest(DimCompanionStranger, 2, 300)
+	budget.settle(hs, 100, false)
+	budget.settle(hs2, 250, false)
+	budget.settle(hr, 0, false)
+	if Allowance(DimCompanionOwner, 5) != 650 {
+		t.Fatalf("no refund from yesterday, overage still charged: %d", Allowance(DimCompanionOwner, 5))
+	}
+	if Allowance(DimCompanionStranger, 2) != 300 {
+		t.Fatalf("the relayed hold gives nothing back: %d", Allowance(DimCompanionStranger, 2))
+	}
+	if u := Today(); u.Outstanding != 0 || u.Tokens != 350 {
+		t.Fatalf("the server settles as before: %+v", u)
 	}
 }

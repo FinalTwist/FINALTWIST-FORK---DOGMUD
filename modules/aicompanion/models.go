@@ -600,7 +600,7 @@ func (m *AICompanionModule) settleForDay(day string, ownerId int, askerId int, r
 	if holdDay == `` {
 		holdDay = m.budgetDay
 	}
-	m.settleHeld(apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay}, reserved, day, ownerId, askerId, used)
+	m.settleHeld(apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay, SpendServer: true}, reserved, day, ownerId, askerId, used)
 }
 
 // settleHeld settles the server budget's own hold fh (reserveFor), and the
@@ -617,7 +617,7 @@ func (m *AICompanionModule) settleHeld(fh apiframework.Hold, reserved int, day s
 		if holdDay == `` {
 			holdDay = m.budgetDay
 		}
-		fh = apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay}
+		fh = apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay, SpendServer: true}
 	}
 	m.fw().Settle(fh, used, false)
 	diff := used - reserved

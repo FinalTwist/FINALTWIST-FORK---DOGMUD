@@ -257,9 +257,12 @@ func (l *ledger) reserve(consumer string, tokens int, limit int, sharePct int, s
 }
 
 // Settle replaces a reservation with what the call really used (use
-// Charged to work that out). failed counts a failed call in the day's
-// figures. A hold from an earlier day settles against today the same way,
-// since today started at what was still held.
+// Charged to work that out), on every counter the hold touched. used below
+// 0 is 0; on a player's own key (SpendServer false) it is at most the hold.
+// failed counts a failed server-key call in the day's figures. A hold from
+// an earlier day settles the server's total against today, since today
+// started at what was still held, and gives no refund to a consumer share
+// or an allowance.
 func Settle(h Hold, used int, failed bool) {
 	shared.Settle(h, used, failed)
 }
@@ -274,26 +277,54 @@ func (l *ledger) settle(h Hold, used int, failed bool) {
 	defer l.mu.Unlock()
 	l.loadLocked()
 	l.rollLocked()
-	l.outstanding -= h.Tokens
-	if l.outstanding < 0 {
-		l.outstanding = 0
+	if used < 0 {
+		used = 0
+	}
+	// A count relayed through a player's browser, which that player can
+	// write, may lower a charge below its hold, never raise it past it. The
+	// provider's own count on the server's key is trusted: usage past the
+	// hold is charged.
+	if !h.SpendServer && used > h.Tokens {
+		used = h.Tokens
 	}
 	diff := used - h.Tokens
-	l.st.Tokens += diff
-	if l.st.Tokens < 0 {
-		l.st.Tokens = 0
+	earlier := h.Day != l.st.Day
+	if h.SpendServer {
+		l.outstanding -= h.Tokens
+		if l.outstanding < 0 {
+			l.outstanding = 0
+		}
+		l.st.Tokens += diff
+		if l.st.Tokens < 0 {
+			l.st.Tokens = 0
+		}
+		// What a consumer is shown is what it spent today; a hold from an
+		// earlier day gives nothing back to today's share.
+		share := diff
+		if earlier && share < 0 {
+			share = 0
+		}
+		l.st.ByConsumer[h.Consumer] += share
+		if l.st.ByConsumer[h.Consumer] < 0 {
+			l.st.ByConsumer[h.Consumer] = 0
+		}
+		if failed {
+			l.st.Failures++
+		}
 	}
-	// What a consumer is shown is what it spent today; a hold from an
-	// earlier day gives nothing back to today's share.
-	if h.Day != l.st.Day && diff < 0 {
-		diff = 0
+	// Each allowance started the new day at nothing, so a hold from an
+	// earlier day gives it nothing back; usage past the hold is still
+	// charged.
+	each := diff
+	if earlier && each < 0 {
+		each = 0
 	}
-	l.st.ByConsumer[h.Consumer] += diff
-	if l.st.ByConsumer[h.Consumer] < 0 {
-		l.st.ByConsumer[h.Consumer] = 0
-	}
-	if failed {
-		l.st.Failures++
+	for _, c := range h.Charges {
+		k := c.key()
+		l.st.ByUser[k] += each
+		if l.st.ByUser[k] < 0 {
+			l.st.ByUser[k] = 0
+		}
 	}
 	l.dirty = true
 }
