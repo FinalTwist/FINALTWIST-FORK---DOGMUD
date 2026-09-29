@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -36,6 +37,67 @@ import (
 // ErrOverBudget is a reservation refused because the day's budget is spent.
 var ErrOverBudget = errors.New(`daily token budget spent`)
 
+// ErrOverAllowance is a reservation refused because one of its per-user
+// allowances (a Charge) is spent.
+var ErrOverAllowance = errors.New(`daily allowance spent`)
+
+// ErrOverShare is a reservation refused because its consumer has held all
+// of its share of the day's budget (ServerSettings.SharePercent).
+var ErrOverShare = errors.New(`consumer's share of the daily token budget spent`)
+
+// Per-user allowance dimensions. Each is one daily counter per user id,
+// kept by the ledger beside the server's totals.
+const (
+	DimCompanionOwner        = `companion.owner`        // an owner's own companion calls
+	DimCompanionStranger     = `companion.stranger`     // one passer-by, any companion
+	DimCompanionStrangersFor = `companion.strangersfor` // all passers-by, one owner's companion
+	DimBaublesFinder         = `baubles.finder`         // one finder's namings
+)
+
+// Charge names one per-user daily allowance a reservation also counts
+// against. Limit is that allowance's size, read by the caller from its own
+// config at the moment of the call (the ledger cannot read a module's
+// config); 0 or less is no cap, and the spend is still counted.
+type Charge struct {
+	Dim    string
+	UserId int
+	Limit  int
+}
+
+func allowanceKey(dim string, userId int) string { return dim + `:` + strconv.Itoa(userId) }
+
+func (c Charge) key() string { return allowanceKey(c.Dim, c.UserId) }
+
+// The counters a reservation can be refused by, besides a Charge's own
+// dimension (RefusedBy).
+const (
+	RefusedGlobal = `global` // the day's budget (ErrOverBudget)
+	RefusedShare  = `share`  // the consumer's share of it (ErrOverShare)
+)
+
+// RefusalError is a reservation Reserve refused, naming the counter that
+// refused it: RefusedGlobal, RefusedShare, or a Charge's Dim. errors.Is
+// still matches ErrOverBudget, ErrOverShare and ErrOverAllowance.
+type RefusalError struct {
+	Counter string
+	err     error
+}
+
+func (e *RefusalError) Error() string { return e.err.Error() + ` (` + e.Counter + `)` }
+func (e *RefusalError) Unwrap() error { return e.err }
+
+func refused(counter string, err error) error { return &RefusalError{Counter: counter, err: err} }
+
+// RefusedBy is the counter that refused err's reservation, or "" when err
+// is not a refusal (nil, or any other failure).
+func RefusedBy(err error) string {
+	var r *RefusalError
+	if errors.As(err, &r) {
+		return r.Counter
+	}
+	return ``
+}
+
 // Consumer names who spends: the budget reports spending per consumer.
 const (
 	ConsumerCompanion = `companion`
@@ -43,11 +105,14 @@ const (
 )
 
 // Hold is one call's reservation, returned by Reserve and given back to
-// Settle.
+// Settle. It records every counter it touched: the server's (SpendServer)
+// and each Charge.
 type Hold struct {
-	Consumer string
-	Tokens   int
-	Day      string
+	Consumer    string
+	Tokens      int
+	Day         string
+	SpendServer bool
+	Charges     []Charge
 }
 
 type ledgerState struct {
@@ -57,6 +122,12 @@ type ledgerState struct {
 	Failures   int            `yaml:"failures,omitempty"`
 	ByConsumer map[string]int `yaml:"by_consumer,omitempty"`
 	CallsBy    map[string]int `yaml:"calls_by,omitempty"`
+	// ByUser is each per-user allowance's spend today, keyed
+	// "<dim>:<userId>".
+	ByUser map[string]int `yaml:"by_user,omitempty"`
+	// Seeded marks each dimension SeedAllowances has already seeded today,
+	// one mark per dimension (a new day starts with none).
+	Seeded map[string]bool `yaml:"seeded,omitempty"`
 }
 
 type ledger struct {
@@ -84,6 +155,12 @@ func (l *ledger) rollLocked() {
 	}
 	if l.st.CallsBy == nil {
 		l.st.CallsBy = map[string]int{}
+	}
+	if l.st.ByUser == nil {
+		l.st.ByUser = map[string]int{}
+	}
+	if l.st.Seeded == nil {
+		l.st.Seeded = map[string]bool{}
 	}
 }
 
@@ -128,18 +205,27 @@ func (l *ledger) quarantine(cause error) {
 	mudlog.Error(`apiframework`, `action`, `loadBudget`, `error`, cause, `quarantinedTo`, moved, `quarantineError`, err)
 }
 
-// Reserve holds tokens against today's budget for consumer, or refuses with
-// ErrOverBudget. limit is the day's budget (Server().DailyTokenBudget).
-func Reserve(consumer string, tokens int) (Hold, error) {
-	return shared.Reserve(consumer, tokens)
+// Reserve holds tokens for consumer, all or nothing, under the ledger's one
+// lock: when spendServer, against today's server budget
+// (Server().DailyTokenBudget); and against every per-user allowance in
+// charges. spendServer false is a player's own key: its allowances are
+// charged and nothing of the server's is. It refuses with a *RefusalError
+// wrapping ErrOverBudget, ErrOverShare or ErrOverAllowance and naming the
+// counter (RefusedBy), holding nothing.
+func Reserve(consumer string, tokens int, spendServer bool, charges ...Charge) (Hold, error) {
+	return shared.Reserve(consumer, tokens, spendServer, charges...)
 }
 
 // Reserve on these books.
-func (k *Books) Reserve(consumer string, tokens int) (Hold, error) {
-	return k.l.reserve(consumer, tokens, Server().DailyTokenBudget)
+func (k *Books) Reserve(consumer string, tokens int, spendServer bool, charges ...Charge) (Hold, error) {
+	s := Server()
+	return k.l.reserve(consumer, tokens, s.DailyTokenBudget, 0, spendServer, charges)
 }
 
-func (l *ledger) reserve(consumer string, tokens int, limit int) (Hold, error) {
+// reserve checks everything before it adds anything, so a refusal holds
+// nothing anywhere. sharePct caps consumer's part of limit (0 is no share
+// cap).
+func (l *ledger) reserve(consumer string, tokens int, limit int, sharePct int, spendServer bool, charges []Charge) (Hold, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.loadLocked()
@@ -147,16 +233,27 @@ func (l *ledger) reserve(consumer string, tokens int, limit int) (Hold, error) {
 	if tokens < 0 {
 		tokens = 0
 	}
-	if limit > 0 && l.st.Tokens+tokens > limit {
-		return Hold{}, ErrOverBudget
+	if spendServer && limit > 0 && l.st.Tokens+tokens > limit {
+		return Hold{}, refused(RefusedGlobal, ErrOverBudget)
 	}
-	l.st.Tokens += tokens
-	l.st.ByConsumer[consumer] += tokens
-	l.st.Calls++
-	l.st.CallsBy[consumer]++
-	l.outstanding += tokens
+	for _, c := range charges {
+		if c.Limit > 0 && l.st.ByUser[c.key()]+tokens > c.Limit {
+			return Hold{}, refused(c.Dim, ErrOverAllowance)
+		}
+	}
+	if spendServer {
+		l.st.Tokens += tokens
+		l.st.ByConsumer[consumer] += tokens
+		l.st.Calls++
+		l.st.CallsBy[consumer]++
+		l.outstanding += tokens
+	}
+	for _, c := range charges {
+		l.st.ByUser[c.key()] += tokens
+	}
 	l.dirty = true
-	return Hold{Consumer: consumer, Tokens: tokens, Day: l.st.Day}, nil
+	return Hold{Consumer: consumer, Tokens: tokens, Day: l.st.Day, SpendServer: spendServer,
+		Charges: append([]Charge(nil), charges...)}, nil
 }
 
 // Settle replaces a reservation with what the call really used (use
@@ -214,6 +311,31 @@ func (k *Books) HasRoom() bool {
 	k.l.loadLocked()
 	k.l.rollLocked()
 	return limit <= 0 || k.l.st.Tokens < limit
+}
+
+// Allowance is one per-user allowance's spend today (Charge.Dim and
+// UserId), for read-only checks and the admin views.
+func Allowance(dim string, userId int) int {
+	return shared.Allowance(dim, userId)
+}
+
+// Allowance on these books.
+func (k *Books) Allowance(dim string, userId int) int {
+	k.l.mu.Lock()
+	defer k.l.mu.Unlock()
+	k.l.loadLocked()
+	k.l.rollLocked()
+	return k.l.st.ByUser[allowanceKey(dim, userId)]
+}
+
+// Day is the ledger's day: the UTC date on its clock. Every daily count a
+// feature keeps rolls on this, so no feature keeps a clock of its own.
+func (k *Books) Day() string {
+	k.l.mu.Lock()
+	defer k.l.mu.Unlock()
+	k.l.loadLocked()
+	k.l.rollLocked()
+	return k.l.st.Day
 }
 
 // Usage is the day's spending, for the admin views.
@@ -345,6 +467,15 @@ func (k *Books) SetSpentForTest(tokens int, outstanding int) {
 	k.l.rollLocked()
 	k.l.st.Tokens = tokens
 	k.l.outstanding = outstanding
+}
+
+// SetAllowanceForTest sets one per-user allowance's spend today.
+func (k *Books) SetAllowanceForTest(dim string, userId int, tokens int) {
+	k.l.mu.Lock()
+	defer k.l.mu.Unlock()
+	k.l.loadLocked()
+	k.l.rollLocked()
+	k.l.st.ByUser[allowanceKey(dim, userId)] = tokens
 }
 
 // SetClockForTest replaces the ledger's clock.

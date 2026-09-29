@@ -256,7 +256,7 @@ func TestTheBudgetIsShared(t *testing.T) {
 	m := testModule(t, f, nil)
 	server(t, f.srv.URL, `sk-test`, 3000, 3)
 
-	if _, err := apiframework.Reserve(apiframework.ConsumerCompanion, 2500); err != nil {
+	if _, err := apiframework.Reserve(apiframework.ConsumerCompanion, 2500, true); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := m.generate(context.Background(), request()); !errors.Is(err, apiframework.ErrOverBudget) {

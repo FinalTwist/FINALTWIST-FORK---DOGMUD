@@ -255,7 +255,7 @@ func viaServer(ctx context.Context, cfg Config, chat apiframework.Chat) (string,
 	if !ok {
 		return ``, 0, none, errBreakerOpen
 	}
-	hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, reserve)
+	hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true)
 	if err != nil {
 		apiframework.Release(apiframework.ConsumerBaubles, ticket)
 		return ``, 0, none, err

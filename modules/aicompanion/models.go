@@ -564,7 +564,7 @@ func (m *AICompanionModule) reserveFor(ownerId int, askerId int, tokens int) (ap
 	} else if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
 		return apiframework.Hold{}, false
 	}
-	fh, err := m.fw().Reserve(apiframework.ConsumerCompanion, tokens)
+	fh, err := m.fw().Reserve(apiframework.ConsumerCompanion, tokens, true)
 	if err != nil {
 		return apiframework.Hold{}, false
 	}
