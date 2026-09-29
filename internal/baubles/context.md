@@ -90,7 +90,12 @@ was stolen, and how its text was generated.
   `GenRequest`, `GenResult`, `Generate`, `RecentNames`. `Generate` refuses a
   `PlayerKey` result that fails `CheckPlayerKeyText`, or is neither
   `Moderated` nor `FinderOnly` with a finder, and any `FinderOnly` result
-  that is not `PlayerKey`; `RecentNames` skips `PlayerKey` records.
+  that is not `PlayerKey`; `RecentNames` skips `PlayerKey` records. A
+  generator error that is a ledger refusal (`apiframework.RefusedBy`: a
+  spent day, share or finder allowance) is logged by `noteRefusal`, naming
+  the counter, at most once a minute (the AI companion's
+  `logBudgetRefusal` pattern; `TestRefusedFindsAreLoggedOnceAMinute`);
+  every other error is logged each time.
 - **validate.go**: `CleanReply` (the text checks the schema cannot make:
   NFKC, curly quotes, en and em dashes and the ellipsis folded to ASCII
   (`typographyFold`), invisible and format characters dropped (`cleanRune`),
@@ -397,7 +402,8 @@ func ResetWindow(roomId int)
 
 ## Dependencies
 
-`configs`, `items`, `mudlog`, `util`; `gopkg.in/yaml.v3`. No network code.
+`apiframework` (only `RefusedBy`, to recognise a refusal), `configs`,
+`items`, `mudlog`, `util`; `gopkg.in/yaml.v3`. No network code.
 
 ## Consumers
 

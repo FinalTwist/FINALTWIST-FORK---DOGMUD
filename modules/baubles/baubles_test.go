@@ -19,6 +19,8 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	eng "github.com/GoMudEngine/GoMud/internal/baubles"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"gopkg.in/yaml.v2"
 )
@@ -1021,6 +1023,77 @@ func TestAFinderOverTheirAllowanceGetsNoName(t *testing.T) {
 	m.mu.Unlock()
 	if server != 0 || player != 0 || failures != 0 {
 		t.Fatalf("a refusal is no naming and no failure in bauble status: server=%d player=%d failed=%d", server, player, failures)
+	}
+}
+
+// The finder's allowance refusing their own key is the find's answer when
+// the server's route then cannot even try (no server key, or its breaker
+// open): the same allowance would refuse it there too. It is no failure in
+// `bauble status`, and the refusal, not the later route error, is returned
+// (and so logged).
+func TestAnAllowanceRefusalIsNotMaskedByALaterRouteError(t *testing.T) {
+	cases := map[string]struct {
+		setup func(t *testing.T, f *fakeOpenAI)
+		later error
+	}{
+		`no server key`: {func(t *testing.T, f *fakeOpenAI) { server(t, f.srv.URL, ``, 2000000, 3) }, errNoRoute},
+		`breaker open`: {func(t *testing.T, f *fakeOpenAI) {
+			apiframework.SetBreakerForTest(5, time.Now().Add(time.Minute))
+		}, errBreakerOpen},
+	}
+	for name, tc := range cases {
+		f := newFakeOpenAI(t)
+		m := testModule(t, f, nil)
+		tc.setup(t, f)
+		relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
+		apiframework.SetRelay(relay)
+		apiframework.Shared().SetAllowanceForTest(apiframework.DimBaublesFinder, 7, m.snapshot().DailyTokensPerUser)
+
+		_, err := m.generate(context.Background(), request())
+		if errors.Is(err, tc.later) || apiframework.RefusedBy(err) != apiframework.DimBaublesFinder {
+			t.Errorf("%v: the allowance refusal is the find's answer, not %v: %v", name, tc.later, err)
+		}
+		m.mu.Lock()
+		failures := m.stats.failures
+		m.mu.Unlock()
+		if failures != 0 {
+			t.Errorf("%v: a refusal is no failure in bauble status: failed=%d", name, failures)
+		}
+		if relay.sends != 0 || len(relay.results) != 0 {
+			t.Errorf("%v: no call on the finder's key, its breaker unfed: sends=%d results=%v", name, relay.sends, relay.results)
+		}
+	}
+}
+
+// DailyTokensPerUser is read live: a `server set` applies to the next find
+// once a round has passed (onNewRound, where the share knobs refresh too),
+// with no reload of the module.
+func TestTheFinderAllowanceIsReadLive(t *testing.T) {
+	f := newFakeOpenAI(t)
+	m := testModule(t, f, nil)
+	m.plug = module.plug // reads Modules.baubles, as the loaded module does
+	configs.SetConfigWithLookupsForTest(t, configs.Config{Modules: configs.Modules{
+		`baubles`: map[string]any{`Enabled`: true, `DailyTokensPerUser`: 20000},
+	}})
+	apiframework.Shared().SetAllowanceForTest(apiframework.DimBaublesFinder, 7, 1000)
+	if _, err := m.generate(context.Background(), request()); err != nil {
+		t.Fatalf("fixture: under a 20000-token allowance, named: %v", err)
+	}
+
+	if err := configs.SetVal(`Modules.baubles.DailyTokensPerUser`, `1000`); err != nil {
+		t.Fatalf("server set: %v", err)
+	}
+	m.onNewRound(events.NewRound{})
+	if _, err := m.generate(context.Background(), request()); apiframework.RefusedBy(err) != apiframework.DimBaublesFinder {
+		t.Fatalf("lowered to 1000 with 1240 spent: the next find is refused: %v", err)
+	}
+
+	if err := configs.SetVal(`Modules.baubles.DailyTokensPerUser`, `0`); err != nil {
+		t.Fatalf("server set: %v", err)
+	}
+	m.onNewRound(events.NewRound{})
+	if _, err := m.generate(context.Background(), request()); err != nil {
+		t.Fatalf("0 is no cap: the next find is named: %v", err)
 	}
 }
 

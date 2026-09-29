@@ -111,6 +111,13 @@ func effort(v string) string {
 	return ``
 }
 
+// dailyTokensPerUser is DailyTokensPerUser's rule (20000; below 0 is 0, no
+// cap), shared by buildConfig and the live refresh each round
+// (BaublesModule.refreshLive).
+func dailyTokensPerUser(get getter) int {
+	return max(asInt(get(`DailyTokensPerUser`), 20000), 0)
+}
+
 // buildConfig resolves the config with safe defaults and bounds, so a missing
 // or mistyped key can never produce a zero timeout.
 //
@@ -130,7 +137,7 @@ func buildConfig(get getter) Config {
 		MaxCompletionTokens: clampInt(asInt(get(`MaxCompletionTokens`), 800), 200, 4000),
 		RetryTransient:      asBool(get(`RetryTransient`)),
 		MaxConcurrent:       clampInt(asInt(get(`MaxConcurrent`), 4), 1, 32),
-		DailyTokensPerUser:  max(asInt(get(`DailyTokensPerUser`), 20000), 0),
+		DailyTokensPerUser:  dailyTokensPerUser(get),
 		ModerateOutput:      true,
 		ModerationModel:     strings.TrimSpace(asString(get(`ModerationModel`))),
 		LogRequests:         asBool(get(`LogRequests`)),

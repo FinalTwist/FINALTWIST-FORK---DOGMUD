@@ -66,11 +66,29 @@ func (m *BaublesModule) onLoad() {
 // onNewRound re-reads the server key's settings on the game loop, where the
 // config is written: a bauble is named off the game loop and must only ever
 // read apiframework.Server()'s snapshot (see apiframework.RefreshServer).
+// The finder's allowance is refreshed the same way (refreshLive), so a
+// `server set` of it reaches the next find without a reload.
 func (m *BaublesModule) onNewRound(e events.Event) events.ListenerReturn {
 	if m.snapshot().Enabled {
 		apiframework.RefreshServer()
+		m.refreshLive()
 	}
 	return events.Continue
+}
+
+// refreshLive re-reads, on the game loop, the settings a find reads live:
+// DailyTokensPerUser, the size of each finder's allowance, which every
+// reservation takes from the config snapshot (finderCharges). The rest are
+// read at load (hard-locked ones only config.yaml sets, and MaxConcurrent
+// sizes the slots).
+func (m *BaublesModule) refreshLive() {
+	if m.plug == nil {
+		return
+	}
+	perUser := dailyTokensPerUser(func(k string) any { return m.plug.Config.Get(k) })
+	m.mu.Lock()
+	m.cfg.DailyTokensPerUser = perUser
+	m.mu.Unlock()
 }
 
 // configure applies a config and installs (or removes) the namer.

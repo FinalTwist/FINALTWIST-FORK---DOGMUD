@@ -19,11 +19,14 @@ from the room it was found in.
 - **baubles.go**: module registration, `onLoad`, `configure` (installs the
   generator whenever `Enabled`), `onNewRound` (refreshes the server key's
   settings on the game loop: `apiframework.RefreshServer`, since a find is
-  named off it and may only read the snapshot), `count` (stats by route), `info` for
+  named off it and may only read the snapshot; and `refreshLive`, which
+  re-reads `DailyTokensPerUser` there), `count` (stats by route), `info` for
   `bauble status` (routes and the shared budget; reports the naming breaker
   and the moderation breaker separately), `onSave`
   (`apiframework.SaveBudget`), `takeServerSlot`, `takeFinderSlot`.
-- **config.go**: `Config`, `buildConfig` (defaults and bounds).
+- **config.go**: `Config`, `buildConfig` (defaults and bounds),
+  `dailyTokensPerUser` (that knob's rule, shared by `buildConfig` and
+  `refreshLive`).
 - **prompt.go**: `PromptVersion` (2: a targeted search sends what was
   searched and its authored description, `searched_description`; 3: in wild
   places whose description shows only nature, the find is usually a natural
@@ -52,7 +55,11 @@ from the room it was found in.
    player's browser relay, on their key. It costs the server nothing but is
    held against the finder's own `baubles.finder` allowance
    (`finderCharges`); a refusal is no call and feeds no breaker, and the
-   find goes on to the server's key, where the same allowance refuses it. A
+   find goes on to the server's key, where the same allowance refuses it.
+   When the server's route stops before its reservation (`errNoRoute`,
+   `errBreakerOpen`), `name` returns the first refusal instead, so the find
+   is still a refusal, not a failure, and the refusal is what is logged
+   (`errSlotsBusy` keeps its place ahead of it, as in `generate`). A
    pickpocket's find (`SourcePickpocket`) takes the same route on the
    thief's key; its naming starts the moment the roll succeeds, so a thief
    reading their browser's network traffic can see a success before the
@@ -71,8 +78,9 @@ from the room it was found in.
    (`apiframework.Server`); leave from the breakers (`apiframework.Allow` for
    `ConsumerBaubles`: baubles' own and the provider's; a half-open breaker
    lets one probe through); a hold on the one daily budget, the baubles
-   share and the finder's allowance (none for an admin's regeneration,
-   which has no finder); `apiframework.Post` with the strict
+   share and the finder's allowance (none for an admin's `bauble regen`,
+   which has no finder; `bauble spawn` has one, the admin, and charges
+   their own allowance as a find does); `apiframework.Post` with the strict
    `baubles.ReplySchema()`, retried once when `RetryTransient`; `Charged`
    and `Settle`. Each route returns `report`,
    and `generate` gives it ONE outcome for the whole find, retries included,
@@ -108,7 +116,10 @@ from the room it was found in.
 player chose), `Temperature` (0, not sent), `TimeoutSeconds` (15, 3 to 30),
 `MaxCompletionTokens` (800), `RetryTransient` (false), `MaxConcurrent` (4,
 server-key calls only), `DailyTokensPerUser` (20000; each finder's
-`baubles.finder` allowance, on either key; 0 is no cap; not hard-locked),
+`baubles.finder` allowance, on either key; 0 is no cap; not hard-locked,
+and read live: `onNewRound` re-reads it (`refreshLive`), so a `server set`
+reaches the next find without a reload; `bauble spawn` charges the admin's
+own allowance, `bauble regen` nobody's),
 `ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
 `LogRequests` (false). `Model`, `MaxCompletionTokens`, `MaxConcurrent`,
 `UsePlayerKeys`, `ModerateOutput` and `ModerationModel` are hard-locked
@@ -153,7 +164,12 @@ The key, endpoint, daily budget, the baubles share
 - **A refused reservation is not a failure.** A spent day, share or finder
   allowance (`apiframework.RefusedBy`) makes no call, feeds no breaker and
   is not counted in `bauble status`; `baubles.Generate` logs it with the
-  counter's name.
+  counter's name, at most once a minute (`noteRefusal`, the companion's
+  `logBudgetRefusal` pattern). A refusal on the finder's own key is not
+  masked by the server's route failing before its reservation (`name`).
+  Pinned by `TestAFinderOverTheirAllowanceGetsNoName`,
+  `TestAnAllowanceRefusalIsNotMaskedByALaterRouteError`,
+  `TestTheFinderAllowanceIsReadLive`.
 - **`bauble status` counts roll on the ledger's clock.** `count` and `info`
   read `apiframework.Shared().Day()`, not a clock of their own; a stats day
   that does not match it is stale and shown as zero, so the figures reset

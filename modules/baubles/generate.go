@@ -164,7 +164,18 @@ func refusedByAllowlist(content string) bool {
 // answer parsed and checked, or the failure) to that route's breaker,
 // exactly once. A failure on the finder's own key is reported there and
 // falls back to the server's key.
+//
+// A refusal on the finder's own key (their baubles.finder allowance, the
+// only counter that route reserves against) also goes on to the server's
+// key, where the same allowance refuses it again. When the server's route
+// cannot even get that far (errNoRoute, errBreakerOpen: no reservation, no
+// call), the first refusal is the find's answer, so generate's refusal
+// guard sees it: no failure in `bauble status`, and the refusal is what is
+// logged. errSlotsBusy keeps its place ahead of it, as in generate, where
+// it is turned away before the refusal guard is reached; neither counts.
 func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenRequest, chat apiframework.Chat) (content string, tokens int, model string, playerKey bool, report func(error), err error) {
+	var refusal error // the finder's own key's reservation, refused
+	refusedModel := ``
 	// A pickpocket's find takes this route too, on the thief's own key. Its
 	// naming starts at the moment the roll succeeds, so a thief watching
 	// their browser's network traffic can learn the outcome before the
@@ -193,6 +204,9 @@ func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenReq
 						if ctx.Err() != nil {
 							return ``, 0, relayModel, true, func(error) {}, err
 						}
+						if apiframework.RefusedBy(err) != `` {
+							refusal, refusedModel = err, relayModel
+						}
 					}
 				}
 			}
@@ -206,6 +220,9 @@ func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenReq
 	}
 	defer release()
 	content, tokens, report, err = viaServer(ctx, cfg, chat, req.FinderUserId)
+	if refusal != nil && (errors.Is(err, errNoRoute) || errors.Is(err, errBreakerOpen)) {
+		return ``, 0, refusedModel, true, func(error) {}, refusal
+	}
 	return content, tokens, cfg.Model, false, report, err
 }
 

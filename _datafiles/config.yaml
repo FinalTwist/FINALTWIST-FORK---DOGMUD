@@ -2705,7 +2705,9 @@ Modules:
     MaxConcurrent: 4           # server-key calls at once; more are generic
     # Tokens per UTC day one finder's finds may spend, on the server's key
     # or their own (about 8 to 10 names). Over it, a find is a generic
-    # trinket. An admin's regeneration charges nobody. 0 is no cap.
+    # trinket. `bauble spawn` charges the admin's own allowance, as a find
+    # does; `bauble regen` charges nobody. 0 is no cap. Takes effect at the
+    # next round after a `server set`, with no restart.
     DailyTokensPerUser: 20000
     # Check the name, keyword, description and material with the moderation
     # endpoint (needs the server's key). A flag, or a check that is made and
