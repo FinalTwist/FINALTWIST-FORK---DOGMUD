@@ -203,66 +203,13 @@ func (m *AICompanionModule) breakerResult(t apiframework.Ticket, err error, now 
 }
 
 // ownerBudgetLeft reports whether one companion has any daily tokens left
-// at all. Admission of a particular call goes through tryReserveTokens,
-// which weighs that call's worst case.
+// at all (the ledger's DimCompanionOwner). Admission of a particular call
+// goes through reserveRoute, which weighs that call's worst case.
 func (m *AICompanionModule) ownerBudgetLeft(ownerId int) bool {
 	if m.cfg.DailyTokensPerCompanion <= 0 {
 		return true
 	}
-	return m.ownerTokens[ownerId] < m.cfg.DailyTokensPerCompanion
-}
-
-func (m *AICompanionModule) chargeOwner(ownerId int, tokens int) {
-	if m.ownerTokens == nil {
-		m.ownerTokens = map[int]int{}
-	}
-	m.ownerTokens[ownerId] += tokens
-}
-
-// chargeStranger is chargeOwner for a passer-by's own daily allowance. Like
-// chargeOwner it takes a negative amount, which is how a settlement gives
-// back what a reservation held and the call did not use.
-func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
-	if userId <= 0 {
-		return
-	}
-	if m.strangerTokens == nil {
-		m.strangerTokens = map[int]int{}
-	}
-	m.strangerTokens[userId] += tokens
-}
-
-// strangerFits reports whether a passer-by's call of this size fits both
-// what that passer-by may spend in a day (StrangerDailyTokens) and what all
-// passers-by together may spend of this one owner's companion
-// (StrangerTokensPerOwner): many strangers, each within their own
-// allowance, could otherwise spend one owner's key without end. Zero is no
-// cap for either.
-func (m *AICompanionModule) strangerFits(ownerId int, askerId int, tokens int) bool {
-	if m.cfg.StrangerDailyTokens > 0 && m.strangerTokens[askerId]+tokens > m.cfg.StrangerDailyTokens {
-		return false
-	}
-	return m.cfg.StrangerTokensPerOwner <= 0 || m.strangersFor[ownerId]+tokens <= m.cfg.StrangerTokensPerOwner
-}
-
-// chargeStrangerFor charges a passer-by's call to both of the counts
-// strangerFits weighs, and takes a negative amount the same way (a
-// settlement), never leaving either below nothing.
-func (m *AICompanionModule) chargeStrangerFor(ownerId int, askerId int, tokens int) {
-	m.chargeStranger(askerId, tokens)
-	if m.strangerTokens[askerId] < 0 {
-		m.strangerTokens[askerId] = 0
-	}
-	if ownerId <= 0 || askerId <= 0 {
-		return
-	}
-	if m.strangersFor == nil {
-		m.strangersFor = map[int]int{}
-	}
-	m.strangersFor[ownerId] += tokens
-	if m.strangersFor[ownerId] < 0 {
-		m.strangersFor[ownerId] = 0
-	}
+	return m.fw().Allowance(apiframework.DimCompanionOwner, ownerId) < m.cfg.DailyTokensPerCompanion
 }
 
 // traceEntry is one decision kept for the admin trace view.
@@ -532,107 +479,6 @@ func worstCaseTokens(prompt int, maxTokens int, toolRounds int, retry bool) int 
 		total *= 2
 	}
 	return total
-}
-
-// tryReserveTokens admits a call only if its worst case still fits both
-// budgets, and holds the tokens in the same step. Checking and charging
-// apart is what let two calls slip past a nearly spent budget together.
-func (m *AICompanionModule) tryReserveTokens(ownerId int, tokens int) bool {
-	return m.tryReserveFor(ownerId, 0, tokens)
-}
-
-// tryReserveFor is tryReserveTokens with the payer named: a call a
-// passer-by prompted (askerId above 0) is held against their own
-// StrangerDailyTokens instead of the owner's companion allowance, so a
-// stranger cannot spend somebody else's companion into silence. The
-// server's one budget (apiframework, shared with every feature) holds
-// either way, and is reserved in one check-and-hold step; the companion's
-// own allowances are checked first, so a refusal there holds nothing.
-func (m *AICompanionModule) tryReserveFor(ownerId int, askerId int, tokens int) bool {
-	_, ok := m.reserveFor(ownerId, askerId, tokens)
-	return ok
-}
-
-// reserveFor is tryReserveFor keeping the server budget's own hold, which
-// is what settleHeld gives back: the ledger's day, not the module's.
-func (m *AICompanionModule) reserveFor(ownerId int, askerId int, tokens int) (apiframework.Hold, bool) {
-	m.rollDay()
-	if askerId > 0 {
-		if !m.strangerFits(ownerId, askerId, tokens) {
-			return apiframework.Hold{}, false
-		}
-	} else if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
-		return apiframework.Hold{}, false
-	}
-	fh, err := m.fw().Reserve(apiframework.ConsumerCompanion, tokens, true)
-	if err != nil {
-		return apiframework.Hold{}, false
-	}
-	if askerId > 0 {
-		m.chargeStrangerFor(ownerId, askerId, tokens)
-	} else {
-		m.chargeOwner(ownerId, tokens)
-	}
-	return fh, true
-}
-
-// settleTokens replaces a reservation with what the call really used.
-func (m *AICompanionModule) settleTokens(ownerId int, reserved int, used int) {
-	m.settleFor(ownerId, 0, reserved, used)
-}
-
-// settleFor settles a reservation made by tryReserveFor today, against the
-// same payer it was held against.
-func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, used int) {
-	m.settleForDay(``, ownerId, askerId, reserved, used)
-}
-
-// settleForDay is settleFor for a reservation held on day (the budget day
-// when it was made; "" is today). The server's day total starts each day
-// from what is still held (rollDay), so it settles the same either way.
-// The owner's and passer-by's counters start the new day at nothing, so
-// a reservation from an earlier day gives nothing back to them: giving
-// back what the old day held would take it off what the new day really
-// spent. What it used past its reservation is still charged.
-func (m *AICompanionModule) settleForDay(day string, ownerId int, askerId int, reserved int, used int) {
-	m.rollDay()
-	holdDay := day
-	if holdDay == `` {
-		holdDay = m.budgetDay
-	}
-	m.settleHeld(apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay, SpendServer: true}, reserved, day, ownerId, askerId, used)
-}
-
-// settleHeld settles the server budget's own hold fh (reserveFor), and the
-// owner's or passer-by's counters for the reserved tokens held on the
-// module's budget day (day; "" is today). The ledger is given back exactly
-// the hold it gave out, so a call spanning the UTC midnight is settled
-// against the day the ledger held it on, even when the module's day turned
-// at a different moment. A hold with no ledger part (never reserved there)
-// is rebuilt from reserved and day, as before.
-func (m *AICompanionModule) settleHeld(fh apiframework.Hold, reserved int, day string, ownerId int, askerId int, used int) {
-	m.rollDay()
-	if fh.Consumer == `` {
-		holdDay := day
-		if holdDay == `` {
-			holdDay = m.budgetDay
-		}
-		fh = apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay, SpendServer: true}
-	}
-	m.fw().Settle(fh, used, false)
-	diff := used - reserved
-	if day != `` && day != m.budgetDay && diff < 0 {
-		diff = 0
-	}
-	switch {
-	case askerId > 0:
-		m.chargeStrangerFor(ownerId, askerId, diff)
-	case ownerId > 0:
-		m.chargeOwner(ownerId, diff)
-		if m.ownerTokens[ownerId] < 0 {
-			m.ownerTokens[ownerId] = 0
-		}
-	}
 }
 
 // budgetState is the day's spending, kept on disk so a restart does not

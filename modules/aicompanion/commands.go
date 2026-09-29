@@ -154,7 +154,7 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 		fmt.Fprintf(&b, "  %s -> %s [%s] mood=%s sessions=%d memories=%d facts=%d lines=%d pending=%d",
 			ownerName, c.profile.Name, state, c.mind.Mood, c.mind.SessionCount,
 			len(c.mind.Memories), len(c.mind.Facts), len(c.mind.RecentLines), len(c.pending))
-		fmt.Fprintf(&b, " spentToday=%d tier=%s", m.ownerTokens[c.ownerUserId], tierName(m.route(c.ownerUserId).kind))
+		fmt.Fprintf(&b, " spentToday=%d tier=%s", m.fw().Allowance(apiframework.DimCompanionOwner, c.ownerUserId), tierName(m.route(c.ownerUserId).kind))
 		if m.strangersOff(c.ownerUserId) {
 			b.WriteString(` strangers=off`)
 		}

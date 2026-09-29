@@ -627,7 +627,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		if asker == 0 {
 			c.budgetSpent = true
 		}
-		m.logBudgetRefusal(ownerId, asker, reserved)
+		m.logBudgetRefusal(ownerId, asker, reserved, held.refusal)
 		c.seq++ // the decision is abandoned, not merely delayed
 		m.fallback(c, mob, stims)
 		return
@@ -1546,20 +1546,24 @@ func nextBatch(pending []stimulus, ownerUserId int) (batch []stimulus, rest []st
 // logBudgetRefusal notes a decision the budgets would not pay for, at most
 // once a minute per server, so a spent allowance is visible in the log
 // rather than silently turning a companion into a set of stock phrases.
-func (m *AICompanionModule) logBudgetRefusal(ownerId int, askerId int, wanted int) {
+// refusedBy names the counter that said no (apiframework.RefusedBy: the
+// day's budget "global", the companion's "share", or one allowance's
+// dimension), so a spent share is not mistaken for a spent allowance.
+func (m *AICompanionModule) logBudgetRefusal(ownerId int, askerId int, wanted int, why error) {
 	now := time.Now()
 	if now.Sub(m.lastBudgetLog) < time.Minute {
 		return
 	}
 	m.lastBudgetLog = now
 	server := m.fw().Today() // the one budget every feature shares
+	refusedBy := apiframework.RefusedBy(why)
 	if askerId > 0 {
-		mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `asker`, askerId, `wanted`, wanted,
-			`askerSpentToday`, m.strangerTokens[askerId], `askerCap`, m.cfg.StrangerDailyTokens,
+		mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `refusedBy`, refusedBy, `owner`, ownerId, `asker`, askerId, `wanted`, wanted,
+			`askerSpentToday`, m.fw().Allowance(apiframework.DimCompanionStranger, askerId), `askerCap`, m.cfg.StrangerDailyTokens,
 			`serverSpentToday`, server.Tokens, `serverCap`, server.Limit)
 		return
 	}
-	mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `wanted`, wanted,
-		`ownerSpentToday`, m.ownerTokens[ownerId], `ownerCap`, m.cfg.DailyTokensPerCompanion,
+	mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `refusedBy`, refusedBy, `owner`, ownerId, `wanted`, wanted,
+		`ownerSpentToday`, m.fw().Allowance(apiframework.DimCompanionOwner, ownerId), `ownerCap`, m.cfg.DailyTokensPerCompanion,
 		`serverSpentToday`, server.Tokens, `serverCap`, server.Limit)
 }

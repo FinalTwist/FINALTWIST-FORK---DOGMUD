@@ -310,15 +310,15 @@ func TestRelayUsageIsNeverTrusted(t *testing.T) {
 		t.Fatal("fixture: the passer-by's question fits")
 	}
 	settleToday(m, relay, 5, 2, 400, 5000)
-	if m.strangerTokens[2] != 400 {
-		t.Fatalf("a passer-by pays at most what was held, got %d", m.strangerTokens[2])
+	if strangerSpent(m, 2) != 400 {
+		t.Fatalf("a passer-by pays at most what was held, got %d", strangerSpent(m, 2))
 	}
 	if !tryRoute(m, relay, 5, 3, 400) {
 		t.Fatal("fixture: a second passer-by's question fits")
 	}
 	settleToday(m, relay, 5, 3, 400, -900)
-	if m.strangerTokens[3] != 0 {
-		t.Fatalf("and never less than nothing, got %d", m.strangerTokens[3])
+	if strangerSpent(m, 3) != 0 {
+		t.Fatalf("and never less than nothing, got %d", strangerSpent(m, 3))
 	}
 }
 
@@ -368,7 +368,7 @@ func TestPanickedBackgroundCallsSettle(t *testing.T) {
 		deadline := time.Now().Add(3 * time.Second)
 		for {
 			util.LockMud()
-			left, owner := serverHeld(m), m.ownerTokens[1]
+			left, owner := serverHeld(m), ownerSpent(m, 1)
 			util.UnlockMud()
 			if left == 0 && owner == 0 {
 				break
@@ -506,8 +506,8 @@ func TestStrangerTokensPerOwnerCapsThemTogether(t *testing.T) {
 			t.Fatalf("%v: another owner's companion has its own cap", rt.kind)
 		}
 		settleToday(m, rt, 5, 2, 900, 100)
-		if m.strangersFor[5] != 600 {
-			t.Fatalf("%v: a settlement gives back what was not used, got %d", rt.kind, m.strangersFor[5])
+		if strangersForSpent(m, 5) != 600 {
+			t.Fatalf("%v: a settlement gives back what was not used, got %d", rt.kind, strangersForSpent(m, 5))
 		}
 		if !tryRoute(m, rt, 5, 4, 200) {
 			t.Fatalf("%v: and the room it frees is usable", rt.kind)
@@ -518,8 +518,7 @@ func TestStrangerTokensPerOwnerCapsThemTogether(t *testing.T) {
 	m.cfg.StrangerTokensPerOwner = 1500
 	c := &controller{ownerUserId: 5, instanceId: 42}
 	m.bonds = bondState{Users: map[int]*bondRecord{5: {StrangersOn: true}}}
-	m.rollDay()
-	m.strangersFor[5] = 1500
+	setStrangersForSpent(m, 5, 1500)
 	bram := &users.UserRecord{UserId: 2, Character: &characters.Character{Name: `Bram`}}
 	if m.strangerMayAsk(bram, c) {
 		t.Fatal("a spent owner's cap queues nothing more from passers-by")
@@ -882,6 +881,8 @@ func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
 	m := relayModule(t)
 	m.cfg.DailyTokensPerCompanion, m.cfg.StrangerDailyTokens, m.cfg.StrangerTokensPerOwner = 100000, 100000, 100000
 	server, relay := route{kind: routeServer}, route{kind: routeRelay, model: `player-model`}
+	today := time.Now().UTC()
+	m.fw().SetClockForTest(func() time.Time { return today })
 
 	ownerHold, ok1 := m.reserveRoute(server, 5, 0, 900)
 	strangerHold, ok2 := m.reserveRoute(relay, 5, 2, 400)
@@ -889,21 +890,19 @@ func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
 		t.Fatal("fixture: both holds fit")
 	}
 	// They were held yesterday, and the day turns.
-	ownerHold.day, strangerHold.day = `1999-01-01`, `1999-01-01`
-	m.budgetDay = `1999-01-01`
-	m.rollDay()
+	m.fw().SetClockForTest(func() time.Time { return today.Add(24 * time.Hour) })
 	// Today's own spending.
-	settleToday(m, server, 5, 0, 0, 0)
-	m.chargeOwner(5, 500)
-	m.chargeStrangerFor(5, 2, 300)
+	setOwnerSpent(m, 5, 500)
+	setStrangerSpent(m, 2, 300)
+	setStrangersForSpent(m, 5, 300)
 
 	m.settleRoute(ownerHold, 100)
 	m.settleRoute(strangerHold, 0)
-	if m.ownerTokens[5] != 500 {
-		t.Fatalf("the owner's count today is untouched by yesterday's hold: %d", m.ownerTokens[5])
+	if ownerSpent(m, 5) != 500 {
+		t.Fatalf("the owner's count today is untouched by yesterday's hold: %d", ownerSpent(m, 5))
 	}
-	if m.strangerTokens[2] != 300 || m.strangersFor[5] != 300 {
-		t.Fatalf("so is the passer-by's: %d, %d", m.strangerTokens[2], m.strangersFor[5])
+	if strangerSpent(m, 2) != 300 || strangersForSpent(m, 5) != 300 {
+		t.Fatalf("so is the passer-by's: %d, %d", strangerSpent(m, 2), strangersForSpent(m, 5))
 	}
 	if serverHeld(m) != 0 {
 		t.Fatalf("and nothing is left held: %d", serverHeld(m))
@@ -912,8 +911,8 @@ func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
 	// Control: the same holds settled on their own day do give back.
 	h, _ := m.reserveRoute(server, 5, 0, 900)
 	m.settleRoute(h, 100)
-	if m.ownerTokens[5] != 600 {
-		t.Fatalf("a same-day hold settles at what was used: %d", m.ownerTokens[5])
+	if ownerSpent(m, 5) != 600 {
+		t.Fatalf("a same-day hold settles at what was used: %d", ownerSpent(m, 5))
 	}
 }
 

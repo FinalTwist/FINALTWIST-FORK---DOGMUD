@@ -131,18 +131,14 @@ func TestFindsFailuresNeverPauseTheCompanion(t *testing.T) {
 }
 
 // Analysis item 8: the server budget is given back the very hold it gave
-// out. Around the UTC midnight the ledger and the module can be on
-// different days; a hold rebuilt from the module's day would then be
-// settled as an earlier day's and its unused tokens kept, though the ledger
-// held them today.
+// out. The ledger's day is the only day, so the hold carries it.
 func TestSettlementReturnsTheLedgersOwnHold(t *testing.T) {
 	m := &AICompanionModule{cfg: Config{}}
-	m.rollDay()
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
 	m.fw().SetClockForTest(func() time.Time { return tomorrow })
 	h, ok := m.reserveRoute(route{kind: routeServer}, 1, 0, 900)
-	if !ok || h.fw.Tokens != 900 || h.fw.Day == h.day {
-		t.Fatalf("held on the ledger's day, not the module's: %+v", h)
+	if !ok || h.fw.Tokens != 900 || h.fw.Day != tomorrow.Format(`2006-01-02`) || !h.fw.SpendServer {
+		t.Fatalf("held on the ledger's day: %+v", h)
 	}
 	m.settleRoute(h, 100)
 	share := 0

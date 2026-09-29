@@ -257,68 +257,56 @@ func (m *AICompanionModule) allowanceCharges(ownerId int, askerId int) []apifram
 }
 
 // reserveRoute holds a call's worst case against whoever pays for it, in
-// one check-and-hold step. The server's key is held against the server's
-// budget and the owner's or passer-by's allowance (tryReserveFor). A
-// player's own key spends nothing of the server's, so it is held against
-// nothing, except that a passer-by's question is still held against their
-// StrangerDailyTokens and the owner's StrangerTokensPerOwner (strangerFits):
-// the owner's key is not theirs to spend without end.
+// one check-and-hold step on the ledger (apiframework Reserve: all or
+// nothing, under its own lock). The server's key is held against the
+// server's budget and the payer's allowances (allowanceCharges). A player's
+// own key spends nothing of the server's, so it is held against nothing,
+// except that a passer-by's question is still held against their
+// StrangerDailyTokens and the owner's StrangerTokensPerOwner: the owner's
+// key is not theirs to spend without end.
 //
-// The hold it returns is what settleRoute takes back: the route, the
-// payer, the amount and the UTC day it was held on.
+// The hold it returns is what settleRoute takes back.
 func (m *AICompanionModule) reserveRoute(r route, ownerId int, askerId int, tokens int) (hold, bool) {
-	m.rollDay()
-	h := hold{r: r, owner: ownerId, asker: askerId, tokens: tokens, day: m.budgetDay}
+	h := hold{r: r}
+	spendServer := false
 	switch r.kind {
 	case routeServer:
-		fh, ok := m.reserveFor(ownerId, askerId, tokens)
-		h.fw = fh
-		return h, ok
+		spendServer = true
 	case routeRelay:
 		if askerId <= 0 {
-			return h, true
+			return h, true // the owner's own key, for the owner: nothing to hold
 		}
-		if !m.strangerFits(ownerId, askerId, tokens) {
-			return h, false
-		}
-		m.chargeStrangerFor(ownerId, askerId, tokens)
-		return h, true
+	default:
+		return h, false
 	}
-	return h, false
+	fh, err := m.fw().Reserve(apiframework.ConsumerCompanion, tokens, spendServer, m.allowanceCharges(ownerId, askerId)...)
+	if err != nil {
+		h.refusal = err
+		return h, false
+	}
+	h.fw = fh
+	return h, true
 }
 
-// hold is one call's reservation, as reserveRoute made it.
+// hold is one call's reservation, as reserveRoute made it: the route, the
+// ledger's own hold (empty when nothing was held), and, when reserveRoute
+// said no, the ledger's refusal (apiframework.RefusedBy names its counter;
+// nil when there was no route at all).
 type hold struct {
-	r      route
-	owner  int
-	asker  int
-	tokens int
-	day    string            // the module's budget day it was held on
-	fw     apiframework.Hold // the server budget's own hold (server route)
+	r       route
+	fw      apiframework.Hold
+	refusal error
 }
 
-// settleRoute settles a reservation made by reserveRoute with the same
-// route, against the same payer, exactly once. A hold from an earlier day
-// gives nothing back to the payer's counters, which started the new day at
-// nothing (settleForDay).
+// settleRoute settles a reservation made by reserveRoute, exactly once. The
+// ledger applies every rule: a count relayed through the owner's browser
+// is held between nothing and the reservation, no counter goes below
+// nothing, and a hold from an earlier day gives nothing back to today's.
 func (m *AICompanionModule) settleRoute(h hold, used int) {
-	switch h.r.kind {
-	case routeServer:
-		m.settleHeld(h.fw, h.tokens, h.day, h.owner, h.asker, used)
-	case routeRelay:
-		if h.asker <= 0 {
-			return
-		}
-		// The count came back through the owner's browser, which the
-		// owner can write: it may lower a passer-by's charge below the
-		// reservation, never raise it past it, and never below nothing.
-		used = max(0, min(used, h.tokens))
-		m.rollDay()
-		if h.day != m.budgetDay {
-			return // held on an earlier day: nothing to give back today
-		}
-		m.chargeStrangerFor(h.owner, h.asker, used-h.tokens)
+	if h.fw.Consumer == `` {
+		return
 	}
+	m.fw().Settle(h.fw, used, false)
 }
 
 // routeResult feeds a call's outcome to the breaker of whoever paid: the

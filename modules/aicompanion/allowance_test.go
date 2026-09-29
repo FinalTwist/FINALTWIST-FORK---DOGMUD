@@ -33,3 +33,36 @@ func TestAllowanceChargesMapOneToOne(t *testing.T) {
 		}
 	}
 }
+
+// R16 (owner ruling 12): an owner-less server-key call is charged to key 0
+// and, like any other, settled back to what it used.
+func TestAnOwnerlessHoldIsRefunded(t *testing.T) {
+	freshServer(t, 5000, 5, 60)
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000}}
+	h, ok := m.reserveRoute(route{kind: routeServer}, 0, 0, 900)
+	if !ok || ownerSpent(m, 0) != 900 {
+		t.Fatalf("fixture: held against key 0: %v %d", ok, ownerSpent(m, 0))
+	}
+	m.settleRoute(h, 100)
+	if ownerSpent(m, 0) != 100 {
+		t.Fatalf("key 0 is refunded what it did not use: %d", ownerSpent(m, 0))
+	}
+}
+
+// R43: a refused reservation keeps the ledger's reason, so the refusal log
+// can say which counter said no.
+func TestARefusedRouteKeepsTheLedgersReason(t *testing.T) {
+	freshServer(t, 5000, 5, 60)
+	m := &AICompanionModule{cfg: Config{StrangerDailyTokens: 100}}
+	h, ok := m.reserveRoute(route{kind: routeServer}, 1, 2, 500)
+	if ok || apiframework.RefusedBy(h.refusal) != apiframework.DimCompanionStranger {
+		t.Fatalf("refused by the passer-by's allowance: %v %v", ok, h.refusal)
+	}
+	h, ok = m.reserveRoute(route{kind: routeServer}, 1, 0, 6000)
+	if ok || apiframework.RefusedBy(h.refusal) != apiframework.RefusedGlobal {
+		t.Fatalf("refused by the day's budget: %v %v", ok, h.refusal)
+	}
+	if h, ok := m.reserveRoute(route{kind: routeNone}, 1, 0, 10); ok || h.refusal != nil {
+		t.Fatal("no route is no refusal of the ledger's")
+	}
+}

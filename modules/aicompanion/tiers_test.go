@@ -183,9 +183,8 @@ func TestRelayFailuresTripOnlyThatOwnersBreaker(t *testing.T) {
 
 func TestModelReadyFollowsTheRoute(t *testing.T) {
 	m := relayModule(t)
-	m.rollDay()
 	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
-	m.ownerTokens[5] = m.cfg.DailyTokensPerCompanion
+	setOwnerSpent(m, 5, m.cfg.DailyTokensPerCompanion)
 	m.fw().SetBreakerForTest(0, time.Now().Add(time.Hour))
 	if !m.modelReadyFor(5, 0) || !m.modelReady(5) {
 		t.Fatal("the owner's own key is not held to the server's budgets or breaker")
@@ -205,7 +204,7 @@ func TestModelReadyFollowsTheRoute(t *testing.T) {
 		t.Fatal("and to the server's budget")
 	}
 	m.fw().SetSpentForTest(0, serverHeld(m))
-	m.ownerTokens[6] = m.cfg.DailyTokensPerCompanion
+	setOwnerSpent(m, 6, m.cfg.DailyTokensPerCompanion)
 	if m.modelReadyFor(6, 0) || !m.modelReadyFor(6, 9) {
 		t.Fatal("the owner's allowance binds the owner's calls, not a passer-by's")
 	}
@@ -229,19 +228,18 @@ func TestApplyRouteUsesThePlayersModel(t *testing.T) {
 func TestRelayCallsReserveNothingOfTheServers(t *testing.T) {
 	m := relayModule(t)
 	relay := route{kind: routeRelay, model: `player-model`}
-	m.rollDay()
 	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
-	m.ownerTokens[5] = m.cfg.DailyTokensPerCompanion
+	setOwnerSpent(m, 5, m.cfg.DailyTokensPerCompanion)
 
 	if !tryRoute(m, relay, 5, 0, 900) {
 		t.Fatal("the owner's own key is not refused for the server's spent budgets")
 	}
-	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
-		t.Fatalf("and holds nothing against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), m.ownerTokens[5])
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || ownerSpent(m, 5) != m.cfg.DailyTokensPerCompanion {
+		t.Fatalf("and holds nothing against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), ownerSpent(m, 5))
 	}
 	settleToday(m, relay, 5, 0, 900, 700)
-	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
-		t.Fatalf("nor settles anything against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), m.ownerTokens[5])
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || ownerSpent(m, 5) != m.cfg.DailyTokensPerCompanion {
+		t.Fatalf("nor settles anything against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), ownerSpent(m, 5))
 	}
 	if tryRoute(m, route{kind: routeNone}, 5, 0, 1) {
 		t.Fatal("tier 1 reserves nothing because it calls nothing")
@@ -258,20 +256,20 @@ func TestStrangerRelayCallsStopAtTheStrangerCap(t *testing.T) {
 	if tryRoute(m, relay, 5, 2, 900) {
 		t.Fatal("a second that would overshoot it is refused while the first is held")
 	}
-	if m.strangerTokens[2] != 900 || serverSpent(m) != 0 || serverHeld(m) != 0 || m.ownerTokens[5] != 0 {
+	if strangerSpent(m, 2) != 900 || serverSpent(m) != 0 || serverHeld(m) != 0 || ownerSpent(m, 5) != 0 {
 		t.Fatalf("held against the passer-by alone: stranger=%d today=%d outstanding=%d owner=%d",
-			m.strangerTokens[2], serverSpent(m), serverHeld(m), m.ownerTokens[5])
+			strangerSpent(m, 2), serverSpent(m), serverHeld(m), ownerSpent(m, 5))
 	}
 	settleToday(m, relay, 5, 2, 900, 100)
-	if m.strangerTokens[2] != 100 {
-		t.Fatalf("settled to what was used: %d", m.strangerTokens[2])
+	if strangerSpent(m, 2) != 100 {
+		t.Fatalf("settled to what was used: %d", strangerSpent(m, 2))
 	}
 	if !tryRoute(m, relay, 5, 3, 900) {
 		t.Fatal("another passer-by has their own allowance")
 	}
 	settleToday(m, relay, 5, 3, 900, 0)
-	if m.strangerTokens[3] != 0 {
-		t.Fatalf("a failed call refunds all of it, once: %d", m.strangerTokens[3])
+	if strangerSpent(m, 3) != 0 {
+		t.Fatalf("a failed call refunds all of it, once: %d", strangerSpent(m, 3))
 	}
 }
 
@@ -293,8 +291,8 @@ func TestStrangerRelayReservationsCannotSlipPastTheCapTogether(t *testing.T) {
 			admitted++
 		}
 	}
-	if admitted != 2 || m.strangerTokens[2] != 800 {
-		t.Fatalf("a 1000-token allowance admits two 400-token holds, got %d (held %d)", admitted, m.strangerTokens[2])
+	if admitted != 2 || strangerSpent(m, 2) != 800 {
+		t.Fatalf("a 1000-token allowance admits two 400-token holds, got %d (held %d)", admitted, strangerSpent(m, 2))
 	}
 }
 
@@ -312,13 +310,12 @@ func TestRelaySummaryChargesOnlyThePasserBy(t *testing.T) {
 	// On the owner's own key passers-by prompt nothing until the owner
 	// lets them.
 	m.bonds.Users[1].StrangersOn = true
-	m.rollDay()
 	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
-	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
+	setOwnerSpent(m, 1, m.cfg.DailyTokensPerCompanion)
 
 	util.LockMud()
 	m.closeConversation(c, `test`)
-	held := m.strangerTokens[2]
+	held := strangerSpent(m, 2)
 	util.UnlockMud()
 	if held == 0 {
 		t.Fatal("the summary was started on the owner's key and held against the passer-by")
@@ -331,7 +328,7 @@ func TestRelaySummaryChargesOnlyThePasserBy(t *testing.T) {
 	for {
 		util.LockMud()
 		failures := m.relays.owners[1].failures
-		left := m.strangerTokens[2]
+		left := strangerSpent(m, 2)
 		util.UnlockMud()
 		if failures == 1 && left == 0 {
 			break
@@ -344,8 +341,8 @@ func TestRelaySummaryChargesOnlyThePasserBy(t *testing.T) {
 	if hits.Load() != 0 {
 		t.Fatalf("a relay call never goes to the server's endpoint: %d requests", hits.Load())
 	}
-	if serverSpent(m) != apiframework.Server().DailyTokenBudget || m.ownerTokens[1] != m.cfg.DailyTokensPerCompanion || serverHeld(m) != 0 {
-		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", serverSpent(m), m.ownerTokens[1], serverHeld(m))
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || ownerSpent(m, 1) != m.cfg.DailyTokensPerCompanion || serverHeld(m) != 0 {
+		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", serverSpent(m), ownerSpent(m, 1), serverHeld(m))
 	}
 	if m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatal("a relay failure never counts toward the global breaker")
@@ -366,9 +363,8 @@ func TestRelayReflectionAndCoreMemorySpendNothingOfTheServers(t *testing.T) {
 	m.relays.ready(1, `player-model`, false)
 	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
 	m.ctrls = map[int]*controller{c.ownerUserId: c}
-	m.rollDay()
 	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
-	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
+	setOwnerSpent(m, 1, m.cfg.DailyTokensPerCompanion)
 
 	now := time.Now().Unix()
 	util.LockMud()
@@ -401,8 +397,8 @@ func TestRelayReflectionAndCoreMemorySpendNothingOfTheServers(t *testing.T) {
 	if hits.Load() != 0 || m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatalf("nothing reached the server's endpoint (%d) or the global breaker (%d)", hits.Load(), m.fw().ConsumerFailures(apiframework.ConsumerCompanion))
 	}
-	if serverSpent(m) != apiframework.Server().DailyTokenBudget || m.ownerTokens[1] != m.cfg.DailyTokensPerCompanion || serverHeld(m) != 0 {
-		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", serverSpent(m), m.ownerTokens[1], serverHeld(m))
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || ownerSpent(m, 1) != m.cfg.DailyTokensPerCompanion || serverHeld(m) != 0 {
+		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", serverSpent(m), ownerSpent(m, 1), serverHeld(m))
 	}
 	if len(c.mind.CoreMemories) != 1 || c.mind.CoreMemories[0].Text != `Something changed between Corvin and me here.` {
 		t.Fatalf("a failed call keeps the bare fact: %+v", c.mind.CoreMemories)
@@ -863,9 +859,15 @@ func tryRoute(m *AICompanionModule, r route, ownerId int, askerId int, tokens in
 	return ok
 }
 
-// settleToday settles a reservation tryRoute made today.
+// settleToday settles a reservation tryRoute made today: the hold the
+// ledger would have given, rebuilt from the same route and payer.
 func settleToday(m *AICompanionModule, r route, ownerId int, askerId int, reserved int, used int) {
-	m.settleRoute(hold{r: r, owner: ownerId, asker: askerId, tokens: reserved, day: m.budgetDay}, used)
+	h := hold{r: r}
+	if r.kind == routeServer || (r.kind == routeRelay && askerId > 0) {
+		h.fw = apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: m.fw().Day(),
+			SpendServer: r.kind == routeServer, Charges: m.allowanceCharges(ownerId, askerId)}
+	}
+	m.settleRoute(h, used)
 }
 
 // Every setting buildConfig reads is documented in settings.md, so an

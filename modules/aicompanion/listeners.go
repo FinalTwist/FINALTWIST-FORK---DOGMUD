@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -565,19 +566,15 @@ func (m *AICompanionModule) strangerMayAsk(u *users.UserRecord, c *controller) b
 	// With strangers off nothing they prompt is paid for, so their day's
 	// allowance does not stop her set-line answer; the cooldown still
 	// paces it.
-	if m.cfg.StrangerDailyTokens > 0 && !m.strangersOff(c.ownerUserId) {
-		m.rollDay()
-		if m.strangerTokens[u.UserId] >= m.cfg.StrangerDailyTokens {
-			return false
-		}
+	if m.cfg.StrangerDailyTokens > 0 && !m.strangersOff(c.ownerUserId) &&
+		m.fw().Allowance(apiframework.DimCompanionStranger, u.UserId) >= m.cfg.StrangerDailyTokens {
+		return false
 	}
 	// Nor when passers-by together have spent all they may of this owner's
 	// companion today (StrangerTokensPerOwner).
-	if m.cfg.StrangerTokensPerOwner > 0 && !m.strangersOff(c.ownerUserId) {
-		m.rollDay()
-		if m.strangersFor[c.ownerUserId] >= m.cfg.StrangerTokensPerOwner {
-			return false
-		}
+	if m.cfg.StrangerTokensPerOwner > 0 && !m.strangersOff(c.ownerUserId) &&
+		m.fw().Allowance(apiframework.DimCompanionStrangersFor, c.ownerUserId) >= m.cfg.StrangerTokensPerOwner {
+		return false
 	}
 	if m.cfg.StrangerAskSeconds > 0 {
 		tag := fmt.Sprintf(`aicompanion-ask-%d`, c.instanceId)
