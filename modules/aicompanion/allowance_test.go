@@ -3,6 +3,7 @@ package aicompanion
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/apiframework"
 )
@@ -64,5 +65,25 @@ func TestARefusedRouteKeepsTheLedgersReason(t *testing.T) {
 	}
 	if h, ok := m.reserveRoute(route{kind: routeNone}, 1, 0, 10); ok || h.refusal != nil {
 		t.Fatal("no route is no refusal of the ledger's")
+	}
+}
+
+// R32, R33: the companion's own counts (calls, errors, "you notice"
+// moments) roll when the ledger's day turns, on the ledger's clock.
+func TestCountersRollOnTheLedgersClock(t *testing.T) {
+	m := &AICompanionModule{cfg: Config{NoticeCallsPerDay: 1}}
+	m.rollCounters()
+	m.callsToday, m.errorsToday = 3, 2
+	m.noticesToday[5] = 1
+	m.rollCounters()
+	if m.callsToday != 3 || m.noticesToday[5] != 1 {
+		t.Fatal("the same day keeps its counts")
+	}
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	m.fw().SetClockForTest(func() time.Time { return tomorrow })
+	m.rollCounters()
+	if m.callsToday != 0 || m.errorsToday != 0 || m.noticesToday[5] != 0 || m.countersDay != tomorrow.Format(`2006-01-02`) {
+		t.Fatalf("a new ledger day starts them afresh: calls=%d errors=%d notices=%d day=%s",
+			m.callsToday, m.errorsToday, m.noticesToday[5], m.countersDay)
 	}
 }

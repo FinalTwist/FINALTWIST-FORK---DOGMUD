@@ -504,10 +504,10 @@ func (m *AICompanionModule) loadBudget() {
 	if err := m.plug.ReadIntoStruct(budgetStateId, &st); err != nil {
 		return // nothing recorded yet, or unreadable: start the day fresh
 	}
-	if st.Day != time.Now().UTC().Format(`2006-01-02`) {
+	if st.Day != m.fw().Day() {
 		return // a stale day is simply a new day
 	}
-	m.budgetDay = st.Day
+	m.countersDay = st.Day
 	// The server's tokens are apiframework's now. A day saved before the
 	// move still counts: it is handed over once, to a fresh day only.
 	m.fw().SeedTokens(apiframework.ConsumerCompanion, st.Day, st.Tokens)
@@ -534,14 +534,15 @@ func (m *AICompanionModule) saveBudget() {
 	if !m.cfg.Enabled {
 		return
 	}
+	m.rollCounters()
 	apiframework.SaveBudget()
-	st := budgetState{Day: m.budgetDay, Calls: m.callsToday,
+	st := budgetState{Day: m.countersDay, Calls: m.callsToday,
 		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor, Notices: m.noticesToday}
 	// Tokens is no longer read (apiframework keeps the books), but the
 	// companion's share of the server key's day is still written, so a
 	// server rolled back to the code before the framework resumes the day
 	// where it was rather than with a fresh budget.
-	if u := m.fw().Today(); u.Day == m.budgetDay {
+	if u := m.fw().Today(); u.Day == m.countersDay {
 		for _, c := range u.ByConsumer {
 			if c.Consumer == apiframework.ConsumerCompanion {
 				st.Tokens = c.Tokens

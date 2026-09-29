@@ -234,7 +234,7 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 	if !ok {
 		return // the day's thinking is spent; the session simply goes unrecorded
 	}
-	m.callsToday++
+	m.countCall()
 	key := mindIdentifier(mind.OwnerUserId, mind.MobId)
 	session := d.session // the session reflected on, not the one running now
 
@@ -273,7 +273,7 @@ func (m *AICompanionModule) applyReflection(key string, ownerId int, session int
 	// Settled first, to the owner it was held against, even when nobody is
 	// left to remember it, so nothing below can leave it held.
 	m.settleRoute(held, res.Tokens)
-	m.rollDay()
+	m.rollCounters()
 	m.recordCall(tierDeep, res)
 	m.routeResult(rt, ownerId, res.Ticket, res.Err, time.Now())
 	// A model the player's provider refused says nothing about the

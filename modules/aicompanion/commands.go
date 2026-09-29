@@ -90,7 +90,7 @@ func (m *AICompanionModule) cmdAICompanion(rest string, user *users.UserRecord, 
 }
 
 func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
-	m.rollDay()
+	m.rollCounters()
 	var b strings.Builder
 	fmt.Fprintf(&b, "AI companions: enabled=%v model=%q apiKey=%v profiles=%d\n",
 		m.cfg.Enabled, m.cfg.Model, m.apiKey() != ``, len(m.profiles))

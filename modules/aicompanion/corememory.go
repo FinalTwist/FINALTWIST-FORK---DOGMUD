@@ -165,7 +165,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		bareFact()
 		return
 	}
-	m.callsToday++
+	m.countCall()
 	key := mindIdentifier(c.mind.OwnerUserId, c.mind.MobId)
 
 	go func() {
@@ -203,7 +203,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, held hold, rt route, res modelResult) {
 	// Settled first, so nothing below can leave the reservation held.
 	m.settleRoute(held, res.Tokens)
-	m.rollDay()
+	m.rollCounters()
 	m.recordCall(tierFast, res)
 	m.routeResult(rt, ownerId, res.Ticket, res.Err, time.Now())
 

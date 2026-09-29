@@ -178,7 +178,7 @@ func (m *AICompanionModule) notice(c *controller, things []thing, now time.Time)
 	if now.Unix()-c.lastNotice < int64(m.cfg.NoticeCooldownSeconds) {
 		return
 	}
-	m.rollDay()
+	m.rollCounters()
 	if m.cfg.NoticeCallsPerDay > 0 && m.noticesToday[c.ownerUserId] >= m.cfg.NoticeCallsPerDay {
 		return
 	}

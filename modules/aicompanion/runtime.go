@@ -647,7 +647,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			c.inFlightDirect = true
 		}
 	}
-	m.callsToday++
+	m.countCall()
 
 	m.decisions.Add(1)
 	go func() {
@@ -722,7 +722,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 // token settlement and the in-flight flags (see dispatch), so a panic in
 // here cannot leave the budget or the companion stuck.
 func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roomAtCall int, reserved int, stims []stimulus, sc *scene, tier string, model string, rt route, res modelResult) {
-	m.rollDay()
+	m.rollCounters()
 	m.recordCall(tier, res)
 	failure := res.Err
 	if failure == nil && res.ParseErr != nil {
