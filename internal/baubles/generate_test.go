@@ -307,3 +307,41 @@ func TestMintHoldsAPickpocketFindToThePocket(t *testing.T) {
 		t.Fatalf("pocket weight: %+v %v", rec, err)
 	}
 }
+
+// The engine holds every generator to the player-key rules, whatever the
+// module did (spec S3; owner ruling 2026-09-29): player-key text is plain,
+// and either moderated (everyone reads it) or kept to its finder
+// (FinderOnly, which needs a finder). Nothing else is ever finder-only.
+func TestGenerateHoldsPlayerKeyTextToItsRules(t *testing.T) {
+	odd := goodReply()
+	odd.Name = "P\U00000430inted Wooden Horse"
+	refused := map[string]struct {
+		res    GenResult
+		finder int
+	}{
+		`unmoderated, not kept to the finder`: {GenResult{Reply: goodReply(), PlayerKey: true}, 7},
+		`not plain`:                           {GenResult{Reply: odd, PlayerKey: true, Moderated: true}, 7},
+		`not plain, finder-only`:              {GenResult{Reply: odd, PlayerKey: true, FinderOnly: true}, 7},
+		`finder-only with no finder`:          {GenResult{Reply: goodReply(), PlayerKey: true, FinderOnly: true}, 0},
+		`finder-only on the server's key`:     {GenResult{Reply: goodReply(), FinderOnly: true}, 7},
+	}
+	for name, c := range refused {
+		c := c
+		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return c.res, nil })
+		if got := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: c.finder}, nil); got.Generator != GeneratorLocal {
+			t.Errorf("%v: a generic trinket, got %+v", name, got)
+		}
+	}
+	kept := map[string]GenResult{
+		`moderated`:   {Reply: goodReply(), PlayerKey: true, Moderated: true},
+		`finder-only`: {Reply: goodReply(), PlayerKey: true, FinderOnly: true},
+	}
+	for name, res := range kept {
+		res := res
+		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return res, nil })
+		got := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: 7}, nil)
+		if got.Generator != GeneratorOpenAI || !got.PlayerKey || got.FinderOnly != res.FinderOnly {
+			t.Errorf("%v: used as it came: %+v", name, got)
+		}
+	}
+}
