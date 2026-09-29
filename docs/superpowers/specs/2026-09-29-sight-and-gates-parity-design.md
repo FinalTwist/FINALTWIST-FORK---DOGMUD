@@ -1,16 +1,19 @@
-# Sight and gates parity: mobs get, look, remove, craft and speak by the player's rules
+# Sight and gates parity: mobs get, look, remove, equip, craft, speak and emote by the player's rules
 
 Date: 2026-09-29. Player/mob parity slice 5, split into **5a object and
-action gates** (get, look, remove, craft) and **5b speech in the dark** (say,
-shout, rally, warcry). Source: the owner-ordered parity audit (2026-09-28)
-and the owner's decisions of 2026-09-29. Each sub-slice ships as its own PR,
-5a first.
+action gates** (get, look, remove, equip over cursed gear, craft) and **5b
+speech and emotes in the dark** (say, shout, rally, warcry, emote). Source:
+the owner-ordered parity audit (2026-09-28) and the owner's decisions of
+2026-09-29. Each sub-slice ships as its own PR, 5a first.
 
 ## Facts verified against source (2026-09-29, master `7d6d4ac38`)
 
-Every row below was read at `7d6d4ac38` in a fresh worktree. Negative rows
-("no callers", "zero") name the search and a positive hit that proves the
-same search could match.
+Every row below was read at `7d6d4ac38` in a fresh worktree. The Equip (E)
+and Emote (M) rows and the disarm row (D1) were added later the same day at the
+spec branch's `c9c2e0ec7`, whose only changes since `7d6d4ac38` are this
+spec and its README row, so the code read is the same. Negative rows ("no
+callers", "zero") name the search and a positive hit that proves the same
+search could match.
 
 ### Get
 
@@ -53,6 +56,21 @@ same search could match.
 | R7 | `RemoveEquipment` callers: the two wrappers only. The companion issues `remove <worn ref>` | grep `RemoveEquipment(`; `modules/aicompanion/actions.go:408-412` |
 | R8 | The companion judges a remove by whether its worn count changed; a refused remove records "You tried to change your gear (X), but nothing changed." | `modules/aicompanion/actions.go:791-799` |
 
+### Equip over cursed gear
+
+| # | Fact | Where |
+|---|---|---|
+| E1 | `Character.Wear(i items.Item) (returnItems []items.Item, newItemWorn bool, failureReason string)`: type gate, MinStrength, hands, then a reservation snapshot (`savedEquipment := c.Equipment`, `:628`), placement by `wearWeaponOrShield` or `wearArmorSlot` (`:632-636`), and a post-placement reservation check that restores `savedEquipment` and refuses (`:642-650`) | `internal/characters/worn.go:586-672` |
+| E2 | `wearWeaponOrShield` refuses a cursed displacement with "Your X is cursed and prevents you from removing it." in three places: the 2H pair (`:385-390`), a shield displacing arm 2 (`:415-417`), a 1H weapon displacing `Weapon` (`:454-456`). The 1H path also displaces arm 2 when `Weapon` is 2H (`:457-460`) without testing it for a curse. No Health and no Spellcasting condition | `worn.go:373-464` |
+| E3 | `wearArmorSlot` displaces the slot's occupant for every armour type (both rings full: `Ring`; all wrists full: `Wrist1`) with no cursed check | `worn.go:472-584` |
+| E4 | Player `equip` has two paths. The ordinary one calls `actions.EquipItem` (`:276-277`) with no cursed pre-check, so a player today puts a helmet on over a cursed helmet. The arm-slot branch (`equip X armN`, `:122-273`) places directly and never calls `Wear`; its four checks (`:172-196`, "Your X is cursed and can't be removed!") are the only cursed checks in the file, and it also skips `Wear`'s MinStrength and reservation gates | `internal/usercommands/equip.go` |
+| E5 | No equip path honours the Spellcasting-4 exception: `Spellcasting` has zero hits in `usercommands/equip.go`, `characters/worn.go` and `actions/remove_equip.go` (the same search hits `usercommands/remove.go:66`). `IsCursed` is `spec.Cursed && !Uncursed` | grep; `internal/items/items.go:398-400` |
+| E6 | `actions.EquipItem(actor, itemName) EquipItemResult` calls `Wear` at `:44` and returns its `FailureReason`. Callers: `usercommands/equip.go:277`, `mobcommands/equip.go:65`, `hooks/mob_equip_best_floor_item.go:60` | `internal/actions/remove_equip.go:25-83`; grep `EquipItem(` |
+| E7 | Direct `Wear` callers: `actions/sell.go:404` (merchant gear upgrade; a refusal speaks "considers the X, then shelves it instead."), `bountyhunter/bountyhunter.go:91` and `rooms/rooms.go:1001` (affixed loot-pool gear, refusal logged by `mudlog.Warn`), `modules/aicompanion/cooking.go:159` (`equipStartingKit`) | grep `Wear(` |
+| E8 | Mob `equip` speaks "X turns the Y over, then sets it aside." on any `FailureReason`. Mob `gearup` issues `wear !<id>` only when `itemvalue.IsUpgrade`; a player's `give` to a mob issues `gearup !<id>` once. `IsUpgrade` is `ItemValueDelta(...).Score > 0`, which already models the displaced items per slot (`displacedItemsForSlot`) and ignores curses (`cursed` in `internal/itemvalue` hits a test only). The floor-equip hook keeps a refused item in the pack, off the floor | `mobcommands/equip.go:67-76`; `mobcommands/gearup.go:34,41,79,89`; `usercommands/give.go:281`; `internal/itemvalue/score.go:47-49`; `delta.go:231-259,287-322`; `hooks/mob_equip_best_floor_item.go:55-65` |
+| E9 | The companion's `equip` verb issues `equip <ref>` and is judged, like remove, by its worn count (R8). Autonomy offers `gearup` at most once an hour (`lastGearUp`), and `noveltyBonus` scores a thing -1 after two failures in a day | `modules/aicompanion/actions.go:402-406,791-799`; `autonomy.go:314-316,383-389`; `scene.go:341-351` |
+| E10 | Spawn: `rooms.go:1001` wears loot-pool items on a mob fresh from `NewMobById` (`:954`), which already wears its template's gear (62 dogmud mob files carry `equipment:`), so the body is not empty and the loot can displace. But the live world (`DataFiles: _datafiles/world/dogmud`) has zero cursed item specs (`cursed: *true` finds 0 files there and 6 in `world/default`), affix generation adds no curse (`Cursed\|Uncurse` in `internal/items` hits only the spec field, `Uncursed`, `Uncurse`, `IsCursed` and the list flag at `items.go:482`), so no spawn-time `Wear` can meet a cursed slot with shipped content. The builder item editor can set `Cursed` | grep; `_datafiles/config.yaml:240`; `modules/gmcp/gmcp.Item.go:241` |
+
 ### Craft
 
 | # | Fact | Where |
@@ -88,6 +106,25 @@ same search could match.
 | S17 | Mob rally and warcry are issued by behaviour archetypes (`leader`, `guard_captain`, `tank_taunter`, `boss_soren`) and the companion's combat moves | `_datafiles/world/dogmud/behaviors/archetypes/*.yaml`; `modules/aicompanion/decision.go:53` |
 | S18 | Whisper is a remote, name-addressed tell (`users.GetByCharacterName`) with its own deafen refusal; it is not room-bound, so darkness does not apply. Mob `sayto`/`replyto` send the mob's and the target's names to the room with plain `SendText` and no sight gate, so they leak names in the dark | `internal/usercommands/whisper.go:31-60`; `internal/mobcommands/sayto.go:36-51,65-68,142-158` |
 
+### Emote
+
+| # | Fact | Where |
+|---|---|---|
+| M1 | Player free-form `emote <text>` sends `FormatEmoteText(name, rest, "username")` through `room.SendTextCommunication`: one RoomId-keyed communication (S12), no sight gate, so every listener reads the name in any light, a blinded one included. A deafened listener is filtered (S13) | `internal/usercommands/emote.go:52-55` |
+| M2 | The `@` form (`emote @<text>`) strips the `@` and skips only the actor's own "You Emote:" line; its room line is M1's, same call | `emote.go:45-50` |
+| M3 | Empty `emote` ("X emotes.") and alias emotes (`actions.EmoteAliases`) send through plain `SendTextVisual` with `CategoryEmote`, excluding the actor; aliases bypass mute and deafen by design ("pre-written, not free-form communication") | `emote.go:16-33`; `internal/actions/emote.go:18-23` |
+| M4 | Mob `emote` returns early when `room.PlayerCt() < 1`, then sends the empty form or `FormatEmoteText(name, text, "mobname")` (alias or free text) through plain `SendTextVisual` with `CategoryMobEmote`: sight-gated, unfiltered by deafen | `internal/mobcommands/emote.go:15-31` |
+| M5 | `FormatEmoteText` wraps the name in a `username`/`mobname` tag. Plain `SendTextVisual` therefore already hides that name at shapes: the pipeline's `Anonymize` replaces the tag with "a figure", capitalised at a sentence start since `5c0c91dd0` ("A figure waves."), and a `SightNone` listener gets nothing. So M3 and M4 are three-tier today. What `SendTextVisualHidingNames` adds is `HideNames` over bare, untagged occurrences of the given names in the text | `internal/actions/emote.go:27-35`; `internal/messaging/anonymize.go:21-62`; `pipeline.go:59-68`; `rooms.go:330-369` |
+| M6 | Every mob emote reaches `mobcommands.Emote`: 906 `- emote` lines across 173 files under `_datafiles/world/dogmud`, the behaviour-tree `emote` action and dialogue (`actions_dialogue.go:87,148`), quest `npcCommand` (`bridge.go:418`), planners (`helpers.go:245-249`), charm expiry, and the companion's idle, look, thinking and arrow-gathering emotes (`autonomy.go:346`, `actions.go:689`, `runtime.go:1201`, `combat.go:1003`) | grep `emote` over `internal/`, `modules/`, `_datafiles/world` |
+| M7 | `sendTextVisualJudgedBy` queues one per-user `events.Message` with no `IsCommunication`; the per-user deafen check (S13, `:29`) would filter such a message if the flag were set. The only other reader of `Message.IsCommunication` is that hook; discord relays only `Broadcast` | `rooms.go:330-369`; `hooks/Message_SendMessages.go:29`; `internal/integrations/discord/listeners.go:100-108`; grep `IsCommunication` |
+| M8 | The companion takes in a player's emote from `events.Emote` only when it sees clearly (`cannotSee`) and perceives the emoter, so no change reaches its memory | `modules/aicompanion/listeners.go:191-207` |
+
+### Disarm and forced unequips
+
+| # | Fact | Where |
+|---|---|---|
+| D1 | Disarm and the offhand break name nobody in the dark. Disarm (`combat/criteffects.go:23-65`, `RemoveFromBody` at `:61`) is delivered by `messaging.SendTrio` from player and mob grapple; the observer line goes through `SendTextVisualHidingNames` with both names, and the actor and actee lines hide the other party by the reader's `ParticipantSight`. The offhand break (`tryWeaponBreak`, `RemoveFromBody` at `hooks/combat_shared_helpers.go:243`) sends its room line through `SendTextVisualHidingNames` | `usercommands/grapple.go:143-150`; `mobcommands/grapple.go:73-82`; `messaging/trio.go:108-132`; `hooks/NewRound_DoCombat_helpers.go:1012-1023,1039-1048` |
+
 ### Guards and tests that key on this code
 
 | # | Item | Where |
@@ -102,7 +139,7 @@ same search could match.
 
 ## Owner decisions (binding, 2026-09-29)
 
-1. **One spec, two PRs.** 5a object and action gates first, then 5b speech.
+1. **One spec, two PRs.** 5a object and action gates first, then 5b speech and emotes.
 2. **Approach A.** Every rule moves into the shared body both actors already
    call; the command wrappers keep only their wording. A repo-root re-fork
    guard pins it. No per-wrapper copies, no rule-table mechanism.
@@ -120,6 +157,18 @@ same search could match.
    their companion (S12, S14). Mob speech takes the three-tier names through
    `SendTextHidingNames`; player speech keeps the deafen filter through
    `SendCommunicationHidingNames`. That one call is the only difference.
+7. **Emotes join 5b where they leak names** (owner, 2026-09-29). An emote is
+   seen, not heard, so the player's free-form line (M1, M2) follows the visual
+   rule (clear sight: the name; shapes: "a figure"/"A figure"; no sight:
+   nothing) and keeps the deafen filter, because it is player free text. Mob
+   emotes follow the same visual rule unfiltered, as ruling 6 does for speech.
+8. **Equipping over cursed gear joins 5a for mobs** (owner, 2026-09-29). The
+   refusal moves into `Character.Wear` for every slot, armour included, with
+   the existing `worn.go` wording, so every mob path (E6, E7) inherits it and
+   the player wrappers keep only wording. The Spellcasting-4 exception
+   follows player equip exactly as it stands (E5: not honoured).
+9. **Disarm and forced unequips stay out** (owner, 2026-09-29), because they
+   leak no names (D1).
 
 ## 5a: Object and action gates
 
@@ -129,7 +178,9 @@ before that branch runs. So each gate is ONE exported predicate in
 `internal/actions`, called by the shared body for both actors and, where a
 player-only branch runs first, by the player wrapper too. The wrapper never
 evaluates sight, curses or busyness itself; it asks the shared predicate and
-words the answer.
+words the answer. The one exception to the package is the equip curse rule,
+which lives in `internal/characters` beside `Wear` (the arm-slot branch is
+the player-only branch that calls it).
 
 ### Get
 
@@ -205,6 +256,54 @@ dark now records "did not manage it" (G8, the existing not-ok line).
   item holds ("it will not come off"), the way `get` refuses a household
   bauble at `actions.go:366-368`, so it does not record a futile attempt (R8).
 
+### Equip over cursed gear
+
+The owner's brief read the player's `equip.go:172-194` checks as pre-checks
+in front of `Wear`. Source differs (E4): they guard only the arm-slot branch,
+which never calls `Wear`, and the ordinary player path has no curse check on
+armour either. So the rule is missing for players too, and the arm-slot
+checks are not redundant after the move; they call the shared predicate.
+
+- `(*characters.Character).CursedRefusal(it items.Item) string`: empty unless
+  `it.ItemId != 0 && it.IsCursed()`, else `worn.go`'s reason, "Your X is
+  cursed and prevents you from removing it." The one statement of the equip
+  rule. No Health and no Spellcasting condition: player equip honours neither
+  today (E2, E5, ruling 8), so equip and remove keep different rules, and a
+  Spellcasting-4 wearer still frees the slot with `remove` first. It lives in
+  `characters` because `Wear` does, and `actions` imports `characters`.
+- `Wear` checks each item in `returnItems` with `CursedRefusal` right after
+  placement and BEFORE the reservation check, so a cursed refusal reads as the
+  curse. On a hit it restores `savedEquipment`, reruns
+  `reapplyPermanentConditions` and refuses, the revert the reservation check
+  already uses (E1). Checking what placement actually displaced means no slot
+  choice is copied, and it covers every armour slot (E3) and the unchecked
+  arm-2 displacement (E2, `:457-460`). The three inline weapon checks (E2)
+  go; their wording is the shared reason.
+- Every caller inherits it with no change of its own (E6, E7): `EquipItem`
+  returns the reason; the player's ordinary path prints it (`equip.go:336-342`);
+  mob `equip` speaks its set-aside line; the merchant upgrade shelves the item;
+  `equipStartingKit` leaves the item in the pack. The spawn and bounty-hunter
+  loot `Wear` cannot meet a cursed slot with shipped content (E10); if a
+  builder curses a template's worn item, `Wear` refuses and the existing
+  `mudlog.Warn` names it.
+- `usercommands.Equip` arm-slot branch: its four checks become
+  `CursedRefusal` calls that print the returned reason, so its line changes
+  from "can't be removed!" to the shared wording. Its skipping of `Wear`'s
+  MinStrength and reservation gates (E4) is a player-only finding, filed.
+- `itemvalue.ItemValueDelta` skips a slot whose `displacedItemsForSlot` holds
+  an item `CursedRefusal` refuses, so `IsUpgrade` stops calling that swap an
+  upgrade (E8). `gearup` and the floor-equip hook then never try it.
+
+**Companion.** Handed better gear whose slot holds a cursed piece, the
+companion considers it (the give line), `gearup` finds no upgrade, and the
+item stays in its pack: silent, one attempt, no retry (unless a behaviour
+tree takes `player_give` first, as today). Where `itemvalue`'s slot model and
+`Wear`'s placement differ (two rings worn: `itemvalue` weighs `Ring2`, `Wear`
+displaces `Ring`), `Wear` refuses, the companion says "turns the X over, then
+sets it aside." and the attempt is recorded as "nothing changed" (R8). That
+can recur at most at autonomy's hourly `gearup` cadence, and its `equip` verb
+drops a thing after two failures in a day (E9). No loop.
+
 ### Craft
 
 - `actions.TooDarkToCraft(actor Actor) bool`: `!CanSeeClearly` (C1, C7).
@@ -231,14 +330,18 @@ shape, fails if any of these files matches its forbidden set:
 | `usercommands/get.go`, `mobcommands/get.go` | `ParticipantSight`, `CanSeeShapes`, `CanSeeClearly`, `` `exploding` `` |
 | `usercommands/look.go`, `mobcommands/look.go` | `ParticipantSight`, `SeesThroughExit`, `CanSeeClearly`, `ResolveTargetActor` |
 | `usercommands/remove.go`, `mobcommands/remove.go` | `IsCursed`, `IsActing`, `refuseWhileBusy`, `Spellcasting` |
+| `usercommands/equip.go`, `mobcommands/equip.go`, `usercommands/gearup.go`, `mobcommands/gearup.go` | `IsCursed`, `Spellcasting` |
 | `usercommands/craft.go`, `mobcommands/craft.go` | `CanSeeClearly`, `ParticipantSight` |
 
 The guard matches code, not comments: it drops `//` comment text before
 matching, because `get.go:28`, `get.go:635`, `look.go:284` and `craft.go:88`
 name these words in comments today. Outside the moved gates the files use
 none of them in code (grep: `ParticipantSight` at `look.go:33` only,
-`SeesThroughExit` at `look.go:285` only). Proven able to fail by a temporary
-violation in each row.
+`SeesThroughExit` at `look.go:285` only). In the equip row, `IsCursed`
+appears today only in code, at `usercommands/equip.go:173,180,185,193` (the
+arm-slot checks that move to `CursedRefusal`); the two `gearup.go` files and
+`mobcommands/equip.go` have none, and none of the four has `Spellcasting`.
+Proven able to fail by a temporary violation in each row.
 
 ### Parity table (5a)
 
@@ -259,13 +362,18 @@ violation in each row.
 | Spellcasting 4 removes a cursed item | yes | n/a | yes |
 | `remove all` skips cursed, removes the rest | no (strips all) | no | yes |
 | `PermaGear` refuses | n/a | yes | unchanged (mob only) |
+| Equip refused over a cursed weapon or shield | yes (`Wear`, arm-slot branch) | yes (`Wear`) | yes, one `CursedRefusal` |
+| Equip refused over cursed armour, ring, wrist, light | no | no | yes |
+| Spellcasting 4 lets equip displace a cursed item | no | no | no (matches player equip, ruling 8) |
+| Upgrade scoring skips a swap a curse would refuse | n/a | no | yes (`ItemValueDelta`) |
 | Craft refused below clear sight | yes | no | yes |
 
-## 5b: Speech in the dark
+## 5b: Speech and emotes in the dark
 
-**Shape.** Two Room senders beside `SendTextVisualHidingNames`, both
+**Shape.** Two audio Room senders beside `SendTextVisualHidingNames`, both
 three-tier through a hiding function, per listener, never shortcutting on a
-lit room (which is what leaks S7 to a blinded listener):
+lit room (which is what leaks S7 to a blinded listener), and one visual
+communication sender for emotes (below):
 
 - `Room.SendCommunicationHidingNames(cat messaging.Category, text string,
   names []string, excludeUserIds ...int)`: per listener, hides `names` by
@@ -321,16 +429,48 @@ lets out a rallying roar!" is today's anonymous mob line word for word.
   senders. `Actor.SendRoomCommunication` (S15), dead and now contradicting the
   shipped rule, is deleted with its nine test fakes.
 
+**Emotes (ruling 7).** An emote is seen, so it stays on the visual channel;
+the one thing the free-form player line needs that no visual sender gives is
+the deafen flag (M7).
+
+- `Room.SendVisualCommunicationHidingNames(cat, text, names,
+  excludeUserIds...)`: `SendTextVisualHidingNames` with each per-user
+  `events.Message` marked `IsCommunication`, so the per-user deafen check
+  (S13, `:29`) filters it. The smallest shared change: the private
+  `sendTextVisualJudgedBy` gains a `communication bool` that sets that one
+  field; its four current callers pass `false`. Sight, `Anonymize` (capitalised
+  "A figure", M5), `HideNames` at shapes and the `SightNone` drop are the
+  existing path, unchanged.
+- New `actions.SendSeen(actor Actor, cat messaging.Category, text string,
+  chatter bool)`, the visual twin of `SendHeard`: names `[actor name]`,
+  excludes a player actor, and sends through
+  `SendVisualCommunicationHidingNames` when the actor is a player and
+  `chatter` is set, else through `SendTextVisualHidingNames`. A mob is never
+  deafen-filtered whatever `chatter` says (ruling 6).
+- `usercommands.Emote`: the free-form line, `@` form included (M1, M2), goes
+  through `SendSeen(..., CategoryEmote, line, true)`; it gains
+  `CategoryEmote`, which it lacks today (the alias line already has it), and
+  normalize skips every stage for it (`normalize.go:26-44`) and it is not in
+  the wrap allowlist (`pipeline.go:137`), so only its colour tag is new. The empty and alias lines (M3) go through `SendSeen(..., false)`: still
+  unfiltered by design, now also hiding a bare own name. Mute, escaping, the
+  self line and `events.Emote` stay in the wrapper; the companion already
+  ignores an emote it cannot see (M8).
+- `mobcommands.Emote`: both lines through `SendSeen(..., CategoryMobEmote,
+  line, false)`. Mob emotes were already three-tier through the tag (M4, M5),
+  so the only change is the bare-name hiding; the `PlayerCt() < 1` early
+  return stays, as for say (S5). Every mob emote issuer rides this (M6).
+
 **Guard (5b).** Repo-root `speech_wrapper_guard_test.go` fails if
-`usercommands/{say,shout,rally,warcry}.go` or
-`mobcommands/{say,shout,rally,warcry}.go` matches `SendTextCommunication`,
+`usercommands/{say,shout,rally,warcry,emote}.go` or
+`mobcommands/{say,shout,rally,warcry,emote}.go` matches `SendTextCommunication`,
 `sendAudioRoomText`, `HideNames`, `HideSpeakerNames`, `ParticipantSight`,
 `TransitionToRevealing`, `ForEachAdjacentRoom`, `OnSleeperWoken`,
-`room\.SendText\(` or `room\.SendTextVisual\(`, and if any file outside
-`internal/rooms` and `internal/actions` calls
-`SendCommunicationHidingNames`. Comments are dropped before matching, as in
-5a. Party member lines (`memberUser.SendText`) do not match. Proven able to fail. T3, T4 add the two new senders; T5 drops
-the dead recogniser and updates the comments.
+`SendTextVisualHidingNames`, `room\.SendText\(` or `room\.SendTextVisual\(`,
+and if any file outside `internal/rooms` and `internal/actions` calls
+`SendCommunicationHidingNames` or `SendVisualCommunicationHidingNames`.
+Comments are dropped before matching, as in 5a. Party member lines
+(`memberUser.SendText`) do not match. Proven able to fail. T3, T4 add the
+three new senders; T5 drops the dead recogniser and updates the comments.
 
 ### Parity table (5b)
 
@@ -349,31 +489,49 @@ the dead recogniser and updates the comments.
 | Rally/warcry heard, name by sight | no (visual) | two tiers | yes |
 | Rally/warcry deafen-filtered | no | no | no |
 | Unseen speaker reads "Someone" | n/a | "someone" (2 tiers) | "A figure" / "Someone" |
+| Free-form emote: name by sight (name / "A figure" / nothing) | no (named to all, blinded included) | yes (tag, M5) | yes |
+| Empty and alias emote: name by sight | yes (tag) | yes (tag) | yes |
+| Emote hides a bare own name at shapes | no | no | yes (`SendSeen`) |
+| Free-form emote: deafened listener filtered | yes | no | unchanged: players yes, NPCs no (rulings 6, 7) |
+| Empty and alias emote: deafen-filtered | no | no | no |
 
 ## What changes in play
 
-**Players see, 5a.** Nothing new is refused. `remove all` no longer strips
-cursed gear: each cursed item stays on with the cursed line, unless the
-player has Spellcasting 4. `get all <name>` behaves exactly as before.
+**Players see, 5a.** One new refusal: equipping armour, a ring, a wrist
+piece or a light over a cursed one now fails with "Your X is cursed and
+prevents you from removing it." (it silently swapped the cursed piece out
+before, E4), and the arm-slot `equip X armN` refusal takes that same wording.
+`remove all` no longer strips cursed gear: each cursed item stays on with
+the cursed line, unless the player has Spellcasting 4. `get all <name>`
+behaves exactly as before. With no cursed items in the live world (E10), the
+curse changes are latent until a builder makes one.
 
 **Players see, 5b.** In a dark room a speaker's name now follows the
 listener's sight: "A figure says, ..." at shapes, "Someone says, ..." in
 blackness, and a blinded listener in a lit room hears "Someone" too. This
 applies to other players (named to everyone today) and to NPCs (two tiers
 today). Mob shouts next door now carry their words. A player's rally or
-warcry is heard in the dark instead of vanishing.
+warcry is heard in the dark instead of vanishing. A player's free-form
+`emote` is seen like the other emotes: named at clear sight, "A figure ..."
+at shapes, and nothing at all in blackness or to a blinded listener, where
+today it names the emoter to everyone. A deafened player still does not see
+another player's free-form emote.
 
 **Mobs, 5a.** A mob cannot pick up anything, or gold, when it sees nothing,
 nor an exploding item. A mob cannot look at, or be seen to look at, a hidden
 player. A busy mob cannot take gear off, and a mob's cursed gear stays on
-(Spellcasting 4 aside). Crafters stop in the dark: a planner crafter at a
-station after the lamps fail waits for light, and the AI companion neither
-offers nor starts a recipe it cannot see to make.
+against `remove` (Spellcasting 4 aside) and against any equip (no
+exception): no mob swaps out a cursed piece, and upgrade scoring stops
+offering that swap, so a companion handed better gear for a cursed slot keeps
+it in its pack without trying. Crafters stop in the dark: a planner crafter
+at a station after the lamps fail waits for light, and the AI companion
+neither offers nor starts a recipe it cannot see to make.
 
 **Mobs, 5b.** A hidden human mob that shouts "it's time to die!" on entering
 combat now reveals itself. The AI companion's speech, quest NPC lines and
 shopkeepers follow the three-tier rule, and a deafened player still hears
-them (ruling 6).
+them (ruling 6). Mob emotes read as they do today, except that a bare
+mention of the mob's own name in its emote text is hidden at shapes too.
 
 ## Testing and gates
 
@@ -385,6 +543,17 @@ them (ruling 6).
   Wrapper tests pin today's wording for each player refusal and the silent
   mob path. The companion's `craftableHere` returns nothing in the dark and
   its `remove` refuses a cursed item.
+- 5a equip: `Wear` tests in `internal/characters` put a cursed item in each
+  slot family (2H pair, shield over arm 2, 1H over `Weapon`, arm 2 behind a
+  2H, every armour type, both rings full, all wrists full, light) and assert
+  the refusal text, that `Equipment` is unchanged and that the candidate is
+  not worn; an uncursed (`Uncursed`) item swaps as today; a cursed refusal
+  wins over a reservation refusal. `EquipItem` through a `UserActor` and a
+  `MobActor` returns the same reason and leaves the item in the pack. The
+  arm-slot branch prints the shared line. `ItemValueDelta` scores no upgrade
+  for a slot a curse holds, so mob `gearup !<id>` after a `give` wears
+  nothing and speaks nothing; the ring case (`Ring` cursed, `Ring2` free)
+  speaks the set-aside line once per `gearup`.
 - 5b: a per-listener table for say, shout, rally and warcry, each with a
   player speaker and a mob speaker, over five listeners in the speaker's room:
   clear sight (named), shapes ("A figure"), dark ("Someone"), blinded in a lit
@@ -393,30 +562,49 @@ them (ruling 6).
   ruling 6). Every row asserts the words arrive.
   Adjacent rooms get the one anonymous line with the words. A hidden mob that
   shouts is revealed.
+- 5b emote: the same five listeners for a player's free-form, `@`, empty
+  and alias emote and a mob's free-form and empty emote. Clear sight: named;
+  shapes: "A figure ..." (capitalised) and a bare own name hidden; dark and
+  blinded in a lit room: nothing; deafened: nothing for a player's free-form
+  and `@` lines, seen for a player's empty and alias lines and every mob
+  line. The actor gets its own "You Emote:" line only outside the `@` form.
+  `sendTextVisualJudgedBy`'s four existing callers still queue messages
+  without `IsCommunication`.
 - The T6 and T7 tests move with the code, unchanged in what they assert;
   `FormatSayText`'s tests stay.
 - Both re-fork guards, each proven able to fail; the lookup guard re-key;
   T3 to T5.
 - `context.md` updated for `internal/actions`, `internal/rooms`,
-  `internal/messaging`, `internal/mobcommands`, `internal/usercommands` and
-  `modules/aicompanion`.
+  `internal/messaging`, `internal/characters`, `internal/itemvalue`,
+  `internal/mobcommands`, `internal/usercommands` and `modules/aicompanion`.
 - Gate per PR: gofmt, vet, build, `go test ./...`, golangci-lint
   new-from-merge-base, boot check, playtest (5a: companion in a dark room
-  with a station and cursed gear; 5b: say and shout between two players and
-  an NPC across light, shapes, dark and blinded). **5a ships first; 5b
-  follows as a second PR.**
+  with a station and cursed gear, then handed better gear for the cursed
+  slot; the live world ships no cursed item (E10), so the playtest curses one
+  through the item editor on its ephemeral checkout; 5b: say, shout and
+  emote between two players and an NPC across light, shapes, dark and
+  blinded). **5a ships first; 5b follows as a second PR.**
 
 ## Out of scope
 
 - Whisper and reply: remote tells, not room speech (S18).
 - Mob `sayto` and `replyto`, which name both parties to the room with no
   sight gate (S18). A finding, filed, not fixed here.
-- Player emote and `ask` room lines, and player taunt's visual channel.
-- Equip displacing a cursed item: the check lives in `usercommands/equip.go`
-  (`:173-193`) and `Character.Wear`; mob equip and `gearup` are a separate
-  row.
+- Player `ask` room lines, and player taunt's visual channel. (Emotes moved
+  into 5b, ruling 7.)
+- The arm-slot `equip X armN` branch placing gear without `Wear`, and so
+  without its MinStrength and reservation gates (E4). A player-only finding,
+  filed; 5a changes only its curse check.
+- `Wear` choosing `Ring` (and `Wrist1`) to displace when every slot is full,
+  even when that one is cursed and another is not (E3). The curse refusal
+  keeps the choice as it is.
 - Disarm and forced unequips (`combat/criteffects.go:61`,
-  `hooks/combat_shared_helpers.go:243`), which bypass `RemoveEquipment`.
+  `hooks/combat_shared_helpers.go:243`), which bypass `RemoveEquipment` and
+  so strip a cursed weapon or break a cursed shield. Out because they leak no
+  names (ruling 9, D1): disarm goes through `messaging.SendTrio`, whose
+  observer line is `SendTextVisualHidingNames` with both names and whose
+  actor and actee lines hide the other party by sight; the offhand break's
+  room line is `SendTextVisualHidingNames`.
 - The mob `say` early return with no players present (S5).
 - Retuning any sight threshold.
 
