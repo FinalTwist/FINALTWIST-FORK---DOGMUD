@@ -179,14 +179,14 @@ func TestModerateAndListModels(t *testing.T) {
 
 func TestBudgetReserveSettleAndShares(t *testing.T) {
 	ResetBudgetForTest(``)
-	h1, err := budget.reserve(ConsumerCompanion, 600, 1000)
+	h1, err := budget.reserve(ConsumerCompanion, 600, 1000, 0, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := budget.reserve(ConsumerBaubles, 500, 1000); !errors.Is(err, ErrOverBudget) {
+	if _, err := budget.reserve(ConsumerBaubles, 500, 1000, 0, true, nil); !errors.Is(err, ErrOverBudget) {
 		t.Fatal("one budget: the companion's hold leaves no room")
 	}
-	h2, err := budget.reserve(ConsumerBaubles, 300, 1000)
+	h2, err := budget.reserve(ConsumerBaubles, 300, 1000, 0, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestBudgetReserveSettleAndShares(t *testing.T) {
 	if shares[ConsumerCompanion] != 100 || shares[ConsumerBaubles] != 250 {
 		t.Fatalf("per consumer: %v", shares)
 	}
-	if _, err := budget.reserve(ConsumerBaubles, 1000, 0); err != nil {
+	if _, err := budget.reserve(ConsumerBaubles, 1000, 0, 0, true, nil); err != nil {
 		t.Fatal("limit 0 is no cap")
 	}
 }
@@ -216,7 +216,7 @@ func TestBudgetRollsOverWithCallsInFlight(t *testing.T) {
 	day1 := time.Date(2026, 9, 26, 23, 59, 0, 0, time.UTC)
 	SetClockForTest(func() time.Time { return day1 })
 	t.Cleanup(func() { SetClockForTest(time.Now) })
-	h, err := budget.reserve(ConsumerBaubles, 1000, 5000)
+	h, err := budget.reserve(ConsumerBaubles, 1000, 5000, 0, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestBudgetSavesAndLoads(t *testing.T) {
 	dir := t.TempDir()
 	ResetBudgetForTest(dir)
 	t.Cleanup(func() { ResetBudgetForTest(``) })
-	h, _ := budget.reserve(ConsumerCompanion, 500, 0)
+	h, _ := budget.reserve(ConsumerCompanion, 500, 0, 0, true, nil)
 	budget.settle(h, 123, false)
 	SaveBudget()
 
@@ -651,7 +651,7 @@ func TestBooksAreIsolated(t *testing.T) {
 	ResetBudgetForTest(``)
 	ResetBreaker()
 	own := NewBooksForTest()
-	h, err := own.Reserve(ConsumerCompanion, 300)
+	h, err := own.Reserve(ConsumerCompanion, 300, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -662,7 +662,7 @@ func TestBooksAreIsolated(t *testing.T) {
 	if own.Today().Tokens != 300 || own.BreakerFailures() != 1 {
 		t.Fatalf("its own books: tokens=%d failures=%d", own.Today().Tokens, own.BreakerFailures())
 	}
-	if _, err := Reserve(ConsumerBaubles, 50); err != nil {
+	if _, err := Reserve(ConsumerBaubles, 50, true); err != nil {
 		t.Fatal(err)
 	}
 	own.Settle(h, 100, false)

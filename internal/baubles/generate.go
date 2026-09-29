@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
@@ -107,6 +109,35 @@ func CurrentGenerator() (GeneratorInfo, bool) {
 	return g.info(), true
 }
 
+// refusalLog is when a refused find was last logged; now is its clock (nil
+// is time.Now; tests set it).
+var refusalLog struct {
+	mu   sync.Mutex
+	last time.Time
+	now  func() time.Time
+}
+
+// noteRefusal logs a find the ledger refused (a spent day, the baubles
+// share, or the finder's allowance: apiframework.RefusedBy names which), at
+// most once a minute, the companion's pattern (aicompanion's
+// logBudgetRefusal): a finder over their allowance who keeps searching is
+// one line a minute, not one a find. Every other failure is logged each
+// time.
+func noteRefusal(refusedBy string, err error) {
+	refusalLog.mu.Lock()
+	now := time.Now()
+	if refusalLog.now != nil {
+		now = refusalLog.now()
+	}
+	if now.Sub(refusalLog.last) < time.Minute {
+		refusalLog.mu.Unlock()
+		return
+	}
+	refusalLog.last = now
+	refusalLog.mu.Unlock()
+	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `refusedBy`, refusedBy, `error`, err)
+}
+
 // MaxGenerateTime is the hard ceiling on one Generate call, whatever the
 // generator's own timeout says, so a find is never held up for longer.
 const MaxGenerateTime = 30 * time.Second
@@ -137,7 +168,11 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 
 	res, err := g.fn(ctx, req)
 	if err != nil {
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
+		if refusedBy := apiframework.RefusedBy(err); refusedBy != `` {
+			noteRefusal(refusedBy, err)
+		} else {
+			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
+		}
 		return generic()
 	}
 	cleaned, err := CleanReply(res.Reply)

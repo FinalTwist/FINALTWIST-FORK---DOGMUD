@@ -90,7 +90,7 @@ func (m *AICompanionModule) cmdAICompanion(rest string, user *users.UserRecord, 
 }
 
 func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
-	m.rollDay()
+	m.rollCounters()
 	var b strings.Builder
 	fmt.Fprintf(&b, "AI companions: enabled=%v model=%q apiKey=%v profiles=%d\n",
 		m.cfg.Enabled, m.cfg.Model, m.apiKey() != ``, len(m.profiles))
@@ -154,7 +154,7 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 		fmt.Fprintf(&b, "  %s -> %s [%s] mood=%s sessions=%d memories=%d facts=%d lines=%d pending=%d",
 			ownerName, c.profile.Name, state, c.mind.Mood, c.mind.SessionCount,
 			len(c.mind.Memories), len(c.mind.Facts), len(c.mind.RecentLines), len(c.pending))
-		fmt.Fprintf(&b, " spentToday=%d tier=%s", m.ownerTokens[c.ownerUserId], tierName(m.route(c.ownerUserId).kind))
+		fmt.Fprintf(&b, " spentToday=%d tier=%s", m.fw().Allowance(apiframework.DimCompanionOwner, c.ownerUserId), tierName(m.route(c.ownerUserId).kind))
 		if m.strangersOff(c.ownerUserId) {
 			b.WriteString(` strangers=off`)
 		}

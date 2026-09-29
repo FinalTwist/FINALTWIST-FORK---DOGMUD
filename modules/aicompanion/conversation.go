@@ -303,7 +303,7 @@ func (m *AICompanionModule) summariseFor(mind *Mind, p *Profile, ownerId int, co
 	if !ok {
 		return false
 	}
-	m.callsToday++
+	m.countCall()
 	key := mindIdentifier(mind.OwnerUserId, mind.MobId)
 	partner := convo.Partner
 	place := convo.RoomId
@@ -345,7 +345,7 @@ func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, pa
 	// (the owner the mind is keyed by, even when nobody is left to
 	// remember it), so nothing below can leave it held.
 	m.settleRoute(held, res.Tokens)
-	m.rollDay()
+	m.rollCounters()
 	m.recordCall(tierFast, res)
 	m.routeResult(rt, ownerId, res.Ticket, res.Err, time.Now())
 

@@ -3,11 +3,15 @@ package baubles
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
 func goodReply() Reply {
@@ -71,6 +75,85 @@ func TestGenerateFallsBackOnErrorOrBadText(t *testing.T) {
 	})
 	if res := Generate(context.Background(), GenRequest{Tier: TierCheap}, nil); res.Generator != GeneratorLocal {
 		t.Fatalf("a name with digits is unusable: %+v", res)
+	}
+}
+
+// logTee keeps every log line written while it is installed.
+type logTee struct {
+	mu    sync.Mutex
+	lines []string
+}
+
+func (l *logTee) Println(level string, v ...any) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.lines = append(l.lines, ansiRE.ReplaceAllString(level+` `+fmt.Sprint(v...), ``))
+}
+
+// count is how many kept lines contain s.
+func (l *logTee) count(s string) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	n := 0
+	for _, line := range l.lines {
+		if strings.Contains(line, s) {
+			n++
+		}
+	}
+	return n
+}
+
+// A find the ledger refuses (a spent allowance or share) is logged at most
+// once a minute, as the companion logs its refusals (logBudgetRefusal): a
+// finder over their allowance searching all day is one line a minute, not
+// one a find. Any other failure is logged every time, as before.
+func TestRefusedFindsAreLoggedOnceAMinute(t *testing.T) {
+	tee := &logTee{}
+	mudlog.SetupLogger(tee, "", "", false)
+	t.Cleanup(func() { mudlog.SetupLogger(nil, "", "", false) })
+	clock := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
+	refusalLog.mu.Lock()
+	refusalLog.now, refusalLog.last = func() time.Time { return clock }, time.Time{}
+	refusalLog.mu.Unlock()
+	t.Cleanup(func() {
+		refusalLog.mu.Lock()
+		refusalLog.now, refusalLog.last = nil, time.Time{}
+		refusalLog.mu.Unlock()
+	})
+
+	books := apiframework.NewBooksForTest()
+	_, allowance := books.Reserve(apiframework.ConsumerBaubles, 10, false,
+		apiframework.Charge{Dim: apiframework.DimBaublesFinder, UserId: 7, Limit: 1})
+	t.Cleanup(apiframework.SetServerForTest(apiframework.ServerSettings{DailyTokenBudget: 100, BaublesSharePercent: 10}))
+	_, share := books.Reserve(apiframework.ConsumerBaubles, 50, true)
+	if apiframework.RefusedBy(allowance) != apiframework.DimBaublesFinder || apiframework.RefusedBy(share) != apiframework.RefusedShare {
+		t.Fatalf("fixture: an allowance and a share refusal: %v / %v", allowance, share)
+	}
+
+	for _, refusal := range []error{allowance, share} {
+		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return GenResult{}, refusal })
+		for i := 0; i < 5; i++ {
+			if res := Generate(context.Background(), GenRequest{Tier: TierCheap}, nil); res.Generator != GeneratorLocal {
+				t.Fatalf("a refused find is a generic trinket: %+v", res)
+			}
+		}
+	}
+	if n := tee.count(`action="generate"`); n != 1 {
+		t.Fatalf("ten refused finds inside one minute are one log line, got %d", n)
+	}
+	clock = clock.Add(time.Minute)
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
+	if n := tee.count(`action="generate"`); n != 2 {
+		t.Fatalf("a minute later, one more line: %d", n)
+	}
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return GenResult{}, errors.New(`boom`) })
+	for i := 0; i < 3; i++ {
+		_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
+	}
+	if n := tee.count(`boom`); n != 3 {
+		t.Fatalf("any other failure is logged every time: %d", n)
 	}
 }
 

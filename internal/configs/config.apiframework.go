@@ -44,6 +44,13 @@ type APIFramework struct {
 	// same names when set, else 5 and 60.
 	BreakerErrors  ConfigInt `yaml:"BreakerErrors"`
 	BreakerSeconds ConfigInt `yaml:"BreakerSeconds"`
+	// CompanionSharePercent and BaublesSharePercent cap what each feature
+	// may hold of DailyTokenBudget in a UTC day, as a percentage, so one
+	// feature cannot spend the day for the others. 0 or absent: the
+	// default (the companion 100, baubles 25). -1, or 100 and above: no
+	// share cap. With no DailyTokenBudget there is no share cap either.
+	CompanionSharePercent ConfigInt `yaml:"CompanionSharePercent"`
+	BaublesSharePercent   ConfigInt `yaml:"BaublesSharePercent"`
 }
 
 // Validate tidies the strings. It sets no numeric defaults: an absent key

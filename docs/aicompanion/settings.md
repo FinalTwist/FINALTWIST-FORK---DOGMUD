@@ -49,7 +49,11 @@ Changed with `config set`, these take effect within a round. The same short
 names now exist in both sections, so give the full path
 (`config set APIFramework.DailyTokenBudget 500000`). `aicompanion status` shows the day's
 server-key total, the limit and the companion's share of it. The spend is
-kept in `_datafiles/apiframework/budget.yaml` across restarts.
+kept in `_datafiles/apiframework/budget.yaml` across restarts. So are each
+companion's and each passer-by's allowances (`DailyTokensPerCompanion`,
+`StrangerDailyTokens`, `StrangerTokensPerOwner`), backed up in the
+companion's own budget file, and the companion's share of the day
+(`APIFramework.CompanionSharePercent`, no cap by default).
 
 ```yaml
 # Defaults for Modules.aicompanion.*. Override in _datafiles/config.yaml.

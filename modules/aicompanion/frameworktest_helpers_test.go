@@ -60,3 +60,23 @@ func serverHeld(m *AICompanionModule) int  { return m.fw().Today().Outstanding }
 func pointAt(m *AICompanionModule, baseURL string, key string) {
 	m.endpoint = &apiframework.Endpoint{BaseURL: baseURL, APIKey: key}
 }
+
+// The day's per-user allowances, as the ledger keeps them.
+func ownerSpent(m *AICompanionModule, ownerId int) int {
+	return m.fw().Allowance(apiframework.DimCompanionOwner, ownerId)
+}
+func strangerSpent(m *AICompanionModule, askerId int) int {
+	return m.fw().Allowance(apiframework.DimCompanionStranger, askerId)
+}
+func strangersForSpent(m *AICompanionModule, ownerId int) int {
+	return m.fw().Allowance(apiframework.DimCompanionStrangersFor, ownerId)
+}
+func setOwnerSpent(m *AICompanionModule, ownerId int, tokens int) {
+	m.fw().SetAllowanceForTest(apiframework.DimCompanionOwner, ownerId, tokens)
+}
+func setStrangerSpent(m *AICompanionModule, askerId int, tokens int) {
+	m.fw().SetAllowanceForTest(apiframework.DimCompanionStranger, askerId, tokens)
+}
+func setStrangersForSpent(m *AICompanionModule, ownerId int, tokens int) {
+	m.fw().SetAllowanceForTest(apiframework.DimCompanionStrangersFor, ownerId, tokens)
+}

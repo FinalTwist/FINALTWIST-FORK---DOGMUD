@@ -2169,6 +2169,12 @@ APIFramework:
   # 60).
   BreakerErrors: 0
   BreakerSeconds: 0
+  # What each feature may hold of DailyTokenBudget in a UTC day, as a
+  # percentage, so one feature cannot spend the day for the others. 0: the
+  # default (the companion 100, baubles 25). -1 or 100: no share cap. With
+  # no DailyTokenBudget there is no share cap either.
+  CompanionSharePercent: 0
+  BaublesSharePercent: 25
 
 ################################################################################
 #
@@ -2592,7 +2598,8 @@ Modules:
     # else's companion something, on top of the server's one budget
     # (APIFramework.DailyTokenBudget). A call is refused unless its worst
     # case still fits. The day's spend is kept on disk, so a restart does
-    # not hand out a fresh allowance.
+    # not hand out a fresh allowance (APIFramework's budget.yaml keeps it,
+    # and the companion's own budget file backs it up).
     DailyTokensPerCompanion: 300000
     StrangerAskSeconds: 30
     StrangerDailyTokens: 50000
@@ -2696,6 +2703,12 @@ Modules:
     MaxCompletionTokens: 800
     RetryTransient: false
     MaxConcurrent: 4           # server-key calls at once; more are generic
+    # Tokens per UTC day one finder's finds may spend, on the server's key
+    # or their own (about 8 to 10 names). Over it, a find is a generic
+    # trinket. `bauble spawn` charges the admin's own allowance, as a find
+    # does; `bauble regen` charges nobody. 0 is no cap. Takes effect at the
+    # next round after a `server set`, with no restart.
+    DailyTokensPerUser: 20000
     # Check the name, keyword, description and material with the moderation
     # endpoint (needs the server's key). A flag, or a check that is made and
     # fails, keeps the find out on either key. Server-key text that cannot

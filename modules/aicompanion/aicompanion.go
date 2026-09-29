@@ -155,25 +155,23 @@ type AICompanionModule struct {
 	ctrls    map[int]*controller // keyed by owner user id
 	minds    map[string]*Mind    // every mind loaded since boot, by mindIdentifier
 
-	// budgetDay is the UTC day of the companion's own daily counters (the
-	// per-owner and per-passer-by allowances, calls and errors). The server's
-	// token budget is apiframework's, shared with every feature.
-	budgetDay   string
+	// countersDay is the day of the companion's own daily counts (calls,
+	// errors, "you notice" moments), on the ledger's clock: the ledger's
+	// day is the only day. The allowances and the server's token budget
+	// are the ledger's own (apiframework).
+	countersDay string
 	callsToday  int
 	errorsToday int
 	lastErrLog  time.Time
 
-	bonds          bondState             // who has met or turned away a companion
-	consent        consentLedger         // who has agreed, as the model door reads it
-	pendingMeet    map[int]*meetWait     // characters waiting to meet one
-	meetingPlace   map[int]string        // where each first meeting happened
-	models         modelChooser          // automatic model choice per tier
-	stats          map[string]*tierStats // per model tier, since boot
-	ownerTokens    map[int]int           // tokens today per companion owner
-	strangerTokens map[int]int           // tokens today spent on behalf of a passer-by
-	strangersFor   map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
-	noticesToday   map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
-	lastBudgetLog  time.Time
+	bonds         bondState             // who has met or turned away a companion
+	consent       consentLedger         // who has agreed, as the model door reads it
+	pendingMeet   map[int]*meetWait     // characters waiting to meet one
+	meetingPlace  map[int]string        // where each first meeting happened
+	models        modelChooser          // automatic model choice per tier
+	stats         map[string]*tierStats // per model tier, since boot
+	noticesToday  map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
+	lastBudgetLog time.Time
 
 	// endpoint, when set, replaces the server's key and endpoint
 	// (apiframework.Server) for this module only. Tests point it at a fake
@@ -397,20 +395,21 @@ func (m *AICompanionModule) baseURL() string {
 	return apiframework.Server().Endpoint.BaseURL
 }
 
-// rollDay resets the companion's own daily counters at the UTC date
-// boundary. The server's token total rolls over in apiframework, carrying
-// what calls still in flight hold.
-func (m *AICompanionModule) rollDay() {
-	day := time.Now().UTC().Format(`2006-01-02`)
-	if day != m.budgetDay {
-		m.budgetDay = day
+// rollCounters starts the companion's own daily counts afresh when the
+// ledger's day has turned. Allowances roll with the ledger itself.
+func (m *AICompanionModule) rollCounters() {
+	if day := m.fw().Day(); day != m.countersDay {
+		m.countersDay = day
 		m.callsToday = 0
 		m.errorsToday = 0
-		m.ownerTokens = map[int]int{}
-		m.strangerTokens = map[int]int{}
-		m.strangersFor = map[int]int{}
 		m.noticesToday = map[int]int{}
 	}
+}
+
+// countCall counts one model call started today.
+func (m *AICompanionModule) countCall() {
+	m.rollCounters()
+	m.callsToday++
 }
 
 // modelReady reports whether a model call may be made right now for this
@@ -442,7 +441,6 @@ func (m *AICompanionModule) modelReadyFor(ownerId int, askerId int) bool {
 	if m.breakerOpen(time.Now()) {
 		return false
 	}
-	m.rollDay()
 	if !m.fw().HasRoom() {
 		return false
 	}

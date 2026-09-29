@@ -38,7 +38,8 @@ type BaublesModule struct {
 	// at a time each, and never one of the server's slots (spec S3).
 	finders map[int]bool
 
-	// Today's calls by route, since boot, for `bauble status`.
+	// Today's calls by route, since boot, for `bauble status`. day is the
+	// ledger's day they count (apiframework's Day).
 	stats struct {
 		day      string
 		server   int
@@ -65,11 +66,29 @@ func (m *BaublesModule) onLoad() {
 // onNewRound re-reads the server key's settings on the game loop, where the
 // config is written: a bauble is named off the game loop and must only ever
 // read apiframework.Server()'s snapshot (see apiframework.RefreshServer).
+// The finder's allowance is refreshed the same way (refreshLive), so a
+// `server set` of it reaches the next find without a reload.
 func (m *BaublesModule) onNewRound(e events.Event) events.ListenerReturn {
 	if m.snapshot().Enabled {
 		apiframework.RefreshServer()
+		m.refreshLive()
 	}
 	return events.Continue
+}
+
+// refreshLive re-reads, on the game loop, the settings a find reads live:
+// DailyTokensPerUser, the size of each finder's allowance, which every
+// reservation takes from the config snapshot (finderCharges). The rest are
+// read at load (hard-locked ones only config.yaml sets, and MaxConcurrent
+// sizes the slots).
+func (m *BaublesModule) refreshLive() {
+	if m.plug == nil {
+		return
+	}
+	perUser := dailyTokensPerUser(func(k string) any { return m.plug.Config.Get(k) })
+	m.mu.Lock()
+	m.cfg.DailyTokensPerUser = perUser
+	m.mu.Unlock()
 }
 
 // configure applies a config and installs (or removes) the namer.
@@ -135,11 +154,14 @@ func (m *BaublesModule) takeFinderSlot(userId int) (release func(), ok bool) {
 	}, true
 }
 
-// count notes one call's route and outcome for the status view.
+// count notes one call's route and outcome for the status view. The counts
+// roll on the ledger's day (apiframework's Day), the one clock every daily
+// count shares.
 func (m *BaublesModule) count(playerKey bool, failed bool) {
+	d := apiframework.Shared().Day()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if d := time.Now().UTC().Format(`2006-01-02`); d != m.stats.day {
+	if d != m.stats.day {
 		m.stats.day, m.stats.server, m.stats.player, m.stats.failures = d, 0, 0, 0
 	}
 	if playerKey {
@@ -154,9 +176,13 @@ func (m *BaublesModule) count(playerKey bool, failed bool) {
 
 // info is what `bauble status` shows about the namer.
 func (m *BaublesModule) info() baubles.GeneratorInfo {
+	day := apiframework.Shared().Day()
 	m.mu.Lock()
 	cfg := m.cfg
-	server, player, failures := m.stats.server, m.stats.player, m.stats.failures
+	server, player, failures := 0, 0, 0
+	if m.stats.day == day { // counts from an earlier day are not today's
+		server, player, failures = m.stats.server, m.stats.player, m.stats.failures
+	}
 	m.mu.Unlock()
 
 	s := apiframework.RefreshServer() // `bauble status`: on the game loop

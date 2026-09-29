@@ -956,11 +956,11 @@ func TestBreakerAndBudgets(t *testing.T) {
 	if m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatal("a success resets the count")
 	}
-	m.chargeOwner(7, 90)
+	setOwnerSpent(m, 7, 90)
 	if !m.ownerBudgetLeft(7) {
 		t.Fatal("budget left")
 	}
-	m.chargeOwner(7, 20)
+	setOwnerSpent(m, 7, 110)
 	if m.ownerBudgetLeft(7) || !m.ownerBudgetLeft(8) {
 		t.Fatal("per-companion budget")
 	}
@@ -1246,26 +1246,32 @@ func TestCapabilityWordsMatchConfig(t *testing.T) {
 func TestTokenReservationSettles(t *testing.T) {
 	freshServer(t, 5000, 5, 60)
 	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000}}
-	if !m.tryReserveTokens(3, 900) {
+	server := route{kind: routeServer}
+	if !tryRoute(m, server, 3, 0, 900) {
 		t.Fatal("a call that fits must be admitted")
 	}
-	if m.tryReserveTokens(3, 900) {
+	if tryRoute(m, server, 3, 0, 900) {
 		t.Fatal("a second call that would overshoot the budget must be refused, not merely counted")
 	}
-	if m.tryReserveTokens(4, 900) != true {
+	if tryRoute(m, server, 4, 0, 900) != true {
 		t.Fatal("another companion has its own budget")
 	}
-	m.settleTokens(3, 900, 120)
-	if !m.tryReserveTokens(3, 800) {
+	settleToday(m, server, 3, 0, 900, 120)
+	if !tryRoute(m, server, 3, 0, 800) {
 		t.Fatal("settling a call frees what it did not use")
 	}
-	m.settleTokens(3, 800, 0)
-	if m.ownerTokens[3] != 120 {
-		t.Fatalf("owner tokens after settlement: %d", m.ownerTokens[3])
+	settleToday(m, server, 3, 0, 800, 0)
+	if ownerSpent(m, 3) != 120 {
+		t.Fatalf("owner tokens after settlement: %d", ownerSpent(m, 3))
 	}
-	m.settleTokens(3, 0, -500)
-	if serverSpent(m) < 0 || m.ownerTokens[3] < 0 {
-		t.Fatal("counters must not go negative")
+	// Both counters set below a hold, so its refund would take them
+	// negative (a -500 settlement of a 0 hold is floored to 0 first and
+	// could never test this): each floors at nothing.
+	setOwnerSpent(m, 3, 100)
+	m.fw().SetSpentForTest(100, 900)
+	settleToday(m, server, 3, 0, 900, 0)
+	if serverSpent(m) != 0 || ownerSpent(m, 3) != 0 {
+		t.Fatalf("counters floor at nothing: server=%d owner=%d", serverSpent(m), ownerSpent(m, 3))
 	}
 	// The whole worst case is held, not one completion's worth, and each
 	// round of questions sends a larger prompt than the one before it.
@@ -1779,13 +1785,16 @@ func TestBudgetCountsTheWholeRequest(t *testing.T) {
 	// against the new day.
 	freshServer(t, 1000, 5, 60)
 	m := &AICompanionModule{cfg: Config{}}
-	m.tryReserveTokens(1, 600)
-	m.budgetDay = `1999-01-01`
-	m.rollDay()
+	h, ok := m.reserveRoute(route{kind: routeServer}, 1, 0, 600)
+	if !ok {
+		t.Fatal("fixture: the hold fits")
+	}
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	m.fw().SetClockForTest(func() time.Time { return tomorrow })
 	if serverSpent(m) != 600 {
 		t.Fatalf("outstanding reservations carry over the rollover, got %d", serverSpent(m))
 	}
-	m.settleTokens(1, 600, 100)
+	m.settleRoute(h, 100)
 	if serverSpent(m) != 100 || serverHeld(m) != 0 {
 		t.Fatalf("settlement after a rollover: today=%d outstanding=%d", serverSpent(m), serverHeld(m))
 	}
@@ -2372,8 +2381,7 @@ func TestStrangerSpeechIsPacedLikeAsk(t *testing.T) {
 func TestStrangerDailyCapStopsTheirPrompts(t *testing.T) {
 	now := time.Now().Unix()
 	m, c, bram := strangerModule()
-	m.rollDay()
-	m.strangerTokens[2] = m.cfg.StrangerDailyTokens
+	setStrangerSpent(m, 2, m.cfg.StrangerDailyTokens)
 
 	m.hearSaid(c, bram, `Bram`, `Mara, one more thing`, 7, true, now)
 	m.hearAsked(c, bram, `Bram`, `and another`, now)
@@ -2386,7 +2394,7 @@ func TestStrangerDailyCapStopsTheirPrompts(t *testing.T) {
 	// Refused on the allowance, the cooldown was never started, so the
 	// next day's first question is not kept waiting by one they never got
 	// an answer to.
-	m.strangerTokens[2] = 0
+	setStrangerSpent(m, 2, 0)
 	m.hearAsked(c, bram, `Bram`, `good morning`, now)
 	if countKind(c.pending, `asked`) != 1 {
 		t.Fatalf("a refusal on the allowance must not spend the cooldown: %+v", c.pending)
@@ -2396,20 +2404,21 @@ func TestStrangerDailyCapStopsTheirPrompts(t *testing.T) {
 func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
 	freshServer(t, 5000, 5, 60)
 	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000}}
+	server := route{kind: routeServer}
 
-	if !m.tryReserveFor(1, 2, 900) {
+	if !tryRoute(m, server, 1, 2, 900) {
 		t.Fatal("a passer-by's question that fits their allowance is admitted")
 	}
-	if m.ownerTokens[1] != 0 || m.strangerTokens[2] != 900 {
-		t.Fatalf("it is held against the passer-by, not her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	if ownerSpent(m, 1) != 0 || strangerSpent(m, 2) != 900 {
+		t.Fatalf("it is held against the passer-by, not her owner: owner=%d stranger=%d", ownerSpent(m, 1), strangerSpent(m, 2))
 	}
-	if m.tryReserveFor(1, 2, 900) {
+	if tryRoute(m, server, 1, 2, 900) {
 		t.Fatal("a second question that would overshoot their allowance is refused while the first is held")
 	}
-	if !m.tryReserveTokens(1, 900) {
+	if !tryRoute(m, server, 1, 0, 900) {
 		t.Fatal("her owner's own allowance is untouched by a stranger's questions")
 	}
-	if !m.tryReserveFor(1, 3, 900) {
+	if !tryRoute(m, server, 1, 3, 900) {
 		t.Fatal("another passer-by has an allowance of their own")
 	}
 	if serverSpent(m) != 2700 || serverHeld(m) != 2700 {
@@ -2417,22 +2426,25 @@ func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
 	}
 
 	// Settled against the same payer: what was not used goes back to them.
-	m.settleFor(1, 2, 900, 100)
-	if m.strangerTokens[2] != 100 || m.ownerTokens[1] != 900 {
-		t.Fatalf("settlement: stranger=%d owner=%d", m.strangerTokens[2], m.ownerTokens[1])
+	settleToday(m, server, 1, 2, 900, 100)
+	if strangerSpent(m, 2) != 100 || ownerSpent(m, 1) != 900 {
+		t.Fatalf("settlement: stranger=%d owner=%d", strangerSpent(m, 2), ownerSpent(m, 1))
 	}
 	// A call that failed refunds all of it, to the passer-by.
-	m.settleFor(1, 3, 900, 0)
-	if m.strangerTokens[3] != 0 || m.ownerTokens[1] != 900 {
-		t.Fatalf("refund: stranger=%d owner=%d", m.strangerTokens[3], m.ownerTokens[1])
+	settleToday(m, server, 1, 3, 900, 0)
+	if strangerSpent(m, 3) != 0 || ownerSpent(m, 1) != 900 {
+		t.Fatalf("refund: stranger=%d owner=%d", strangerSpent(m, 3), ownerSpent(m, 1))
 	}
-	m.settleTokens(1, 900, 900)
+	settleToday(m, server, 1, 0, 900, 900)
 	if serverSpent(m) != 1000 || serverHeld(m) != 0 {
 		t.Fatalf("after settling everything: today=%d outstanding=%d", serverSpent(m), serverHeld(m))
 	}
-	m.settleFor(1, 2, 0, -500)
-	if m.strangerTokens[2] < 0 {
-		t.Fatal("a stranger's count must not go negative")
+	// Set below a hold, so the refund would take it negative: it floors.
+	setStrangerSpent(m, 2, 50)
+	setStrangersForSpent(m, 1, 50)
+	settleToday(m, server, 1, 2, 900, 0)
+	if strangerSpent(m, 2) != 0 || strangersForSpent(m, 1) != 0 {
+		t.Fatalf("a stranger's counts floor at nothing: %d, %d", strangerSpent(m, 2), strangersForSpent(m, 1))
 	}
 }
 
@@ -2445,7 +2457,7 @@ func TestStrangerReservationsCannotSlipPastTheCapTogether(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		go func() {
 			util.LockMud()
-			if m.tryReserveFor(1, 2, 400) {
+			if tryRoute(m, route{kind: routeServer}, 1, 2, 400) {
 				admitted.Add(1)
 			}
 			util.UnlockMud()
@@ -2455,8 +2467,8 @@ func TestStrangerReservationsCannotSlipPastTheCapTogether(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		<-done
 	}
-	if admitted.Load() != 2 || m.strangerTokens[2] != 800 {
-		t.Fatalf("a 1000-token allowance admits two 400-token holds, got %d (held %d)", admitted.Load(), m.strangerTokens[2])
+	if admitted.Load() != 2 || strangerSpent(m, 2) != 800 {
+		t.Fatalf("a 1000-token allowance admits two 400-token holds, got %d (held %d)", admitted.Load(), strangerSpent(m, 2))
 	}
 }
 
@@ -2584,21 +2596,20 @@ func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
 	if hits.Load() != 1 {
 		t.Fatalf("a talk with a passer-by is still summed up: %d requests", hits.Load())
 	}
-	if m.ownerTokens[1] != 0 || m.strangerTokens[2] != 10 {
-		t.Fatalf("and it is charged to the passer-by, not her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	if ownerSpent(m, 1) != 0 || strangerSpent(m, 2) != 10 {
+		t.Fatalf("and it is charged to the passer-by, not her owner: owner=%d stranger=%d", ownerSpent(m, 1), strangerSpent(m, 2))
 	}
 
 	// The passer-by's allowance spent: no call, nothing charged to her
 	// owner, and the talk is still remembered, as a plain note.
 	hits.Store(0)
 	m, c = strangerTalk(t, srv.URL)
-	m.rollDay()
-	m.strangerTokens[2] = m.cfg.StrangerDailyTokens
+	setStrangerSpent(m, 2, m.cfg.StrangerDailyTokens)
 	util.LockMud()
 	m.closeConversation(c, `test`)
 	util.UnlockMud()
-	if hits.Load() != 0 || m.ownerTokens[1] != 0 {
-		t.Fatalf("a passer-by with nothing left is summed up on nobody's allowance: %d requests, owner=%d", hits.Load(), m.ownerTokens[1])
+	if hits.Load() != 0 || ownerSpent(m, 1) != 0 {
+		t.Fatalf("a passer-by with nothing left is summed up on nobody's allowance: %d requests, owner=%d", hits.Load(), ownerSpent(m, 1))
 	}
 	if len(c.mind.Memories) != 1 {
 		t.Fatalf("the talk is kept as a note instead: %+v", c.mind.Memories)
@@ -2607,8 +2618,7 @@ func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
 	// Her owner spent out does not stop a passer-by's talk being summed up.
 	hits.Store(0)
 	m, c = strangerTalk(t, srv.URL)
-	m.rollDay()
-	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
+	setOwnerSpent(m, 1, m.cfg.DailyTokensPerCompanion)
 	util.LockMud()
 	m.closeConversation(c, `test`)
 	util.UnlockMud()
@@ -2625,8 +2635,8 @@ func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
 	m.closeConversation(c, `test`)
 	util.UnlockMud()
 	waitSettled(t, m)
-	if m.ownerTokens[1] != 10 || m.strangerTokens[2] != 0 {
-		t.Fatalf("a shared talk is charged to her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	if ownerSpent(m, 1) != 10 || strangerSpent(m, 2) != 0 {
+		t.Fatalf("a shared talk is charged to her owner: owner=%d stranger=%d", ownerSpent(m, 1), strangerSpent(m, 2))
 	}
 }
 
@@ -2649,8 +2659,8 @@ func TestGoneMindStillRefundsItsOwner(t *testing.T) {
 			t.Fatalf("%s: fixture reservation refused", name)
 		}
 		apply(h)
-		if m.ownerTokens[1] != 0 || serverHeld(m) != 0 {
-			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], serverHeld(m))
+		if ownerSpent(m, 1) != 0 || serverHeld(m) != 0 {
+			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, ownerSpent(m, 1), serverHeld(m))
 		}
 	}
 }
