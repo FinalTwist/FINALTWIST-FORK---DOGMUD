@@ -227,6 +227,7 @@ func ApplyRegenerated(id string, res GenResult, admin string) (Record, error) {
 		r.PromptVersion = res.PromptVersion
 		r.Tokens += res.Tokens
 		r.Moderated = res.Moderated
+		r.PlayerKey = res.PlayerKey
 		if r.Status == StatusFallback || r.Status == StatusRetired {
 			r.Status = StatusReady
 		}

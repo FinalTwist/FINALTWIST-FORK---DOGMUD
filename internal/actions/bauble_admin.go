@@ -41,8 +41,8 @@ var tellBaubleAdmin = func(userId int, text string) {
 // BaubleRequestForRecord is the request that would name this record now:
 // built from the room it was found in when that room still exists, and from
 // the recorded provenance alone when it does not. The record's own name is
-// added to the names to avoid, so a regeneration asks for something new.
-// Call under the mud lock.
+// added to the names to avoid, so a regeneration asks for something new,
+// unless a player's own key wrote it. Call under the mud lock.
 func BaubleRequestForRecord(rec baubles.Record) baubles.GenRequest {
 	var req baubles.GenRequest
 	if room := rooms.LoadRoom(rec.RoomId); room != nil {
@@ -59,7 +59,10 @@ func BaubleRequestForRecord(rec baubles.Record) baubles.GenRequest {
 	if req.Source == `` {
 		req.Source = baubles.SourceSearch
 	}
-	req.RecentNames = append(req.RecentNames, rec.Name)
+	// A name a player's own key wrote is never sent to a model (spec S3).
+	if !rec.PlayerKey {
+		req.RecentNames = append(req.RecentNames, rec.Name)
+	}
 	return req
 }
 

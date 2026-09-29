@@ -120,3 +120,16 @@ func TestPromptPreviewSeamAndIds(t *testing.T) {
 		t.Fatal("id shapes")
 	}
 }
+
+// Regenerating takes the new result's key, both ways (spec S3).
+func TestApplyRegeneratedSetsPlayerKey(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusReady, Generator: GeneratorOpenAI, PlayerKey: true})
+	got, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.PlayerKey {
+		t.Fatal("named again on the server's key: no longer a player-key record")
+	}
+}

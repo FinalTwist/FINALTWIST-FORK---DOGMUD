@@ -176,13 +176,15 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 	return res
 }
 
-// RecentNames returns up to n names of model-named baubles found in the zone,
+// RecentNames returns up to n names of server-key model-named baubles found in the zone,
 // newest first, so the prompt can ask for something different.
 func RecentNames(zone string, n int) []string {
 	cat.mu.RLock()
 	recs := make([]*Record, 0, 32)
 	for _, r := range cat.records {
-		if r.Zone == zone && r.Generator == GeneratorOpenAI {
+		// Never a name a player's own key wrote: this list goes into
+		// every later find's prompt, on anyone's key (spec S3).
+		if r.Zone == zone && r.Generator == GeneratorOpenAI && !r.PlayerKey {
 			recs = append(recs, r)
 		}
 	}

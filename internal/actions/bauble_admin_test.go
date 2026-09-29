@@ -70,3 +70,22 @@ func TestRegenerateBauble(t *testing.T) {
 		t.Fatal("unknown id")
 	}
 }
+
+// A player-key record's name is not sent back to the model as a name to
+// avoid when it is regenerated (spec S3): it is a player's text.
+func TestBaubleRequestForRecordOmitsAPlayerKeyName(t *testing.T) {
+	seedBaubleSale(t)
+	rec, err := baubles.Create(baubles.Record{
+		Name: "Player Written Cup", NameSimple: "cup", Tier: baubles.TierAverage, Value: 12,
+		Description: "A cup a player's own key described.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI, PlayerKey: true, RoomId: 424243, Zone: "nowhere",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range BaubleRequestForRecord(rec).RecentNames {
+		if n == rec.Name {
+			t.Fatalf("a player-key name went into the request: %v", BaubleRequestForRecord(rec).RecentNames)
+		}
+	}
+}

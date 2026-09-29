@@ -197,6 +197,19 @@ func TestRecentNames(t *testing.T) {
 	}
 }
 
+// A name a player's own key wrote never goes into another find's prompt
+// (spec S3): RecentNames is sent to the model for every later find in the
+// zone, whoever's key names it.
+func TestRecentNamesSkipsPlayerKeyNames(t *testing.T) {
+	withCatalog(t)
+	_, _ = Create(Record{Name: `Old Cup`, Zone: `ashwick`, Generator: GeneratorOpenAI})
+	_, _ = Create(Record{Name: `Player Written`, Zone: `ashwick`, Generator: GeneratorOpenAI, PlayerKey: true})
+	got := RecentNames(`ashwick`, 5)
+	if len(got) != 1 || got[0] != `Old Cup` {
+		t.Fatalf("server-key names only: %v", got)
+	}
+}
+
 // A keyword a loaded, authored item answers to (its keyword or its head
 // noun) is refused as well as the fixed list, so `get lantern` is never a
 // model-named trinket (analysis: normal-item collisions).
