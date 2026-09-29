@@ -1,6 +1,5 @@
 mobid: 9323
 zone: New Plymouth Common
-craft_support: general
 schedule_id: np_common_ysolde
 behavior_archetype: noncombat_questgiver
 non_combatant: true

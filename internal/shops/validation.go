@@ -15,12 +15,18 @@ type ShopBearingMob interface {
 	HasShop() bool
 	IsCrafter() bool
 	GetShopCraftSupport() string
+	IsFence() bool
 }
 
 // ValidateShopMobTags walks all candidate mobs and returns a non-nil
 // error if any shop-bearing mob (HasShop or IsCrafter) lacks a valid
 // craft_support: tag. The error message lists every offending mob so
 // a single restart surfaces the full set.
+//
+// A fence (IsFence: a mob in Balance.BaubleFenceGroups) may omit the tag:
+// its shop then buys no ordinary loot (vendorAcceptsAny matches nothing)
+// and keeps its gold for baubles, which the fence buys on its own path. A
+// tag a fence does carry must still be valid.
 //
 // Caller behavior on non-nil error:
 //   - Cold boot: panic. The server refuses to start with bad tags.
@@ -45,6 +51,9 @@ func ValidateShopMobTags(mobs []ShopBearingMob) error {
 			continue
 		}
 		tag := m.GetShopCraftSupport()
+		if tag == "" && m.IsFence() {
+			continue
+		}
 		if tag == "" {
 			faults = append(faults, fault{m.GetMobId(), m.GetName(), m.GetZone(), tag, "missing craft_support:"})
 			continue

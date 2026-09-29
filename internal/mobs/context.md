@@ -414,6 +414,11 @@ func (m *Mob) HasShop() bool {
     return len(m.Character.Shop) > 0
 }
 
+// A fence: one of its groups is in Balance.BaubleFenceGroups. Satisfies
+// shops.ShopBearingMob; a fence's shop may omit craft_support, and then
+// buys no ordinary loot (actions.IsFence delegates here).
+func (m *Mob) IsFence() bool
+
 // Calculate sell price for items
 func (m *Mob) GetSellPrice(item items.Item) int {
     if item.IsSpecial() {

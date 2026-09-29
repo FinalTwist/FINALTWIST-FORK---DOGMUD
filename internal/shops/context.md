@@ -38,7 +38,12 @@ change (forager deliveries, NPC sells, player purchases) lives in
 - **craftdecision.go**: `ShouldCraftNow` — evaluates whether the shopkeeper's
   crafter NPC should fire this tick.
 - **validation.go**: `ValidateShopMobTags` — startup panic if any shop-bearing
-  mob is missing a `craft_support` tag.
+  mob is missing a `craft_support` tag. A fence (`ShopBearingMob.IsFence`,
+  a mob in `Balance.BaubleFenceGroups`) may omit it: its shop then buys no
+  ordinary loot (`vendorAcceptsAny` matches nothing) and keeps its gold for
+  baubles, which the fence buys on its own path (`internal/actions`
+  `sell_bauble.go`). Such a shop shows as "(uncategorized)" on the economy
+  dashboard. A tag a fence does carry must still be valid.
 
 ## Key Functions
 

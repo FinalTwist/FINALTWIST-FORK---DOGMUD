@@ -989,6 +989,25 @@ func (m *Mob) GetShopCraftSupport() string {
 	return m.ShopCraftSupport
 }
 
+// IsFence reports whether this mob is a fence: one of its groups is listed
+// in Balance.BaubleFenceGroups. It satisfies shops.ShopBearingMob, where a
+// fence's shop may omit craft_support (it then buys no ordinary loot and
+// keeps its gold for baubles).
+func (m *Mob) IsFence() bool {
+	if m == nil {
+		return false
+	}
+	for _, want := range configs.GetBalanceConfig().BaubleFenceGroups {
+		want = strings.TrimSpace(want)
+		for _, g := range m.Groups {
+			if strings.EqualFold(g, want) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (m *Mob) IsTameable() bool {
 	if m.HasShop() {
 		return false

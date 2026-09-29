@@ -773,12 +773,75 @@ func TestStolenBauble_AFencePaysFromItsShopGold(t *testing.T) {
 	assert.Equal(t, 0, merchantInstance().Character.Gold, "the purse is not the till")
 }
 
+// A fence-only shop (no craft_support) refuses ordinary vendor loot, even
+// an item it stocks, so its gold is kept for baubles; it still buys a
+// bauble. A general shop would buy the sword (the control in the sabotage
+// check: give this shop CraftSupportGeneral and the first assertion fails).
+func TestStolenBauble_AFenceShopRefusesOrdinaryLootButBuysBaubles(t *testing.T) {
+	seedBaubleSale(t)
+	defer items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {
+			ItemId:     items.BaubleItemId,
+			Name:       "Curious Trinket",
+			NameSimple: "trinket",
+			Type:       items.Object,
+			Subtype:    items.Mundane,
+			Weight:     0.2,
+			Value:      1,
+			NotSalable: true,
+		},
+		sellTestItemId: {
+			ItemId:           sellTestItemId,
+			Name:             "iron sword",
+			Type:             items.Weapon,
+			Value:            100,
+			VendorCategories: []string{shops.CraftSupportBlacksmithing},
+		},
+	})()
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)() // stocks the iron sword
+	pinStolenClock(t, stolenTestNow)
+	merchantInstance().Groups = []string{`fence`}
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000})
+
+	seller := newSellerActor(t, true, sellTestItemId)
+	char := seller.GetCharacter()
+	res := Sell(seller, SellOptions{ItemName: "sword", Quantity: 1})
+	assert.Equal(t, 0, res.Sold, "a fence-only shop buys no ordinary loot: res=%+v", res)
+	assert.Equal(t, 1000, si.Gold, "the till is untouched")
+	assert.Equal(t, 0, char.Gold)
+
+	require.True(t, char.StoreItem(stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenTestNow.Add(-time.Hour))))
+	res = Sell(seller, SellOptions{ItemName: "thimble", Quantity: 1})
+	require.Equal(t, 1, res.Sold, "the fence still buys a bauble: res=%+v", res)
+	assert.Equal(t, 8, char.Gold, "the fence premium on a stolen bauble")
+	assert.Equal(t, 992, si.Gold, "paid from the shop's gold")
+}
+
 // Every town has a fence in it or a zone or two away (owner ruling,
 // 2026-09-28), and every fence is a non-hostile, non-combatant shopkeeper.
 // Read from the world's mob files (a mob's folder is its zone), so moving
 // or dropping a fence is caught. Thornwall City's fence is Fence Dealer Siv
 // (104); Torvan Cresk (249) is not a fence, since quest 14 (The Undertow)
 // has players fight him for the strongbox key.
+//
+// fenceOnlyShops are the fences whose shops PR #175 opened only for the
+// trade. They carry no craft_support, so they buy no ordinary loot and keep
+// their gold for baubles (owner ruling, 2026-09-29). Fences that were
+// traders before (Siv, Mother Coyle, the Hawker, Wick Orrel, Varro) keep the
+// craft_support they had.
+var fenceOnlyShops = map[string]bool{
+	`Sly Tam`:               true,
+	`Ysolde`:                true,
+	`Peddler Malk`:          true,
+	`A River-Road Smuggler`: true,
+}
+
 func TestEveryTownHasAFenceNearby(t *testing.T) {
 	// sourceDir (consider_no_progression_test.go), not a relative path:
 	// another test in this package changes the working directory.
@@ -786,6 +849,7 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, files, "the world's mob files")
 	fencesIn := map[string][]string{}
+	seenFenceOnly := map[string]bool{}
 	for _, f := range files {
 		data, err := os.ReadFile(f)
 		require.NoError(t, err)
@@ -811,7 +875,12 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 			nonCombatant, _ := mob[`non_combatant`].(bool)
 			assert.True(t, nonCombatant, "%s: a fence is non_combatant", name)
 			craft, _ := mob[`craft_support`].(string)
-			assert.NotEmpty(t, craft, "%s: a fence's shop has a craft_support", name)
+			if fenceOnlyShops[name] {
+				assert.Empty(t, craft, "%s: a fence-only shop has no craft_support, so it buys no ordinary loot", name)
+				seenFenceOnly[name] = true
+			} else {
+				assert.NotEmpty(t, craft, "%s: a fence that was already a trader keeps its craft_support", name)
+			}
 			shop, _ := mob[`character`].(map[interface{}]interface{})[`shop`].([]interface{})
 			assert.NotEmpty(t, shop, "%s: a fence keeps a shop", name)
 			zone := filepath.Base(filepath.Dir(f))
@@ -819,6 +888,9 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 		}
 	}
 
+	for name := range fenceOnlyShops {
+		assert.True(t, seenFenceOnly[name], "%s: listed as a fence-only shop but not found as a fence", name)
+	}
 	assert.NotContains(t, fencesIn[`thornwall_city`], `Torvan Cresk`,
 		"Torvan Cresk is not a fence: quest 14 has players fight him (owner ruling)")
 	assert.Contains(t, fencesIn[`thornwall_city`], `Fence Dealer Siv`,

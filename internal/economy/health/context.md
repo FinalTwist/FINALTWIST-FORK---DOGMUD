@@ -97,7 +97,8 @@ func ScoreWithConfig(cur *Snapshot, history []*Snapshot, cfg ScoringConfig) Scor
   state.
 - **`LogisticsHealth`** — the combined haulage picture.
 - **`PerCraftSupportScores`** — whether each crafting trade can actually buy
-  its inputs.
+  its inputs. A fence's shop may carry no craft_support (it buys no
+  ordinary loot) and rolls into the "(uncategorized)" key.
 
 The `*Opt` variants (`StockScoreOpt`, `PerShopScoreOpt`) return
 `(score, ok)` so a shop with nothing to measure is **excluded** from an average

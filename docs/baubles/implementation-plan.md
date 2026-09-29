@@ -845,9 +845,13 @@ catch.
   at all; Varro, an importer on the quay, was the closest fit.
 - **Every fence keeps a shop** (owner ruling 14, 2026-09-28, replacing the
   first cut's stash-paying go-betweens). Ysolde, the Smuggler, Tam and Malk
-  each have a `shop:` block (lockpicks, a disarm kit, torches) and
-  `craft_support: general`, like Siv, and pay from persisted shop gold with
-  the normal restock. All are `non_combatant: true`, so they cannot be
+  each have a `shop:` block (lockpicks, a disarm kit, torches) and pay from
+  persisted shop gold with the normal restock. They carry no
+  `craft_support` (owner ruling, 2026-09-29): with `general` they would buy
+  any vendor loot (`shops.vendorAcceptsAny`) and drain the gold a fence
+  needs for baubles. `shops.ValidateShopMobTags` lets a fence omit it
+  (`mobs.Mob.IsFence`). Fences that were traders before (Siv, Mother Coyle,
+  the Hawker, Wick Orrel, Varro) keep the `craft_support` they had. All are `non_combatant: true`, so they cannot be
   attacked or robbed. Shop gold: Malk 2000; Ysolde, the Smuggler and Tam
   1000. One departure from the ruling, for a reason found in the world
   files:
@@ -859,8 +863,12 @@ catch.
   (The Undertow) has players fight him for the strongbox key, so he stays
   as he was before PR #175. Thornwall City is covered by Siv.
 
-  `TestEveryTownHasAFenceNearby` checks every fence has a shop and a
-  `craft_support`, and is `non_combatant`, and that Torvan is not a fence.
+  `TestEveryTownHasAFenceNearby` checks every fence has a shop and is
+  `non_combatant`, that the four fence-only shops (`fenceOnlyShops`) have
+  no `craft_support` and the other fences do, and that Torvan is not a
+  fence. `TestStolenBauble_AFenceShopRefusesOrdinaryLootButBuysBaubles`
+  checks such a shop refuses an ordinary item it stocks and still buys a
+  bauble.
   Resale of bought baubles is slice D (the owner's), not here.
 
 ### Phase 6d: The owner's fix round on PR #175 (written)
