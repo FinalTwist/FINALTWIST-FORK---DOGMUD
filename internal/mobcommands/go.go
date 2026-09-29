@@ -124,7 +124,26 @@ func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			}
 		}
 
+		// Movement parity 4b, owner ruling 2: a mob pays the player's step
+		// price, after the lock gates, silently on refusal (a mob has no one
+		// to tell).
+		mover := actions.NewMobActorInRoom(mob, room)
+		if !actions.ChargeMove(mover, destRoom).OK() {
+			return true, nil
+		}
+
+		sneaking := mob.Character.IsHidden()
+		if flag, ok := mob.Character.GetMiscData(`sneaking`).(bool); ok && flag {
+			sneaking = true
+		}
+
 		actions.RelocateMob(mob, room, exitName, destRoom)
+
+		// The rare Search roll and hidden detection on entry, both ways
+		// (owner ruling 3), shared with players.
+		arrived := actions.NewMobActorInRoom(mob, destRoom)
+		actions.TrainSearchOnMove(arrived)
+		actions.EntryDetection(arrived, destRoom, sneaking)
 
 		// We want the `waypoint` onPath event triggered right after they enter the room.
 		if currentStep := mob.Path.Current(); currentStep != nil && currentStep.Waypoint() {
