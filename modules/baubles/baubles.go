@@ -34,6 +34,10 @@ type BaublesModule struct {
 	cfg   Config
 	slots chan struct{}
 
+	// finders holds the users with a find in flight on their own key: one
+	// at a time each, and never one of the server's slots (spec S3).
+	finders map[int]bool
+
 	// Today's calls by route, since boot, for `bauble status`.
 	stats struct {
 		day      string
@@ -95,6 +99,40 @@ func (m *BaublesModule) snapshot() Config {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.cfg
+}
+
+// takeServerSlot takes one of the server key's MaxConcurrent slots, or
+// reports none free. A find beyond them is not queued: it is a generic
+// trinket.
+func (m *BaublesModule) takeServerSlot() (release func(), ok bool) {
+	m.mu.Lock()
+	slots := m.slots
+	m.mu.Unlock()
+	select {
+	case slots <- struct{}{}:
+		return func() { <-slots }, true
+	default:
+		return nil, false
+	}
+}
+
+// takeFinderSlot takes the finder's own slot: one call on their key at a
+// time.
+func (m *BaublesModule) takeFinderSlot(userId int) (release func(), ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.finders[userId] {
+		return nil, false
+	}
+	if m.finders == nil {
+		m.finders = map[int]bool{}
+	}
+	m.finders[userId] = true
+	return func() {
+		m.mu.Lock()
+		delete(m.finders, userId)
+		m.mu.Unlock()
+	}, true
 }
 
 // count notes one call's route and outcome for the status view.

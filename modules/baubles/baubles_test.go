@@ -864,6 +864,53 @@ func TestSystemPromptStatesTheAllowedCharacters(t *testing.T) {
 	}
 }
 
+// A token count relayed through a player's browser is theirs to write: it
+// is held to what one request could cost before it reaches the record or
+// the statistics (spec S3).
+func TestARelayedTokenCountIsClamped(t *testing.T) {
+	serverSide := newFakeOpenAI(t)
+	m := testModule(t, serverSide, func(c *Config) { c.ModerateOutput = true })
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, reply: chatBody(goodContent, 999999), provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+	res, err := m.generate(context.Background(), request())
+	if err != nil || !res.PlayerKey {
+		t.Fatalf("named on the finder's key: %+v %v", res, err)
+	}
+	most := apiframework.EstimateTokens(buildMessages(request())) + schemaOverhead + m.snapshot().MaxCompletionTokens
+	if res.Tokens != most {
+		t.Fatalf("clamped to the most one request costs (%d), got %d", most, res.Tokens)
+	}
+}
+
+// A relay call takes the finder's own slot (one in flight per finder), not
+// one of the server's shared slots (spec S3).
+func TestAFindersOwnKeyTakesTheirOwnSlot(t *testing.T) {
+	serverSide := newFakeOpenAI(t)
+	m := testModule(t, serverSide, func(c *Config) { c.MaxConcurrent, c.ModerateOutput = 1, true })
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+
+	m.slots <- struct{}{} // every server slot is busy
+	res, err := m.generate(context.Background(), request())
+	<-m.slots
+	if err != nil || !res.PlayerKey || relay.sends != 1 {
+		t.Fatalf("the finder's key names it with the server's slots full: %+v %v sends=%d", res, err, relay.sends)
+	}
+
+	release, ok := m.takeFinderSlot(7)
+	if !ok {
+		t.Fatal("the finder's slot is free again")
+	}
+	res, err = m.generate(context.Background(), request())
+	release()
+	if err != nil || res.PlayerKey || relay.sends != 1 || atomic.LoadInt32(&serverSide.chats) != 1 {
+		t.Fatalf("with their own call in flight, the server's key names it: %+v %v sends=%d", res, err, relay.sends)
+	}
+	if _, ok := m.takeFinderSlot(7); !ok {
+		t.Fatal("released")
+	}
+}
+
 // chatBody is a provider's chat completions answer with this content.
 func chatBody(content string, tokens int) string {
 	b, _ := json.Marshal(map[string]any{

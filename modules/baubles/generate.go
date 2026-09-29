@@ -19,6 +19,7 @@ const schemaOverhead = 300
 var (
 	errNoRoute     = errors.New(`no key to name it with`)
 	errBreakerOpen = errors.New(`the server key's breaker is open`)
+	errSlotsBusy   = errors.New(`all generation slots busy`)
 )
 
 // generate is the baubles.GeneratorFunc this module installs. It runs on a
@@ -31,19 +32,6 @@ var (
 // the one daily budget every feature shares; else no name. Player-key text
 // the server cannot moderate is kept to its finder (moderate).
 func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (baubles.GenResult, error) {
-	// A fixed number of calls at once. A find beyond that is not queued
-	// (queuing would only make the player wait longer): it is a generic
-	// trinket.
-	m.mu.Lock()
-	slots := m.slots
-	m.mu.Unlock()
-	select {
-	case slots <- struct{}{}:
-		defer func() { <-slots }()
-	default:
-		return baubles.GenResult{}, errors.New(`all generation slots busy`)
-	}
-
 	cfg := m.snapshot()
 	msgs := buildMessages(req)
 	chat := apiframework.Chat{
@@ -57,6 +45,11 @@ func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (b
 	}
 
 	content, tokens, model, playerKey, report, err := m.name(ctx, cfg, req, chat)
+	if errors.Is(err, errSlotsBusy) {
+		// Refused at the door, not a call that failed: it counts in no
+		// statistic (m.count) and feeds no breaker, as before this slice.
+		return baubles.GenResult{}, err
+	}
 	m.count(playerKey, err != nil)
 	if cfg.LogRequests {
 		mudlog.Info(`baubles`, `action`, `model call`, `zone`, req.Place.Zone, `tier`, string(req.Tier),
@@ -152,23 +145,35 @@ func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenReq
 	if cfg.UsePlayerKeys && req.FinderUserId > 0 {
 		if r := apiframework.PlayerRelay(); r != nil {
 			if relayModel, ok := r.Model(req.FinderUserId, apiframework.PurposeFinds); ok {
-				content, tokens, report, err = viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)
-				switch {
-				case err == nil && refusedByAllowlist(content):
-					// Plain enough for the model, not for other players
-					// (ruling 15): not the key's failure, so its breaker
-					// hears nothing, and the server's key names the find.
-				case err == nil:
-					return content, tokens, relayModel, true, report, nil
-				default:
-					report(err)
-					if ctx.Err() != nil {
-						return ``, 0, relayModel, true, func(error) {}, err
+				// The finder's own slot, never one of the server's: a busy
+				// one (their last find still naming) goes to the server.
+				if release, free := m.takeFinderSlot(req.FinderUserId); free {
+					content, tokens, report, err = viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)
+					release()
+					switch {
+					case err == nil && refusedByAllowlist(content):
+						// Plain enough for the model, not for other players
+						// (ruling 15): not the key's failure, so its breaker
+						// hears nothing, and the server's key names the find.
+					case err == nil:
+						return content, tokens, relayModel, true, report, nil
+					default:
+						report(err)
+						if ctx.Err() != nil {
+							return ``, 0, relayModel, true, func(error) {}, err
+						}
 					}
 				}
 			}
 		}
 	}
+	// The server key's model calls, MaxConcurrent at once. A slot covers
+	// the call only; moderation afterwards is free and not a model call.
+	release, free := m.takeServerSlot()
+	if !free {
+		return ``, 0, cfg.Model, false, func(error) {}, errSlotsBusy
+	}
+	defer release()
 	content, tokens, report, err = viaServer(ctx, cfg, chat)
 	return content, tokens, cfg.Model, false, report, err
 }
@@ -205,7 +210,11 @@ func viaPlayer(ctx context.Context, r apiframework.Relay, userId int, model stri
 		return ``, 0, report, err
 	}
 	reply := apiframework.DecodeChat(status, raw)
-	return reply.Content, reply.Tokens, report, reply.Err
+	// The count came through the player's browser, which they can write:
+	// held to what one request could cost before it is recorded (spec S3).
+	prompt := apiframework.EstimateTokens(chat.Messages) + schemaOverhead
+	tokens, _ := apiframework.Charged(reply.Tokens, true, status, prompt, chat.MaxTokens, true)
+	return reply.Content, tokens, report, reply.Err
 }
 
 // viaServer names the find on the server's key: leave from the breakers
