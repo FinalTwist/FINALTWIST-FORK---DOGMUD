@@ -13,6 +13,7 @@ type fakeMob struct {
 	hasShop          bool
 	isCrafter        bool
 	shopCraftSupport string
+	isFence          bool
 }
 
 func (f fakeMob) GetMobId() int               { return f.mobId }
@@ -21,6 +22,26 @@ func (f fakeMob) GetZone() string             { return f.zone }
 func (f fakeMob) HasShop() bool               { return f.hasShop }
 func (f fakeMob) IsCrafter() bool             { return f.isCrafter }
 func (f fakeMob) GetShopCraftSupport() string { return f.shopCraftSupport }
+func (f fakeMob) IsFence() bool               { return f.isFence }
+
+// A fence's shop may carry no craft_support: with none it buys no ordinary
+// loot (vendorAcceptsAny matches nothing), so its till is kept for baubles.
+// A tag it does carry must still be valid.
+func TestValidateShopMobTags_FenceMayOmitTag(t *testing.T) {
+	mobs := []ShopBearingMob{
+		fakeMob{mobId: 7, name: "fence", zone: "z", hasShop: true, isFence: true},
+	}
+	if err := ValidateShopMobTags(mobs); err != nil {
+		t.Fatalf("a fence with no craft_support should pass; got: %v", err)
+	}
+
+	mobs = []ShopBearingMob{
+		fakeMob{mobId: 8, name: "fence", zone: "z", hasShop: true, isFence: true, shopCraftSupport: "knitting"},
+	}
+	if err := ValidateShopMobTags(mobs); err == nil || !strings.Contains(err.Error(), "knitting") {
+		t.Errorf("a fence's invalid tag is still an error; got: %v", err)
+	}
+}
 
 func TestValidateShopMobTags_AllValid(t *testing.T) {
 	mobs := []ShopBearingMob{

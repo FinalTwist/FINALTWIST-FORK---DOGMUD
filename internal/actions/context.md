@@ -1038,8 +1038,12 @@ above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
 - Stolen goods (Phase 6c): `IsFence(mob)` is a mob in one of
   `Balance.BaubleFenceGroups` (default `fence`; the roster is in the plan,
   Phase 6c, and `TestEveryTownHasAFenceNearby` checks every town has one in
-  or near it, and that every fence is a shopkeeper, non-combatant unless a
-  quest has players fight it: `fightableFences`). A
+  or near it, that every fence is a non-combatant shopkeeper, and that
+  Torvan Cresk, whom quest 14 has players fight, is not one). `IsFence`
+  delegates to `mobs.Mob.IsFence`. A fence whose shop exists only for the
+  trade carries no `craft_support`, so `EvaluateBuyRules` refuses it any
+  ordinary loot and its gold is kept for baubles
+  (`TestStolenBauble_AFenceShopRefusesOrdinaryLootButBuysBaubles`). A
   fence is a merchant like any other and pays from its shop's gold
   (`baubleMerchantGold`: the living-economy shop's, or a legacy merchant's
   purse). A fence buys every bauble, paying `FencePrice` (value ×

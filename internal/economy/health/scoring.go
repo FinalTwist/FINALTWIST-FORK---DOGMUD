@@ -134,9 +134,9 @@ func PerShopScoreOpt(s ShopSnapshot) (float64, bool) {
 
 // PerCraftSupportScores returns mean per-shop score grouped by the
 // craft discipline each shop supports. Shops with empty CraftSupport
-// roll into key "" (should never happen in production thanks to
-// startup validation; surfaces clearly in the UI as "(uncategorized)"
-// if it ever does).
+// roll into key "", shown in the UI as "(uncategorized)". Startup
+// validation allows that only for a fence's shop, which buys no
+// ordinary loot (shops.ValidateShopMobTags).
 func PerCraftSupportScores(snap Snapshot) map[string]float64 {
 	type bucket struct {
 		sum   float64

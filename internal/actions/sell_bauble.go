@@ -61,20 +61,9 @@ const (
 var baubleNowForSale = time.Now
 
 // IsFence reports whether mob is a fence: one of its groups is listed in
-// Balance.BaubleFenceGroups.
+// Balance.BaubleFenceGroups (mobs.Mob.IsFence).
 func IsFence(mob *mobs.Mob) bool {
-	if mob == nil {
-		return false
-	}
-	for _, want := range configs.GetBalanceConfig().BaubleFenceGroups {
-		want = strings.TrimSpace(want)
-		for _, g := range mob.Groups {
-			if strings.EqualFold(g, want) {
-				return true
-			}
-		}
-	}
-	return false
+	return mob.IsFence()
 }
 
 // FencePrice is the gold a fence pays for a stolen bauble worth value:

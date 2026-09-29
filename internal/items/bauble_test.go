@@ -288,3 +288,69 @@ func TestARealItemWinsOnlyOnAnEqualOrStrongerMatch(t *testing.T) {
 		t.Fatalf("no bauble among the matches: list order as before, got %+v", got)
 	}
 }
+
+// A bauble among the matches must not re-order ordinary items against each
+// other (owner ruling, 2026-09-29): among real items the original
+// list-order rule decides exactly as if no bauble were there, and the
+// ranking only decides between that real item and a bauble. "iron" picks
+// the Ironwood Staff, listed first, with or without a bauble that also
+// starts with "iron", in any position.
+func TestABaubleDoesNotReorderRealItems(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`, Type: Object, Weight: 0.2, Value: 1},
+		7201:         {ItemId: 7201, Name: `Ironwood Staff`, NameSimple: `staff`, Type: Object, Value: 20},
+		7202:         {ItemId: 7202, Name: `Iron Dagger`, NameSimple: `dagger`, Type: Object, Value: 20},
+	})
+	t.Cleanup(func() { restore(); SetBaubleResolver(nil) })
+	SetBaubleResolver(testBaubleResolver(map[string]BaubleView{
+		`B1`: {Name: `Ironbound Locket`, NameSimple: `locket`, Value: 3},
+	}))
+	locket := New(BaubleItemId)
+	locket.Bauble = `B1`
+	staff, dagger := New(7201), New(7202)
+
+	pick := func(input string, list ...Item) Item {
+		part, full := FindMatchIn(input, list...)
+		if full.ItemId != 0 {
+			return full
+		}
+		return part
+	}
+
+	if got := pick(`iron`, staff, dagger); got.ItemId != 7201 {
+		t.Fatalf("no bauble: list order picks the staff, got %+v", got)
+	}
+	for _, list := range [][]Item{{staff, dagger, locket}, {locket, staff, dagger}, {staff, locket, dagger}} {
+		if got := pick(`iron`, list...); got.ItemId != 7201 {
+			t.Fatalf("a bauble in the list must not change which real item wins: want the staff, got %+v", got)
+		}
+	}
+}
+
+// A household bauble named by a whole word ("Stub of Candle") must not
+// beat a real item the word starts ("Candlestick") for `candle`.
+func TestAHouseholdBaubleDoesNotBeatARealCandlestick(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`, Type: Object, Weight: 0.2, Value: 1},
+		7301:         {ItemId: 7301, Name: `Candlestick`, NameSimple: `candlestick`, Type: Object, Value: 10},
+	})
+	t.Cleanup(func() { restore(); SetBaubleResolver(nil) })
+	SetBaubleResolver(testBaubleResolver(map[string]BaubleView{
+		`B1`: {Name: `Stub of Candle`, NameSimple: `stub`, Value: 1},
+	}))
+	stub := New(BaubleItemId)
+	stub.Bauble = `B1`
+	stub.BaubleHousehold = 5
+	stick := New(7301)
+
+	for _, list := range [][]Item{{stub, stick}, {stick, stub}} {
+		part, full := FindMatchIn(`candle`, list...)
+		got := part
+		if full.ItemId != 0 {
+			got = full
+		}
+		if got.ItemId != 7301 {
+			t.Fatalf("candle -> the candlestick, got %+v", got)
+		}
+	}
+}

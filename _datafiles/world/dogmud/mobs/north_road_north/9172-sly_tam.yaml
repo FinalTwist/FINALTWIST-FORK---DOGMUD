@@ -1,6 +1,5 @@
 mobid: 9172
 zone: North Road North
-craft_support: general
 behavior_archetype: noncombat_shopkeeper
 hostile: false
 non_combatant: true

@@ -1,6 +1,5 @@
 mobid: 9215
 zone: New Plymouth Outskirts
-craft_support: general
 behavior_archetype: noncombat_passive
 statpool: 50
 itemdropchance: 0

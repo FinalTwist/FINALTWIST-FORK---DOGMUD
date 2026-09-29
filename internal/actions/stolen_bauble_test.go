@@ -3,6 +3,7 @@ package actions
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -18,6 +20,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/shops"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -366,14 +369,67 @@ func TestStolenBauble_NoRecognitionWithoutCause(t *testing.T) {
 // In dim light an owner who sees only shapes still knows its own bauble on
 // a figure (the crime is then recorded against an unknown perpetrator by
 // thiefCaught's witness count, like any theft seen only as shapes).
+//
+// The real thiefCaught runs, so the crime is read back from the log: its
+// perpetrator is unknown. A clear-sighted observer (nightvision) reads the
+// room line exactly as sent, so "a figure" there comes from the owner's
+// dim sight, not from the observer's own.
 func TestStolenBauble_RecognisedInDimLight(t *testing.T) {
+	const observerId = 7401
+	const nightEyes = 7402
 	h := setupRecognition(t, true)
+	configureStagedAdmissionFaction(t) // the thornwall_citizens faction, temp crime log
+	merchantInstance().Groups = []string{`thornwall_citizens`}
+	stolenCaught = func(a Actor, m *mobs.Mob, r *rooms.Room) {
+		h.caught = append(h.caught, m)
+		thiefCaught(a, m, r)
+	}
+
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		nightEyes: {
+			ConditionId: nightEyes,
+			Name:        "Test Night Eyes",
+			Flags:       []conditions.Flag{conditions.NightVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectNightVisionStrength: {Literal: 30}},
+		},
+	}))
+	observer := users.NewTestUser(observerId, "watcher", "Watcher", 97401)
+	observer.Character.RoomId = 1
+	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{observerId: observer}))
+	require.True(t, observer.Character.Conditions.AddCondition(nightEyes, true))
+	h.room.AddPlayer(observerId)
+	t.Cleanup(func() { h.room.RemovePlayer(observerId) })
+	events.DrainQueuedMessagesForTest(observerId)
+
 	h.room.SkyLight, h.room.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(30)
-	require.Equal(t, messaging.SightShapes, messaging.ParticipantSight(&merchantInstance().Character, h.room), "fixture: shapes only")
+	require.Equal(t, messaging.SightShapes, messaging.ParticipantSight(&merchantInstance().Character, h.room), "fixture: the owner sees shapes only")
+	require.Equal(t, messaging.SightFull, messaging.ParticipantSight(observer.Character, h.room), "fixture: the observer sees clearly")
+
 	it := stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
 	require.True(t, h.thief.GetCharacter().StoreItem(it))
 	recognizeIn(h.room, 1, 0)
-	assert.Len(t, h.caught, 1)
+	require.Len(t, h.caught, 1)
+
+	thefts := 0
+	for _, c := range crimes.AllForFaction(`thornwall_citizens`, true) {
+		if c.Kind != crimes.KindTheft {
+			continue
+		}
+		thefts++
+		assert.Equal(t, crimes.PerpUnknown, c.Perpetrator.Type,
+			"an owner who sees only shapes cannot name the thief: %+v", c.Perpetrator)
+	}
+	assert.Equal(t, 1, thefts, "the recognition is recorded as one theft")
+
+	var line string
+	for _, l := range events.DrainQueuedMessagesForTest(observerId) {
+		if strings.Contains(l, `That's mine! Thief!`) {
+			line = l
+		}
+	}
+	require.NotEmpty(t, line, "the observer hears the owner")
+	assert.Contains(t, line, `points at a figure.`, "the owner names nobody")
+	assert.NotContains(t, line, h.thief.GetCharacter().Name, "nor the thief's name")
 }
 
 // A household's bauble taken with nobody watching belongs to the whole
@@ -773,14 +829,74 @@ func TestStolenBauble_AFencePaysFromItsShopGold(t *testing.T) {
 	assert.Equal(t, 0, merchantInstance().Character.Gold, "the purse is not the till")
 }
 
+// A fence-only shop (no craft_support) refuses ordinary vendor loot, even
+// an item it stocks, so its gold is kept for baubles; it still buys a
+// bauble. A general shop would buy the sword (the control in the sabotage
+// check: give this shop CraftSupportGeneral and the first assertion fails).
+func TestStolenBauble_AFenceShopRefusesOrdinaryLootButBuysBaubles(t *testing.T) {
+	seedBaubleSale(t)
+	defer items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {
+			ItemId:     items.BaubleItemId,
+			Name:       "Curious Trinket",
+			NameSimple: "trinket",
+			Type:       items.Object,
+			Subtype:    items.Mundane,
+			Weight:     0.2,
+			Value:      1,
+			NotSalable: true,
+		},
+		sellTestItemId: {
+			ItemId:           sellTestItemId,
+			Name:             "iron sword",
+			Type:             items.Weapon,
+			Value:            100,
+			VendorCategories: []string{shops.CraftSupportBlacksmithing},
+		},
+	})()
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)() // stocks the iron sword
+	pinStolenClock(t, stolenTestNow)
+	merchantInstance().Groups = []string{`fence`}
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000})
+
+	seller := newSellerActor(t, true, sellTestItemId)
+	char := seller.GetCharacter()
+	res := Sell(seller, SellOptions{ItemName: "sword", Quantity: 1})
+	assert.Equal(t, 0, res.Sold, "a fence-only shop buys no ordinary loot: res=%+v", res)
+	assert.Equal(t, 1000, si.Gold, "the till is untouched")
+	assert.Equal(t, 0, char.Gold)
+
+	require.True(t, char.StoreItem(stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenTestNow.Add(-time.Hour))))
+	res = Sell(seller, SellOptions{ItemName: "thimble", Quantity: 1})
+	require.Equal(t, 1, res.Sold, "the fence still buys a bauble: res=%+v", res)
+	assert.Equal(t, 8, char.Gold, "the fence premium on a stolen bauble")
+	assert.Equal(t, 992, si.Gold, "paid from the shop's gold")
+}
+
 // Every town has a fence in it or a zone or two away (owner ruling,
-// 2026-09-28), and every fence is a non-hostile shopkeeper, non-combatant
-// unless a quest has players fight it (fightableFences). Read from the world's mob files (a mob's folder is its
-// zone), so moving or dropping a fence is caught.
-// fightableFences are the fences a quest has players fight, so they cannot
-// be non-combatant: Torvan Cresk carries the strongbox key of quest 14 (The
-// Undertow). Each keeps a small purse, so killing one pays little.
-var fightableFences = map[string]bool{`Torvan Cresk`: true}
+// 2026-09-28), and every fence is a non-hostile, non-combatant shopkeeper.
+// Read from the world's mob files (a mob's folder is its zone), so moving
+// or dropping a fence is caught. Thornwall City's fence is Fence Dealer Siv
+// (104); Torvan Cresk (249) is not a fence, since quest 14 (The Undertow)
+// has players fight him for the strongbox key.
+//
+// fenceOnlyShops are the fences whose shops PR #175 opened only for the
+// trade. They carry no craft_support, so they buy no ordinary loot and keep
+// their gold for baubles (owner ruling, 2026-09-29). Fences that were
+// traders before (Siv, Mother Coyle, the Hawker, Wick Orrel, Varro) keep the
+// craft_support they had.
+var fenceOnlyShops = map[string]bool{
+	`Sly Tam`:               true,
+	`Ysolde`:                true,
+	`Peddler Malk`:          true,
+	`A River-Road Smuggler`: true,
+}
 
 func TestEveryTownHasAFenceNearby(t *testing.T) {
 	// sourceDir (consider_no_progression_test.go), not a relative path:
@@ -789,6 +905,7 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, files, "the world's mob files")
 	fencesIn := map[string][]string{}
+	seenFenceOnly := map[string]bool{}
 	for _, f := range files {
 		data, err := os.ReadFile(f)
 		require.NoError(t, err)
@@ -812,17 +929,28 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 			// Every fence is a shopkeeper (owner ruling 14): it pays from
 			// persisted shop gold, and cannot be attacked or robbed of it.
 			nonCombatant, _ := mob[`non_combatant`].(bool)
-			if !fightableFences[name] {
-				assert.True(t, nonCombatant, "%s: a fence is non_combatant", name)
-			}
+			assert.True(t, nonCombatant, "%s: a fence is non_combatant", name)
 			craft, _ := mob[`craft_support`].(string)
-			assert.NotEmpty(t, craft, "%s: a fence's shop has a craft_support", name)
+			if fenceOnlyShops[name] {
+				assert.Empty(t, craft, "%s: a fence-only shop has no craft_support, so it buys no ordinary loot", name)
+				seenFenceOnly[name] = true
+			} else {
+				assert.NotEmpty(t, craft, "%s: a fence that was already a trader keeps its craft_support", name)
+			}
 			shop, _ := mob[`character`].(map[interface{}]interface{})[`shop`].([]interface{})
 			assert.NotEmpty(t, shop, "%s: a fence keeps a shop", name)
 			zone := filepath.Base(filepath.Dir(f))
 			fencesIn[zone] = append(fencesIn[zone], name)
 		}
 	}
+
+	for name := range fenceOnlyShops {
+		assert.True(t, seenFenceOnly[name], "%s: listed as a fence-only shop but not found as a fence", name)
+	}
+	assert.NotContains(t, fencesIn[`thornwall_city`], `Torvan Cresk`,
+		"Torvan Cresk is not a fence: quest 14 has players fight him (owner ruling)")
+	assert.Contains(t, fencesIn[`thornwall_city`], `Fence Dealer Siv`,
+		"Thornwall City's fence is Fence Dealer Siv")
 
 	nearby := map[string][]string{
 		`thornwall_city`:    {`thornwall_city`},
