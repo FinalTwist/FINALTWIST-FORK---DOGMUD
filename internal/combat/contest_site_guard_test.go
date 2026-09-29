@@ -71,7 +71,6 @@ var contestSiteOwners = map[string]string{
 	"internal/actions/sneak.go:Sneak":                                        "U6b task 16 (two sites)",
 	"internal/actions/shadow.go:shadowPlayer":                                "U6b task 16",
 	"internal/usercommands/skill.skullduggery.shadow.go:shadowDetectionRoll": "U6b task 16",
-	"internal/usercommands/go.go:Go":                                         "U6b task 16 (hidden detection on room entry, four sites)",
 	"internal/actions/move.go:sneakerSpotted":                                "U6b task 16 (hidden detection on room entry: a sneaking mover against the room's players and mobs; moved from usercommands/go.go by movement parity 4b)",
 	"internal/actions/move.go:newcomerSpots":                                 "U6b task 16 (hidden detection on room entry: the newcomer against hidden players and mobs; moved from usercommands/go.go by movement parity 4b)",
 
