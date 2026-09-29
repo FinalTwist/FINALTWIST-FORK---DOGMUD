@@ -12,8 +12,8 @@ type Status string
 // A record is only ever created once its text is final (Phase 4 generates
 // BEFORE minting), so there is no "pending" status and no placeholder text.
 const (
-	StatusReady    Status = `ready`    // named by the model
-	StatusFallback Status = `fallback` // a generic trinket (no API key, model off, or the call failed)
+	StatusReady    Status = `ready`    // named by the model, or drawn from the fallback corpus
+	StatusFallback Status = `fallback` // a generic trinket: nothing named it and the corpus had nothing that fit
 	StatusSold     Status = `sold`     // sold to a merchant; the item is gone
 	StatusRetired  Status = `retired`  // text withdrawn by an admin; shows generic text
 )
@@ -33,9 +33,16 @@ type Generator string
 
 const (
 	GeneratorOpenAI Generator = `openai`
-	GeneratorLocal  Generator = `local`
+	GeneratorLocal  Generator = `local`  // a generic trinket (fallback.go)
+	GeneratorCorpus Generator = `corpus` // drawn from the fallback corpus (corpus.go); Model is "corpus:<key>"
 	GeneratorAdmin  Generator = `admin`
 )
+
+// Named reports text that is a real name (the model's or the corpus's), as
+// opposed to the generic trinket. Named records are ready.
+func (g Generator) Named() bool {
+	return g == GeneratorOpenAI || g == GeneratorCorpus
+}
 
 // Record is one bauble: one unique object in the world. Records are never
 // shared between items and never reused, so the provenance and theft fields
@@ -104,6 +111,12 @@ type Record struct {
 	Moderated     bool      `yaml:"moderated,omitempty"`
 	PlayerKey     bool      `yaml:"player_key,omitempty"` // named through the finder's own key
 	EditedBy      string    `yaml:"edited_by,omitempty"`
+
+	// HandEdited is set by Edit: an admin wrote some of this text, so it is
+	// not the model's answer as moderation passed it, and Promote refuses
+	// it. ApplyRegenerated clears it (the text is the model's again).
+	// Retire, Restore and regen set EditedBy, never this.
+	HandEdited bool `yaml:"hand_edited,omitempty"`
 
 	// VanishedAt is set when the bauble was left lying untaken for
 	// BaubleUntakenHours and removed from the world (MarkVanished).

@@ -110,7 +110,7 @@ func Restore(id string, admin string) error {
 			return
 		}
 		r.Status = StatusFallback
-		if r.Generator == GeneratorOpenAI {
+		if r.Generator.Named() {
 			r.Status = StatusReady
 		}
 		if r.SoldValue > 0 {
@@ -193,6 +193,9 @@ func Edit(id string, field string, value string, admin string) (Record, error) {
 		r.Value = limited.Reply.Value
 		r.WeightLbs = limited.Reply.WeightLbs
 		r.EditedBy = admin
+		// Hand-written text was never moderated as it now reads.
+		r.Moderated = false
+		r.HandEdited = true
 	})
 	if !ok {
 		return Record{}, ErrNoRecord
@@ -241,6 +244,8 @@ func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) 
 			r.Status = StatusReady
 		}
 		r.EditedBy = admin + ` (regen)`
+		// The text is the model's again, as moderation passed it.
+		r.HandEdited = false
 	})
 	if !ok {
 		return Record{}, ErrNoRecord

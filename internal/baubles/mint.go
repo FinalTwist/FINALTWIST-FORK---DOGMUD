@@ -79,7 +79,7 @@ func Mint(o MintOpts) (items.Item, Record, error) {
 		res.Generator = GeneratorLocal
 	}
 	status := StatusFallback
-	if res.Generator == GeneratorOpenAI {
+	if res.Generator.Named() {
 		status = StatusReady
 	}
 

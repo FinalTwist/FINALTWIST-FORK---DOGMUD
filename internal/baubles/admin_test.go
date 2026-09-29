@@ -160,3 +160,73 @@ func TestApplyRegeneratedRollsPlayerKeyValue(t *testing.T) {
 		t.Fatalf("a server-key value stands: %+v", got)
 	}
 }
+
+// A corpus record is named text, like a model's: restoring it after a
+// retire makes it ready again, not a generic fallback.
+func TestRestoreReturnsACorpusRecordToReady(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Chipped Clay Marble`, NameSimple: `marble`, Tier: TierCheap, Value: 2, Status: StatusReady, Generator: GeneratorCorpus})
+	if err := Retire(r.Id, `Admin`); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(r.Id, `Admin`); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := Get(r.Id); got.Status != StatusReady {
+		t.Fatalf("a restored corpus record is ready, got %s", got.Status)
+	}
+}
+
+// Edited text was never moderated as written, so an edit clears the flag
+// and marks the record HandEdited (which Promote refuses).
+func TestEditClearsModeratedAndMarksHandEdited(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, Moderated: true})
+	got, err := Edit(r.Id, `name`, `Painted Wooden Pony`, `Admin`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Moderated {
+		t.Fatal("an edit must clear Moderated")
+	}
+	if !got.HandEdited {
+		t.Fatal("an edit must mark the record HandEdited")
+	}
+}
+
+// Retire and Restore change no text, so they never mark a record
+// HandEdited; a regeneration writes the model's text again and clears it.
+func TestOnlyEditMarksHandEdited(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, Moderated: true})
+	if err := Retire(r.Id, `Admin`); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(r.Id, `Admin`); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := Get(r.Id); got.HandEdited || got.EditedBy == `` {
+		t.Fatalf("retire and restore set EditedBy, never HandEdited: %+v", got)
+	}
+	h := seedRecord(t, Record{Name: `Painted Wooden Pony`, NameSimple: `pony`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, HandEdited: true})
+	got, err := ApplyRegenerated(h.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.HandEdited {
+		t.Fatal("regenerated text is the model's again: HandEdited is cleared")
+	}
+}
+
+// A guard, not a red-first test: ApplyRegenerated already refuses anything
+// but GeneratorOpenAI, so this fails only to build until GeneratorCorpus
+// exists. It pins that regenerating wants a NEW model name: a corpus answer
+// is refused like a generic one, so a failed call never swaps a model name
+// for corpus text.
+func TestApplyRegeneratedRefusesACorpusAnswer(t *testing.T) {
+	withCatalog(t)
+	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, Status: StatusReady, Generator: GeneratorOpenAI})
+	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorCorpus, Model: `corpus:cheap`}, `Admin`, first); err == nil {
+		t.Fatal("a corpus answer must not replace a record's text")
+	}
+}

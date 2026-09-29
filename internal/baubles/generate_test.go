@@ -498,3 +498,17 @@ func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
 		t.Fatalf("named again on the server's key: everyone's: %+v", got)
 	}
 }
+
+// A find drawn from the corpus is named text: Mint marks it ready and keeps
+// its generator and pool.
+func TestMintMarksACorpusResultReady(t *testing.T) {
+	withCatalog(t)
+	res := GenResult{Reply: Reply{Name: `Chipped Clay Marble`, NameSimple: `marble`, Description: `A small clay marble, glazed blue long ago.`, WeightLbs: 0.1, Value: 2}, Generator: GeneratorCorpus, Model: `corpus:street-cheap`}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Tier: TierCheap, Result: &res})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Status != StatusReady || rec.Generator != GeneratorCorpus || rec.Model != `corpus:street-cheap` || rec.Moderated || rec.PlayerKey {
+		t.Fatalf("corpus record: %+v", rec)
+	}
+}
