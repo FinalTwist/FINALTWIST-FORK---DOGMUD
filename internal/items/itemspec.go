@@ -611,9 +611,24 @@ func AuthoredName(name string) bool {
 
 // normalizeItemName is a name as AuthoredName compares it: NFKC (fullwidth
 // and other compatibility letters folded), lower case, every run of
-// Unicode space one plain space, trimmed.
+// Unicode space one plain space, trimmed; a hyphen counted as a space; one
+// leading article ("a", "an", "the", whole word) stripped; and trailing
+// punctuation (. ! ? , ; :) stripped. Applied to an authored name when the
+// snapshot is built, and to a candidate in AuthoredName, so "The Hooded
+// Lantern", "Hooded Lantern." and "A Beeswax Votive Candle" all normalise to
+// the same form as their plain "Hooded Lantern" / "Beeswax Votive Candle"
+// counterparts (review: the exact-match gap let those near-misses pass as
+// not-authored).
 func normalizeItemName(s string) string {
-	return strings.Join(strings.Fields(strings.ToLower(norm.NFKC.String(s))), ` `)
+	s = strings.ReplaceAll(strings.ToLower(norm.NFKC.String(s)), `-`, ` `)
+	fields := strings.Fields(s)
+	if len(fields) > 1 {
+		switch fields[0] {
+		case `a`, `an`, `the`:
+			fields = fields[1:]
+		}
+	}
+	return strings.TrimRight(strings.Join(fields, ` `), `.!?,;:`)
 }
 
 // headNoun is a name's last word as a keyword: lower case, with a

@@ -62,6 +62,9 @@ func TestAuthoredKeyword(t *testing.T) {
 func TestAuthoredName(t *testing.T) {
 	restore := SeedItemsForTest(map[int]*ItemSpec{
 		10:           {ItemId: 10, Name: `Hooded Lantern`, NameSimple: `lamp`},
+		12:           {ItemId: 12, Name: `A Beeswax Votive Candle`, NameSimple: `candle`},
+		13:           {ItemId: 13, Name: `Amber`, NameSimple: `amber`},
+		14:           {ItemId: 14, Name: `Iron Dagger`, NameSimple: `dagger`},
 		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`},
 	})
 	defer restore()
@@ -73,6 +76,19 @@ func TestAuthoredName(t *testing.T) {
 		`Hooded Lanterns`:                  false,
 		`Lantern`:                          false,
 		`Curious Trinket`:                  false,
+		// Near-misses of a loaded item's authored name still count as that
+		// item (review of the exact-match gap): a leading article, trailing
+		// punctuation, or a hyphen standing in for a space must not let a
+		// model dodge the collision check by rephrasing.
+		`The Hooded Lantern`:    true, // leading article stripped
+		`Hooded Lantern.`:       true, // trailing punctuation stripped
+		`Beeswax Votive Candle`: true, // authored name itself carries the article
+		// An unrelated name that merely starts with the letter sequence "A "
+		// is not the article-stripped form of anything: only an exact
+		// normalised match counts.
+		`Amber Bead`: false,
+		// Double-space collapsing still works after the extended normalisation.
+		`Iron  Dagger`: true,
 	} {
 		if AuthoredName(name) != want {
 			t.Errorf("AuthoredName(%q) = %v, want %v", name, !want, want)
