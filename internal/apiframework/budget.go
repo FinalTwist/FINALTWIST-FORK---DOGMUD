@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -439,6 +440,61 @@ func (k *Books) SeedTokens(consumer string, day string, tokens int) {
 	k.l.dirty = true
 }
 
+// SeedAllowances hands the ledger one dimension's per-user spends from
+// today, kept by a feature before the ledger kept them or as its own backup
+// (the AI companion's saved day), so neither the move to the ledger nor a
+// quarantined budget.yaml hands out a second allowance. It applies once per
+// dimension per day: the mark is saved with the day, so a normal restart
+// seeds nothing, and a quarantine, which loses the marks with the counts,
+// lets the next boot seed again. A stale day seeds nothing.
+func SeedAllowances(dim string, day string, spent map[int]int) {
+	shared.SeedAllowances(dim, day, spent)
+}
+
+// SeedAllowances on these books.
+func (k *Books) SeedAllowances(dim string, day string, spent map[int]int) {
+	k.l.mu.Lock()
+	defer k.l.mu.Unlock()
+	k.l.loadLocked()
+	k.l.rollLocked()
+	if day != k.l.st.Day || k.l.st.Seeded[dim] {
+		return
+	}
+	for userId, tokens := range spent {
+		if tokens > 0 {
+			k.l.st.ByUser[allowanceKey(dim, userId)] += tokens
+		}
+	}
+	k.l.st.Seeded[dim] = true
+	k.l.dirty = true
+}
+
+// Allowances is every user's spend today in one dimension, by user id: a
+// copy, with nothing-spent users left out. A feature that keeps its own
+// backup of its allowances (the AI companion) writes it from this.
+func Allowances(dim string) map[int]int {
+	return shared.Allowances(dim)
+}
+
+// Allowances on these books.
+func (k *Books) Allowances(dim string) map[int]int {
+	k.l.mu.Lock()
+	defer k.l.mu.Unlock()
+	k.l.loadLocked()
+	k.l.rollLocked()
+	prefix := dim + `:`
+	out := map[int]int{}
+	for key, tokens := range k.l.st.ByUser {
+		if tokens <= 0 || !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		if userId, err := strconv.Atoi(key[len(prefix):]); err == nil {
+			out[userId] = tokens
+		}
+	}
+	return out
+}
+
 // SaveBudget writes the day's spending when it changed. Safe to call often.
 func SaveBudget() {
 	budget.mu.Lock()
@@ -455,7 +511,15 @@ func SaveBudget() {
 	for k, v := range st.CallsBy {
 		callsBy[k] = v
 	}
-	st.ByConsumer, st.CallsBy = byC, callsBy
+	byUser := make(map[string]int, len(st.ByUser))
+	for k, v := range st.ByUser {
+		byUser[k] = v
+	}
+	seeded := make(map[string]bool, len(st.Seeded))
+	for k, v := range st.Seeded {
+		seeded[k] = v
+	}
+	st.ByConsumer, st.CallsBy, st.ByUser, st.Seeded = byC, callsBy, byUser, seeded
 	path := budget.path()
 	budget.dirty = false
 	budget.mu.Unlock()

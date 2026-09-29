@@ -2,6 +2,12 @@ package apiframework
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -216,5 +222,109 @@ func TestSharePercentByConsumer(t *testing.T) {
 	s := ServerSettings{CompanionSharePercent: 60, BaublesSharePercent: 25}
 	if s.SharePercent(ConsumerCompanion) != 60 || s.SharePercent(ConsumerBaubles) != 25 || s.SharePercent(`other`) != 0 {
 		t.Fatal("each consumer's own share; an unknown one has none")
+	}
+}
+
+// R38, R39: allowances and seed marks are living state with the rest of
+// the day. A dimension is seeded once a day, today only; a same-day restart
+// finds the mark and seeds nothing; a quarantine loses the counts and the
+// marks together, so the next seed applies again.
+func TestAllowancesSaveLoadAndSeedOnce(t *testing.T) {
+	dir := t.TempDir()
+	ResetBudgetForTest(dir)
+	t.Cleanup(func() { ResetBudgetForTest(``) })
+	h, err := Reserve(ConsumerBaubles, 500, true, Charge{Dim: DimBaublesFinder, UserId: 7, Limit: 20000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	Settle(h, 123, false)
+	day := Today().Day
+	backup := map[int]int{5: 777, 8: 0}
+
+	SeedAllowances(DimCompanionOwner, `1999-01-01`, map[int]int{6: 50})
+	if Allowance(DimCompanionOwner, 6) != 0 {
+		t.Fatal("a stale day seeds nothing, and leaves no mark")
+	}
+	SeedAllowances(DimCompanionOwner, day, backup)
+	SeedAllowances(DimCompanionOwner, day, backup)
+	if Allowance(DimCompanionOwner, 5) != 777 || Allowance(DimCompanionOwner, 8) != 0 {
+		t.Fatalf("seeded once a day per dimension: %d", Allowance(DimCompanionOwner, 5))
+	}
+	if got := Allowances(DimCompanionOwner); !reflect.DeepEqual(got, map[int]int{5: 777}) {
+		t.Fatalf("one dimension's spends, nothing spent left out: %v", got)
+	}
+	if got := Allowances(DimCompanionStranger); len(got) != 0 {
+		t.Fatalf("a dimension is its own: %v", got)
+	}
+	SaveBudget()
+
+	ResetBudgetForTest(dir) // a same-day restart
+	if Allowance(DimBaublesFinder, 7) != 123 || Allowance(DimCompanionOwner, 5) != 777 {
+		t.Fatalf("a restart keeps the day's allowances: finder=%d owner=%d", Allowance(DimBaublesFinder, 7), Allowance(DimCompanionOwner, 5))
+	}
+	SeedAllowances(DimCompanionOwner, day, backup)
+	if Allowance(DimCompanionOwner, 5) != 777 {
+		t.Fatalf("the mark is saved too: a same-day restart seeds nothing: %d", Allowance(DimCompanionOwner, 5))
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, `budget.yaml`))
+	if err != nil || !strings.Contains(string(raw), `by_user:`) || !strings.Contains(string(raw), `baubles.finder:7`) ||
+		!strings.Contains(string(raw), `seeded:`) {
+		t.Fatalf("by_user and seeded in budget.yaml: %s", raw)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, `budget.yaml`), []byte("day: [unclosed"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	ResetBudgetForTest(dir) // a boot that finds the file corrupt
+	if Allowance(DimBaublesFinder, 7) != 0 || Allowance(DimCompanionOwner, 5) != 0 {
+		t.Fatal("a quarantine restarts the day's allowances with its totals")
+	}
+	SeedAllowances(DimCompanionOwner, day, backup)
+	if Allowance(DimCompanionOwner, 5) != 777 {
+		t.Fatalf("the marks went with the counts, so the backup seeds again: %d", Allowance(DimCompanionOwner, 5))
+	}
+}
+
+// R38: SaveBudget marshals copies, never the live maps. Only -race can see
+// the shared map; run it in CI or the Docker test image (see the gate). The
+// key space is bounded (ten users and ten seed dimensions per goroutine) and
+// the loop capped, so the maps stay small and it runs in seconds under -race.
+func TestSaveBudgetCopiesEveryMapUnderTheLock(t *testing.T) {
+	dir := t.TempDir()
+	ResetBudgetForTest(dir)
+	restore := SetServerForTest(ServerSettings{Endpoint: Endpoint{BaseURL: DefaultBaseURL}, BreakerErrors: 2, BreakerSeconds: 60})
+	t.Cleanup(func() { restore(); ResetBudgetForTest(``) })
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	for g := 0; g < 4; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 20000; i++ {
+				// The work comes first, so goroutine 0 writes key 0 (read
+				// back below) before it can see stop.
+				c := Charge{Dim: DimBaublesFinder, UserId: g*10 + i%10}
+				if h, err := Reserve(ConsumerBaubles, 1, true, c); err == nil {
+					Settle(h, 1, false)
+				}
+				SeedAllowances(fmt.Sprintf(`test.seed%d`, g*10+i%10), Today().Day, map[int]int{1: 1})
+				select {
+				case <-stop:
+					return
+				default:
+				}
+			}
+		}(g)
+	}
+	for i := 0; i < 200; i++ {
+		SaveBudget()
+	}
+	close(stop)
+	wg.Wait()
+	SaveBudget()
+	want := Allowance(DimBaublesFinder, 0)
+	ResetBudgetForTest(dir)
+	if want < 1 || Allowance(DimBaublesFinder, 0) != want {
+		t.Fatalf("what was saved reads back: saved %d, read %d", want, Allowance(DimBaublesFinder, 0))
 	}
 }
