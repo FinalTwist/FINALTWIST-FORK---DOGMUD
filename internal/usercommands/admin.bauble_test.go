@@ -1,6 +1,8 @@
 package usercommands
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -8,6 +10,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -156,4 +160,87 @@ func TestBaubleSweepLine(t *testing.T) {
 			assert.Contains(t, line, w, name)
 		}
 	}
+}
+
+// adminSaid runs one bauble subcommand and returns what the admin was sent,
+// whitespace folded, so a line the renderer wrapped still matches.
+func adminSaid(t *testing.T, cmd string, admin *users.UserRecord, room *rooms.Room) string {
+	t.Helper()
+	events.DrainQueuedMessagesForTest(admin.UserId)
+	_, err := Bauble(cmd, admin, room, 0)
+	require.NoError(t, err, cmd)
+	return strings.Join(strings.Fields(strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), " ")), " ")
+}
+
+// bauble promote and bauble corpus (slice C): promote puts a record's text
+// in the overlay under its biome and tier; remove takes it out again by
+// name; every subcommand says what it did.
+func TestAdminBauble_PromoteAndCorpus(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreItems := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket",
+			Type: items.Object, Subtype: items.Mundane, Weight: 0.2, Value: 1, NotSalable: true},
+	})
+	defer restoreItems()
+	dir := t.TempDir()
+	baubles.SetDirForTest(dir)
+	defer items.SetBaubleResolver(nil)
+	seedPath := filepath.Join(dir, "bauble-corpus.yaml")
+	require.NoError(t, os.WriteFile(seedPath, []byte("groups:\n  interior: dwelling\nentries: {}\n"), 0o644))
+	baubles.LoadCorpusFrom(seedPath, filepath.Join(dir, "corpus.promoted.yaml"))
+	defer baubles.ClearCorpusForTest()
+
+	admin, room := getTestUserAndRoom(t)
+	rec, err := baubles.Create(baubles.Record{
+		Name: "Painted Wooden Spool", NameSimple: "spool", Tier: baubles.TierCheap, Value: 4, WeightLbs: 0.2,
+		Description: "A wooden thread spool painted with a band of faded blue.",
+		Status:      baubles.StatusReady, Generator: baubles.GeneratorOpenAI, Moderated: true,
+		Source: baubles.SourceSearch, Biome: "interior", Zone: "ashwick",
+	})
+	require.NoError(t, err)
+
+	out := adminSaid(t, "promote "+rec.Id, admin, room)
+	require.Len(t, baubles.CorpusList("interior-cheap").Promoted, 1, "promote puts it under its biome and tier")
+	assert.Contains(t, out, "is now in the fallback corpus under interior-cheap")
+	assert.Contains(t, adminSaid(t, "promote "+rec.Id, admin, room), "Not promoted: it is already in the corpus.")
+
+	assert.Contains(t, adminSaid(t, "corpus", admin, room), "Usage: bauble corpus list")
+	out = adminSaid(t, "corpus list", admin, room)
+	assert.Contains(t, out, "Fallback corpus: 0 seed and 1 promoted entries in use.")
+	assert.Contains(t, out, "interior-cheap seed 0 promoted 1")
+	out = adminSaid(t, "corpus list interior-cheap", admin, room)
+	// Capitalized: messaging's normalize stage capitalizes the start of every
+	// CategorySystem message (pipeline.go), and here the pool key is that
+	// first character.
+	assert.Contains(t, out, "Interior-cheap: 0 seed, 1 promoted.")
+	assert.Contains(t, out, "Painted Wooden Spool (spool, 0.2 lb, 4 gold) from "+rec.Id+", zone ashwick")
+	out = adminSaid(t, "corpus export", admin, room)
+	assert.Contains(t, out, "Promoted entries in the seed's format")
+	assert.Contains(t, out, "name: Painted Wooden Spool")
+	assert.NotContains(t, out, "from_record", "an export is seed format, no provenance")
+
+	assert.Contains(t, adminSaid(t, "corpus remove interior-cheap Silver Spoon", admin, room),
+		"Not removed: interior-cheap has no promoted entry called")
+	assert.Contains(t, adminSaid(t, "corpus remove interior-cheap", admin, room), "Usage: bauble corpus remove")
+	require.Len(t, baubles.CorpusList("interior-cheap").Promoted, 1, "a bad remove changes nothing")
+
+	assert.Contains(t, adminSaid(t, "status", admin, room), "Fallback corpus: 0 seed and 1 promoted entries")
+	assert.Contains(t, adminSaid(t, "stats", admin, room), "from the corpus 0")
+
+	out = adminSaid(t, "corpus remove interior-cheap painted wooden spool", admin, room)
+	assert.Contains(t, out, "Removed Painted Wooden Spool (promoted from "+rec.Id+") from interior-cheap.")
+	assert.Empty(t, baubles.CorpusList("interior-cheap").Promoted)
+	assert.Contains(t, adminSaid(t, "corpus export", admin, room), "No promoted entries to export.")
+
+	out = adminSaid(t, "corpus reload", admin, room)
+	assert.Contains(t, out, "Corpus reloaded: 0 seed and 0 promoted entries in use, 0 skipped.")
+	_, promoted := baubles.CorpusCounts()
+	assert.Equal(t, 0, promoted, "reload reads the saved overlay back from the corpus's own files")
+
+	// A seed that breaks after boot: the reload says it kept the one in use.
+	require.NoError(t, os.WriteFile(seedPath, []byte("entries: [not a map\n"), 0o644))
+	out = adminSaid(t, "corpus reload", admin, room)
+	assert.Contains(t, out, "The seed file could not be read")
+	assert.Contains(t, out, "the seed already in use is kept")
 }

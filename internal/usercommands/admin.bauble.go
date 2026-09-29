@@ -27,7 +27,7 @@ import (
 // Bauble is the admin command for the bauble catalog
 // (docs/baubles/implementation-plan.md):
 //
-//	bauble status                         what names baubles (model or generic) and the search settings
+//	bauble status                         what names baubles (model, corpus or generic) and the search settings
 //	bauble stats                          counts by status, tier, namer and region; sales; tokens
 //	bauble list [n] [playerkey|unmoderated|finderonly]  sales totals and the newest records (default 10), filtered
 //	bauble show <bauble>                  one record in full
@@ -36,6 +36,11 @@ import (
 //	bauble regen <bauble>                 ask the model to name it again (in the background)
 //	bauble retire <bauble>                withdraw its text; it shows as a plain Trinket
 //	bauble restore <bauble>               undo retire
+//	bauble promote <bauble>               copy a model name into the fallback corpus
+//	bauble corpus list [key]              the corpus pools, or one pool's entries
+//	bauble corpus remove <key> <entry>    remove a promoted entry, by its name or record id
+//	bauble corpus reload                  read the seed and the promoted file again
+//	bauble corpus export                  the promoted entries in the seed's format
 //	bauble prompt <bauble>                the prompt that would name it now
 //	bauble window [reset]                 this room's search roll window; reset reopens it
 //
@@ -63,6 +68,10 @@ func Bauble(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		return baubleRetire(args[1:], user, room, true)
 	case `restore`, `unretire`:
 		return baubleRetire(args[1:], user, room, false)
+	case `promote`:
+		return baublePromote(args[1:], user, room)
+	case `corpus`:
+		return baubleCorpus(args[1:], user)
 	case `prompt`:
 		return baublePrompt(args[1:], user, room)
 	case `list`:
@@ -93,6 +102,8 @@ func baubleUsage(user *users.UserRecord) {
 			"  bauble regen <bauble>\r\n"+
 			"  bauble retire <bauble>\r\n"+
 			"  bauble restore <bauble>\r\n"+
+			"  bauble promote <bauble>\r\n"+
+			"  bauble corpus list [key] | remove <key> <name or record id> | reload | export\r\n"+
 			"  bauble prompt <bauble>\r\n"+
 			"  bauble window [reset]\r\n"+
 			"<bauble> is an id (B0000012) or the name of a bauble in your pack or on the floor.\r\n",
@@ -111,11 +122,11 @@ func baubleSpawn(args []string, user *users.UserRecord, room *rooms.Room) (bool,
 	}
 
 	// The same path a search find takes: named in the background (by the
-	// model when one is set up, otherwise a generic trinket), then delivered
-	// to your pack after at least BaubleRevealSeconds.
+	// model when one is set up, otherwise from the fallback corpus), then
+	// delivered to your pack after at least BaubleRevealSeconds.
 	actions.StartBaubleFind(user.UserId, room, tier, baubles.SourceAdmin)
 
-	how := `a generic trinket (no model is set up)`
+	how := `from the fallback corpus (no model is set up)`
 	if info, ok := baubles.CurrentGenerator(); ok {
 		how = fmt.Sprintf(`named by %s %s`, info.Name, info.Model)
 	}
@@ -130,8 +141,10 @@ func baubleStatus(user *users.UserRecord) (bool, error) {
 	if info, ok := baubles.CurrentGenerator(); ok {
 		fmt.Fprintf(&b, "Naming: <ansi fg=\"green\">%s</ansi> model %s. %s\r\n", info.Name, info.Model, info.Detail)
 	} else {
-		b.WriteString("Naming: <ansi fg=\"yellow\">generic trinkets</ansi>. No model is set up: Modules.baubles is off or no OpenAI API key was found.\r\n")
+		b.WriteString("Naming: <ansi fg=\"yellow\">fallback corpus</ansi>. No model is set up: Modules.baubles is off or no OpenAI API key was found.\r\n")
 	}
+	seedN, promotedN := baubles.CorpusCounts()
+	fmt.Fprintf(&b, "Fallback corpus: %d seed and %d promoted entries (bauble corpus list); a plain Trinket where none fits.\r\n", seedN, promotedN)
 	bal := configs.GetBalanceConfig()
 	if !bal.BaublesEnabled {
 		b.WriteString("Search: <ansi fg=\"red\">off</ansi> (Balance.BaublesEnabled is false): search finds no baubles.\r\n")
@@ -373,8 +386,8 @@ func baubleStats(user *users.UserRecord) (bool, error) {
 		st.ByStatus[baubles.StatusReady], st.ByStatus[baubles.StatusFallback], st.ByStatus[baubles.StatusSold], st.ByStatus[baubles.StatusRetired])
 	fmt.Fprintf(&b, "  Tier:    cheap %d, average %d, rare %d\r\n",
 		st.ByTier[baubles.TierCheap], st.ByTier[baubles.TierAverage], st.ByTier[baubles.TierRare])
-	fmt.Fprintf(&b, "  Named:   by model %d, generic %d, admin-edited %d\r\n",
-		st.ByGenerator[baubles.GeneratorOpenAI], st.ByGenerator[baubles.GeneratorLocal], st.Edited)
+	fmt.Fprintf(&b, "  Named:   by model %d, from the corpus %d, generic %d, admin-edited %d\r\n",
+		st.ByGenerator[baubles.GeneratorOpenAI], st.ByGenerator[baubles.GeneratorCorpus], st.ByGenerator[baubles.GeneratorLocal], st.Edited)
 	fmt.Fprintf(&b, "  Unsold:  %d, worth %d gold at catalog value\r\n", st.Unsold, st.UnsoldValue)
 	fmt.Fprintf(&b, "  Left for households %d, stolen %d, vanished untaken %d\r\n", st.Household, st.Stolen, st.Vanished)
 	fmt.Fprintf(&b, "  Sales:   last 24h %d for %d gold; last 7 days %d for %d gold\r\n", dayCount, dayGold, weekCount, weekGold)
@@ -510,4 +523,103 @@ func yesNo(v bool) string {
 		return `yes`
 	}
 	return `no`
+}
+
+// baublePromote copies a record's text into the fallback corpus.
+func baublePromote(args []string, user *users.UserRecord, room *rooms.Room) (bool, error) {
+	rec, ok := resolveBaubleArg(strings.Join(args, ` `), user, room)
+	if !ok {
+		return true, nil
+	}
+	key, err := baubles.Promote(rec.Id)
+	if err != nil {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`Not promoted: %s.`, err))
+		return true, nil
+	}
+	user.SendText(messaging.CategorySystem, fmt.Sprintf(`Bauble %s (%s) is now in the fallback corpus under %s. Finds with no model may use its text.`, rec.Id, rec.Name, key))
+	return true, nil
+}
+
+// baubleCorpus lists, removes from, reloads and exports the fallback corpus.
+func baubleCorpus(args []string, user *users.UserRecord) (bool, error) {
+	usage := `Usage: bauble corpus list [key] | remove <key> <name or record id> | reload | export`
+	if len(args) == 0 {
+		user.SendText(messaging.CategorySystem, usage)
+		return true, nil
+	}
+	var b strings.Builder
+	switch strings.ToLower(args[0]) {
+	case `list`:
+		if len(args) > 1 {
+			key := strings.ToLower(args[1])
+			l := baubles.CorpusList(key)
+			fmt.Fprintf(&b, "%s: %d seed, %d promoted.\r\n", key, len(l.Seed), len(l.Promoted))
+			for _, e := range l.Seed {
+				fmt.Fprintf(&b, "  seed  %s (%s, %s, %.1f lb, %d gold)\r\n", e.Name, e.NameSimple, e.Material, e.WeightLbs, e.Value)
+			}
+			for i, e := range l.Promoted {
+				fmt.Fprintf(&b, "  promoted  %s (%s, %.1f lb, %d gold) from %s, zone %s, promoted %s",
+					e.Name, e.NameSimple, e.WeightLbs, e.Value, e.FromRecord, e.Zone, e.PromotedAt.Format(`2006-01-02`))
+				if why := l.Unused[i+1]; why != `` {
+					fmt.Fprintf(&b, " <ansi fg=\"red\">NOT USED: %s</ansi>", why)
+				}
+				b.WriteString("\r\n")
+			}
+			break
+		}
+		seedN, promotedN := baubles.CorpusCounts()
+		fmt.Fprintf(&b, "Fallback corpus: %d seed and %d promoted entries in use.\r\n", seedN, promotedN)
+		for _, c := range baubles.CorpusKeys() {
+			fmt.Fprintf(&b, "  %-26s seed %3d  promoted %3d\r\n", c.Key, c.Seed, c.Promoted)
+		}
+	case `remove`:
+		if len(args) < 3 {
+			b.WriteString(`Usage: bauble corpus remove <key> <name or record id>. "bauble corpus list <key>" shows both.`)
+			break
+		}
+		removed, err := baubles.RemoveCorpusEntry(args[1], strings.Join(args[2:], ` `))
+		if err != nil {
+			fmt.Fprintf(&b, `Not removed: %s.`, err)
+			break
+		}
+		fmt.Fprintf(&b, `Removed %s (promoted from %s) from %s.`, removed.Name, removed.FromRecord, strings.ToLower(args[1]))
+	case `reload`:
+		rep := baubles.ReloadCorpus()
+		fmt.Fprintf(&b, "Corpus reloaded: %d seed and %d promoted entries in use, %d skipped.\r\n", rep.Seed, rep.Promoted, len(rep.Skipped))
+		if rep.SeedErr != nil {
+			fmt.Fprintf(&b, "<ansi fg=\"red\">The seed file could not be read: %s.</ansi>\r\n", rep.SeedErr)
+			if rep.SeedKept {
+				b.WriteString("Nothing was lost: the seed already in use is kept until a reload reads the file.\r\n")
+			}
+		}
+		if rep.Quarantined != `` {
+			fmt.Fprintf(&b, "<ansi fg=\"red\">The promoted file could not be read and is set aside at %s.</ansi>\r\n", rep.Quarantined)
+		}
+		if rep.OverlayBroken {
+			b.WriteString("<ansi fg=\"red\">The promoted file could not be read or set aside: promote and remove are refused until a reload succeeds (see the log).</ansi>\r\n")
+		}
+		for i, s := range rep.Skipped {
+			if i == 10 {
+				fmt.Fprintf(&b, "  ...and %d more (see the log).\r\n", len(rep.Skipped)-10)
+				break
+			}
+			fmt.Fprintf(&b, "  skipped: %s\r\n", s)
+		}
+	case `export`:
+		if _, promotedN := baubles.CorpusCounts(); promotedN == 0 {
+			b.WriteString(`No promoted entries to export.`)
+			break
+		}
+		out, err := baubles.ExportPromoted()
+		if err != nil {
+			fmt.Fprintf(&b, `Could not export: %s.`, err)
+			break
+		}
+		b.WriteString("Promoted entries in the seed's format (copy them under entries: in bauble-corpus.yaml and wrap the descriptions):\r\n")
+		b.WriteString(strings.ReplaceAll(out, "\n", "\r\n"))
+	default:
+		b.WriteString(usage)
+	}
+	user.SendText(messaging.CategorySystem, b.String())
+	return true, nil
 }
