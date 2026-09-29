@@ -2,6 +2,8 @@ package actions
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -512,5 +514,96 @@ func TestFlush_FindsAFindWhoseGoroutineHasNotStarted(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("delivered exactly once: %d", count)
+	}
+}
+
+// loadTestCorpus gives the baubles package a small fallback corpus for one
+// test: bare cheap and average pools (the test rooms have no biome) and a
+// pocket pool.
+func loadTestCorpus(t *testing.T) {
+	t.Helper()
+	dir := t.TempDir()
+	seed := filepath.Join(dir, "bauble-corpus.yaml")
+	text := `entries:
+  cheap:
+    - name: Bent Tin Thimble
+      name_simple: thimble
+      description: A tin thimble, pressed a little out of shape by a careless heel.
+      material: tin
+      weight_lbs: 0.1
+      value: 3
+  average:
+    - name: Painted Wooden Spool
+      name_simple: spool
+      description: A wooden thread spool painted with a band of faded blue.
+      material: wood
+      weight_lbs: 0.2
+      value: 12
+  pocket-cheap:
+    - name: Brass Snuff Spoon
+      name_simple: spoon
+      description: A tiny brass spoon for snuff, its bowl no bigger than a fingernail.
+      material: brass
+      weight_lbs: 0.1
+      value: 2
+`
+	if err := os.WriteFile(seed, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rep := baubles.LoadCorpusFrom(seed, filepath.Join(dir, "corpus.promoted.yaml"))
+	t.Cleanup(baubles.ClearCorpusForTest)
+	if rep.Seed != 3 {
+		t.Fatalf("test corpus: %+v", rep)
+	}
+}
+
+func TestSearch_Bauble_NoKeyDrawsFromTheCorpus(t *testing.T) {
+	pinConfigForTest(t)
+	actor := newSearchFakeActor("Finder", newSearchTestRoom(9540), true, 7160)
+	canCarry(actor)
+	stubBaubleSearch(t, true, actor) // every roll finds, tier average
+	loadTestCorpus(t)
+
+	Search(actor, SearchOptions{})
+
+	itm, has := actor.char.FindInBackpack("spool")
+	if !has || !itm.IsBauble() {
+		t.Fatalf("the corpus entry is in the pack: %q", actor.sent)
+	}
+	rec, _ := baubles.Get(itm.Bauble)
+	if rec.Name != "Painted Wooden Spool" || rec.Generator != baubles.GeneratorCorpus || rec.Status != baubles.StatusReady || rec.Model != "corpus:average" {
+		t.Fatalf("record: %+v", rec)
+	}
+}
+
+// A find still being named at a flush is finished from the corpus.
+func TestFlush_UnnamedFindDrawsFromTheCorpus(t *testing.T) {
+	pinConfigForTest(t)
+	actor := newSearchFakeActor("Hasty", newSearchTestRoom(9541), true, 7161)
+	canCarry(actor)
+	stubBaubleSearch(t, true, actor)
+	loadTestCorpus(t)
+	naming := make(chan struct{})
+	baubles.SetGenerator(func(ctx context.Context, req baubles.GenRequest) (baubles.GenResult, error) {
+		close(naming)
+		<-ctx.Done()
+		return baubles.GenResult{}, ctx.Err()
+	}, nil)
+
+	d := BaubleDelivery{Request: BaubleRequest(actor.room, baubles.TierCheap, baubles.SourceSearch, ""), UserId: 7161}
+	done := make(chan struct{})
+	go func() { d.run(false); close(done) }()
+	<-naming
+
+	if n := FlushBaubleDeliveries(); n != 1 {
+		t.Fatalf("one find finished by the flush, got %d", n)
+	}
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the delivery goroutine stands down once flushed")
+	}
+	if _, has := actor.char.FindInBackpack("thimble"); !has {
+		t.Fatal("unnamed at the flush: drawn from the corpus")
 	}
 }

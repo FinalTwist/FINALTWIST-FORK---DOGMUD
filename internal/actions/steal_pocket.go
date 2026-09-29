@@ -272,15 +272,15 @@ func (p *pocketAttempt) claim() bool {
 	return true
 }
 
-// naming is the bauble's naming if it came back, else the generic
-// trinket it would have been.
+// naming is the bauble's naming if it came back, else the corpus
+// fallback it would have been.
 func (p *pocketAttempt) naming() (baubles.GenResult, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.res != nil {
 		return *p.res, true
 	}
-	return baubles.GenResult{Reply: baubles.GenericTrinket(p.req.Tier, p.randn), Generator: baubles.GeneratorLocal}, false
+	return baubles.FallbackFor(p.req, p.randn), false
 }
 
 // resolve reveals the outcome. Runs under the mud lock.
@@ -339,7 +339,7 @@ func (p *pocketAttempt) resolve() StealResult {
 			mudlog.Error(`steal`, `action`, `pickpocket bauble`, `userId`, p.userId, `error`, err)
 		} else {
 			extra = append(extra, itm)
-			mudlog.Info(`baubles`, `action`, `pickpocket`, `id`, rec.Id, `mob`, p.mobName, `named`, rec.Generator == baubles.GeneratorOpenAI)
+			mudlog.Info(`baubles`, `action`, `pickpocket`, `id`, rec.Id, `mob`, p.mobName, `generator`, string(rec.Generator))
 		}
 	}
 	for _, it := range extra {
@@ -457,7 +457,7 @@ func PendingPocketAttempts() int {
 
 // FlushPocketAttempts reveals every pickpocket still in its pause, now: the
 // roll was made when it started, so only the pause is cut short (a bauble
-// whose naming is not back is the generic trinket it would have been).
+// whose naming is not back is the corpus fallback it would have been).
 // Call it under the mud lock, before rooms and players are saved, at
 // copyover and at shutdown: the attempt's goroutine needs the lock to
 // finish, and the process is about to end. Returns how many it revealed.

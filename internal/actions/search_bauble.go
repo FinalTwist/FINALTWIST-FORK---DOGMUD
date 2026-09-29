@@ -30,7 +30,7 @@ import (
 // model, so it runs on a goroutine that does NOT hold the mud lock; the
 // result is applied under the lock, once, when it is ready. The wait is at
 // least BaubleRevealSeconds whether or not the model is used, so a player
-// cannot tell a model-named find from a generic trinket by its timing, and
+// cannot tell a model-named find from a fallback one by its timing, and
 // at most the generator's own timeout (hard-capped by baubles.MaxGenerateTime).
 //
 // The catalog record is created only when the text is final: there is never
@@ -117,7 +117,7 @@ type BaubleDelivery struct {
 	Request  baubles.GenRequest
 	UserId   int
 	MinDelay time.Duration
-	Randn    func(n int) int // the generic trinket's dice; nil means util.Rand
+	Randn    func(n int) int // the fallback's dice; nil means util.Rand
 
 	// Spot is where the find lies if it is left in the room it was found in
 	// ("on the bookshelf"); empty for a search of the whole room.
@@ -210,8 +210,8 @@ func PendingBaubleDeliveries() int {
 }
 
 // FlushBaubleDeliveries finishes every find still on its way, now: named if
-// its naming has come back, otherwise as the generic trinket it would have
-// been had the model not answered. Call it under the mud lock, before
+// its naming has come back, otherwise from the fallback corpus, as it would
+// have been had the model not answered. Call it under the mud lock, before
 // rooms and players are saved, at copyover and at shutdown: the process is
 // about to end, and a delivery goroutine cannot finish without the lock.
 // Each delivery's naming is cancelled, and its goroutine, should the
@@ -234,7 +234,7 @@ func FlushBaubleDeliveries() int {
 		p.cancel()
 		res, ok := p.result()
 		if !ok {
-			res = baubles.GenResult{Reply: baubles.GenericTrinket(p.d.Request.Tier, p.randn), Generator: baubles.GeneratorLocal}
+			res = baubles.FallbackFor(p.d.Request, p.randn)
 		}
 		p.d.deliver(res, p.randn)
 		n++
