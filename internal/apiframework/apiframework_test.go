@@ -468,10 +468,20 @@ func TestResolveKeyHasNoSilentDefault(t *testing.T) {
 }
 
 func TestEndpointAllowed(t *testing.T) {
-	if !EndpointAllowed(`https://api.openai.com/v1`, false) || !EndpointAllowed(`https://x.openai.azure.com/v1`, false) {
-		t.Fatal("OpenAI and Azure OpenAI over https")
+	for _, good := range []string{`https://api.openai.com/v1`, `https://x.openai.azure.com/v1`, `https://API.OpenAI.com/v1`} {
+		if !EndpointAllowed(good, false) {
+			t.Errorf("%q is OpenAI or Azure OpenAI over https", good)
+		}
 	}
-	for _, bad := range []string{`http://api.openai.com/v1`, `https://evil.example.com/v1`, `notaurl`} {
+	// Exactly api.openai.com and *.openai.azure.com (spec S2): any other
+	// openai.com or azure.com host is somebody else's server.
+	for _, bad := range []string{
+		`http://api.openai.com/v1`, `https://evil.example.com/v1`, `notaurl`,
+		`https://files.openai.com/v1`, `https://evil.azure.com/v1`, `https://openai.azure.com.evil.example/v1`,
+		`https://xopenai.azure.com/v1`, `https://api.openai.com.evil.example/v1`,
+		// Azure AI Services hosts need AllowCustomEndpoint (documented).
+		`https://x.cognitiveservices.azure.com/v1`, `https://x.services.ai.azure.com/v1`,
+	} {
 		if EndpointAllowed(bad, false) {
 			t.Errorf("%q must be refused without AllowCustomEndpoint", bad)
 		}
