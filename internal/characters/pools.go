@@ -551,6 +551,26 @@ func (c *Character) ApplyCostFloatOrRefuse(pool Pool, amount float64) bool {
 	return c.ApplyCost(pool, whole)
 }
 
+// CanAffordCostFloat reports, without changing anything, whether
+// ApplyCostFloatOrRefuse would pay amount from pool right now.
+//
+// It exists because the carry is private: a caller deciding whether to ISSUE
+// an action it will charge later (a mob walker choosing whether to take its
+// next step, movement parity 4b) needs the charge's own verdict, and
+// QuoteActionCost cannot price a step, whose cap applies after the hidden and
+// mutation multipliers.
+func (c *Character) CanAffordCostFloat(pool Pool, amount float64) bool {
+	carry := 0.0
+	if c.costCarry != nil {
+		carry = c.costCarry[pool]
+	}
+	whole, _, valid := fractionalCost(carry, amount)
+	if !valid || whole <= 0 {
+		return true
+	}
+	return c.CanAfford(pool, whole)
+}
+
 // applyVitalChange is the single signed pipeline behind ApplyHarm and
 // ApplyRestore. Negative delta is harm, positive is restore.
 //
