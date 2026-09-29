@@ -595,9 +595,14 @@ item 4, left as is) and asked for the rest fixed:
   (`relayTable.findsResult`).
 - **AllowCustomEndpoint** is a string, so an explicit "false" in
   `APIFramework` overrides an old `Modules.aicompanion` true.
-- **Moderation** of a player-key find: a flag refuses; a check that cannot be
-  made accepts it unmoderated (a server-key find is refused), so a working
-  player key never becomes a trinket over the server's route.
+- **Moderation** of a player-key find (hardening, 2026-09-28/29): moderated
+  whenever the server can (a flag or a failed check refuses on either key,
+  and every check feeds the moderation breaker, not the naming breaker);
+  when it cannot (no server key, moderation off, a breaker open), the find
+  is FINDER-ONLY: its finder reads it, everyone else sees a plain Trinket.
+  Player-key text must also pass `baubles.CheckPlayerKeyText` after curly
+  quotes and dashes are folded, and text that does not goes to the
+  server's key without counting against the player's.
 - **The companion settles the ledger's own hold** (`reserveFor`,
   `settleHeld`), not one rebuilt from its own day, which could differ from
   the ledger's around the UTC midnight.

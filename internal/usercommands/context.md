@@ -169,6 +169,14 @@ The `internal/usercommands` package implements the complete command system for p
   adds "It belongs to this household. Taking it would be theft."
 - The ground listing appends `BaubleSpotSuffix()`: "a Small Doll (on the
   bookshelf)".
+- A finder-only bauble (unmoderated player-key text) reads as "Trinket" to
+  everyone but its finder. `inventory`, `look` (a carried or floor item,
+  and the room's floor and stash listing) and the bauble `appraise` ask for
+  the reader's own view (`DisplayNameFor`, `NameFor`, `LongDescriptionFor`,
+  `GetSpecFor`, `baubles.Record.MaterialFor`); every room line and every
+  other command keeps the viewer-agnostic name. `bauble show` prints
+  `player key`, `moderated` and `finder only`; `bauble list [n]
+  [playerkey|unmoderated|finderonly]` filters.
 
 #### **Household baubles** (`get.go`, `skill.skullduggery.steal.go`)
 - `get` never takes a bauble that belongs to this room's household

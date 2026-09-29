@@ -706,6 +706,11 @@ flush holds, finds it delivered (`claim`) and stands down. So a player told
   `bauble prompt` and `bauble regen`) and `RegenerateBauble` (model call off
   the lock, `baubles.ApplyRegenerated` under it, the admin told either way;
   `runBaubleJob` and `tellBaubleAdmin` are variables for tests).
+  `BaubleRequestForRecord` omits a `PlayerKey` record's name. The find
+  lines (`BaubleDelivery.deliver`) and the pickpocket success line
+  (`takeFromMob`) name a bauble as their one reader sees it
+  (`items.Item.DisplayNameFor`), so a finder reads their own finder-only
+  bauble; everywhere else it is "Trinket".
 
 **Targeted search (`search_feature.go`).** `SearchOptions.Feature` is what a
 player typed after `search`. Empty searches the room as above. Otherwise,

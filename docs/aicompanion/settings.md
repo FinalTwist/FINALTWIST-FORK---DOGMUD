@@ -341,9 +341,18 @@ The key page also has a box, "Also name things I find while searching (uses
 this key)", off unless the player ticks it. Ticked, and with
 `Modules.baubles.Enabled` and `UsePlayerKeys` on, the baubles that player
 finds are named on their own key through the same relay, with nothing of
-theirs in the request (only the room's authored text). Unticked, their finds
-use the server's key, or stay generic trinkets when there is none. The relay
-page refuses the bauble request shape from a key whose box is not ticked.
+theirs in the request (only the room's authored text). Unlike the
+companion's speech, a bauble's text is shown to other players, so while
+the server can moderate it (`Modules.baubles.ModerateOutput` on, a server
+key, no breaker open) it is moderated, and a flag or a failed check refuses
+it. When the server cannot, the find is kept to its finder: they read its
+name and description, and everyone else sees a plain "Trinket". Either
+way it is held to plain ASCII letters and simple punctuation (text that is
+not goes to the server's key instead, without counting against the
+player's key), never passed to another find's prompt or the companion's,
+and its value is rolled by the server. Unticked, their finds use the
+server's key, or stay generic trinkets when there is none. The relay page
+refuses the bauble request shape from a key whose box is not ticked.
 
 `AllowCustomEndpoint` off accepts exactly `api.openai.com` and Azure OpenAI
 resources (`*.openai.azure.com`). Azure's AI Services hosts

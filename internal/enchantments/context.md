@@ -64,6 +64,8 @@ from the same definition do not share a mutable stat-mod map.
 
 - **`ApplyTier` mutates the item in place** and does not validate the tier
   index against the definition. An out-of-range tier is the caller's bug.
+- **`ApplyTier` refuses a bauble** (`items.Item.IsBauble`): a baked `Spec`
+  would outlive the catalog's text.
 - **Strip relies on the adjective being recognisable** (`isEnchantAdjective`).
   Renaming an item by hand after enchanting it can leave the adjective
   unstrippable.
