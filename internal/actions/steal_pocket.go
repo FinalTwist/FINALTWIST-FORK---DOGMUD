@@ -379,7 +379,7 @@ func (p *pocketAttempt) caught(actor Actor, online bool, m *mobs.Mob) StealResul
 			together = true
 		}
 		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" follows you.`, p.mobName))
+			`<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" rings out.`, p.mobName))
 	}
 	room := rooms.LoadRoom(m.Character.RoomId)
 	if room != nil {
