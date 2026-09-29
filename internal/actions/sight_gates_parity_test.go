@@ -1,0 +1,130 @@
+package actions
+
+import (
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/species"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/perception"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// The 5a parity table (sight and gates slice 5a). One player and one mob,
+// built alike, stand in one room at a pinned light; every row drives a
+// shared body through each actor and asserts the same outcome. The fixture
+// asserts both actors' sight before any row runs, so a verdict is exact,
+// never rolled.
+
+const (
+	gateRoomId    = 7950
+	gateUserId    = 7951
+	gateMobId     = 97952
+	gateInfraCond = 7953
+)
+
+type gateLight int
+
+const (
+	gateLit gateLight = iota
+	gateShapes
+	gateDark
+	gateBlinded
+)
+
+func (l gateLight) String() string { return [...]string{"lit", "shapes", "dark", "blinded"}[l] }
+
+var gateLights = []gateLight{gateLit, gateShapes, gateDark, gateBlinded}
+
+type gateScene struct {
+	room *rooms.Room
+	user *users.UserRecord
+	mob  *mobs.Mob
+}
+
+func (s gateScene) actor(who string) Actor {
+	if who == "player" {
+		return NewUserActorInRoom(s.user, s.room)
+	}
+	return NewMobActorInRoom(s.mob, s.room)
+}
+
+var gateWho = []string{"player", "mob"}
+
+func newGateScene(t *testing.T, light gateLight) gateScene {
+	t.Helper()
+	t.Cleanup(species.SeedSpeciesForTest(map[int]*species.Species{
+		0: {SpeciesId: 0, Name: "Human", Size: species.Medium},
+	}))
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		gateInfraCond: {ConditionId: gateInfraCond, Name: "Test Heat Sight", RoundInterval: 1, TriggerCount: 10,
+			Flags:   []conditions.Flag{conditions.InfraredVision},
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
+	}))
+
+	room := &rooms.Room{RoomId: gateRoomId, SkyLight: rooms.SkyLightPtr(0), Lamp: rooms.LampPtr(90)}
+	if light == gateShapes || light == gateDark {
+		room.Lamp = rooms.LampPtr(0)
+	}
+
+	u := users.NewTestUser(gateUserId, "gatey", "Gatey", uint64(gateUserId))
+	u.Character.RoomId = gateRoomId
+	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{gateUserId: u}))
+	room.AddPlayer(gateUserId)
+
+	mc := characters.New()
+	mc.Name, mc.RoomId, mc.Health = "Gatemob", gateRoomId, 100
+	mc.HealthMax.Value = 100
+	m := &mobs.Mob{InstanceId: gateMobId, Character: *mc}
+	m.Character.MobInstanceId = gateMobId
+	mobs.SetInstanceForTest(gateMobId, m)
+	t.Cleanup(func() { mobs.SetInstanceForTest(gateMobId, nil) })
+	room.AddMob(gateMobId)
+
+	want := map[gateLight]messaging.SightDecision{
+		gateLit: messaging.SightFull, gateShapes: messaging.SightShapes,
+		gateDark: messaging.SightNone, gateBlinded: messaging.SightNone,
+	}[light]
+	for who, c := range map[string]*characters.Character{"player": u.Character, "mob": &m.Character} {
+		switch light {
+		case gateShapes:
+			require.NoError(t, c.AddCondition(gateInfraCond, true))
+		case gateBlinded:
+			c.Perception = characters.New().Perception
+			require.NoError(t, c.Perception.TransitionTo(perception.Blinded, state.TransitionReason{Trigger: "test"}))
+		}
+		require.Equal(t, want, messaging.ParticipantSight(c, room), "fixture: the %s must sit at %s", who, light)
+	}
+	return gateScene{room: room, user: u, mob: m}
+}
+
+// gateItem is a distinct item with its spec inline.
+func gateItem(id int, name string, t items.ItemType, cursed bool) items.Item {
+	return items.Item{ItemId: id, Spec: &items.ItemSpec{ItemId: id, Name: name, Type: t, Subtype: items.Wearable, Cursed: cursed}}
+}
+
+// Equip over a cursed piece: refused with the shared line, the candidate
+// stays in the pack, the cursed piece stays on (ruling 8).
+func TestGateParity_EquipOverCursedArmour(t *testing.T) {
+	for _, who := range gateWho {
+		s := newGateScene(t, gateLit)
+		a := s.actor(who)
+		c := a.GetCharacter()
+		c.Equipment.Head = gateItem(39601, "iron helm", items.Head, true)
+		require.True(t, c.StoreItem(gateItem(39602, "leather cap", items.Head, false)))
+		res := EquipItem(a, "leather cap")
+		assert.True(t, res.Found, who)
+		assert.False(t, res.Equipped, who)
+		assert.Equal(t, `Your Iron Helm is cursed and prevents you from removing it.`, res.FailureReason, who)
+		assert.Equal(t, 39601, c.Equipment.Head.ItemId, who)
+		_, inPack := c.FindInBackpack("leather cap")
+		assert.True(t, inPack, "%s: the candidate stays in the pack", who)
+	}
+}

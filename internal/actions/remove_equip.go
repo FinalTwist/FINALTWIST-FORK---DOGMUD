@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -14,18 +15,37 @@ type EquipItemResult struct {
 	Found          bool
 	Equipped       bool
 	FailureReason  string
+	// ArmLabel is the hand the item went into ("offhand", "extra arm 1"), set only by EquipItemInArm.
+	ArmLabel string
 }
 
 // EquipItem takes a named item from the actor's backpack and equips it.
 // Displaced items (swapped-out gear) are stored back to the backpack, or
-// dropped to the floor if the backpack is full — no item loss allowed.
-// CancelConditionsWithFlag(Hidden), Validate(), and EquipmentChange are all
-// handled here. Messaging, arm-slot logic, condition onStart triggers, and
-// quest-engine notifications remain in the callers.
+// dropped to the floor if the backpack is full: no item loss allowed.
+// The reveal, Validate(), and EquipmentChange are all handled here.
+// Messaging, condition onStart triggers, and quest-engine notifications
+// remain in the callers.
 func EquipItem(actor Actor, itemName string) EquipItemResult {
+	return equipItem(actor, itemName, (*characters.Character).Wear)
+}
+
+// EquipItemInArm is `equip X armN` (spec ruling 11): EquipItem with the
+// placement confined to arm N through Character.WearInArm, so the arm path
+// meets every gate Wear has. It has one caller, the player's equip.
+func EquipItemInArm(actor Actor, itemName string, arm int) EquipItemResult {
+	res := equipItem(actor, itemName, func(c *characters.Character, i items.Item) ([]items.Item, bool, string) {
+		return c.WearInArm(i, arm)
+	})
+	if res.Equipped {
+		res.ArmLabel = actor.GetCharacter().ArmLabel(arm)
+	}
+	return res
+}
+
+func equipItem(actor Actor, itemName string, wear func(*characters.Character, items.Item) ([]items.Item, bool, string)) EquipItemResult {
 	char := actor.GetCharacter()
 
-	// Equippable-first, unfiltered fallback — mirrors usercommands/equip.go
+	// Equippable-first, unfiltered fallback: mirrors usercommands/equip.go
 	// so mob equips and gearup get the same preference.
 	matchItem, found := char.FindInBackpackWhere(itemName, func(it items.Item) bool {
 		spec := it.GetSpec()
@@ -38,12 +58,12 @@ func EquipItem(actor Actor, itemName string) EquipItemResult {
 		return EquipItemResult{Found: false}
 	}
 
-	// Tentatively remove from backpack so Wear() can place it on the body.
+	// Tentatively remove from backpack so the wear step can place it on the body.
 	char.RemoveItem(matchItem)
 
-	displaced, newItemWorn, failureReason := char.Wear(matchItem)
+	displaced, newItemWorn, failureReason := wear(char, matchItem)
 	if !newItemWorn {
-		// Put it back — equip failed.
+		// Put it back: equip failed.
 		char.StoreItem(matchItem)
 		return EquipItemResult{
 			Item:          matchItem,
