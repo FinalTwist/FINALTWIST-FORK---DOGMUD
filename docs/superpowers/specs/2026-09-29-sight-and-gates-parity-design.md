@@ -110,10 +110,16 @@ same search could match.
    hears the name, shapes hears "A figure", no sight hears "Someone". The
    words are always heard.
 4. **Mob remove gets the busy gate** (the player's `refuseWhileBusy`).
-5. **Riders:** shout reveals a hidden mob speaker as it does a player; mob
-   speech respects deafened and quiet listeners (see open question 1); the
+5. **Riders:** shout reveals a hidden mob speaker as it does a player; the
    Spellcasting-4 cursed-removal exception applies to mobs; the mob-only
    `PermaGear` refusal stays.
+6. **NPC speech stays unfiltered by deafen** (owner, 2026-09-29, reversing the
+   first draft's rider). Deafen is the upstream child-safety tool: it shields a
+   player from other players' free text, and NPC lines are authored content,
+   so a deafened player keeps hearing quest givers, merchants, dialogue and
+   their companion (S12, S14). Mob speech takes the three-tier names through
+   `SendTextHidingNames`; player speech keeps the deafen filter through
+   `SendCommunicationHidingNames`. That one call is the only difference.
 
 ## 5a: Object and action gates
 
@@ -282,12 +288,15 @@ lets out a rallying roar!" is today's anonymous mob line word for word.
 **Shared bodies.**
 
 - `actions.Say(actor, text)` now also sends the room line:
-  `FormatSayText` with the actor's colours (from `IsPlayer()`), through
-  `SendCommunicationHidingNames` with the speaker's name, excluding a
-  speaking player. The wrappers keep: mute, drunk, escaping, the self line,
+  `FormatSayText` with the actor's colours (from `IsPlayer()`), with the
+  speaker's name hidden by each listener's sight, excluding a speaking player.
+  A player speaker sends through `SendCommunicationHidingNames` (deafen
+  applies); a mob speaker through `SendTextHidingNames` (authored NPC speech,
+  deafen does not apply, ruling 6). The wrappers keep: mute, drunk, escaping, the self line,
   and the mob's `PlayerCt() < 1` early return (S5, a cost shortcut, left).
 - New `actions.Shout(actor, text) ShoutResult`: reveal (rider 5, S6), the room
-  line through `SendCommunicationHidingNames`, the adjacent-room line, and
+  line through the same per-speaker sender as `Say` (ruling 6), the
+  adjacent-room line, and
   waking sleepers except the shouter. The player wrapper keeps mute,
   uppercase, drunk, escaping and the self line; the mob wrapper keeps nothing
   but the call. If a speaker is somehow still hidden after the reveal (S2),
@@ -331,12 +340,12 @@ the dead recogniser and updates the comments.
 | Say: blinded listener in a lit room hears no name | no | no (lit shortcut) | yes |
 | Say: words always heard | yes | yes | yes |
 | Say: reveals a hidden speaker | yes | yes | yes |
-| Say: deafened listener filtered | yes | no | yes (open question 1) |
+| Say: deafened listener filtered | yes | no | unchanged: players yes, NPCs no (ruling 6) |
 | Shout: name by listener sight, three tiers | no | two tiers | yes |
 | Shout: reveals a hidden speaker | yes | no | yes |
 | Shout: adjacent rooms hear an anonymous line with the words | yes | no words | yes |
 | Shout: wakes sleepers in the room | yes | yes | yes |
-| Shout: deafened listener filtered | yes | no | yes (open question 1) |
+| Shout: deafened listener filtered | yes | no | unchanged: players yes, NPCs no (ruling 6) |
 | Rally/warcry heard, name by sight | no (visual) | two tiers | yes |
 | Rally/warcry deafen-filtered | no | no | no |
 | Unseen speaker reads "Someone" | n/a | "someone" (2 tiers) | "A figure" / "Someone" |
@@ -363,8 +372,8 @@ offers nor starts a recipe it cannot see to make.
 
 **Mobs, 5b.** A hidden human mob that shouts "it's time to die!" on entering
 combat now reveals itself. The AI companion's speech, quest NPC lines and
-shopkeepers follow the three-tier rule; under rider 5 as written they are
-also muted for a deafened player (open question 1).
+shopkeepers follow the three-tier rule, and a deafened player still hears
+them (ruling 6).
 
 ## Testing and gates
 
@@ -379,8 +388,9 @@ also muted for a deafened player (open question 1).
 - 5b: a per-listener table for say, shout, rally and warcry, each with a
   player speaker and a mob speaker, over five listeners in the speaker's room:
   clear sight (named), shapes ("A figure"), dark ("Someone"), blinded in a lit
-  room ("Someone"), deafened (nothing for say and shout; the roar for rally
-  and warcry, pending open question 1). Every row asserts the words arrive.
+  room ("Someone"), deafened (a player speaker's say and shout: nothing; a
+  mob speaker's say and shout, and rally and warcry from either: heard, per
+  ruling 6). Every row asserts the words arrive.
   Adjacent rooms get the one anonymous line with the words. A hidden mob that
   shouts is revealed.
 - The T6 and T7 tests move with the code, unchanged in what they assert;
@@ -410,17 +420,3 @@ also muted for a deafened player (open question 1).
 - The mob `say` early return with no players present (S5).
 - Retuning any sight threshold.
 
-## Open questions
-
-1. **Deafen and NPC speech.** Rider 5 routes mob speech through the
-   communication filter. The source documents the opposite on purpose: NPC
-   speech stays unfiltered "so moderated players still hear quest content"
-   (S12, audited 2026-07-10; S15 says the same for mobs), and mob `say`
-   carries quest `npc_say`, shopkeepers, dialogue trees and the companion
-   (S14). Rider 5 as written means a deafened player stops hearing quest
-   givers, merchants and their own companion. The quiet filter reaches no
-   one in dogmud and speech never sets it (S13), so "quiet" changes nothing
-   either way. Recommendation: mob speech takes the
-   three-tier names but stays unfiltered, through `SendTextHidingNames`; the
-   difference is one call inside `actions.Say`/`actions.Shout`. The design
-   above follows rider 5 as written until the owner confirms or reverses it.
