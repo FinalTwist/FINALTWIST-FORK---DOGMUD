@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -719,7 +720,7 @@ func SafeSave(path string, data []byte) error {
 	//
 	// Once the file is written, rename it to remove the .new suffix and overwrite the old file
 	//
-	if err := os.Rename(safePath, path); err != nil {
+	if err := renameReplacing(safePath, path); err != nil {
 		_ = os.Remove(safePath)
 		return err
 	}
@@ -727,6 +728,30 @@ func SafeSave(path string, data []byte) error {
 	SyncDir(filepath.Dir(path))
 
 	return nil
+}
+
+// renameRetries is how many more times renameReplacing tries on Windows,
+// waiting 10, 20, 30, 40 then 50 ms (150 ms in all).
+const renameRetries = 5
+
+// renameReplacing is os.Rename with a short bounded retry on Windows. There
+// a rename onto a file fails while any other handle has it open without
+// FILE_SHARE_DELETE, which is how Go's os.Open and os.ReadFile open files:
+// the bauble catalog sweep reading every save file can make a save's
+// rename fail for a moment. Linux renames over an open file freely, so
+// there this is one plain os.Rename.
+func renameReplacing(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err == nil || runtime.GOOS != `windows` {
+		return err
+	}
+	for i := 1; i <= renameRetries; i++ {
+		time.Sleep(time.Duration(i) * 10 * time.Millisecond)
+		if err = os.Rename(src, dst); err == nil {
+			return nil
+		}
+	}
+	return err
 }
 
 // writeAndSync writes data to path and flushes it to the storage device before
