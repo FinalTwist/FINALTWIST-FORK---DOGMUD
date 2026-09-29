@@ -250,9 +250,9 @@ func ownerRecognizes(carrier Actor, m *mobs.Mob, itm items.Item, room *rooms.Roo
 	if messaging.CanSeeClearly(&m.Character, room) {
 		who = fmt.Sprintf(`<ansi fg="username">%s</ansi>`, carrier.GetCharacter().Name)
 	}
-	room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
+	room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(
 		`<ansi fg="mobname">%s</ansi> points at %s. "That's mine! Thief!"`,
-		m.Character.Name, who), carrier.GetUserId())
+		m.Character.Name, who), []string{carrier.GetCharacter().Name}, carrier.GetUserId())
 	mudlog.Info(`baubles`, `action`, `recognized`, `id`, itm.Bauble, `owner`, m.Character.Name, `carrierUserId`, carrier.GetUserId())
 	stolenCaught(carrier, m, room)
 }

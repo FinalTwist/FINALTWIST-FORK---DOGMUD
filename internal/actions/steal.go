@@ -799,9 +799,10 @@ func stealHouseholdBauble(actor Actor, itm items.Item, attackerScore float64, ra
 		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> spots you reaching for the <ansi fg="itemname">%s</ansi>!`,
 			spotterName, name))
-		room.SendTextVisual(messaging.CategoryMobEmote,
+		room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> is caught trying to pocket the <ansi fg="itemname">%s</ansi>!`,
 				actor.GetName(), name),
+			[]string{actor.GetName()},
 			actor.GetUserId(),
 		)
 		if spotterMob != nil && householdMember(spotterMob, room) {
