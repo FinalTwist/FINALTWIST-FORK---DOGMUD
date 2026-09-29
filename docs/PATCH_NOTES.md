@@ -1,5 +1,16 @@
 # DOGMud Patch Notes
 
+## 2026-09-29: Pockets, companions and trinkets
+
+- Companions can no longer be pickpocketed, whoever they belong to.
+- A failed pickpocket is caught even if you walk away before it is over.
+  The person you tried to rob still cries "Thief!" and remembers you, if
+  they saw you at the time.
+- Companions and scavenging creatures no longer pick up the trinkets that
+  belong to a household.
+- Searching in darkness or in blinding glare finds trinkets a little less
+  often than searching in good light.
+
 ## 2026-09-29: Creatures walk by your rules now
 
 Creatures now tire as they travel, exactly as you do, and stop to rest
