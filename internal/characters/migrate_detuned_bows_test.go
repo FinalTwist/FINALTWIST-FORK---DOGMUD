@@ -50,9 +50,11 @@ func TestMigrateDetunedRangedWeapons_ReachesEveryCarriedCollection(t *testing.T)
 		ComponentItems: []items.Item{preDetuneBow()},
 		PotionItems:    []items.Item{preDetuneBow()},
 		Pet:            pets.Pet{Type: "packmule", Capacity: 4, Items: []items.Item{preDetuneBow()}},
+		Companions:     []CompanionInfo{{Items: []items.Item{preDetuneBow()}}},
 	}
 	weapon := preDetuneBow()
 	c.Equipment.Weapon = weapon
+	c.Companions[0].Equipment.Weapon = preDetuneBow()
 
 	c.MigrateDetunedRangedWeapons()
 
@@ -65,6 +67,8 @@ func TestMigrateDetunedRangedWeapons_ReachesEveryCarriedCollection(t *testing.T)
 		{"potion bandolier", c.PotionItems[0].Spec.DamageMultiplier},
 		{"pet inventory", c.Pet.Items[0].Spec.DamageMultiplier},
 		{"equipped weapon", c.Equipment.Weapon.Spec.DamageMultiplier},
+		{"companion pack", c.Companions[0].Items[0].Spec.DamageMultiplier},
+		{"companion weapon", c.Companions[0].Equipment.Weapon.Spec.DamageMultiplier},
 	} {
 		if !nearlyEq(tc.got, testWarbowU10d) {
 			t.Errorf("%s bow = %.4f, want %.4f -- this collection is not in the sweep",
