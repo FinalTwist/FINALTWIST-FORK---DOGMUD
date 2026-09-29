@@ -646,24 +646,34 @@ const (
     EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Condition.Source
     EffectAttacksCap     EffectKind = "attacks_cap"     // upper bound on swings per round
     EffectNightVisionStrength EffectKind = "nightvision_strength" // graded lighting plan 2: how far DOWN the light scale the observer's usable band shifts
-    EffectInfraReach          EffectKind = "infra_reach"          // graded lighting plan 2: how far BELOW the window floor heat-sensing still reads shapes
+    EffectInfraReach          EffectKind = "infra_reach"          // graded lighting plan 2, reworked 5c: how far into the dark heat-sensing still reads shapes (shapes at any light down to minus this many points)
     EffectLightStrength       EffectKind = "light_strength"       // lighting plan 5a: a light's full strength; per-record, Effect() returns 0 for it
 )
 ```
 
 `Conditions.Effect(kind EffectKind) float64` is the ONE door combat (and,
-since graded lighting plan 2, `internal/characters.Character.NightVisionStrength`
-/ `InfraReach`) reads timed state through. It folds every held, unexpired
-record's contribution for that kind: a multiplier kind (`damage_mult`,
-`defense_mult`, `dodge_mult`, `regen_mult`) multiplies across records with
-identity `1.0`; `attacks_cap` takes the minimum non-zero value (`0` meaning
-no cap); a MAX kind (`nightvision_strength`, `infra_reach`) takes the
-strongest held value rather than summing, so two sources of the same vision
-effect cannot stack into a window wider than the better one grants; everything
-else (`mitigation_flat`, `pool_max_pct`) sums with identity `0`. It never
-calls `HasFlag` with `expire=true`, so reading it has no side effect.
+since graded lighting plan 2, `internal/characters.Character.NightVisionStrength`)
+reads timed state through. It folds every held, unexpired record's
+contribution for that kind: a multiplier kind (`damage_mult`, `defense_mult`,
+`dodge_mult`, `regen_mult`) multiplies across records with identity `1.0`;
+`attacks_cap` takes the minimum non-zero value (`0` meaning no cap); a MAX
+kind (`nightvision_strength`, `infra_reach`) takes the strongest held value
+rather than summing, so two sources of the same vision effect cannot stack
+into a window wider than the better one grants; everything else
+(`mitigation_flat`, `pool_max_pct`) sums with identity `0`. It never calls
+`HasFlag` with `expire=true`, so reading it has no side effect.
 `Conditions.HasEffect(kind EffectKind) bool` reports whether any held,
 unexpired record declares the kind at all, without computing a value.
+
+**Since lighting plan 5c**, `EffectInfraReach` is `isMax` for `Effect()`'s own
+callers, but `Character.InfraReach` does not call `Effect()` for this kind
+(owner ruling: reach sources COMBINE, unlike nightvision strength, which
+still does take the best). It instead calls `Conditions.EffectValues(kind
+EffectKind) []float64` (new, `effects.go`): every held, unexpired record's
+value for one kind, magnitude-aware exactly as `Effect` reads it, in list
+order, so a reader can combine them some other way than `Effect`'s own rule.
+See `internal/characters/context.md` for how `InfraReach` log-sums the
+result through `lightscale.Combine`.
 
 Which predicate a kind matches is closed and mutually exclusive:
 `EffectKind.isMultiplier()`, `.isCap()` and `.isMax()` are checked in that
@@ -672,6 +682,20 @@ would silently lose whichever mode its later predicate would have produced.
 `TestEveryEffectKindIsClassifiedExactlyOnce` (`effects_test.go`) guards this
 by counting matches rather than checking pairs by hand, so it also covers any
 kind added after the test was written.
+
+### ScaledKinds and ConditionSpec.ScaledKind (lighting plan 5c)
+
+`ScaledKinds` (`effects.go`) is the closed list of effect kinds a spell or
+potion may scale from its holding instance's own `Magnitude`:
+`EffectLightStrength`, `EffectNightVisionStrength`, `EffectInfraReach`. A
+condition record carries exactly one `Magnitude`, so `ConditionSpec.ScaledKind()
+(EffectKind, bool)` reports at most one of them, whichever declares
+`UsesMagnitude` in its `EffectValue`; `validateEffects` refuses a spec that
+declares `UsesMagnitude` on more than one `ScaledKinds` entry at load time,
+with `ok == false` when none does. Both `internal/hooks.magnitudeSpellApplication`
+(the one spell-casting hook that replaced the light-only
+`lightSpellApplication`) and `internal/items.PotionMagnitudeApplication`
+call it to find which trio of scaling knobs applies to a given condition.
 
 ## Condition Management Operations
 
@@ -1155,43 +1179,30 @@ not mention the door.
 
 Two live spells use `effect_type: shield`: `conviction-ward`
 (`effect_magnitude: 75`) and `chrysalis-cocoon` (`effect_magnitude: 125`), both
-defined under `_datafiles/world/dogmud/spells/`. The `case "shield"` branch of
-`resolveSpell`/`resolveMobSpell` in `internal/hooks/spell_resolution.go` (the
-player path near line 1093, the mob path near line 1414) is the single handler
-for every shield spell, present or future.
+defined under `_datafiles/world/dogmud/spells/`. `applySpellShield` in `internal/hooks/spell_help_effects.go` is the single
+handler for every shield spell, whoever casts it and whoever it lands on
+(parity slice 3b; a shield on a pet, or from a creature, applied nothing
+before it).
 
 ```go
-shieldBonus := (spellData.CasterStatValue(user.Character.Stats) + weightedSkill) / 3
-if magnitude > 0 {
-    shieldBonus = int(math.Round(float64(shieldBonus) * float64(magnitude) / 100.0))
+shieldBonus := (stat + weightedSkill) / 3
+if c.magnitude > 0 {
+    shieldBonus = int(math.Round(float64(shieldBonus) * float64(c.magnitude) / 100.0))
 }
-if out.AttackerCrit {
-    shieldBonus = int(float64(shieldBonus) * 1.5)
-}
-_ = target.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
+_ = c.targetChar().AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
 ```
 
-`weightedSkill` is the caster's spellcasting skill level times `SkillWeight`
-(ships 5.0 against a Go default of 2.0). `magnitude` is
-`spellData.EffectMagnitude`, and 100 is the 1.0x baseline: a spell carrying
-`effect_magnitude: 75` applies 0.75 of the base roll, one carrying 125 applies
-1.25x. There is an `if out.AttackerCrit { shieldBonus *= 1.5 }` bump on the
-player cast path, but it is unreachable for both shipped shield spells, not
-just the mob one. `conviction-ward` and `chrysalis-cocoon` are both
-`attack_type: none` (single targeting), so shielding yourself never
-runs an opposed contest for either caster type: `resolveSpell`
-(`internal/hooks/spell_resolution.go` near line 172) takes the
-`spellData.AttackType == combatvocab.AttackNone` branch and calls `applyPlayerEffect` with
-a synthetic `combat.ChannelDefenceResult{DamageMultiplier: 1}` instead of a
-real roll, so `AttackerCrit` is false by construction. `applyPlayerEffect`
-only carries an `out` parameter at all because it is shared with
-`resolveAgainstPlayer`, the contested-attack path used by unwilling-target
-spells (`AttackType != combatvocab.AttackNone`); a self-applied condition never reaches
-that path. So `applyMobSelfEffect`'s missing crit check is a consequence of
-that function's narrower scope (mobs only ever cast on themselves here, so
-nothing forced it to share the contested-attack signature), not evidence that
-mobs are treated differently from players; neither self-cast is contested. A
-future fix would need a real roll to crit against: the static-difficulty seam
+`stat` and the skill come from `spellCasterStatAndSkill`: the spell's
+primarystat through `CasterStatValue`, and the school's cast skill.
+`weightedSkill` is that skill times `SkillWeight` (ships 5.0 against a Go
+default of 2.0). `magnitude` is `spellData.EffectMagnitude`, and 100 is the
+1.0x baseline: a spell carrying `effect_magnitude: 75` applies 0.75 of the
+base roll, one carrying 125 applies 1.25x. A shield does not crit. The
+player path used to carry a x1.5 crit bump no cast could reach: both
+shipped shields are `attack_type: none`, so every resolver takes them
+through `resolveHelpSpell` with `uncontestedSpellResult()` and no roll;
+slice 3b deleted the bump (owner ruling, 2026-09-28). A future crit would
+need a real roll: the static-difficulty seam
 `contest.AgainstDifficulty(score, difficulty)` (`internal/contest/contest.go`)
 already exists and is used by search, track, and forage checks; no spell path
 calls it. Duration is computed
@@ -1260,7 +1271,8 @@ they live downstream, in the damage pipeline.
 | `conditions.go` | Held condition instances (`Condition`, `Conditions`), flags, stat mods, `AddConditionMagnitude`, `GetDurations` |
 | `tick.go` | `ComputeTickAmount`, the tick-pool amount formula |
 | `stacks.go` | `Stack`, the stacking tick (`addStack`, `syncStacks`, `tickStacks`), `tickAmountFor`, `DisplayName` |
-| `effects.go` | `EffectKind`, the closed effects vocabulary, `Conditions.Effect` / `Conditions.HasEffect` |
+| `effects.go` | `EffectKind`, the closed effects vocabulary, `Conditions.Effect` / `Conditions.HasEffect` / `Conditions.EffectValues` (lighting plan 5c), `ScaledKinds` / `ConditionSpec.ScaledKind` (lighting plan 5c) |
+| `scaled_magnitude.go` | `SpellScaledMagnitude` (lighting plan 5c): the base + stat/D1 + skill/D2 value a spell applies a scaled kind at, capped; `CapScaledMagnitude`, the cap both spell and potion apply (infra reach at `LightInfraReachCap`, nightvision at `configs.LightWindowShiftCap`); `NewCharacterSpellStat` / `NewCharacterSpellSkill`, the numbers the admin `setcondition` command evaluates it at |
 | `light.go` | Lighting plan 5a: `LightTrim`, `Condition.LightMax` / `LightNow` / `SetLightOutput` / `ResetLight`, `Conditions.LightSources` |
 | `ids.go` | The record ids the engine names in code: `ConditionIdWarcry` (79) through `ConditionIdEnchantWithdrawal` (123) |
 | `test_helpers.go` | Test fixtures: `SeedConditionsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |

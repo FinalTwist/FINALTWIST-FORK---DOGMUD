@@ -18,6 +18,29 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
+// adminConditionTarget is what setcondition applies a condition to: a player
+// record or a mob, both of which queue the narrating events.Condition.
+type adminConditionTarget interface {
+	AddCondition(conditionId int, source string)
+	AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
+}
+
+// applyAdminCondition applies spec to target. A condition reading one of
+// conditions.ScaledKinds from its magnitude would land at magnitude 0 through
+// a plain add (a Heat Sight with reach 0), so it is applied at a new
+// character's spell value for its kind instead, capped like the spell, with
+// its authored trigger count (triggers 0 means the spec's own). That keeps
+// `setcondition` useful for playtesting the vision and light conditions
+// (lighting plan 5c).
+func applyAdminCondition(target adminConditionTarget, spec *conditions.ConditionSpec) {
+	if kind, ok := spec.ScaledKind(); ok {
+		magnitude := conditions.SpellScaledMagnitude(kind, conditions.NewCharacterSpellStat, conditions.NewCharacterSpellSkill)
+		target.AddConditionMagnitude(spec.ConditionId, 0, magnitude, `admin`)
+		return
+	}
+	target.AddCondition(spec.ConditionId, `admin`)
+}
+
 /*
 * Role Permissions:
 * setcondition 				(All)
@@ -130,7 +153,7 @@ func SetCondition(rest string, user *users.UserRecord, room *rooms.Room, flags e
 						if conditionSpec.IsStacking() {
 							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionId, conditionSpec.Name))
 						} else {
-							targetUser.AddCondition(conditionId, `admin`)
+							applyAdminCondition(targetUser, conditionSpec)
 							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) applied to %s.", conditionId, conditionSpec.Name, targetUser.Character.Name))
 						}
 
@@ -151,7 +174,7 @@ func SetCondition(rest string, user *users.UserRecord, room *rooms.Room, flags e
 						if conditionSpec.IsStacking() {
 							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionSpec.ConditionId, conditionSpec.Name))
 						} else {
-							targetMob.AddCondition(conditionId, `admin`)
+							applyAdminCondition(targetMob, conditionSpec)
 							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) applied to %s.", conditionSpec.ConditionId, conditionSpec.Name, targetMob.Character.Name))
 						}
 

@@ -413,12 +413,11 @@ func flushCombatTallies() {
 // ── The per-round blind notice (M4d PR 2, Task 4) ──────────────────────
 
 // blindCombatNoticeText is the once-per-round reminder sent to a player
-// who fought this round while unable to see clearly. It names the
-// condition (why the fight looks strange) and the mechanical cost
-// (Balance.DarknessCombatPenalty weakens both attack and defense scores
-// for anyone whose sight verdict is not SightFull -- see
-// internal/messaging/predicates.go and internal/combat/combat_helpers.go)
-// without ever printing a number.
+// who fought this round while unable to see clearly and paying for it. It
+// names the condition (why the fight looks strange) and the mechanical
+// cost (messaging.SightMult below 1.0 weakens both attack and defense
+// scores; see internal/combat/situational.go) without ever printing a
+// number.
 const blindCombatNoticeText = "You cannot see clearly, so your attacks and defense are weaker."
 
 // roundBlindCombatants is the per-round set of player userIds who took
@@ -454,8 +453,22 @@ var roundBlindCombatants = map[int]bool{}
 // for them too. The copy says "cannot see clearly" rather than "cannot
 // see" specifically so it stays true for a shapes viewer who is, in the
 // very same round, reading "a figure lunges at you."
+//
+// ...but only when the cost is real (lighting plan 5c). Since plan 5b the
+// darkness price is the sight ramp, messaging.SightMult, not a flat penalty
+// on every verdict below SightFull, and a strong enough infravision reads a
+// dark room at no cost at all (reach 50 at light 0 is exactly 1.0). The
+// notice fired every round for such a caster and told them they were
+// weaker when they were not. So the verdict opens the gate and the
+// player's own SightMult in their room, the number combat actually
+// multiplies by, has to be below 1.0 as well.
 func markBlindCombatant(actor actions.Actor, canSeeClearly bool) {
 	if !actor.IsPlayer() || canSeeClearly {
+		return
+	}
+	// A nil *rooms.Room must not reach SightMult as a non-nil interface
+	// (ParticipantSight's typed-nil trap); with no room the verdict stands.
+	if room := actor.GetRoom(); room != nil && messaging.SightMult(actor.GetCharacter(), room) >= 1.0 {
 		return
 	}
 	roundBlindCombatants[actor.GetUserId()] = true

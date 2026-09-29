@@ -1,0 +1,40 @@
+# Spell effects 3b: you are a stranger, NOT in the healer's party at first,
+# with a charmed pet of your own. Later you hex a townsperson. You are a
+# charmer named Bindsong (the healer has the same name) starting on Main
+# Street, Central (462). Quote every line VERBATIM. 3 commands per round at
+# most.
+ephemeral:
+  profile: charmer
+  start_room: 462
+  overlays:
+    grant_spells:
+      mind-fog: 1
+      neural-stun: 1
+  budgets:
+    wall_clock: 40m
+
+goals:
+  - >-
+    `look`, `spells`. Do not join any party yet. Go west, south to Back
+    Alley, West (474). If the Thornwall Thug is not there (only a corpse),
+    step north and come back every half minute until it respawns. `cast
+    charm thug` and quote every line; retry if it resists. When it is
+    yours, go east, south to The Drowning Post Tavern (472) and write
+    'stranger-home'.
+  - >-
+    Stay in 472 with your thug until 'mend-done' exists. Quote every line
+    you read when the healer casts Mend All and Cleansing Wave: you should
+    be healed (you are a player in the room) but your thug should NOT be.
+  - >-
+    Wait for 'stranger-invited', `party accept`, write 'stranger-accepted'.
+    Quote what you read for the healer's second Mend All: now your thug
+    should be healed.
+  - >-
+    Hex a citizen. `party leave`. Go north, north, west to Main Street,
+    West (461) and find the City Beggar. `cast mind-fog beggar` ONCE. Quote
+    every line. Watch what the guards do and quote it. Write 'hex-cast'
+    with the room number. If you are jailed, `fine` then `payfine`.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

@@ -1,0 +1,34 @@
+# Spell effects 3a: a creature's spells behave like a player's. You are Fold
+# Adept, starting in the Bandit Camp on the North Road (4052) with two bandits
+# and the Bandit Caster, who casts mind-spike (damage), mind-fog and
+# nerve-disruption (afflictions) and mends herself. Quote every line
+# VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: specialist-caster
+  start_room: 4052
+  overlays:
+    grant_spells:
+      kinetic-shove: 1
+      mind-spike: 1
+    grant_skills:
+      spellcasting: 30
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    `look`, `spells`. Fight the Bandit Caster (`attack caster`) and let her
+    cast at you across many rounds; `cast heal` on yourself or step `east`
+    to 4043 to recover when needed. Quote every spell line addressed to you,
+    including resisted ones, and say whether each landed damage spell also
+    moved your health (`status` or the prompt).
+  - >-
+    When you read that she begins casting, `cast kinetic-shove caster`
+    before her spell lands. Quote the line; the expected wording ends
+    "The spell collapses!". Say whether her spell still landed.
+  - >-
+    Watch for her spell backfiring on her; quote the line if it happens.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

@@ -8,7 +8,7 @@
                 <th>Name</th>
                 <th>Value</th>
             </tr>
-            {{range $name, $value := (.CONFIG.AllConfigData "bannednames" "*startroom*" "script*"  "onlogin*" "nextroomid*" "mob*" "*port" "seed*" "folder*" "file*" "seedint" "carefulsavefiles" "lootgoblin*" "maxcpucores" "*roommessagewrapper" "logintervalroundcount" ) }}
+            {{range $name, $value := (.CONFIG.DisplayConfigData "bannednames" "*startroom*" "script*"  "onlogin*" "nextroomid*" "mob*" "*port" "seed*" "folder*" "file*" "seedint" "carefulsavefiles" "lootgoblin*" "maxcpucores" "*roommessagewrapper" "logintervalroundcount" "modules*" "apiframework*" ) }}
             <tr>
                 <td>{{ $name }}</td>
                 <td>{{ $value }}</td>

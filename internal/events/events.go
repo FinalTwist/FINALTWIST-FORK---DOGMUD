@@ -284,6 +284,29 @@ func DrainQueuedCharacterDiedForTest() []CharacterDied {
 	return found
 }
 
+// DrainQueuedMobDeathsForTest removes all MobDeath events from the global
+// queue and returns them.
+//
+// FOR TEST USE ONLY. Mutates the queue. Call it once to discard leftovers from
+// an earlier test, then again to assert on what the code under test queued.
+func DrainQueuedMobDeathsForTest() []MobDeath {
+	qLock.Lock()
+	defer qLock.Unlock()
+
+	var found []MobDeath
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		if d, ok := pe.event.(MobDeath); ok {
+			found = append(found, d)
+			continue
+		}
+		remaining = append(remaining, pe)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
 // DrainQueuedInputsForTest removes all Input events from the global queue for
 // the given mob instance id and returns their InputText values.
 //
@@ -395,6 +418,28 @@ func DrainQueuedGoldGivenForTest(userId int) []GoldGiven {
 			continue
 		}
 		found = append(found, given)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
+// DrainQueuedHealedForTest removes all Healed events for the given healer
+// and returns them. Pass 0 to drain every such event.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedHealedForTest(healerUserId int) []Healed {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []Healed
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		healed, ok := pe.event.(Healed)
+		if !ok || (healerUserId != 0 && healed.HealerUserId != healerUserId) {
+			remaining = append(remaining, pe)
+			continue
+		}
+		found = append(found, healed)
 	}
 	globalQueue = remaining
 	heap.Init(&globalQueue)
@@ -553,6 +598,33 @@ func DrainQueuedConditionsForTest(userId int) []Condition {
 			continue
 		}
 		if userId == 0 || b.UserId == userId {
+			found = append(found, b)
+			continue
+		}
+		remaining = append(remaining, pe)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
+// DrainQueuedMobConditionsForTest removes and returns the queued Condition
+// events for a mob instance, the mob twin of DrainQueuedConditionsForTest. A
+// mobInstanceId of 0 drains every queued Condition event, user ones included.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedMobConditionsForTest(mobInstanceId int) []Condition {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []Condition
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		b, ok := pe.event.(Condition)
+		if !ok {
+			remaining = append(remaining, pe)
+			continue
+		}
+		if mobInstanceId == 0 || b.MobInstanceId == mobInstanceId {
 			found = append(found, b)
 			continue
 		}

@@ -309,37 +309,13 @@ func (r *Mob) ConsidersAnAlly(m *Mob) bool {
     
     return false
 }
-
-// Check race-based hatred
-func (r *Mob) HatesRace(raceName string) bool {
-    raceName = strings.ToLower(raceName)
-    for _, hateGroup := range r.Hates {
-        if hateGroup == raceName {
-            return true
-        }
-    }
-    return false
-}
-
-// Check alignment-based hostility
-func (r *Mob) HatesAlignment(otherAlignment int8) bool {
-    // Neutral alignment = no hatred
-    if characters.AlignmentToString(r.Character.Alignment) == "neutral" || 
-       characters.AlignmentToString(otherAlignment) == "neutral" {
-        return false
-    }
-    
-    // Same side = no hatred
-    if (r.Character.Alignment > 0 && otherAlignment > 0) ||
-       (r.Character.Alignment < 0 && otherAlignment < 0) {
-        return false
-    }
-    
-    // Check alignment difference threshold
-    delta := int(math.Abs(float64(r.Character.Alignment) - float64(otherAlignment)))
-    return delta > characters.AlignmentAggroThreshold
-}
 ```
+
+Hatred is `HatesSpecies(raceName string) bool` (the lowercased name is in the
+`Hates` list) and `HatesMob(m *Mob) bool`, which checks the `Hates` list
+against the target's groups first (group hatred overrides a shared species),
+then treats the same species as an ally. There is no alignment-based hatred
+method; the old `HatesRace` and `HatesAlignment` are gone.
 
 ### Player Relationship Tracking
 ```go
@@ -358,82 +334,18 @@ func (m *Mob) HasAttackedPlayer(userId int) bool {
     _, ok := m.playersAttacked[userId]
     return ok
 }
-
-// Global hostility tracking
-func MakeHostile(groupName string, userId int, rounds int) {
-    if _, ok := mobsHatePlayers[groupName]; !ok {
-        mobsHatePlayers[groupName] = make(map[int]int)
-    }
-    
-    if mobsHatePlayers[groupName][userId] < rounds {
-        mobsHatePlayers[groupName][userId] = rounds
-    }
-}
-
-func IsHostile(groupName string, userId int) bool {
-    if group, ok := mobsHatePlayers[groupName]; ok {
-        _, hostile := group[userId]
-        return hostile
-    }
-    return false
-}
 ```
+
+The old package-level group hostility map (`MakeHostile`, `IsHostile`,
+`ReduceHostility`) is gone.
 
 ## Conversation System Integration
 
-### Multi-Mob Conversations
-```go
-// Check if mob is in conversation
-func (m *Mob) InConversation() bool {
-    return m.conversationId > 0
-}
-
-// Set conversation participation
-func (m *Mob) SetConversation(id int) {
-    m.conversationId = id
-}
-
-// Execute conversation actions
-func (m *Mob) Converse() {
-    mobInst1, mobInst2, actions := conversations.GetNextActions(m.conversationId)
-    
-    var mob1, mob2 *Mob
-    
-    // Determine which mob is which in the conversation
-    if mobInst1 == int(m.InstanceId) {
-        mob1 = m
-        mob2 = GetInstance(mobInst2)
-    } else {
-        mob1 = GetInstance(mobInst1)
-        mob2 = m
-    }
-    
-    // Execute conversation actions
-    for _, act := range actions {
-        if len(act) >= 3 {
-            target := act[0:3]
-            cmd := act[3:]
-            
-            // Replace mob references in commands
-            cmd = strings.ReplaceAll(cmd, " #1 ", " "+mob1.ShorthandId()+" ")
-            cmd = strings.ReplaceAll(cmd, " #2 ", " "+mob2.ShorthandId()+" ")
-            
-            if target == "#1 " {
-                mob1.Command(cmd)
-            } else {
-                mob2.Command(cmd, 1)
-            }
-        }
-    }
-    
-    // Clean up completed conversations
-    if conversations.IsComplete(m.conversationId) {
-        conversations.Destroy(m.conversationId)
-        mob1.SetConversation(0)
-        mob2.SetConversation(0)
-    }
-}
-```
+Mob to mob conversations live in `internal/conversations`, not on `Mob`: the
+idle mob hook (`internal/hooks/NewRound_IdleMobs.go`) drives them with
+`conversations.TickConversation`, through an adapter
+(`internal/conversationadapter`). The old `InConversation`, `SetConversation`
+and `Converse` methods are gone.
 
 ## Pathfinding and Movement
 
@@ -820,28 +732,6 @@ func RecentlyDied(instanceId int) bool {
 }
 ```
 
-### Hostility Management
-```go
-// Reduce hostility over time
-func ReduceHostility() {
-    for groupName, group := range mobsHatePlayers {
-        for userId, rounds := range group {
-            rounds--
-            if rounds < 1 {
-                delete(mobsHatePlayers[groupName], userId)
-            } else {
-                mobsHatePlayers[groupName][userId] = rounds
-            }
-        }
-        
-        // Clean up empty groups
-        if len(mobsHatePlayers[groupName]) < 1 {
-            delete(mobsHatePlayers, groupName)
-        }
-    }
-}
-```
-
 ## Authored Stats Live in `base:`, Not `training:`
 
 A mob template's stat values are authored under `character.stats.<stat>.base`.
@@ -1007,6 +897,22 @@ func (m *Mob) AddCondition(conditionId int, source string) {
 // lands at the caster's scaled strength (internal/hooks/light_spell.go).
 func (m *Mob) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 
+// AddConditionScaled (drink path unification) is the mob twin of
+// UserRecord.AddConditionScaled: it queues events.Condition with
+// DurationMult and the mob's LifeEpoch. A non-positive multiplier means the
+// authored duration. actions.Drink reaches it through MobActor.
+func (m *Mob) AddConditionScaled(conditionId int, durationMult float64, source string)
+
+// AddConditionTickScaled (tick amount at apply, 2026-09-28) is the mob twin
+// of UserRecord.AddConditionTickScaled: it queues events.Condition with
+// TickScale and the mob's LifeEpoch. hooks.applySpellCondition reaches it
+// for a spell condition whose spec has a TickPool, passing the caster's
+// spellTickScale; Condition_ApplyConditions computes the per-round amount
+// from it where the record lands (hooks.setTickAmountAtApply), so a mob
+// caster's heal- or damage-over-time scales with skill and gear exactly
+// like a player caster's, on the first cast, not only on a recast.
+func (m *Mob) AddConditionTickScaled(conditionId int, scale float64, source string)
+
 // Command execution through Input events
 // All mob commands go through the same event system as player commands
 ```
@@ -1062,20 +968,9 @@ if mob.Hostile && playerInRoom {
 ```
 
 ### Social Dynamics
-```go
-// Check relationships before combat
-func shouldAttack(attacker *Mob, target *Mob) bool {
-    if attacker.ConsidersAnAlly(target) {
-        return false
-    }
-    
-    if attacker.HatesMob(target) {
-        return true
-    }
-    
-    return attacker.Hostile
-}
-```
+
+Before a mob fights another mob, check `ConsidersAnAlly` first (an ally is
+never a target), then `HatesMob`.
 
 ## Dependencies
 
@@ -1094,58 +989,15 @@ func shouldAttack(attacker *Mob, target *Mob) bool {
 ## Mob Creation and File Management
 
 ### New Mob Creation System
-```go
-// Create new mob file
-func CreateNewMobFile(newMobInfo Mob) (MobId, error) {
-    newMobInfo.MobId = getNextMobId()
-    
-    if newMobInfo.MobId == 0 {
-        return 0, errors.New("Could not find a new mob id to assign.")
-    }
-    
-    // Validate mob configuration
-    if err := newMobInfo.Validate(); err != nil {
-        return 0, err
-    }
-    
-    // Save to file system with optional careful save mode
-    saveModes := []fileloader.SaveOption{}
-    if configs.GetFilePathsConfig().CarefulSaveFiles {
-        saveModes = append(saveModes, fileloader.SaveCareful)
-    }
-    
-    if err := fileloader.SaveFlatFile[*Mob](
-        configs.GetFilePathsConfig().DataFiles.String()+"/mobs", 
-        &newMobInfo, 
-        saveModes...
-    ); err != nil {
-        return 0, err
-    }
-    
-    // Update in-memory cache
-    allMobNames = append(allMobNames, newMobInfo.Character.Name)
-    mobNameCache[newMobInfo.MobId] = newMobInfo.Character.Name
-    mobs[newMobInfo.Id()] = &newMobInfo
-    
-    return newMobInfo.MobId, nil
-}
 
-// Automatic ID assignment
-func getNextMobId() MobId {
-    lowestFreeId := MobId(0)
-    for _, mInfo := range mobs {
-        if mInfo.MobId >= lowestFreeId {
-            lowestFreeId = mInfo.MobId + 1
-        }
-    }
-    return lowestFreeId
-}
-```
+`CreateNewMobFile(zone string) (MobId, error)` (`save.go`) seeds a boot-safe
+stub mob in the given zone (or with no zone, for a summon-only template) at
+the next free mob id, which is the template cache's highest id plus one, and
+persists it through `SaveMobSpec`.
 
 ### File System Integration
-- **Automatic ID Assignment**: Sequential ID allocation to prevent conflicts
-- **Careful Save Mode**: Optional backup creation during file operations
-- **Cache Synchronization**: Immediate update of in-memory caches after creation
+- **Automatic ID Assignment**: the next id is the cache maximum plus one
+- **Cache Synchronization**: every builder save keeps the template cache in step with the files
 
 This comprehensive mob system provides sophisticated NPC management with AI behaviors, social dynamics, file management capabilities, and seamless integration with all other game systems.
 

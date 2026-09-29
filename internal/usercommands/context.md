@@ -21,6 +21,11 @@ The `internal/usercommands` package implements the complete command system for p
 - **Communication**: `say`, `shout`, `whisper`, `emote`, `broadcast` - Player communication
 - **Observation**: `look`, `inspect`, `consider`, `who`, `online` - Information gathering
 - **Inventory**: `inventory`, `get`, `drop`, `give`, `put` - Item management
+- **Drink** (`drink.go`, drink path unification 2026-09-28): `Drink` is a
+  wrapper over `actions.Drink`, which holds every drink rule (toxicity, aging,
+  crafter scaling, the special potions) for players and mobs alike. Do not add
+  a rule here: the repo-root `drink_wrapper_guard_test.go` fails if this file
+  or `internal/mobcommands/drink.go` applies drink rules itself.
 - **Carried light (lighting plan 5a)**:
   - `hood` / `unhood` (`hood.go`: `Hood`, `Unhood`, helper `hoodedLight`)
     shut or open the hood of the `adjustable` light in the `Light` slot. A

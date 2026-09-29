@@ -121,25 +121,19 @@ events.RegisterListener(events.MobIdle{}, HandleIdleMobs)         // Mob AI beha
 **Names in the dark.** Crit effect lines (`sendCritEffectTrio`), the
 return-damage recoil lines (`emitReturnDamageText`), counter lines
 (`actions.SendCounterTrio`) and spell lines between two parties
-(`spellAudience` in `spell_audience.go`, used by `applyPlayerEffect`,
-`sendSpellChannelDefenceMessages`, `resolveMobSpellAgainstPlayer` and
+(`spellAudience` in `spell_audience.go`, used by the appliers in
+`spell_effects.go` and `spell_help_effects.go`,
+`sendSpellChannelDefenceMessages` and
 `resolvePurgeAffliction`, which takes a `purgeTarget`: a player, a mob such as a
 charmed companion, or the caster) all go through `messaging.SendTrio`, so a reader who
 cannot see the other party reads "something", or "a figure" with infrared.
-`applyPlayerEffect`'s four SELF-CAST branches (`"purge"`, `"heal"`,
-`"condition"`, `"shield"`, where `target.UserId == user.UserId`) have no
-second party for `spellAudience` to pair against, but each still sends a
-caster line plus a room line that names the caster
-(`target.Character.Name`, since `target == user`). Those room lines used to
-go out through `sendVisualRoomText` -> `room.SendTextVisual`, which never
-calls `messaging.HideNames`; every one of the four wraps the name in an
-`<ansi fg="username">` tag, so today's shipped text was incidentally safe
-via tag-based `messaging.Anonymize`, not by the delivery path itself. **M4d
-PR 3** moved all four onto `messaging.SendTrio` directly (`Actor` is the
-caster line, `Actee` is `messaging.NoLine`, `Observer` is the room line), so
-a future untagged name in that slot is caught too. The `default` arm's
-self-cast branch (no room line at all, single line to the caster) was
-already on `SendTrio` before this PR and is unaffected.
+A self-cast (the caster is its own target, `spellEffectCtx.selfCast`) has no
+second party to pair against: the helpful appliers send the caster's own
+line and a room line naming the caster once, through `SendTrio` with
+`selfCastAudience` (`Actee` is `messaging.NoLine`), so a shapes-only
+observer reads "a figure". **M4d PR 3** first moved the player self-cast
+room lines off `sendVisualRoomText`, which never calls `messaging.HideNames`;
+parity slice 3b made the same pair serve a mob casting on itself.
 The retarget notice ("You turn your attention to X!") is built once, by
 `actions.RetargetNotice` (`internal/actions/retarget_notice.go`), for
 `DoCombat`'s validate-aggro pass, `emitRetargetMessage`, and the mob-departure
@@ -471,6 +465,30 @@ in `NewRound_UserRoundTick.go` and its mirror `tickMobConditions` in
 (`TickConditions`, deleted) and no separate poison and bleed block in
 `NewRound_AutoHeal.go` (deleted). This moves poison and bleed harm EARLIER in
 the round: the round ticks run before `DoCombat`, AutoHeal ran after it.
+
+**Both ticks fill a zero tick amount through `fillZeroTickAmount`**
+(`condition_tick_amount.go`, drink path unification 2026-09-28; narrowed by
+tick amount at apply, 2026-09-28). Before this only the player tick filled
+it, so every event-applied heal-over-time and damage-over-time on a MOB was
+inert; the mob round tick now heals and damages over time like the player
+tick.
+
+A `tick_pool` condition applied through the event queue (spells, potions,
+area and mutator conditions, hazard-room dots) no longer arrives at the tick
+with `TickAmount` 0: `Condition_ApplyConditions` computes it immediately
+after the record lands, via `setTickAmountAtApply(targetChar, conditionInfo,
+evt.ConditionId, evt.TickScale)` — `tickPoolMax(c, pool)` (the holder's max
+for `"health"`/`"stamina"`/`"conviction"`, extracted so both functions share
+it) times the spec's `TickPercent`/`TickVariance`/`TickMin`, at the
+applier's `TickScale` (0 means 1.0; a spell passes `spellTickScale(caster)`,
+everything else passes none). A refresh recomputes it too, so a recast
+rescales an existing record rather than leaving its first cast's amount
+stuck. `fillZeroTickAmount` is now the fallback for a `tick_pool` condition
+added SYNCHRONOUSLY, bypassing `Condition_ApplyConditions` entirely — e.g.
+`Character.AddConditionMagnitude` for a former combat condition — where
+`TickAmount` genuinely can still be 0 at tick time; it computes the amount
+from the holder's pool at scaling 1.0, caches it with `SetTickAmount`, and
+returns it; read the RETURNED value, not `condition.TickAmount`.
 
 Three things the tick path does at the moment health harm lands, all of which
 the old poison hook did and the condition tick path did NOT:
@@ -958,21 +976,48 @@ chapters. Since lighting plan 5a the room-change listener asks
 trimmed-off source does not count) instead of the deleted `lightsource`
 flag.
 
-### Light spells (`light_spell.go`, lighting plan 5a)
+### Vision-scaled spells (`light_spell.go`, lighting plan 5a; generalised lighting plan 5c)
 
-A spell condition whose spec declares `light_strength: magnitude` is applied
-at a strength and duration scaled from the CASTER's primary stat and
-Spellcasting skill: `lightSpellApplication(spellData, caster, conditionId)
-(magnitude float64, triggers int, ok bool)`, reading the six `configs.Lighting`
-`SpellStrength*`/`SpellDuration*` knobs (triggers floored at 1). `ok` is false
-for any other condition. `applySpellCondition(target, spellData, caster,
-conditionId)` is the one door the four spell-condition sites in
-`spell_resolution.go` (`applyMobEffect_condition`, `applyPlayerEffect`,
-`applyMobSelfEffect`, `resolveMobSpellAgainstPlayer`) now call: a light goes
-through `AddConditionMagnitude`, anything else through `AddCondition`, both on
-the small `spellConditionTarget` interface a `*users.UserRecord` and a
-`*mobs.Mob` both satisfy. The record then trims to its HOLDER's eyes, who may
-not be the caster.
+A spell condition whose spec declares one of `conditions.ScaledKinds`
+(`light_strength`, `nightvision_strength`, `infra_reach`) as `magnitude` (via
+`ConditionSpec.ScaledKind`) is applied at a value and duration scaled from the
+CASTER's primary stat and Spellcasting skill:
+`magnitudeSpellApplication(spellData, caster, conditionId) (magnitude float64,
+triggers int, ok bool)` — renamed from `lightSpellApplication` in lighting
+plan 5c, when it stopped being light-only. Its magnitude comes from
+`conditions.SpellScaledMagnitude(kind, stat, skill)`, shared with the admin
+`setcondition` command, which picks the scaled kind's own
+base/stat-divisor/skill-divisor trio (`SpellStrength*` for light,
+`NightVisionSpell*` for nightvision, `InfraSpell*` for infra reach, all on
+`configs.Lighting`), caps an infra-reach result at `Lighting.InfraReachCap`
+and a nightvision result at `configs.LightWindowShiftCap`
+(`conditions.CapScaledMagnitude`), and computes duration from
+the shared `SpellDuration*` trio all three kinds use (triggers floored at 1).
+`ok` is false for any other condition, which keeps its authored application.
+`applySpellCondition(target, spellData, caster, conditionId)` is the one door
+the one spell-condition applier, `applySpellConditionEffect`
+(`spell_help_effects.go`, every pairing since parity slice 3b), calls: a magnitude-scaled light or sight
+goes through `AddConditionMagnitude`; a `tick_pool` condition (a heal- or
+damage-over-time) goes through `AddConditionTickScaled` at
+`spellTickScale(caster)` (`spell_tick_scale.go`, tick amount at apply,
+2026-09-28); anything else through `AddCondition`. All three sit on the small
+`spellConditionTarget` interface a `*users.UserRecord` and a `*mobs.Mob` both
+satisfy. The record then trims to its HOLDER's eyes, who may not be the
+caster.
+
+`spellTickScale(caster)` is the one caster formula for a spell tick's scale:
+the caster's `Spellcasting` `combat.SkillMultiplier` times an equipped
+weapon's `SpellDamageMultiplier`, adjusted for
+`mutations.GearEffectivenessMultiplier`. It replaced three copies of the same
+arithmetic that used to run AFTER `applySpellCondition` queued the event, one
+per player/mob-caster/mob-self-cast site in `spell_resolution.go`, and poke
+`Conditions.SetTickAmount` directly on a record that, on a first application,
+did not exist yet — the "Compute tick snapshot" blocks, all now deleted
+(`actions/drink.go` dropped its own matching snapshot the same way, at a flat
+1.0 rather than `spellTickScale`, since a potion has no caster). The amount
+is computed once `TickScale` reaches `hooks.setTickAmountAtApply` in
+`Condition_ApplyConditions`, where the record is guaranteed to exist; see
+"The damaging condition tick" below.
 
 `sendConditionEndRoomText` (`NewTurn_PruneConditions.go`) judges a light's end
 line as lit by `spec.IsLightSource()`; the judgement is per spec, so a hooded
@@ -1760,7 +1805,7 @@ conviction. Summon reserve is derived from the spell's
 meaning unscaled, so charm's price did not move.
 
 U10c renamed the charm arm from `resolveCharmSpell` to `applyMobEffect_charm`
-and moved it into `applyMobEffect`'s switch, because the old function ran a
+and moved it into the effect dispatcher (now `applySpellEffect`), because the old function ran a
 second private `RunContest` on top of the one the cast had already run and
 discarded -- one cast resolved twice and the player saw both narrations. The
 flat reserve is deliberate (spec 3.8): a sewer rat and an Elemental King tie up
@@ -1824,39 +1869,103 @@ Formula: `baseFolds × (10 + willpower/20 + spellcastingSkill/2)`, rounded
 defaults to 4 before the multiply, so a spell YAML that omits `base_folds`
 still gets a sane duration rather than a zero one.
 
-There are seven call sites, all in this file, and they fall into exactly
-three effect-specific scaling patterns: CLAUDE.md's summary ("shield = full,
-heal = ÷2, DoT = ÷3") is accurate at every one of them, no discrepancy found:
+There are three call sites, one per effect, since parity slice 3, and each
+reads the caster through `spellCasterStatAndSkill` (the spell's primarystat
+through `CasterStatValue`, and the school's cast skill):
 
-- **Shield: full duration, no divisor.** `applyPlayerEffect`'s `"shield"`
-  case and `applyMobSelfEffect`'s `"shield"` case both call
-  `calcSpellDuration(...)` unmodified and pass the result straight to
+- **Shield: full duration, no divisor.** `applySpellShield`
+  (`spell_help_effects.go`) passes `calcSpellDuration(...)` unmodified to
   `AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, ...)` as the trigger
   count (record 119 ticks once a round, so triggers and rounds coincide).
-- **Heal: `/2`, floored at 6.** `applyPlayerEffect`'s `"heal"` case,
-  `applyMobEffect_heal`, and `applyMobSelfEffect`'s `"heal"` case all compute
-  `calcSpellDuration(...) / 2`, then clamp `durationRounds < 6` up to 6, before
+- **Heal: `/2`, floored at 6.** `applySpellHeal` (`spell_help_effects.go`)
+  computes `calcSpellDuration(...) / 2`, then clamps `durationRounds < 6` up
+  to 6, before
   `AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, ...)`.
-- **DoT: `/3`, floored at 3.** `applyMobEffect_dot` and the inline DoT branch
-  of `resolveMobSpellAgainstPlayer` both compute
-  `calcSpellDuration(...) / 3`, then clamp `dotDuration < 3` up to 3. Both
-  pass that rounds figure straight to
+- **DoT: `/3`, floored at 3.** `applySpellDot` (`spell_effects.go`) computes
+  `calcSpellDuration(...) / 3`, then clamps `dotDuration < 3` up to 3, and
+  passes that rounds figure straight to
   `AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, ...)`: record 121 ticks
   every round (slice 1b; it was every third round before). See
   `internal/conditions/context.md` under "Cadence".
 
-**Crit affects magnitude on some of these paths, never duration, on any of
-them.** `out.AttackerCrit` never touches the `calcSpellDuration` call or its
-result on any of the seven sites. Where crit does something, it scales a
-different number: `applyPlayerEffect`'s `"shield"` case multiplies
-`shieldBonus` (not duration) by 1.5 on crit, and `applyPlayerEffect`'s
-`"heal"` case doubles the portion of `regenMult` above 1x on crit. Both of
-those are the PLAYER-cast paths. `applyMobSelfEffect` (the mob-cast heal and
-shield paths) takes no `combat.ChannelDefenceResult`/`out` parameter at all,
-so there is no crit check to make: a mob's self-cast heal or shield can never
-get the crit boost a player's cast of the same spell gets. This mirrors the
-"Crits +50% strength" claim in the root `CLAUDE.md`'s Condition/Ward Spell System
-section, which is true on the player-cast shield path only.
+**Crit never touches a duration, and never touches a help spell.** A
+harmful spell's crit shows in its damage and its `[CRIT!]` tag. Heal and
+shield used to carry a player-only crit bump (x2 above 1x regen, x1.5
+shield) that no cast could reach, because a help spell never enters the
+contest, the only source of a crit; parity slice 3b deleted both (owner
+ruling, 2026-09-28).
+
+## Spell effects (`spell_effects.go`, `spell_help_effects.go`, parity slices 3a and 3b)
+
+Every spell effect on one target goes through one `spellEffectCtx` and one
+dispatcher, `applySpellEffect`, whoever casts it and whoever it hits: player
+on mob, player on player, mob on itself, mob on mob, mob on player. The four
+contested resolvers in `spell_resolution.go` (`resolveAgainstMob`,
+`resolveAgainstPlayer`, `resolveMobSpellAgainstMob`,
+`resolveMobSpellAgainstPlayer`) keep their names and their one
+`runSpellChannelAttack` call each, then build a context per target: the
+caster's `*characters.Character`, caster and target as `actions.Actor`
+(`*actions.UserActor` or `*actions.MobActor`; only tests pass a nil caster),
+the room, the spell, the magnitude and the contest result. Refs come from the
+actor (`casterRef`, `targetRef`), not the character.
+
+The harmful effects have one applier each: `applySpellDamage`,
+`applySpellDot`, `applySpellKnockdown`. Each starts the fight through
+`commitHarmfulSpellAggro`: the target turns on the caster if it was not
+already fighting, the caster on the target likewise, and a player caster on a
+mob calls `actions.SeedAggression` with freshness judged per target, as
+`throw` does, which records the assault crime on a fresh engagement (owner
+ruling, 2026-09-28). Damage and knockdown on a mob call `creditSpellDamage`
+before the harm, as melee does with `TrackPlayerDamage`; the dot does not
+(its ticks harm anonymously, a filed follow-up). A dot's duration reads the
+spell's primarystat and the school's cast skill through
+`spellCasterStatAndSkill`, not `actions.GetSpellStatAndSkill`, which is the
+fold stat.
+
+The helpful effects have one applier each in `spell_help_effects.go`:
+`applySpellConditionEffect` (every named condition through
+`applySpellCondition`'s event door), `applySpellHeal` (a Regenerating
+record), `applySpellShield` (a Minor Shield record) and `applySpellPurge`
+(cancels every poison). `applySpellDefaultEffect` serves an effect with no
+applier of its own, and charm binds a mob through `applyMobEffect_charm`.
+A defended status narrates the defence triad and applies nothing
+(`spellStatusDefended`); a harmful condition or default spell still starts
+the fight through `commitHarmfulSpellAggro`. When the caster is its own
+target (`selfCast`), the caster reads its own line and the room reads the
+caster named once (`selfCastAudience`). Heal and shield read the caster
+through `spellCasterStatAndSkill` and never crit: a help spell never enters
+the contest, the only source of a crit (owner ruling, 2026-09-28). A player
+healing a mob queues `events.Healed` for the AI companion. Every applier
+narrates through `messaging.SendTrio` (players in the username tag, mobs
+through `mobDisplayName`), so a mob's spell on a mob reaches the room and a
+reader in the dark reads "something".
+
+Every resolver takes a help spell (`attack_type: none`) through
+`resolveHelpSpell` with `uncontestedSpellResult()`: no contest, no fumble,
+no counter, one landed record. `resolveMobSpell`'s self branch (a mob on
+itself) takes the same step and never applies a harmful spell to the
+caster. A contested cast shares three steps: `applySpellBackfire` (every
+caster kind is hurt, told, seen and recorded), `interruptSpellTarget` (a
+configured boss-interrupt spell cancels any casting target through
+`maybeInterruptSpellOnTarget`) and `recordSpellResolution`. `recordSpell`
+is the analytics seam over `combat.RecordSpell`, swapped by tests the way
+`runSpellChannelAttack` is.
+
+`spellHelpAreaTargets` fills an area help spell's targets for both caster
+kinds, replacing what the cast's initiation step put there. A player, or a
+mob charmed by one, helps every player in the room and every mob charmed by
+that player or by a member of that player's party (`actions.HelpCharmAlly`,
+the rule single-target help in `actions.InitiateCast` also calls), so the
+party's companions, the bonded AI
+companion included, are healed and a stranger's pet is not. An uncharmed
+mob helps itself and its `mobs.FindPackmatesInRoom` packmates, the rule its
+behaviour tree's `cast_best_in_category` uses to pick whom to heal, and no
+player.
+
+`resolveMobDrainArea` keeps its own `actions.ExecuteDrainArea` contest; only
+its lines use the context. `channel_defence_routing_test.go` parses
+`spell_resolution.go`, `spell_effects.go` and `spell_help_effects.go` and
+allows the contest seam only in the four resolvers.
 
 ## Counter tier wiring (U6b Task 10)
 
@@ -1985,7 +2094,7 @@ prefix at all; they are the lowercase-named ones, for example
 `combat_shared_helpers.go`, `spell_resolution.go`, `item_procs.go`,
 `machine_resolver.go`, `tick_cause.go` (the death-cause tag a damaging
 health tick stamps; see "The damaging condition tick" above), and
-`light_spell.go` (see "Light spells" below). `hooks.go` is in that
+`light_spell.go` (see "Vision-scaled spells" below). `hooks.go` is in that
 set and is the odd one out: it is not a helper but the registration table.
 
 Do not go looking for a registration in these files. **`hooks.go` holds

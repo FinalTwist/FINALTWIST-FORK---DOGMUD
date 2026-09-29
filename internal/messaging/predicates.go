@@ -87,6 +87,30 @@ func ParticipantSight(observer *characters.Character, room RoomVisibility) Sight
 	)
 }
 
+// SeesThroughExit reports whether the observer can see THROUGH an exit from
+// this room into the next: it must make out something here at all
+// (ParticipantSight is not SightNone), and the room's light must clear
+// LightExitsAbove shifted down by its night-vision strength
+// (ExitThroughWindow). Optics only, like ParticipantSight: it does not consult
+// sleep. A nil observer or a nil room sees through, matching ParticipantSight.
+func SeesThroughExit(observer *characters.Character, room RoomVisibility) bool {
+	if observer == nil || room == nil {
+		return true
+	}
+	if ParticipantSight(observer, room) == SightNone {
+		return false
+	}
+	return ExitThroughWindow(room.LightLevel(), observer.NightVisionStrength(), configs.GetLightingConfig().ExitsAbove)
+}
+
+// FixedLight is a RoomVisibility at one light value. A caller judging many
+// observers in one room reads room.LightLevel() once and passes FixedLight,
+// rather than recomposing the room's light per observer.
+type FixedLight int
+
+// LightLevel satisfies RoomVisibility.
+func (l FixedLight) LightLevel() int { return int(l) }
+
 // awake reports attention. Kept separate from optics on purpose; see
 // ParticipantSight.
 func awake(observer *characters.Character) bool {

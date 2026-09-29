@@ -1,0 +1,47 @@
+# Spell effects 3b: a healer's area heal reaches a party member, a pet and
+# a stranger, but not the stranger's pet until the stranger joins the party.
+# You are Bindsong, a charmer, starting on Main Street, Central (462). The
+# stranger is ALSO named Bindsong; "Bindsong" in a line about someone else
+# is them. Quote every line VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: charmer
+  start_room: 462
+  overlays:
+    grant_spells:
+      mend-all: 1
+      conviction-ward: 1
+      cleansing-wave: 1
+  budgets:
+    wall_clock: 40m
+
+goals:
+  - >-
+    `look`, `spells`. Wait for the blackboard key 'partner-ready' (it holds
+    your partner's character name). `party invite <that name>` and write
+    'healer-invited'. Wait for 'partner-accepted', then `party list`. Do NOT
+    go to the Back Alley (474): your partner follows you and kills the thug
+    the stranger needs.
+  - >-
+    Go south, south to The Drowning Post Tavern (472). `cast charm barmaid`
+    and quote every line; retry if it resists. Stay in 472 (she walks home
+    here anyway). Write 'pet-home'.
+  - >-
+    Wait for 'stranger-home' (the stranger and their charmed thug are in
+    472). Charm is short and silent when it ends, so do not wait longer than
+    about 5 minutes. With your partner, Dal, the stranger and the thug in
+    the room (`look`), `cast mend-all`. Quote EVERY line. Expected: one glow
+    line for you, one "You weave restorative magic around" for your
+    partner, Dal and the stranger, and NONE for the thug. Write 'mend-done'.
+  - >-
+    `cast conviction-ward dal`, then `cast cleansing-wave`. Quote every
+    line. The ward should say a shimmering barrier forms around Dal; the
+    cleanse should name Dal and your partner and not the thug.
+  - >-
+    `party invite Bindsong` (the stranger) and write 'stranger-invited'.
+    Wait for 'stranger-accepted', then `cast mend-all` again: the thug
+    should now get its own line. Then try `cast conviction-ward thug` and
+    quote the answer.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

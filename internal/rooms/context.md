@@ -29,7 +29,11 @@ The `internal/rooms` package is the core world management system for GoMud, hand
   before matching, so a hidden creature cannot be named and does not count
   toward `2.name`. `FindByName` is the unfiltered form for staff tools and mob
   callers. The "Also here" listing (`roomdetails.go`) reads the same
-  `Perceives` rule, with no pet requirement.
+  `Perceives` rule, with no pet requirement, and then the viewer's
+  `messaging.ParticipantSight` in the room (lighting plan 5c): at shapes every
+  entry, players, mobs and pet alike, is `messaging.UnseenFigure(SightShapes)`
+  with no adjective, all in `VisiblePlayers` so the template's mob color
+  cannot sort them; at none both lists are empty.
 
 ### Room Management System (`roommanager.go`)
 - **RoomManager**: Singleton manager for all room operations and caching

@@ -93,9 +93,17 @@ Server:
   NextRoomId: 1002
   # - Locked -
   #   All config names defined here are immutable to the `server set` admin
-  #   command. They can only be changed by editing the config file directly.
+  #   command and the `server config` menu. They can only be changed by
+  #   editing the config file directly. A name locks itself and everything
+  #   under it: FilePaths locks every FilePaths setting.
   #   It is a good idea to lock configs related to folder/file paths to prevent
   #   accidental changes that could break the game.
+  #   The server still updates CurrentVersion and NextRoomId itself.
+  #   Separately, the server always locks its security settings whatever this
+  #   list says: API keys and key variable names, provider addresses, the
+  #   companion's models, moderation switch and moderation model,
+  #   player-key switch and relay origin, FilePaths.WebDomain, the Discord
+  #   webhook URL, and this list itself (internal/configs/config_locks.go).
   Locked:
   - FilePaths
   - Server.CurrentVersion
@@ -952,6 +960,25 @@ Balance:
   LightSpellDurationBase: 2
   LightSpellDurationStatDivisor: 50
   LightSpellDurationSkillDivisor: 20
+
+  # ── LIGHT: VISION SPELLS AND INFRAVISION (lighting plan 5c) ────────────────
+  # Night Vision and Heat Sight scale like the light spells above:
+  #   base + stat/StatDivisor + spellcasting/SkillDivisor
+  # and last the light spells' duration. Night vision for a new (100, 0),
+  # mid (130, 30) and endgame (175, 65) caster: 12 / 19 / 28 (the window
+  # clamps at 24). Infra reach: 19 / 34 / 52 (capped at LightInfraReachCap).
+  LightNightVisionSpellBase: 4
+  LightNightVisionSpellStatDivisor: 12.5
+  LightNightVisionSpellSkillDivisor: 6.5
+  LightInfraSpellBase: 5
+  LightInfraSpellStatDivisor: 7
+  LightInfraSpellSkillDivisor: 3
+  # LightInfraReachCap bounds every infravision source's combined reach.
+  # Infravision sees shapes in any light down to minus its reach. Its sight
+  # multiplier is LightInfraPenaltyFloor at the first point of reach and
+  # rises linearly to 1.0 (no penalty) at the cap. It never eases dazzle.
+  LightInfraReachCap: 50
+  LightInfraPenaltyFloor: 0.90
 
   # ── COMBAT: DAMAGE ────────────────────────────────────────────────────────
   # Global panic buttons. 1.0 = no change. GlobalDamageMultiplier is

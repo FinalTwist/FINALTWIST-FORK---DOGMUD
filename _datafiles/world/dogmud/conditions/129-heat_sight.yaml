@@ -1,0 +1,22 @@
+conditionid: 129
+name: Heat Sight
+description: You see the warmth of living things as pale shapes, in any
+  darkness short of the deepest magic. Heat shows a shape, never a face.
+  Your eyes are also a little sharper for faint light, so daylight or any
+  bright lamp dazzles you, and everything you do by sight suffers until the
+  light fades or the spell wears off.
+start_actee: Warmth blooms into pale shapes wherever something lives.
+end_actee: The pale shapes of warmth fade from your sight.
+start_observer: "A dull red sheen settles over {actee}'s eyes."
+end_observer: "The red sheen fades from {actee}'s eyes."
+secret: false
+triggerrate: 3 real minutes
+triggercount: 1
+# infra_reach: magnitude, scaled by the Heat Sight spell (LightInfraSpell*)
+# and capped at LightInfraReachCap. nightvision_strength 12 matches
+# condition 85, the mobs' infravision.
+effects:
+  nightvision_strength: 12
+  infra_reach: magnitude
+flags:
+  - infraredvision

@@ -38,16 +38,52 @@ func secretExitDiscoveryKey(exitName string) string {
 //
 // Scores follow the convention U6b Task 16 set — CalcDetectionScore for the
 // opposed observer side, CalcSneakScoreVsObserver for the hider, which folds in
-// per-observer lighting (NightVision counts as lit for that observer alone).
+// per-observer lighting (the observer's own sight decides whether the room
+// reads as lit for it).
 //
-// roomLit is the room's own light state, computed once by the caller (see
-// CalcSneakScoreVsObserver) rather than refetched per occupant. room is the
-// observer's room, for the observer's sight ramp inside CalcDetectionScore.
-func spotsHider(observer *characters.Character, hider *characters.Character, room messaging.RoomVisibility, roomLit bool) bool {
+// room is the observer's room, for the observer's sight ramp inside
+// CalcDetectionScore and the lit test inside CalcSneakScoreVsObserver. The
+// caller passes messaging.FixedLight so the room's light is composed once,
+// not once per occupant.
+func spotsHider(observer *characters.Character, hider *characters.Character, room messaging.RoomVisibility) bool {
 	return combat.RunContest(
 		CalcDetectionScore(observer, room),
-		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, roomLit)}},
+		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, room)}},
 	).Success
+}
+
+// foundHiderEntry is one line of a searcher's find, as the searcher's sight in
+// the room lets them read it (lighting plan 5c): the name and the hiding mark
+// with faces, the anonymous figure HideNames writes below that. kind is the
+// FormattedName type, "username" or "mob".
+func foundHiderEntry(name, kind string, d messaging.SightDecision) string {
+	if d != messaging.SightFull {
+		return messaging.UnseenFigure(d)
+	}
+	return characters.FormattedName{Name: name + ` <ansi fg="black-bold">(hiding)</ansi>`, Type: kind, Suffix: "hidden"}.String()
+}
+
+// showFoundHiders renders a searcher's find through the room roster template.
+// Only the hiders found are listed: GetDetails fills both lists with everyone
+// already visible, and the find used to reset one list and keep the other, so
+// a found player was reported alongside every visible mob. Below full sight
+// the entries go in the player list, which the template does not color, so
+// the color cannot tell a mob from a player either.
+func showFoundHiders(actor Actor, room *rooms.Room, names []string, kind string) {
+	d := messaging.ParticipantSight(actor.GetCharacter(), room)
+	details := rooms.GetDetails(room, users.GetByUserId(actor.GetUserId()))
+	details.VisiblePlayers = []string{}
+	details.VisibleMobs = []string{}
+	for _, name := range names {
+		entry := foundHiderEntry(name, kind, d)
+		if kind == "mob" && d == messaging.SightFull {
+			details.VisibleMobs = append(details.VisibleMobs, entry)
+		} else {
+			details.VisiblePlayers = append(details.VisiblePlayers, entry)
+		}
+	}
+	text, _ := templates.Process("descriptions/who", details, actor.GetUserId())
+	actor.SendText(messaging.CategorySystem, text)
 }
 
 // SearchOptions selects what is searched.
@@ -131,10 +167,18 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	// hide their items behind `search shelf` and the like), plus one thing:
 	// the bauble roll is that feature's own (search_feature.go). Words that
 	// name no feature are a plain search, as `search <anything>` always was.
+	//
+	// A searcher who makes out nothing at all here (lighting plan 5c, the
+	// same test `look` refuses on) cannot pick a feature out either: what
+	// they typed is treated exactly like words that name nothing, so the
+	// reply cannot confirm the feature exists. At shapes a feature is still
+	// named, as `look <noun>` still describes one there.
 	var feature SearchFeature
 	hasFeature := false
 	if actor.IsPlayer() && strings.TrimSpace(opts.Feature) != `` {
-		if f, ok := FindSearchFeature(char, room, opts.Feature); ok {
+		if messaging.ParticipantSight(char, room) == messaging.SightNone {
+			result.FeatureNotFound = true
+		} else if f, ok := FindSearchFeature(char, room, opts.Feature); ok {
 			feature, hasFeature = f, true
 			result.Feature = f.Name
 		} else {
@@ -282,10 +326,10 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	// every other opposed contest. The four static tiers in this file are the
 	// other kind and stay on AgainstDifficulty.
 
-	// The room's own light state is invariant across every hidden occupant
-	// checked below, so it is computed once here rather than inside
-	// spotsHider on every iteration.
-	roomLit := room.IsLit()
+	// The room's light is invariant across every hidden occupant checked
+	// below, so it is composed once here rather than inside spotsHider on
+	// every iteration.
+	roomLight := messaging.FixedLight(room.LightLevel())
 
 	// ── Tier 2 (target 135): Hidden players ─────────────────────
 	hiddenPlayerNames := []string{}
@@ -298,23 +342,15 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, p.Character, room, roomLit) {
+		if spotsHider(char, p.Character, roomLight) {
 			result.HiddenPlayersFound = append(result.HiddenPlayersFound, pId)
 			if actor.IsPlayer() {
-				hiddenPlayerNames = append(hiddenPlayerNames,
-					p.Character.Name+` <ansi fg="black-bold">(hiding)</ansi>`)
+				hiddenPlayerNames = append(hiddenPlayerNames, p.Character.Name)
 			}
 		}
 	}
 	if actor.IsPlayer() && len(hiddenPlayerNames) > 0 {
-		details := rooms.GetDetails(room, users.GetByUserId(actor.GetUserId()))
-		details.VisiblePlayers = []string{}
-		for _, name := range hiddenPlayerNames {
-			details.VisiblePlayers = append(details.VisiblePlayers,
-				characters.FormattedName{Name: name, Type: "username", Suffix: "hidden"}.String())
-		}
-		text, _ := templates.Process("descriptions/who", details, actor.GetUserId())
-		actor.SendText(messaging.CategorySystem, text)
+		showFoundHiders(actor, room, hiddenPlayerNames, "username")
 	}
 
 	// ── Tier 2 (target 135): Hidden mobs ────────────────────────
@@ -325,23 +361,15 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, &m.Character, room, roomLit) {
+		if spotsHider(char, &m.Character, roomLight) {
 			result.HiddenMobsFound = append(result.HiddenMobsFound, mId)
 			if actor.IsPlayer() {
-				hiddenMobNames = append(hiddenMobNames,
-					m.Character.Name+` <ansi fg="black-bold">(hiding)</ansi>`)
+				hiddenMobNames = append(hiddenMobNames, m.Character.Name)
 			}
 		}
 	}
 	if actor.IsPlayer() && len(hiddenMobNames) > 0 {
-		details := rooms.GetDetails(room, users.GetByUserId(actor.GetUserId()))
-		details.VisibleMobs = []string{}
-		for _, name := range hiddenMobNames {
-			details.VisibleMobs = append(details.VisibleMobs,
-				characters.FormattedName{Name: name, Type: "mob", Suffix: "hidden"}.String())
-		}
-		text, _ := templates.Process("descriptions/who", details, actor.GetUserId())
-		actor.SendText(messaging.CategorySystem, text)
+		showFoundHiders(actor, room, hiddenMobNames, "mob")
 	}
 
 	// Owner ruling 10 (follow-up slice A): a player's find ends the hider's

@@ -3,8 +3,10 @@ package hooks
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
@@ -33,7 +35,7 @@ func TestSelfCastPurge_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 
 	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "test")
 	spell := &spells.SpellData{SpellId: "cleansing-wave", Name: "Cleansing Wave", EffectType: "purge"}
-	applyPlayerEffect(u, u, room, spell, 10, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 10, spellContestAttackWin()))
 
 	caster, observer := drainPlain(1), drainPlain(2)
 	assert.Equal(t, 1, countContaining(caster, "You purge the afflictions from your body."))
@@ -53,7 +55,7 @@ func TestSelfCastHeal_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	drainPlain(2)
 
 	spell := &spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3}
-	applyPlayerEffect(u, u, room, spell, 3, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 3, spellContestAttackWin()))
 
 	caster, observer := drainPlain(1), drainPlain(2)
 	assert.Equal(t, 1, countContaining(caster, "A warm glow of healing magic envelops you."))
@@ -74,7 +76,7 @@ func TestSelfCastCondition_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	drainPlain(2)
 
 	spell := &spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "condition", ConditionIds: []int{100}}
-	applyPlayerEffect(u, u, room, spell, 0, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 0, spellContestAttackWin()))
 
 	caster, observer := drainPlain(1), drainPlain(2)
 	assert.Equal(t, 1, countContaining(caster, "Your Bless takes effect."))
@@ -96,7 +98,7 @@ func TestSelfCastDefault_NamesNoOneInTheThirdPerson(t *testing.T) {
 	drainPlain(1)
 
 	spell := &spells.SpellData{SpellId: "curiosity", Name: "Curiosity", EffectType: "curiosity"}
-	applyPlayerEffect(u, u, room, spell, 0, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 0, spellContestAttackWin()))
 
 	caster := drainPlain(1)
 	assert.Equal(t, 1, countContaining(caster, "Your Curiosity takes effect."))
@@ -128,7 +130,7 @@ func TestCrossCast_WordingUnchanged(t *testing.T) {
 	for _, c := range cases {
 		drainPlain(1)
 		drainPlain(2)
-		applyPlayerEffect(caster, target, room, c.spell, 3, spellContestAttackWin())
+		applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, c.spell, 3, spellContestAttackWin()))
 		assert.Equal(t, 1, countContaining(drainPlain(1), c.casterLine), c.spell.Name)
 		assert.Equal(t, 1, countContaining(drainPlain(2), c.targetLine), c.spell.Name)
 	}
@@ -201,7 +203,7 @@ func TestCrossCast_RoomLinesUnchanged(t *testing.T) {
 		roomLine string
 	}{
 		{&spells.SpellData{SpellId: "purge", Name: "Purge", EffectType: "purge"},
-			"Aliceia's Purge cleanses Bobrick."},
+			"Aliceia's Purge cleanses Bobrick of afflictions."},
 		{&spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3},
 			"Aliceia's Heal envelops Bobrick in healing light."},
 		{&spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "condition", ConditionIds: []int{100}},
@@ -211,7 +213,7 @@ func TestCrossCast_RoomLinesUnchanged(t *testing.T) {
 		drainPlain(1)
 		drainPlain(2)
 		drainPlain(3)
-		applyPlayerEffect(caster, target, room, c.spell, 3, spellContestAttackWin())
+		applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, c.spell, 3, spellContestAttackWin()))
 		assert.Equal(t, 1, countContaining(drainPlain(3), c.roomLine), c.spell.Name)
 		assert.Equal(t, 0, countContaining(drainPlain(1), c.roomLine), "caster excluded: "+c.spell.Name)
 		assert.Equal(t, 0, countContaining(drainPlain(2), c.roomLine), "target excluded: "+c.spell.Name)
@@ -241,7 +243,7 @@ func TestSelfCastPurgeAffliction_OneLineToCaster(t *testing.T) {
 
 // TestHookSpellOnCompanion_NoGenericLine is the mob-target twin of the test
 // above. A help spell aimed at a charmed companion reaches
-// applyMobEffect_default, which also told the caster "takes effect" before the
+// the default arm (applySpellDefaultEffect), which also told the caster "takes effect" before the
 // Go hook narrated. Found by the review of the follow-up commit.
 func TestHookSpellOnCompanion_NoGenericLine(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -251,13 +253,16 @@ func TestHookSpellOnCompanion_NoGenericLine(t *testing.T) {
 	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 
-	applyMobEffect_default(u, u.Character, room,
-		&spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction"}, spellContestAttackWin(), "Skeleton")
+	mob := mobs.GetInstance(100)
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room),
+		actions.NewMobActorInRoom(mob, room), room,
+		&spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction"}, 0, spellContestAttackWin()))
 	assert.Equal(t, 0, countContaining(drainPlain(1), "takes effect"),
 		"a spell narrated by its Go hook must not also get the generic line")
 
 	// Control: a spell with no hook still gets the generic line.
-	applyMobEffect_default(u, u.Character, room,
-		&spells.SpellData{SpellId: "curiosity", Name: "Curiosity"}, spellContestAttackWin(), "Skeleton")
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room),
+		actions.NewMobActorInRoom(mob, room), room,
+		&spells.SpellData{SpellId: "curiosity", Name: "Curiosity"}, 0, spellContestAttackWin()))
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Your Curiosity takes effect on Skeleton."))
 }

@@ -1,6 +1,6 @@
 conditionid: 97
 name: Arc Trap
-description: A dormant ward, tripped — a lash of stored violence from the dead machinery.
+description: A dormant ward, tripped. A lash of stored violence from the dead machinery.
 triggerrate: 1 round
 triggercount: 2
 start_actee: Something you crossed was still armed. A ward discharges in a white lash and the pain arrives a half-beat later.

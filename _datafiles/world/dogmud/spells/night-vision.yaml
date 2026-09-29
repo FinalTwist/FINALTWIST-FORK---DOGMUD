@@ -1,0 +1,21 @@
+# Found by discovery, never taught (lighting plan 5c).
+spellid: night-vision
+name: Night Vision
+aliases: [nightvision]
+description: Sharpens the eyes for faint light. Strong light dazzles them
+  while it lasts.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - mental
+cost: 45
+waitrounds: 2
+difficulty: 15
+primarystat: willpower
+effect_type: condition
+condition_ids:
+  - 128
+cast_actor: "You draw the faint light of this place into your eyes."
+cast_observer: "{actor} blinks slowly as their pupils widen."
+wait_actor: "You hold the widening steady..."

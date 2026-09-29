@@ -33,6 +33,10 @@ type Condition struct {
 	// through AddConditionMagnitude. Zero both means the DurationMult path.
 	Magnitude float64
 	Triggers  int
+	// TickScale scales a tick_pool condition's per-round amount, computed
+	// where the condition lands (Condition_ApplyConditions). 0 means 1.0.
+	// Spells pass the caster's spellTickScale; potions and hazards pass none.
+	TickScale float64
 	// LifeEpoch is the holder's Character.LifeEpoch when the condition was queued.
 	// The producers stamp it; ApplyConditions refuses the event if the holder has
 	// died since, because the condition was aimed at a life that has ended.

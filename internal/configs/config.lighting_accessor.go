@@ -27,6 +27,15 @@ type Lighting struct {
 
 	SpellStrengthBase, SpellStrengthStatDivisor, SpellStrengthSkillDivisor float64
 	SpellDurationBase, SpellDurationStatDivisor, SpellDurationSkillDivisor float64
+
+	NightVisionSpellBase, NightVisionSpellStatDivisor, NightVisionSpellSkillDivisor float64
+	InfraSpellBase, InfraSpellStatDivisor, InfraSpellSkillDivisor                   float64
+
+	InfraReachCap     int
+	InfraPenaltyFloor float64
+	// DarkCap is Balance.DarknessCombatPenalty, carried here because the
+	// infravision dark cap (messaging.infraDarkCap) is expressed against it.
+	DarkCap float64
 }
 
 // GetLightingConfig returns the lighting knobs without copying Balance.
@@ -60,5 +69,15 @@ func GetLightingConfig() Lighting {
 		SpellDurationBase:         float64(b.LightSpellDurationBase),
 		SpellDurationStatDivisor:  float64(b.LightSpellDurationStatDivisor),
 		SpellDurationSkillDivisor: float64(b.LightSpellDurationSkillDivisor),
+
+		NightVisionSpellBase:         float64(b.LightNightVisionSpellBase),
+		NightVisionSpellStatDivisor:  float64(b.LightNightVisionSpellStatDivisor),
+		NightVisionSpellSkillDivisor: float64(b.LightNightVisionSpellSkillDivisor),
+		InfraSpellBase:               float64(b.LightInfraSpellBase),
+		InfraSpellStatDivisor:        float64(b.LightInfraSpellStatDivisor),
+		InfraSpellSkillDivisor:       float64(b.LightInfraSpellSkillDivisor),
+		InfraReachCap:                int(b.LightInfraReachCap),
+		InfraPenaltyFloor:            float64(b.LightInfraPenaltyFloor),
+		DarkCap:                      float64(b.DarknessCombatPenalty),
 	}
 }

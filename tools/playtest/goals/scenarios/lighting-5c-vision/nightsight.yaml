@@ -1,0 +1,42 @@
+# Lighting 5c: the NIGHT VISION caster. You are Midroad Scout, starting in the
+# Wind Gallery (3102), a pitch-dark cave in the Ironwind Steppe, alongside a
+# Heat Sight caster. A Cave Crawler (hostile) and a Pale Lurker spawn here.
+# You know Night Vision. Quote every line VERBATIM. 3 commands per round.
+ephemeral:
+  profile: mid
+  start_room: 3102
+  overlays:
+    grant_spells:
+      night-vision: 1
+    grant_skills:
+      spellcasting: 30
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    Before casting: `look`, `time`, `conditions`. Quote the look output
+    exactly. Then `cast night-vision` (no target means yourself; if refused,
+    `cast night-vision <your name>`) and quote every line.
+  - >-
+    In the pitch-dark cave: `look`, `look north`, `get all`. Night vision
+    sharpens faint light but there is NO light here, so `look` should be
+    refused. Quote exactly what you are told, and compare with what the Heat
+    Sight caster (Fold Adept) reports if you can `say` to each other.
+  - >-
+    If attacked, fight back and tally hits, misses and defence lines. Do not
+    go looking for fights; survive. `flee` if near death.
+  - >-
+    Go `south` to Cliff Base (3100), open sky. `time`, `look`, and quote any
+    glare or dazzle notice (Night Vision says strong light dazzles). Say if a
+    notice fires twice on one entry. Come back `north` and quote the notice
+    on re-entering the dark.
+  - >-
+    If you find a Holding Cell or any dim room on the way, `look` there too
+    and say shapes or faces. Otherwise stay in the cave mouth area.
+  - >-
+    `help light`, `help night-vision`. Report any contradiction with what
+    you saw.
+  - >-
+    reads-well: report any raw number in player text, any sentence over 80
+    columns, any em dash, and any light notice that fires twice on one entry.

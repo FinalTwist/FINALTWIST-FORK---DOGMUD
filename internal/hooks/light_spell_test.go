@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"math"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -14,7 +15,9 @@ import (
 const testGlowConditionId = 9731
 
 // seedTestGlowCondition replaces the condition registry with a magnitude
-// light (9731) and a plain condition (9732) until the test ends.
+// light (9731), a plain condition (9732), a magnitude nightvision (9733) and
+// a heat sight reading infra reach from its magnitude (9734) until the test
+// ends.
 func seedTestGlowCondition(t *testing.T) {
 	t.Helper()
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -22,6 +25,13 @@ func seedTestGlowCondition(t *testing.T) {
 			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {UsesMagnitude: true}},
 			Flags:   []conditions.Flag{conditions.Adjustable}},
 		9732: {ConditionId: 9732, Name: "Test Plain", TriggerCount: 4, RoundInterval: 1},
+		9733: {ConditionId: 9733, Name: "Test Night Sight", TriggerCount: 1, RoundInterval: 1,
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectNightVisionStrength: {UsesMagnitude: true}},
+			Flags:   []conditions.Flag{conditions.NightVision}},
+		9734: {ConditionId: 9734, Name: "Test Heat Sight", TriggerCount: 1, RoundInterval: 1,
+			Effects: map[conditions.EffectKind]conditions.EffectValue{
+				conditions.EffectNightVisionStrength: {Literal: 12}, conditions.EffectInfraReach: {UsesMagnitude: true}},
+			Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 }
 
@@ -43,12 +53,12 @@ func TestLightSpellScalesFromStatAndSkill(t *testing.T) {
 		caster := characters.New()
 		caster.Stats.Willpower.ValueAdj = c.stat
 		caster.SetSkill("spellcasting", c.skill)
-		mag, trig, ok := lightSpellApplication(spell, caster, testGlowConditionId)
+		mag, trig, ok := magnitudeSpellApplication(spell, caster, testGlowConditionId)
 		if !ok || mag != c.wantStrength || trig != c.wantTriggers {
 			t.Errorf("stat %d skill %d: (%v, %d, %v), want (%v, %d, true)", c.stat, c.skill, mag, trig, ok, c.wantStrength, c.wantTriggers)
 		}
 	}
-	if _, _, ok := lightSpellApplication(spell, characters.New(), 9732); ok {
+	if _, _, ok := magnitudeSpellApplication(spell, characters.New(), 9732); ok {
 		t.Error("a non-light condition was treated as a light spell")
 	}
 }
@@ -65,8 +75,36 @@ func TestLightSpellReadsTheKnobs(t *testing.T) {
 	caster := characters.New()
 	caster.Stats.Willpower.ValueAdj = 100
 	caster.SetSkill("spellcasting", 0)
-	mag, trig, ok := lightSpellApplication(spell, caster, testGlowConditionId)
+	mag, trig, ok := magnitudeSpellApplication(spell, caster, testGlowConditionId)
 	if !ok || mag != 20 || trig != 4 {
 		t.Errorf("LightSpellStrengthBase 10, stat 100 skill 0: (%v, %d, %v), want (20, 4, true)", mag, trig, ok)
+	}
+}
+
+func TestVisionSpellsScaleFromStatAndSkill(t *testing.T) {
+	configs.SetConfigForTest(t, configs.GetConfig())
+	seedTestGlowCondition(t)
+	spell := &spells.SpellData{SpellId: "test-vision", PrimaryStat: "willpower"}
+	cases := []struct {
+		conditionId, stat, skill int
+		wantMag                  float64
+		wantTriggers             int
+	}{
+		{9733, 100, 0, 12, 4},
+		{9733, 130, 30, 4 + 130/12.5 + 30/6.5, 6},
+		{9733, 175, 65, 24, 9}, // 28 capped at the window shift cap, so the record holds what it acts at
+		{9734, 100, 0, 5 + 100/7.0, 4},
+		{9734, 130, 30, 5 + 130/7.0 + 10, 6},
+		{9734, 175, 65, 50, 9}, // 51.67 capped at LightInfraReachCap
+	}
+	for _, c := range cases {
+		caster := characters.New()
+		caster.Stats.Willpower.ValueAdj = c.stat
+		caster.SetSkill("spellcasting", c.skill)
+		mag, trig, ok := magnitudeSpellApplication(spell, caster, c.conditionId)
+		if !ok || math.Abs(mag-c.wantMag) > 1e-9 || trig != c.wantTriggers {
+			t.Errorf("condition %d stat %d skill %d: (%v, %d, %v), want (%v, %d, true)",
+				c.conditionId, c.stat, c.skill, mag, trig, ok, c.wantMag, c.wantTriggers)
+		}
 	}
 }

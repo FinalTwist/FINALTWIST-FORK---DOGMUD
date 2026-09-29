@@ -56,8 +56,9 @@ The configuration system is built around a centralized `Config` struct with seve
 
 ### 4. **Security Features**
 - `ConfigSecret` type automatically redacts sensitive values in logs and output
+- `Config.DisplayConfigData` is the only view a person may read (see "Locks and the redacted view")
 - Environment variable support for secure credential injection
-- Locked configuration properties to prevent unauthorized changes
+- `SetVal` refuses locked keys: `Server.Locked` plus the Go hard list `hardLocked`
 - Validation of user input against banned patterns
 
 ### 5. **Override System**
@@ -242,8 +243,9 @@ GamePlay:
 
 ### Dot-Notation Access
 ```go
-// All configuration paths support dot notation
-allConfig := config.AllConfigData()
+// All configuration paths support dot notation. AllConfigData is RAW (lookups
+// only); anything a person reads uses DisplayConfigData.
+allConfig := config.DisplayConfigData()
 // Returns map with keys like:
 // "Server.MudName" -> "My MUD Server"
 // "Network.HttpPort" -> 80
@@ -265,6 +267,61 @@ fullPath, typeName := configs.FindFullPath("httpport")
 
 // Supports partial matches and case-insensitive lookup
 ```
+
+## Locks and the redacted view
+
+**Locks (`config_locks.go`).** `IsLocked(path)` is true when the path is on
+`hardLocked` (exact, lowercase), ends in `locked`, or starts (lowercase) with
+an entry of `Server.Locked`. `hardLocked` holds the security keys no in-game
+command may change whatever `Server.Locked` says: `APIFramework.APIKey`,
+`.APIKeyEnv`, `.BaseURL`, `.AllowCustomEndpoint` (the section is absent on
+master; the entries cost nothing), `Modules.aicompanion.APIKey`, `.APIKeyEnv`,
+`.BaseURL`, `.AllowCustomEndpoint`, `.RelayOrigin`, `.PlayerKeys`, `.Model`,
+`.FastModel`, `.DeepModel`, `.ModerateOutput`, `.ModerationModel`,
+`FilePaths.WebDomain`, `Server.Locked`, and `Integrations.Discord.WebhookUrl`
+(where server data is sent).
+
+- `SetVal` is the OPERATOR write (`server set`, the `server config` menu,
+  `setmotd`, `plugins.PluginConfig.Set`). It resolves the key with
+  `FindFullPath`, then refuses with `ErrLockedConfig` when `IsLocked` names the
+  RESOLVED path, before the unknown-key check. A bare suffix key (`seed`)
+  cannot slip past a full-path lock.
+- `SetEngineVal` is the ENGINE write for values the server maintains itself
+  that `Server.Locked` keeps from operators: `Server.CurrentVersion`
+  (`internal/migration`) and `Server.NextRoomId` (`internal/rooms`). It skips
+  `Server.Locked` and still refuses `hardLocked`. A new engine-owned key in
+  the shipped lock list must use it, or its write is silently refused.
+- Both refuse `RedactedValue` as a value (`ErrRedactedValue`).
+- `usercommands.isEditAllowed` delegates to `IsLocked`.
+
+**Redacted view (`config_display.go`).** `AllConfigData` returns values raw
+and is for the lookups only (`buildKeyLookups`). `DisplayConfigData` takes the
+same exclusion patterns and replaces with `RedactedValue` every `ConfigSecret`
+and every value `isSecretConfigValue` names: the check runs `secretNameRule`,
+a case-insensitive suffix match of `apikey`, `api_key`, `secret`, `password`,
+`token`, `webhookurl`, `secretkey` or `privatekey`, against EVERY element of
+the dotted path, not only the leaf, and also deep-scans a stored slice or map
+value (`containsSecret`) for a nested `ConfigSecret` or a map key matching the
+same rule, since `buildDotPaths` stores a slice or map whole and never
+recurses into it. The scan caps at depth 32 and fails closed past the cap,
+reporting the value as secret rather than risk printing one. Module settings
+are untyped (`Modules map[string]any`), so a module's key is a plain string
+and only its name marks it. The boot log (`logBootConfig` in
+`boot_config_log.go`), the `server set` listing, the `server config` menu and
+`/viewconfig` all read `DisplayConfigData`; the root test
+`config_display_guard_test.go` (`TestNoDisplayReadsRawConfig`) fails on any
+`AllConfigData`, `DotPaths` or `GetOverrides` call outside this package, and
+on any page template that reaches `Modules` through `.CONFIG` or `getconfig`.
+
+**Tests.** `SetConfigWithLookupsForTest(t, c) string` installs `c` with real
+lookups (a test binary never runs `ReloadConfig`, so without it every key is
+"unknown" and a lock test passes for the wrong reason), snapshots `overrides`,
+and points `CONFIG_PATH` at a scratch file whose path it returns.
+
+**Known gap, not fixed here.** `ReloadConfig` builds the lookups from the
+config BEFORE the load, so on a single boot module keys without a data
+overlay (the aicompanion's) do not resolve and `SetVal` refuses them as
+unknown.
 
 ## Validation System
 
@@ -301,18 +358,11 @@ if isBanned {
 ```
 
 ### Locked Configuration Properties
-```go
-// Some properties cannot be changed at runtime
-func isEditAllowed(configPath string) bool {
-    serverConfig := configs.GetServerConfig()
-    for _, lockedPath := range serverConfig.Locked {
-        if configPath == lockedPath {
-            return false
-        }
-    }
-    return true
-}
-```
+
+See "Locks and the redacted view" above for the current lock rule
+(`configs.IsLocked`, `configs.SetVal`, `configs.SetEngineVal`) and the
+redacted display view (`configs.DisplayConfigData`). `usercommands.isEditAllowed`
+now delegates to `IsLocked` rather than walking `Server.Locked` itself.
 
 ## Configuration Loading and Persistence
 
@@ -325,7 +375,8 @@ func isEditAllowed(configPath string) bool {
 
 ### Runtime Updates
 ```go
-// Configuration changes are immediately persisted
+// Configuration changes are immediately persisted. SetVal refuses locked keys
+// (ErrLockedConfig); engine-owned locked keys use SetEngineVal.
 err := configs.SetVal("Server.MudName", "New Name")
 // This automatically:
 // 1. Validates the new value
@@ -365,7 +416,7 @@ func server_Config(rest string, user *users.UserRecord, room *rooms.Room, flags 
     }
     
     // Show current configuration
-    allConfigData := configs.GetConfig().AllConfigData()
+    allConfigData := configs.GetConfig().DisplayConfigData()
     // Display configuration options...
 }
 ```
@@ -693,7 +744,7 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
-### Graded room lighting (plans 1, 2, 3a, 5a and 5b of the graded lighting arc)
+### Graded room lighting (plans 1, 2, 3a, 5a, 5b and 5c of the graded lighting arc)
 
 Thirteen knobs, validated in their own file (`config.balance.lighting.go`)
 rather than folded into `validateMisc`, because the arc kept adding more
@@ -724,13 +775,15 @@ the exception, shipped in the file at its default of 75.
 validated in the same `validateLighting` and exposed on `configs.Lighting` as
 `SpellStrengthBase`/`SpellStrengthStatDivisor`/`SpellStrengthSkillDivisor` and
 `SpellDurationBase`/`SpellDurationStatDivisor`/`SpellDurationSkillDivisor`.
-`internal/hooks.lightSpellApplication` casts a `light_strength: magnitude`
-condition at `StrengthBase + stat/StrengthStatDivisor + skill/StrengthSkillDivisor`
-for `DurationBase + stat/DurationStatDivisor + skill/DurationSkillDivisor`
-triggers (rounded, at least 1). Unlike the twelve above, these six DO ship in
-`_datafiles/config.yaml`, at their defaults. Any value not above 0 is coerced
-to its default (a zero divisor would divide by zero, and a test binary never
-loads `config.yaml`).
+`internal/hooks.magnitudeSpellApplication` (renamed from
+`lightSpellApplication` in lighting plan 5c, when it generalised past light;
+see "Vision-spell scaling and infravision" below) casts a `light_strength:
+magnitude` condition at `StrengthBase + stat/StrengthStatDivisor +
+skill/StrengthSkillDivisor` for `DurationBase + stat/DurationStatDivisor +
+skill/DurationSkillDivisor` triggers (rounded, at least 1). Unlike the twelve
+above, these six DO ship in `_datafiles/config.yaml`, at their defaults. Any
+value not above 0 is coerced to its default (a zero divisor would divide by
+zero, and a test binary never loads `config.yaml`).
 
 | Knob | Default |
 |------|---------|
@@ -740,6 +793,43 @@ loads `config.yaml`).
 | `LightSpellDurationBase` | 2 |
 | `LightSpellDurationStatDivisor` | 50 |
 | `LightSpellDurationSkillDivisor` | 20 |
+
+**Vision-spell scaling and infravision (lighting plan 5c).** Eight more
+knobs, validated in the same `validateLighting`. Six follow the light trio's
+own idiom (base + stat/StatDivisor + skill/SkillDivisor), one pair per scaled
+kind, exposed on `configs.Lighting` as `NightVisionSpellBase`/
+`NightVisionSpellStatDivisor`/`NightVisionSpellSkillDivisor` and
+`InfraSpellBase`/`InfraSpellStatDivisor`/`InfraSpellSkillDivisor`.
+`magnitudeSpellApplication` (through `conditions.SpellScaledMagnitude`, which
+the admin `setcondition` command also calls at a new character's stat 100 and
+skill 0) picks the trio matching `ConditionSpec.ScaledKind()` and shares the light trio's `SpellDuration*` knobs for all three kinds'
+duration. The other two are infravision's own: `LightInfraReachCap`
+(`ConfigInt`, bounds every infra-reach source's combined total — spell,
+potion, mutation, condition) and `LightInfraPenaltyFloor` (`ConfigFloat`, the
+sight multiplier infravision gives at its first point of reach, rising
+linearly to no penalty at the cap). All eight ship in `_datafiles/config.yaml`
+at their defaults, in the "LIGHT: VISION SPELLS AND INFRAVISION" block after
+the light trio's own.
+
+| Knob | Type | Default |
+|------|------|---------|
+| `LightNightVisionSpellBase` | ConfigFloat | 4 |
+| `LightNightVisionSpellStatDivisor` | ConfigFloat | 12.5 |
+| `LightNightVisionSpellSkillDivisor` | ConfigFloat | 6.5 |
+| `LightInfraSpellBase` | ConfigFloat | 5 |
+| `LightInfraSpellStatDivisor` | ConfigFloat | 7 |
+| `LightInfraSpellSkillDivisor` | ConfigFloat | 3 |
+| `LightInfraReachCap` | ConfigInt | 50 |
+| `LightInfraPenaltyFloor` | ConfigFloat | 0.90 |
+
+`LightInfraReachCap` coerces to 50 outside `(0, 100]` (a cap of zero divides
+by zero in the penalty ramp; above 100 reaches past the scale).
+`LightInfraPenaltyFloor` coerces to 0.90 outside `(0, 1.0]` (it is a
+multiplier). `configs.Lighting` also carries `DarkCap`, which is not its own
+knob: it is `Balance.DarknessCombatPenalty` (the COMBAT: DARKNESS knob below)
+copied onto `Lighting`, because `internal/messaging.infraDarkCap` expresses
+the infravision penalty as a dark fraction against it and reads it off the
+narrow `Lighting` struct rather than the 400-field `Balance` copy.
 
 `LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
 `LightStarlight`/`LightMoonsFull` precedent below: an inverted or
@@ -780,10 +870,12 @@ against these defaults"; they are not consulted anywhere any more.
 (whether authored directly or reached by clamping a negative) defaults to
 12, following the `ProgressMult` idiom where zero means "unset", not "shift
 by nothing", so the effective authored range is `[1, 24]`. The upper bound
-24 duplicates `windowShiftCap` in `internal/messaging/window.go` on purpose:
-`internal/configs` cannot import `internal/messaging` (the dependency runs
-the other way), so if `windowShiftCap` ever changes this literal must change
-with it. A value above 24 clamps down to it rather than reverting to the
+is the exported constant `LightWindowShiftCap` (24,
+`config.balance.lighting.go`), which `windowShiftCap` in
+`internal/messaging/window.go` is defined from, and which the spell and
+potion magnitude caps (`conditions.SpellScaledMagnitude`,
+`items.PotionMagnitudeApplication`) also read, so there is one number, not
+a duplicated literal. A value above 24 clamps down to it rather than reverting to the
 default, honouring the operator's intent (a strong shift) at the strongest
 the window model can express, the same way `LightExitsAbove` clamps rather
 than reverts for its own out-of-range case above.
@@ -851,6 +943,8 @@ Config is split one file per section, all assembled in `configs.go`.
 |------|---------|
 | `configs.go` | Assembly, load/save, `GetConfig`, overrides plumbing |
 | `config_types.go` | Shared config value types |
+| `config_locks.go` | `hardLocked`, `IsLocked`: which keys `SetVal` refuses |
+| `config_display.go` | `DisplayConfigData`, `RedactedValue`: the redacted view |
 | `overrides.go` | `CONFIG_PATH` override-file layering |
 | `discovery.go` | Reflection-based knob discovery |
 | `testing_support.go` | Test helpers |

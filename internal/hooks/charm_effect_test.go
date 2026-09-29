@@ -41,11 +41,11 @@ func charmTestMob(t *testing.T, instanceId, roomId int) *mobs.Mob {
 	return m
 }
 
-// applyMobEffect is reached with a nil user when a MOB casts -- its own
-// docstring says so, and resolveMobSpellAgainstMob does it. No mob carries
-// charm today because the behaviour tree skips it, but a switch arm whose
-// safety depends on an exclusion in another package is a landmine, and every
-// sibling arm guards.
+// applySpellEffect reaches applyMobEffect_charm with a nil user when a MOB
+// casts, as resolveMobSpellAgainstMob does. No mob carries charm today
+// because the behaviour tree skips it, but a switch arm whose safety depends
+// on an exclusion in another package is a landmine, and every sibling arm
+// guards.
 func TestApplyMobEffectCharm_NilUserDoesNotPanic(t *testing.T) {
 	const roomId = 8801
 	room, cleanupRoom := seedHookRoom(t, roomId)
@@ -70,8 +70,9 @@ func TestApplyMobEffectCharm_NilUserDoesNotPanic(t *testing.T) {
 	}
 }
 
-// A nil mob must be as safe as a nil user; applyMobEffect's other arms are
-// reached only with a live mob, but this arm is now a public-ish seam.
+// A nil mob must be as safe as a nil user; the effect dispatcher's other
+// cases are reached only with a live mob, but this arm is now a public-ish
+// seam.
 func TestApplyMobEffectCharm_NilMobDoesNotPanic(t *testing.T) {
 	const roomId = 8802
 	room, cleanupRoom := seedHookRoom(t, roomId)

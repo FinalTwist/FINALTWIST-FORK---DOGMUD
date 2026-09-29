@@ -24,9 +24,14 @@ const (
 	// light band shifts. Aggregated as MAX, not summed: two night-sight
 	// sources do not stack into a wider window than the better one grants.
 	EffectNightVisionStrength EffectKind = `nightvision_strength`
-	// EffectInfraReach is how far BELOW the window floor heat-sensing still
-	// reads shapes. Independent of strength: a creature can sense heat deeply
-	// while being no better than anyone else at using faint light.
+	// EffectInfraReach is how far into the dark heat-sensing still reads
+	// shapes: shapes at any light down to minus this many points on the light
+	// scale (lighting plan 5c). Independent of strength: a creature can sense
+	// heat deeply while being no better than anyone else at using faint
+	// light. Effect() aggregates it by MAX (isMax) for any reader that calls
+	// Effect(); Character.InfraReach does not, it log-sums every held
+	// source's value through Conditions.EffectValues instead (owner ruling:
+	// reach sources combine).
 	EffectInfraReach EffectKind = `infra_reach`
 	// EffectLightStrength is a light source's full strength on the light
 	// scale: a literal for an item, "magnitude" for a spell cast at a scaled
@@ -49,11 +54,33 @@ func (k EffectKind) isMultiplier() bool {
 
 func (k EffectKind) isCap() bool { return k == EffectAttacksCap }
 
-// isMax reports whether this kind aggregates by taking the strongest held
-// value. Used by the vision window, where summing would let two abilities
-// stack into a window wider than either one grants.
+// isMax reports whether Effect() aggregates this kind by taking the
+// strongest held value, rather than summing. Used by NightVisionStrength,
+// where summing would let two abilities stack into a window wider than
+// either one grants. InfraReach is also isMax for Effect()'s own callers,
+// but Character.InfraReach itself does not call Effect(): it reads
+// Conditions.EffectValues and combines every source through
+// lightscale.Combine instead (lighting plan 5c, owner ruling: reach sources
+// combine, unlike nightvision strength).
 func (k EffectKind) isMax() bool {
 	return k == EffectNightVisionStrength || k == EffectInfraReach
+}
+
+// ScaledKinds are the effect kinds a spell or potion scales from its source
+// (lighting plan 5c): a light's strength, nightvision's strength, and infra's
+// reach. A record carries one Magnitude, so a condition may declare at most
+// one of them as "magnitude" (validateEffects refuses two).
+var ScaledKinds = []EffectKind{EffectLightStrength, EffectNightVisionStrength, EffectInfraReach}
+
+// ScaledKind reports which of ScaledKinds this condition reads from its
+// record's magnitude, if any.
+func (b *ConditionSpec) ScaledKind() (EffectKind, bool) {
+	for _, k := range ScaledKinds {
+		if v, ok := b.Effects[k]; ok && v.UsesMagnitude {
+			return k, true
+		}
+	}
+	return "", false
 }
 
 // EffectValue is either a literal number or the word "magnitude", meaning the
@@ -93,7 +120,8 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 }
 
 // validateEffects refuses an unknown key, a magnitude-bound tick without a
-// pool, a literal light_strength of zero or less, an adjustable record that
+// pool, a record reading more than one of ScaledKinds from its magnitude, a
+// literal light_strength of zero or less, an adjustable record that
 // declares no light_strength, and a stacking record that is also a light
 // source (a stack's summed magnitude is not a light strength, and
 // AddConditionMagnitude takes the addStack path for a stacking spec, so a
@@ -130,6 +158,15 @@ func (b *ConditionSpec) validateEffects() error {
 		if !known {
 			return fmt.Errorf("conditionId %d (%s) declares unknown effect %q; see conditions.AllEffectKinds", b.ConditionId, b.Name, k)
 		}
+	}
+	scaled := 0
+	for _, k := range ScaledKinds {
+		if v, ok := b.Effects[k]; ok && v.UsesMagnitude {
+			scaled++
+		}
+	}
+	if scaled > 1 {
+		return fmt.Errorf("conditionId %d (%s) reads more than one of %v from its magnitude; a record carries one magnitude", b.ConditionId, b.Name, ScaledKinds)
 	}
 	if v, ok := b.Effects[EffectLightStrength]; ok && !v.UsesMagnitude && v.Literal <= 0 {
 		return fmt.Errorf("conditionId %d (%s) declares light_strength %v; a light must be brighter than nothing", b.ConditionId, b.Name, v.Literal)
@@ -212,6 +249,34 @@ func (bs *Conditions) Effect(kind EffectKind) float64 {
 	default:
 		return sum
 	}
+}
+
+// EffectValues returns every held, unexpired record's value for one kind,
+// magnitude-aware exactly as Effect reads it, in list order. It exists for a
+// reader that combines values some other way than Effect's own rule:
+// Character.InfraReach log-sums reach through lightscale.Combine (lighting
+// plan 5c). Records that do not declare the kind contribute nothing.
+func (bs *Conditions) EffectValues(kind EffectKind) []float64 {
+	var out []float64
+	for _, b := range bs.List {
+		if b.Expired() {
+			continue
+		}
+		spec := GetConditionSpec(b.ConditionId)
+		if spec == nil {
+			continue
+		}
+		v, ok := spec.Effects[kind]
+		if !ok {
+			continue
+		}
+		val := v.Literal
+		if v.UsesMagnitude {
+			val = b.Magnitude
+		}
+		out = append(out, val)
+	}
+	return out
 }
 
 // HasEffect reports whether any held, unexpired record declares the kind.

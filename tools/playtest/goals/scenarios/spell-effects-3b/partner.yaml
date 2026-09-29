@@ -1,0 +1,27 @@
+# Spell effects 3b: you are the healer's party member. You start on Main
+# Street, Central (462). As a party member you follow the leader wherever
+# they go. Quote every line VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: mid
+  start_room: 462
+  budgets:
+    wall_clock: 40m
+
+goals:
+  - >-
+    `look`, `who`. Write the blackboard key 'partner-ready' with your
+    character name. Wait for 'healer-invited', then `party accept` and write
+    'partner-accepted'. `party list` to confirm two members.
+  - >-
+    Follow the healer to The Drowning Post Tavern (472) and stay there.
+  - >-
+    When the healer casts Mend All, quote every line you read. Expected: the
+    healer's Mend All envelops you in healing energy, and room lines about
+    it reaching Dal and the stranger (also named Bindsong), but not the
+    stranger's thug. Then quote what you read when the healer casts
+    Conviction Ward on Dal, Cleansing Wave, and the second Mend All after
+    the stranger joins the party.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

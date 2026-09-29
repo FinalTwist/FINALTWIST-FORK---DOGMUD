@@ -867,6 +867,23 @@ func (m *Mob) AddCondition(conditionId int, source string) {
 
 }
 
+// AddConditionScaled queues a condition whose duration is scaled by
+// durationMult through the event path, the mob twin of
+// UserRecord.AddConditionScaled (drink path unification). A non-positive
+// multiplier means the authored duration.
+func (m *Mob) AddConditionScaled(conditionId int, durationMult float64, source string) {
+	if durationMult <= 0 {
+		durationMult = 1.0
+	}
+	events.AddToQueue(events.Condition{
+		MobInstanceId: m.InstanceId,
+		ConditionId:   conditionId,
+		Source:        source,
+		DurationMult:  durationMult,
+		LifeEpoch:     m.Character.LifeEpoch,
+	})
+}
+
 // AddConditionMagnitude queues a record with an exact trigger count and a
 // per-instance magnitude through the event path, the mob twin of
 // UserRecord.AddConditionMagnitude.
@@ -877,6 +894,18 @@ func (m *Mob) AddConditionMagnitude(conditionId int, triggers int, magnitude flo
 		Source:        source,
 		Triggers:      triggers,
 		Magnitude:     magnitude,
+		LifeEpoch:     m.Character.LifeEpoch,
+	})
+}
+
+// AddConditionTickScaled queues a tick_pool condition whose per-round amount
+// is scaled by scale, the mob twin of UserRecord.AddConditionTickScaled.
+func (m *Mob) AddConditionTickScaled(conditionId int, scale float64, source string) {
+	events.AddToQueue(events.Condition{
+		MobInstanceId: m.InstanceId,
+		ConditionId:   conditionId,
+		Source:        source,
+		TickScale:     scale,
 		LifeEpoch:     m.Character.LifeEpoch,
 	})
 }

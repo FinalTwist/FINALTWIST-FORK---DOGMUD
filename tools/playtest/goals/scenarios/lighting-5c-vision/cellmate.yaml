@@ -1,0 +1,46 @@
+# Lighting 5c: the CELLMATE. You are Ordel Quist, with no special senses of
+# your own, starting in the Holding Cell under the Thornwall guard barracks
+# (5105). Its only light is a narrow window slit, so it is faint or dark
+# depending on the hour. You know both Heat Sight and Night Vision. Quote
+# every line VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: m2-witness
+  start_room: 5105
+  overlays:
+    grant_spells:
+      heat-sight: 1
+      night-vision: 1
+    grant_skills:
+      spellcasting: 30
+    grant_items: [30036]
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    UNAIDED first (do NOT drink the Cat's Eye Draught you carry): `time`,
+    `look`, `conditions`, `inventory`. Quote the look
+    output exactly. `drop salve`, then `get salve`; quote both.
+  - >-
+    `cast heat-sight` (no target means yourself; if refused,
+    `cast heat-sight <your name>`) and quote every line. Then `look`,
+    `look up`, `drop salve`, `get salve`, `conditions`. Say whether the
+    cell now reads as shapes (names hidden) or faces, compared with unaided.
+  - >-
+    `cast night-vision` as well and quote every line. `look` again and say
+    whether anything changed (faces now? still shapes?).
+  - >-
+    `up` to the Guard Barracks (473), `look`, then `south` to the Gate Ward
+    (460), open street. `time`, `look`, and quote every light, glare or
+    dazzle notice; say if one fires twice on one entry. If anyone is in a
+    room, say whether you see their name.
+  - >-
+    Later, when `time` has moved on several hours, go back `north`, `down`
+    to the cell if the door lets you (it may be locked from outside; say
+    so) and `look` again.
+  - >-
+    `help light`, `help heat-sight`, `help night-vision`. Report any
+    contradiction with what you saw.
+  - >-
+    reads-well: report any raw number in player text, any sentence over 80
+    columns, any em dash, and anything contradicting `help light`.

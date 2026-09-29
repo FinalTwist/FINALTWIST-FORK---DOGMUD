@@ -21,7 +21,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/shops"
-	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/GoMudEngine/GoMud/internal/worldevents"
 )
@@ -124,17 +123,10 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 					`<ansi fg="mobname">%s</ansi> frowns at a failed attempt and discards the ruined materials.`,
 					mob.Character.Name)
 			}
-			// Visual text — suppress in dark rooms except for nightvision
-			if !room.IsLit() {
-				for _, uid := range room.GetPlayers() {
-					u := users.GetByUserId(uid)
-					if u != nil && u.Character.HasFlagFromAnySource(conditions.NightVision) {
-						u.SendText(messaging.CategoryMobIdle, msg)
-					}
-				}
-			} else {
-				sendVisualRoomText(room, messaging.CategoryMobIdle, msg)
-			}
+			// Visual text. The visual pipeline judges each reader's sight,
+			// dark room or lit; the dark-room branch that used to test the
+			// nightvision FLAG here is gone (lighting plan 5c).
+			sendVisualRoomText(room, messaging.CategoryMobIdle, msg)
 		}
 		if result.Restocked {
 			restocked = true

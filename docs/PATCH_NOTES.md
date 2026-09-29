@@ -1,5 +1,90 @@
 # DOGMud Patch Notes
 
+## 2026-09-28: Healing and shields, whoever casts them
+
+Creatures now heal and shield you and each other by the same rules you
+do. A creature's mending spell or shield cast on you always takes hold,
+never turned aside the way an attack can be, and a creature can shield
+one of your allies too.
+
+Your area heals now reach your whole party's companions, a bonded
+companion included, and no longer patch up a stranger's pet. You can
+also cast a healing or warding spell on a party member's companion, not
+only your own. A shield
+cast on your pet now holds, and a cleansing spell now purges poison
+from a companion too.
+
+Casting a harmful spell such as a hex on a townsperson is now an
+assault, exactly like any other attack.
+
+## 2026-09-28: Spells are attacks, whoever casts them
+
+Casting a harmful spell at a townsperson now counts as attacking them,
+exactly as swinging a sword does. Burn, poison or knock down a citizen
+in front of witnesses and it is a crime. The city remembers who did it,
+and its guards treat you as they would any other brawler.
+
+Creatures now cast damaging spells by the same rules you do. A poison
+a creature casts lingers as long as its own skill and focus allow, its
+spells break the same fragile effects damage always breaks, and when
+one creature casts a harmful spell at another, everyone in the room
+sees it happen. Where fighting other players is allowed, poisoning and
+knockdown spells now work on them too.
+
+A knockdown spell can now interrupt a foe who is casting a spell of
+their own, shattering their focus and collapsing the cast.
+
+A creature slain by your spell is now counted as your kill, for better
+and worse, just as one slain by your blade is.
+
+## 2026-09-28: Server secrets stay secret
+
+The public server settings page no longer lists module settings, and no
+page, log or admin listing shows a secret setting any more. Security
+settings, such as service keys and where they are sent, can no longer be
+changed from inside the game; they change only in the config file.
+
+## 2026-09-28: Healing over time trusts the caster from the first cast
+
+A healing spell that mends you gradually now draws on the caster's skill
+and focus from the very first cast, not only when it is renewed. This
+also applies to creatures: a companion or other creature's own healing
+spell over time works the same way, including one such a creature casts
+on you.
+
+## 2026-09-28: Everyone drinks by the same rules
+
+Companions and other creatures now drink potions by the same rules as
+players. A potion's toxicity builds up in them too, and a creature that
+has had too much refuses the next one. A fresh potion, a well aged one or
+one brewed by a skilled hand works on them just as it would on you, and a
+spoiled one makes them retch. The special potions, from the purges to the
+Bloom Wafer and the remaking draughts, now take their full effect on
+whoever drinks them.
+
+Healing or harm that works over time now affects creatures too. A healing
+potion you hand your companion mends it round by round, and lingering
+harm such as a poisonous cloud now wears a creature down as it would you.
+
+## 2026-09-28: Eyes for the dark
+
+Infravision now does what it promises. It sees the warmth of living
+things, not light, so it shows you shapes in any darkness it can reach,
+from a faint cellar to a cave no lamp has ever touched. The stronger it
+is, the less the dark costs you, and at its strongest the dark costs you
+nothing at all. It still never shows you a face, and it does nothing
+against glare.
+
+Two new spells can be discovered: Night Vision, which sharpens your eyes
+for faint light, and Heat Sight, a harder spell that grants infravision.
+Both grow stronger with your willpower and spellcasting.
+
+Alchemists can brew a Pitsense Tincture from the heat-pit of a blind cave
+hunter. An aged tincture from a skilled hand sees deeper and lasts longer.
+
+The Purging Draught now clears every potion's effect, including several
+older potions it used to miss.
+
 ## 2026-09-26: Being dazzled has a price
 
 Light now works against you in everything you do by sight, not only in

@@ -42,5 +42,17 @@ with your voice are not affected.
   Use <ansi fg="command">hood</ansi> to close a hooded lantern and <ansi fg="command">unhood</ansi> to open it. A closed
   hood gives no light, and you are harder to spot behind it.
 
-<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help chrysalis-glow</ansi>, <ansi fg="command">help hood</ansi>, <ansi fg="command">help weather</ansi>,
-  <ansi fg="command">help seasons</ansi>, <ansi fg="command">help moons</ansi>, <ansi fg="command">help biome</ansi>, <ansi fg="command">help equipment</ansi>
+<ansi fg="yellow">Eyes for the dark</ansi>
+
+  Night vision lets your eyes use fainter light, but the same eyes are
+  dazzled sooner. Infravision is different: it sees the warmth of
+  living things, not light, so it shows you shapes in any darkness it
+  can reach, and the stronger it is the less the dark costs you. It
+  never shows a face, and it does nothing against glare.
+
+  The Night Vision and Heat Sight spells grant them, as do the Cat's
+  Eye Draught and the Pitsense Tincture.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help chrysalis-glow</ansi>, <ansi fg="command">help night-vision</ansi>, <ansi fg="command">help heat-sight</ansi>,
+  <ansi fg="command">help hood</ansi>, <ansi fg="command">help weather</ansi>, <ansi fg="command">help seasons</ansi>, <ansi fg="command">help moons</ansi>,
+  <ansi fg="command">help biome</ansi>, <ansi fg="command">help equipment</ansi>

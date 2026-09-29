@@ -1,0 +1,70 @@
+# Spell effects parity slice 3a: one applier per harmful effect (damage, dot,
+# knockdown) whoever casts and whoever is hit. A player's harmful spell on a
+# mob now calls actions.SeedAggression, so on a fresh engagement it records
+# an assault crime and bumps opinion exactly as melee does. A mob's harmful
+# spell on a player runs the same appliers as a player's. A boss-interrupt
+# spell (neural-stun, sensory-overload, kinetic-shove) cancels any casting
+# target; the wording is now "The spell collapses!".
+#
+# Fixtures (verified against YAML 2026-09-28, branch head fcc7ceb4f):
+#   460 Gate Ward, Thornwall: spawns City Guard 106 (maxwander 2) and
+#     Thornwall Crossbowman 378 (maxwander 1), both in the thornwall_guards
+#     and thornwall_citizens groups. Exits W 447, E 461, N 473.
+#   461 Main Street, West: spawns City Beggar 100 (thornwall_citizens,
+#     maxwander 3). The Street Performer is 101.
+#   Crimes persist per faction at <DataFiles>/factions.crimes/<id>.yaml
+#     (internal/crimes/persistence.go), written on every crimes.Record; the
+#     faction is thornwall_citizens.
+#   4052 Bandit Camp, North Road: spawns 284, Bandit Caster 285 (hostile,
+#     defensive_caster; spellbook nerve-disruption, mind-fog, mind-spike,
+#     mend-wounds) and 286. Exit E 4043.
+# No shipped mob carries a dot or knockdown spell (grep of mob spellbooks:
+# none name blood-boil, neural-toxin or kinetic-shove), so a mob's dot and
+# knockdown lines and a player's "Your spell collapses!" cannot be reached in
+# play; the caster actor instead casts kinetic-shove at the Bandit Caster
+# mid-cast to read the player-side interrupt wording.
+name: spell-effects-3a
+mode: party
+summary: >-
+  A caster in Thornwall's Gate Ward casts harmful spells at a citizen in
+  front of the guards and compares the guards' reaction with a melee
+  control; a second caster stands against the North Road Bandit Caster and
+  reads every spell line she lands, and shoves her mid-cast.
+on_actor_stop: continue
+budgets:
+  wall_clock: 30m
+requires:
+  max_connections: 20
+roster:
+  - id: towncrime
+    personality: feature-tester
+    goals: goals/scenarios/spell-effects-3a/towncrime.yaml
+  - id: mobcaster
+    personality: feature-tester
+    goals: goals/scenarios/spell-effects-3a/mobcaster.yaml
+
+group_goals:
+  - id: spell-is-assault
+    do: >-
+      Towncrime casts mind-spike at a Thornwall citizen with a guard present.
+    verify: >-
+      The guards turn hostile or call out, and the container's
+      factions.crimes/thornwall_citizens.yaml gains a kind assault row with
+      the player as perpetrator, written by the spell before any melee.
+  - id: melee-control
+    do: Towncrime attacks a second citizen with a guard present.
+    verify: The guards react to the melee attack as they did to the spell.
+  - id: dot-and-knockdown-on-mob
+    do: Towncrime casts blood-boil and kinetic-shove at a citizen.
+    verify: Afflict and knockdown lines read as prose and the citizen fights back.
+  - id: mob-spells-on-player
+    do: Mobcaster stands against the Bandit Caster across many rounds.
+    verify: >-
+      Every landed and resisted spell line reads as prose, names the right
+      parties, and a landed damage spell moves the player's health.
+  - id: player-interrupts-mob
+    do: Mobcaster casts kinetic-shove at the Bandit Caster while she casts.
+    verify: The line reads "... The spell collapses!" and her cast stops.
+  - id: reads-well
+    do: Everyone judges every new spell line as prose.
+    verify: No raw numbers, no em dashes, no " -- ", nothing over 80 columns.

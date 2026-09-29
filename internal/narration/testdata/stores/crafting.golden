@@ -160,6 +160,8 @@ recipe|nutrient-suspension|success_actor => <ansi fg="green">You brew the root d
 recipe|nutrient-suspension|failure_actor => <ansi fg="red">The brew curdles and separates in the flask. The materials are wasted.</ansi>
 recipe|obsidian-edge-resin|success_actor => <ansi fg="green">You work coal-black pitch until it glasses over but never quite sets. Obsidian edge-resin!</ansi>
 recipe|obsidian-edge-resin|failure_actor => <ansi fg="red">The resin sets too fast and cracks in the jar. The materials are ruined.</ansi>
+recipe|pitsense-tincture|success_actor => <ansi fg="green">The heat-pit steeps into the moonpetal and the tincture darkens to red. A pitsense tincture!</ansi>
+recipe|pitsense-tincture|failure_actor => <ansi fg="red">The heat-pit tissue curdles and the tincture turns cloudy. The materials are wasted.</ansi>
 recipe|polished-stone-amulet|success_actor => <ansi fg="green">You set both stones in a copper frame and bind them tight. A polished stone amulet!</ansi>
 recipe|polished-stone-amulet|failure_actor => <ansi fg="red">One of the stones splits while you tighten the frame. The materials are ruined.</ansi>
 recipe|preachers-tincture|success_actor => <ansi fg="green">Chrysalis energy infuses the root extract, glowing faintly gold. A preacher's tincture!</ansi>

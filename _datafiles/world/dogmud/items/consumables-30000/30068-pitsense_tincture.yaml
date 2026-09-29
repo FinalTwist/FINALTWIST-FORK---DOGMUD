@@ -1,0 +1,26 @@
+itemid: 30068
+name: Pitsense Tincture
+vendor_categories:
+- alchemy
+namesimple: tincture
+description: A dark red tincture steeped from a blind hunter's heat-pit.
+  Living warmth shows as pale shapes even in darkness no eye could use,
+  though never clearly enough to know a face.
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+  - 130
+# Base infravision reach. The drink path scales it by aging and the
+# crafter's alchemy (fresh at the recipe minimum reads 26, peak from a master
+# reaches the cap of 50). See ItemSpec.Magnitude.
+magnitude: 20
+value: 60
+rarity_tier: 30
+weight: 0.4
+toxicity: 25
+aging:
+  ferment_rounds: 1500
+  peak_rounds: 6000
+  decay_rounds: 18000
+  spoil_rounds: 30000

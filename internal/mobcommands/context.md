@@ -63,7 +63,12 @@ The `internal/mobcommands` package implements the AI command system for non-play
 #### **Item and Resource Management**
 - **Inventory control**: `get`, `drop`, `put`, `give` - Intelligent item handling
 - **Equipment management**: `equip`, `remove`, `gearup` - Automated gear optimization
-- **Resource consumption**: `eat`, `drink` - Survival behaviors
+- **Resource consumption**: `eat`, `drink` - Survival behaviors. `Drink`
+  (`drink.go`) is a wrapper over `actions.Drink`, the same body a player drinks
+  through (drink path unification 2026-09-28), so a mob pays toxicity, reads
+  potion freshness and crafter skill, and gets every special potion's effect.
+  The repo-root `drink_wrapper_guard_test.go` fails if the wrapper grows drink
+  rules again.
 - **Alchemy and crafting**: `alchemy` - Automated production behaviors
 
 #### **Support and Utility Behaviors**
@@ -184,8 +189,8 @@ package is the mob-side twin of `internal/usercommands`.
 
 Handler signature:
 
-```go
-func Foo(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error)
+```text
+func <CommandName>(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error)
 ```
 
 Note it takes a `*mobs.Mob` and has no `flags` parameter — that difference is

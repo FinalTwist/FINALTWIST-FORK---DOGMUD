@@ -9,15 +9,14 @@
 # Mechanism verified by reading the mob-spell resolution code
 # (internal/hooks/spell_resolution.go): a mob HelpSingle cast with a
 # named target resolves via room.FindByName into TargetMobInstanceIds
-# (internal/actions/cast.go "Mob HelpSingle: named target or self"),
+# (internal/actions/cast.go "Mob HelpSingle"; an uncharmed mob may help
+# any mob charmed by no one, so the bosses need not be its packmates),
 # and resolveMobSpellAgainstMob dispatches non-self mob targets through
-# applyMobEffect. Prior to this chunk, applyMobEffect's switch had no
-# "heal" case (only damage/dot/knockdown/condition), so a mob healing another
-# mob silently no-op'd — added the missing case (+ bypassed the harmful
-# opposed-roll/backfire gate for heal-type effects, since a friendly heal
-# shouldn't be "resisted") in internal/hooks/spell_resolution.go as part
-# of this task. HelpArea was ruled out per the file's own comment: "mobs
-# never cast area healing in this engine."
+# the effect dispatcher (applySpellEffect, internal/hooks/spell_effects.go),
+# whose heal applier serves every caster and target. A help spell resolves
+# uncontested (a friendly heal is never "resisted"). Area help from a mob
+# lands on its packmates (spellHelpAreaTargets), not on this boss by name,
+# so this add keeps casting single-target heals.
 #
 # Fold-casting (base_folds: 2) means the heal telegraphs and is
 # interruptible — killing the Repair Frame mid-cast (or disrupting it

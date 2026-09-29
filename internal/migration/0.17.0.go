@@ -49,7 +49,7 @@ import (
 //
 // The config overrides file is also migrated when CONFIG_PATH points outside
 // DataFiles, and it is reloaded after a rewrite: config was loaded before
-// migrations run, and Run's closing SetVal writes the in-memory overrides map
+// migrations run, and Run's closing recordMigratedVersion (SetEngineVal) writes the in-memory overrides map
 // back to disk, which would restore the old key.
 func migrate_ConditionKeys(dryRun bool) error {
 	dataDir := string(configs.GetConfig().FilePaths.DataFiles)

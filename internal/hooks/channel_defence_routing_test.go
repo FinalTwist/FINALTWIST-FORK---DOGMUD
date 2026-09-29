@@ -58,34 +58,38 @@ func TestChannelDefenceRoutingTestsDoNotLoadGlobalItemRegistries(t *testing.T) {
 func TestSpellResolversRunOneContestAndAppliersRollNone(t *testing.T) {
 	_, here, _, ok := runtime.Caller(0)
 	require.True(t, ok)
-	parsed, err := parser.ParseFile(token.NewFileSet(), filepath.Join(filepath.Dir(here), "spell_resolution.go"), nil, 0)
-	require.NoError(t, err)
 
 	seamCallsByFunc := map[string]int{}
 	directCalls := 0
-	for _, decl := range parsed.Decls {
-		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Body == nil {
-			continue
-		}
-		ast.Inspect(fn.Body, func(node ast.Node) bool {
-			call, ok := node.(*ast.CallExpr)
-			if !ok {
+	// spell_effects.go (slice 3a) and spell_help_effects.go (slice 3b) hold
+	// every applier; neither may run a contest of its own.
+	for _, name := range []string{"spell_resolution.go", "spell_effects.go", "spell_help_effects.go"} {
+		parsed, err := parser.ParseFile(token.NewFileSet(), filepath.Join(filepath.Dir(here), name), nil, 0)
+		require.NoError(t, err)
+		for _, decl := range parsed.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
+				continue
+			}
+			ast.Inspect(fn.Body, func(node ast.Node) bool {
+				call, ok := node.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				switch callee := call.Fun.(type) {
+				case *ast.Ident:
+					if callee.Name == "runSpellChannelAttack" {
+						seamCallsByFunc[fn.Name.Name]++
+					}
+				case *ast.SelectorExpr:
+					if pkg, ok := callee.X.(*ast.Ident); ok && pkg.Name == "combat" &&
+						(callee.Sel.Name == "ResolveChannelAttack" || callee.Sel.Name == "RunContest") {
+						directCalls++
+					}
+				}
 				return true
-			}
-			switch callee := call.Fun.(type) {
-			case *ast.Ident:
-				if callee.Name == "runSpellChannelAttack" {
-					seamCallsByFunc[fn.Name.Name]++
-				}
-			case *ast.SelectorExpr:
-				if pkg, ok := callee.X.(*ast.Ident); ok && pkg.Name == "combat" &&
-					(callee.Sel.Name == "ResolveChannelAttack" || callee.Sel.Name == "RunContest") {
-					directCalls++
-				}
-			}
-			return true
-		})
+			})
+		}
 	}
 
 	require.Equal(t, map[string]int{

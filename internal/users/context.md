@@ -581,6 +581,19 @@ called on the prompt returned by `StartPrompt`/`GetPrompt`.
 - user.lastInputRound             // Input timing
 ```
 
+`UserRecord` queues a condition through `events.Condition` rather than
+applying it directly (`AddCondition`, `AddConditionMagnitude`,
+`AddConditionScaled`, `AddConditionTickScaled` in `userrecord.go`), so the
+holder does not have the record until `hooks.ApplyConditions` runs.
+`AddConditionTickScaled` (tick amount at apply, 2026-09-28) queues
+`TickScale` alongside `LifeEpoch`; `hooks.setTickAmountAtApply` reads it to
+compute a `tick_pool` condition's per-round amount where the record lands,
+at the applier's scale (0 means 1.0). `internal/hooks/spell_tick_scale.go`'s
+`spellTickScale(caster)` is the one caster formula a spell passes through
+it, so a heal- or damage-over-time scales with the caster's skill and gear
+from the first cast, not only on a recast. `mobs.Mob.AddConditionTickScaled`
+is the mob twin, documented in `internal/mobs/context.md`.
+
 ## Usage Examples
 
 ### User Authentication

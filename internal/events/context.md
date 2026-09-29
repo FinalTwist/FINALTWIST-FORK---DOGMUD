@@ -101,20 +101,10 @@ type CharacterVitalsChanged struct {
 type CharacterStatsChanged struct {
     UserId int
 }
-
-type LevelUp struct {
-    UserId         int
-    RoomId         int
-    Username       string
-    CharacterName  string
-    LevelsGained   int
-    NewLevel       int
-    StatsDelta     stats.Statistics
-    TrainingPoints int
-    StatPoints     int
-    LivesGained    int
-}
 ```
+
+There is no `LevelUp` event: level-up is disabled in DOGMud and the upstream
+event type is gone.
 
 **Combat and Death:**
 ```go
@@ -297,7 +287,7 @@ listenerId := events.RegisterListener(PlayerSpawn{}, func(e events.Event) events
 events.RegisterListener(PlayerDeath{}, handlePlayerDeath, events.First)
 
 // Register final listener (executes last)
-events.RegisterListener(LevelUp{}, logLevelUp, events.Last)
+events.RegisterListener(MobDeath{}, logMobDeath, events.Last)
 
 // Register wildcard listener (receives all events)
 events.RegisterListener(nil, debugAllEvents)
@@ -321,21 +311,6 @@ func handlePlayerDeath(e events.Event) events.ListenerReturn {
     // death.Permanent is always false (permadeath sunset); field kept for
     // upstream parity only. All deaths are treated as normal deaths.
     // Normal death, allow other handlers
-    return events.Continue
-}
-
-// Level up notification (NOTE: Level-up is disabled in DOGMud — this handler is legacy)
-func broadcastLevelUp(e events.Event) events.ListenerReturn {
-    levelUp := e.(events.LevelUp)
-
-    message := fmt.Sprintf("%s has reached level %d!",
-        levelUp.CharacterName, levelUp.NewLevel)
-    
-    events.AddToQueue(events.Broadcast{
-        Text: message,
-        IsCommunication: false,
-    })
-    
     return events.Continue
 }
 ```
@@ -369,7 +344,7 @@ events.AddToQueue(events.RedrawPrompt{
 })
 ```
 
-### Event Processing Loop
+### Event Processing Loop (example)
 ```go
 // Process all events in queue
 events.ProcessEvents()
@@ -389,7 +364,7 @@ func gameLoop() {
 }
 ```
 
-### Custom Event Creation
+### Custom Event Creation (example)
 ```go
 // Define custom event type
 type CustomGameEvent struct {
@@ -419,7 +394,7 @@ events.AddToQueue(CustomGameEvent{
 
 ## Integration Patterns
 
-### Hook System Integration
+### Hook System Integration (example)
 ```go
 // Event hooks are registered as listeners
 func init() {
@@ -445,7 +420,7 @@ func handleNewRound(e events.Event) events.ListenerReturn {
 }
 ```
 
-### Module Integration
+### Module Integration (example)
 ```go
 // Modules can register for events they care about
 type AuctionModule struct {
@@ -464,7 +439,7 @@ func (m *AuctionModule) onPlayerJoin(e events.Event) events.ListenerReturn {
 }
 ```
 
-### Scripting Integration
+### Scripting Integration (example)
 ```go
 // JavaScript can raise custom events
 func RaiseEvent(name string, data map[string]any) {
@@ -538,7 +513,7 @@ events.SetDebug(true)
 - Missing listeners are tracked and reported
 - Performance issues are automatically detected and logged
 
-### Listener Management
+### Listener Management (example)
 ```go
 // Safe listener removal
 func cleanup() {
@@ -560,7 +535,7 @@ func cleanup() {
 
 ## Usage Examples
 
-### Complete Event Lifecycle
+### Complete Event Lifecycle (example)
 ```go
 // 1. Define event type
 type PlayerLoginEvent struct {
@@ -614,6 +589,27 @@ Test-only queue drain seams in `events.go` include
 `DrainQueuedGoldGivenForTest(userId)` does the same for `GoldGiven`, which
 `give` fires when a player hands gold to a mob (`GiftAccepted` is items
 only); `modules/aicompanion` reads it to know who gave a companion coin.
+`DrainQueuedConditionsForTest(userId)` drains queued `Condition` events for a
+player, and `DrainQueuedMobConditionsForTest(mobInstanceId)` is its mob twin
+(drink path unification), matching on `MobInstanceId`. Zero drains every
+queued `Condition` event in either.
+`DrainQueuedHealedForTest(healerUserId)` drains queued `Healed` events the
+same way (spell effects slice 3b); zero drains them all.
+`DrainQueuedCharacterDiedForTest()` and `DrainQueuedMobDeathsForTest()` drain
+every queued `CharacterDied` and `MobDeath` event; the second lets a test
+assert on the damaging-players list the `MobDeath_*` hooks read.
+
+`Condition` (`eventtypes.go`) carries `TickScale float64` (tick amount at
+apply, 2026-09-28) alongside `Magnitude`/`Triggers` and `DurationMult`: it
+scales a `tick_pool` condition's per-round amount, computed where the
+condition lands rather than snapshotted by its producer. Zero means 1.0.
+`users.UserRecord.AddConditionTickScaled` and `mobs.Mob.AddConditionTickScaled`
+are the only producers that set it, queuing it for `hooks.ApplyConditions`
+to read; `hooks.spellTickScale(caster)` is the one caster formula a spell
+passes through them, so a heal- or damage-over-time spell scales with the
+caster's skill and gear on the very first cast, not only on a recast.
+Potions and hazards queue `Condition` with no `TickScale`, so their tick
+amount computes at the fallback scale of 1.0.
 
 This is the synchronous engine bus. `internal/worldevents` is a separate,
 passive record of notable happenings — do not confuse the two.

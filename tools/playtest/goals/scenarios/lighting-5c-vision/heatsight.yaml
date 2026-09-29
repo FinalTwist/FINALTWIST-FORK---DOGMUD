@@ -1,0 +1,52 @@
+# Lighting 5c: the HEAT SIGHT caster. You are Fold Adept, starting in the Wind
+# Gallery (3102), a pitch-dark cave in the Ironwind Steppe. A Cave Crawler
+# (hostile) and a Pale Lurker (an ambusher that sees by heat) spawn here. You
+# know Heat Sight and carry a Pitsense Tincture and a Purging Draught. Quote
+# every line VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: specialist-caster
+  start_room: 3102
+  overlays:
+    grant_spells:
+      heat-sight: 1
+    grant_skills:
+      spellcasting: 30
+    grant_items: [30068, 30052]
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    Before casting: `look`, `time`, `conditions`, `inventory`. Quote the
+    look output exactly (it may refuse). Then `cast heat-sight` (no target
+    means yourself; if refused, `cast heat-sight <your name>`). Quote every
+    line of the cast, including the wait and the start line.
+  - >-
+    Now in the pitch-dark cave: `look`, `conditions`, `look north`,
+    `look south`. Say whether you see shapes (names hidden, like "someone"
+    or "a shape") or faces (real names). Then `drop salve` if you carry
+    one, else `drop draught`, and `get` it back; quote both. Report any
+    refusal that contradicts what `look` showed you.
+  - >-
+    Fight the Pale Lurker or the Cave Crawler here (`attack lurker`, or
+    whatever `look` lets you target). Then go `north`, `north` to the
+    Stalker's Gallery (3108) and fight a Blind Stalker or Pale Lurker there.
+    For each fight tally your swings: hits and misses, and every defence line
+    (dodge, parry, block) from both sides. If a mob dies, `loot` or
+    `get all from corpse` and quote it; say whether a Heat-Pit Organ dropped.
+    Heal between fights if needed; flee with `flee` if near death.
+  - >-
+    Go back `south`, `south` to the Wind Gallery and then `south` to Cliff
+    Base (3100), open sky. `time`, `look`. Quote any glare or dazzle notice
+    and say if any notice fires twice on one entry.
+  - >-
+    At Cliff Base or back in the cave: `drink tincture`, quote every line,
+    `conditions`, `look`. Then `drink purging draught` (or `drink draught`),
+    quote every line, and `conditions` again. The tincture must be gone from
+    the list. Say whether your Heat Sight spell survived the purge.
+  - >-
+    `help light` (find the "Eyes for the dark" section), `help heat-sight`,
+    `help pitsense-tincture`. Report any contradiction with what you saw.
+  - >-
+    reads-well: report any raw number in player text, any sentence over 80
+    columns, any em dash, and anything contradicting `help light`.

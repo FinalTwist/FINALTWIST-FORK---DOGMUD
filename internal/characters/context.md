@@ -600,9 +600,9 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   [-0.4, 0.4].
 - **Heal spells regenerate via a timed record, not a direct `Heal()` call.** The
   spell's `effect_magnitude` YAML field becomes the regen multiplier
-  (`spellData.EffectMagnitude`, e.g. 3 = 3x base regen, floored at 1.0; a
-  crit doubles the portion above 1x). `internal/hooks/spell_resolution.go`'s
-  `"heal"` case calls `target.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating,
+  (`spellData.EffectMagnitude`, e.g. 3 = 3x base regen, floored at 1.0; help
+  spells do not crit). `internal/hooks/spell_help_effects.go`'s
+  `applySpellHeal` calls `c.targetChar().AddConditionMagnitude(conditions.ConditionIdRegenerating,
   durationRounds, regenMult, "heal spell")` with `durationRounds =
   calcSpellDuration(...)/2`, floored at 6 rounds. Each round after that,
   `NewRound_AutoHeal.go` reads `Conditions.HasEffect(conditions.EffectRegenMult)` and
@@ -1860,7 +1860,7 @@ it intentionally to avoid readers being added before the messaging
 framework context is in place. The predicate will land in the messaging
 framework chunk alongside the first real consumer.
 
-### Vision window: NightVisionStrength and InfraReach (vision.go, graded lighting plan 2)
+### Vision window: NightVisionStrength and InfraReach (vision.go, graded lighting plan 2, InfraReach reworked lighting plan 5c)
 
 `internal/messaging.ParticipantSight` reads two numbers off the observer
 rather than checking flags directly:
@@ -1874,25 +1874,32 @@ rather than checking flags directly:
   are zero but the character still carries a bare `NightVision` flag from
   any source, it falls back to `configs.GetBalanceConfig().LightDefaultVisionStrength`
   (default 12): a bare "sees in the dark" flag with no authored number
-  still means something.
-- `InfraReach() int`: how far BELOW the window floor this character
-  still reads shapes by sensing heat. Same shape, against
-  `conditions.EffectInfraReach` and the `conditions.InfraredVision` flag
-  name, but with NO bare-flag default: a bare infrared flag with no
-  stated range has no sensible fallback and reads reach 0.
-
-Both are backed by the unexported shared body `bestVisionNumber`, which
-compares the condition-effect number and the mutation-flag number in
-`float64` and rounds ONCE, at the return, with `math.Round`, matching
-the single-rounding convention `companions.go` and `cast_helpers.go`
-already use rather than `int()`'s silent truncation.
+  still means something. Backed by the unexported shared body
+  `bestVisionNumber`, which this is now the only caller of.
+- `InfraReach() int`: how far into the dark this character still reads
+  shapes by sensing heat, shapes at any light down to minus this number.
+  **Since lighting plan 5c** it no longer takes the best source the way
+  `NightVisionStrength` does (owner ruling: reach sources COMBINE, unlike
+  nightvision strength). It collects every held condition's value from
+  `Conditions.EffectValues(conditions.EffectInfraReach)` (new,
+  magnitude-aware exactly as `Effect` reads it) and every mutation's
+  rank-scaled value from `mutations.FlagValues(c.Mutations,
+  string(conditions.InfraredVision))` (new, one entry per matching pro or
+  con), log-sums them through `lightscale.Combine(cfg.DoublingStep, ...)`
+  (the same combine rule room light already uses), caps the result at
+  `configs.GetLightingConfig().InfraReachCap` (default 50), and rounds
+  once with `math.Round`. Example: mutation 40 + spell 30 + potion 25
+  reads about 46, not 40. A bare infrared flag with no number still reads
+  0 (no sensible fallback). `NightVisionStrength` is unaffected: it still
+  reads `Conditions.Effect` (MAX) and still calls `bestVisionNumber`.
 
 These two numbers are independent by design: a creature can sense heat
 deeply while being no better than anyone else at using faint light
 (`InfraReach` high, `NightVisionStrength` zero), and vice versa. See
-`internal/messaging/context.md` for how `SightThroughWindow` turns them
-into a sight decision, and `internal/mutations/context.md` for
-`FlagValue`'s rank scaling.
+`internal/messaging/context.md` for how `SightThroughWindow` and
+`ComfortDistance`/`infraDarkCap` turn them into a sight decision and a
+sight-roll cost, and `internal/mutations/context.md` for `FlagValue`'s
+and `FlagValues`' rank scaling.
 
 ### HasAnyBlindSource helper (sight.go)
 

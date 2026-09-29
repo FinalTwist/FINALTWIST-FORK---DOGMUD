@@ -85,6 +85,47 @@ stay silent.
 
 ---
 
+## Drink (`drink.go`, drink path unification 2026-09-28)
+
+`Drink(actor DrinkActor, rest string) DrinkResult` is the ONE drink body for
+players, mobs and the AI companion. It was `usercommands.Drink`; the mob
+command was a separate copy with no toxicity, no aging or crafter scaling and
+no special potions. `usercommands.Drink` and `mobcommands.Drink` are now thin
+wrappers, and the repo-root `drink_wrapper_guard_test.go`
+(`TestDrinkWrappersDoNotReFork`) fails if either grows drink rules again.
+
+- **`DrinkActor`** is `Actor` plus `AddConditionScaled` and
+  `AddConditionMagnitude`. It is its own interface, not two new `Actor`
+  methods, because many test fakes implement `Actor` and none of them drinks.
+  `UserActor` and `MobActor` both satisfy it; each queues `events.Condition`
+  through the event door, so the drinker reads the condition's start line.
+- **`DrinkResult`** reports `Drank` (true for a spoiled potion too),
+  `Spoiled`, `ItemId` and a `Refusal`.
+- **`DrinkRefusal`**: `DrinkOK`, `DrinkRefuseBusy`, `DrinkRefuseGrappled`,
+  `DrinkRefuseNotFound`, `DrinkRefuseNotDrinkable`, `DrinkRefuseToxicity`.
+
+Every special potion (Ysolde's Purge, the Purging Draught, the Bloom Wafer,
+the Catalyst of Unmaking, the Phial of Second Birth) applies fully to a mob
+(owner ruling 2026-09-28). `SendText` is a no-op for a mob, so a mob drinks
+silently apart from the room line. Both room lines go out through
+`Room.SendTextVisualHidingNames` with the drinker's name: an observer at the
+shapes tier reads "a figure", one who sees nothing reads nothing, and a player
+drinker is excluded from their own line (`drink_room_line_sight_test.go`).
+`drink_parity_test.go` holds the player and mob parity table.
+
+`Drink` no longer snapshots a `tick_pool` condition's per-round amount (tick
+amount at apply, 2026-09-28): the old `ComputeTickAmount(...)` /
+`Conditions.SetTickAmount(...)` block after `AddConditionScaled` is gone.
+`AddConditionScaled` still queues `events.Condition` with no `TickScale`, so
+`hooks.setTickAmountAtApply` (`Condition_ApplyConditions`) computes the
+amount where the record lands, at the fallback scale of 1.0 — a potion has
+no caster to scale by. `DrinkActor` does not need
+`AddConditionTickScaled`: a drink's tick amount was already scale-1.0 before
+this slice, so nothing about a potion's strength changed, only where the
+number is computed.
+
+---
+
 ## Combat Actions
 
 ### Every player attack path MUST seed aggression
@@ -239,6 +280,15 @@ the target instead of an interrupt.
   `shape` / `N.shape` / `shape#N` (figures are perceived players then mobs, in
   room order); no sight refuses. Refusals are narrated, set
   `RefusalExplained`, and spend nothing.
+- **`HelpCharmAlly(m, sideUserId)`**: the one rule for which charmed mobs a
+  helpful spell from `sideUserId`'s side may land on: charmed by that player
+  or by a member of that player's party. `InitiateCast`'s single-target help
+  (through `helpSingleMobAllowed`) and `hooks.spellHelpAreaTargets` both call
+  it. A mob caster's single-target help follows the same sides: a charmed
+  mob helps any player and its owner's side; an uncharmed mob helps itself
+  and mobs charmed by no one (its packmates, a boss add's named boss), never
+  a player or a pet. A refused help target is plain `NoTarget`, so a player
+  hears `You don't see "x" here.`
 - **`SendCounterTrio(room, res, countered, counteredUserId)`**: the one counter
   dispatch, used by `DispatchCounterMessages` and `hooks.fireSpellCounterTier`.
   It goes through `messaging.SendTrio`, so a counter in the dark names nobody.
@@ -608,8 +658,12 @@ player typed after `search`. Empty searches the room as above. Otherwise,
 BEFORE the cooldown, `FindSearchFeature` resolves it (leading articles and prepositions dropped, so
 `search under the table` works) to a room noun (`room.FindNoun`, aliases and
 plurals included), then a hidden noun THIS character has discovered, then a
-container they can see. No match says "You see no such thing here to search."
-and spends no cooldown (`SearchResult.FeatureNotFound`). A match is a FULL
+container they can see. No match sets `SearchResult.FeatureNotFound` and the
+search runs as a plain room search, as `search <anything>` always did. A
+searcher whose sight here is `messaging.SightNone` (lighting plan 5c, the
+test `look` refuses on) names no feature at all: what they typed is treated
+exactly as a miss, so the reply cannot confirm the feature exists. At shapes
+a feature is still named, as `look <noun>` still describes one. A match is a FULL
 room search ("You search the X and snoop around for a bit..."): every
 contested tier runs exactly as for a plain `search`, so a quest that expects
 `search shelf` (or any room noun) to turn up its hidden item still works. Only
@@ -1094,6 +1148,7 @@ taunt path's ordering).
 |--------|---------|---|---|---|---|
 | Consider | actions | self vs target | ConsiderResult | player only | none |
 | Defuse | actions | self vs trap | DefuseResult | varies | none |
+| Drink | actions | self | DrinkResult | both | none |
 | Forage | actions | self vs biome | ForageResult | varies | shared |
 | Plant | actions | self vs mob/container | PlantResult | varies | shared |
 | Salvage | actions | self vs corpse/item | SalvageResult | varies | none |
@@ -1233,7 +1288,11 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
   score here pays `messaging.SightMult` on the party who needs to SEE, once
   per roll per party. `CalcDetectionScore(c, room messaging.RoomVisibility)`
   applies it for the OBSERVER (pass the observer's room; nil is unity; the
-  hider's side already folds light in through `CalcSneakScoreVsObserver`), so
+  hider's side already folds light in through `CalcSneakScoreVsObserver`,
+  which takes the room as a `messaging.RoomVisibility`, usually a hoisted
+  `messaging.FixedLight`, and counts it lit for an observer whose
+  `messaging.LightBand` is not `BandDark`; lighting plan 5c replaced the old
+  `roomLit || nightvision flag` test), so
   every detection caller (sneak, go, search's `spotsHider`, track's opposed
   contest, the steal/plant/shadow notice rolls) gets it by construction.
   `stealVictimScore(c, room)` does the same for the theft and plant
@@ -1293,7 +1352,7 @@ the rest are ordinary verbs.
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `search_bauble.go` (roll and delayed delivery), `search_feature.go` (`search <feature>`), `scan.go`, `track.go`, `steal.go`, `steal_pocket.go` (a player's pickpocket pause and bauble) |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `stolen_bauble.go` (heat, recognition, returns), `remove_equip.go`, `shop_sight.go` |
+| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `stolen_bauble.go` (heat, recognition, returns), `remove_equip.go`, `shop_sight.go`, `drink.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |

@@ -1,6 +1,9 @@
 package configs
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 // setBalanceForTest replaces the module-level balance config with
 // the provided instance for the duration of the calling test. The
@@ -38,4 +41,38 @@ func SetConfigForTest(t *testing.T, c Config) {
 		defer configDataLock.Unlock()
 		configData = original
 	})
+}
+
+// SetConfigWithLookupsForTest installs c as SetConfigForTest does and also
+// builds the key and type lookups FindFullPath reads from c, so SetVal
+// resolves keys in a test binary that never ran ReloadConfig. It snapshots and
+// restores the lookups, the overrides union and the module overlay ledger,
+// all of which SetVal mutates, and points CONFIG_PATH at a scratch file so a
+// SetVal that succeeds never writes a real config-overrides.yaml. It returns
+// that scratch path. Not for parallel tests (it uses t.Setenv). The swap and
+// the restore both hold configDataLock, as SetConfigForTest does.
+func SetConfigWithLookupsForTest(t *testing.T, c Config) string {
+	t.Helper()
+	overridePath := filepath.Join(t.TempDir(), `config-overrides.yaml`)
+	t.Setenv(`CONFIG_PATH`, overridePath)
+	SetConfigForTest(t, c)
+
+	// Built before locking: AllConfigData takes no lock of its own.
+	newKeys, newTypes := buildKeyLookups(c)
+
+	configDataLock.Lock()
+	prevKeys, prevTypes := keyLookups, typeLookups
+	prevOverrides, prevOwned := overrides, moduleOverlayKeys
+	keyLookups, typeLookups = newKeys, newTypes
+	overrides = map[string]any{}
+	moduleOverlayKeys = map[string]struct{}{}
+	configDataLock.Unlock()
+
+	t.Cleanup(func() {
+		configDataLock.Lock()
+		defer configDataLock.Unlock()
+		keyLookups, typeLookups = prevKeys, prevTypes
+		overrides, moduleOverlayKeys = prevOverrides, prevOwned
+	})
+	return overridePath
 }

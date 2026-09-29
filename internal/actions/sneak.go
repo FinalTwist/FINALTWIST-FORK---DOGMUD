@@ -71,10 +71,10 @@ func Sneak(actor Actor) SneakResult {
 	}
 
 	cfg := configs.GetBalanceConfig()
-	// The room's own light state is invariant across every occupant checked
-	// below, so it is computed once here rather than inside
-	// CalcSneakScoreVsObserver on every iteration of the player and mob loops.
-	roomLit := room.IsLit()
+	// The room's light is invariant across every occupant checked below, so
+	// it is composed once here rather than inside CalcSneakScoreVsObserver on
+	// every iteration of the player and mob loops.
+	roomLight := messaging.FixedLight(room.LightLevel())
 	cost := admitFullCost(actor, costs.ActionSneak, characters.PoolStamina,
 		float64(cfg.SneakBaseStaminaCost))
 	if cost.Status == characters.CostRefused {
@@ -120,7 +120,7 @@ func Sneak(actor Actor) SneakResult {
 		if observer == nil {
 			continue
 		}
-		sneakScore := CalcSneakScoreVsObserver(char, observer.Character, roomLit)
+		sneakScore := CalcSneakScoreVsObserver(char, observer.Character, roomLight)
 		observerScore := CalcDetectionScore(observer.Character, room)
 		rollHappened = true
 		success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
@@ -145,7 +145,7 @@ func Sneak(actor Actor) SneakResult {
 		if m == nil {
 			continue
 		}
-		sneakScore := CalcSneakScoreVsObserver(char, &m.Character, roomLit)
+		sneakScore := CalcSneakScoreVsObserver(char, &m.Character, roomLight)
 		observerScore := CalcDetectionScore(&m.Character, room)
 		rollHappened = true
 		success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success

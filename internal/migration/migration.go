@@ -8,6 +8,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/factions"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/version"
 )
 
@@ -148,7 +149,7 @@ func Run(lastConfigVersion version.Version, serverVersion version.Version) error
 	//
 	// Finally, since successful, update to the version this migration is for
 	//
-	configs.SetVal(`Server.CurrentVersion`, serverVersion.String())
+	recordMigratedVersion(serverVersion)
 
 	return nil
 }
@@ -166,4 +167,16 @@ func isUserSaveFile(path string) bool {
 		!strings.HasSuffix(name, ".alts.yaml") &&
 		!strings.HasSuffix(name, "-alts.yaml") &&
 		name != "users.idx"
+}
+
+// recordMigratedVersion stores the version the data files now match. It goes
+// through configs.SetEngineVal because the shipped Server.Locked names
+// Server.CurrentVersion, and SetVal honours that list; a refused write would
+// leave the old version on disk and re-run every migration on the next boot.
+// A failed write is logged, not returned, so a read-only config directory
+// still boots as it did before.
+func recordMigratedVersion(v version.Version) {
+	if err := configs.SetEngineVal(`Server.CurrentVersion`, v.String()); err != nil {
+		mudlog.Error(`migration`, `action`, `record version`, `version`, v.String(), `error`, err)
+	}
 }
