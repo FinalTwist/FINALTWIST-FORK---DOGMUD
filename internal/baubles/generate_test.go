@@ -345,15 +345,22 @@ func TestGenerateHoldsPlayerKeyTextToItsRules(t *testing.T) {
 			t.Errorf("%v: a generic trinket, got %+v", name, got)
 		}
 	}
-	kept := map[string]GenResult{
-		`moderated`:   {Reply: goodReply(), PlayerKey: true, Moderated: true},
-		`finder-only`: {Reply: goodReply(), PlayerKey: true, FinderOnly: true},
+	kept := map[string]struct {
+		res            GenResult
+		wantFinderOnly bool
+	}{
+		`moderated`:   {GenResult{Reply: goodReply(), PlayerKey: true, Moderated: true}, false},
+		`finder-only`: {GenResult{Reply: goodReply(), PlayerKey: true, FinderOnly: true}, true},
+		// Moderated wins over FinderOnly: moderated text is everyone's, so a
+		// module setting both must still come out unhidden from anyone else
+		// (Generate clears FinderOnly on the moderated branch).
+		`moderated and finder-only`: {GenResult{Reply: goodReply(), PlayerKey: true, Moderated: true, FinderOnly: true}, false},
 	}
-	for name, res := range kept {
-		res := res
-		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return res, nil })
+	for name, c := range kept {
+		c := c
+		installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return c.res, nil })
 		got := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: 7}, nil)
-		if got.Generator != GeneratorOpenAI || !got.PlayerKey || got.FinderOnly != res.FinderOnly {
+		if got.Generator != GeneratorOpenAI || !got.PlayerKey || got.FinderOnly != c.wantFinderOnly {
 			t.Errorf("%v: used as it came: %+v", name, got)
 		}
 	}
