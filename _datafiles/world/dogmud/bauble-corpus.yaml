@@ -1,0 +1,121 @@
+# Bauble fallback corpus: the seed (docs/baubles/implementation-plan.md,
+# Phase 6e). When no model names a find, its text comes from here, or from
+# names an admin promoted (baubles/corpus.promoted.yaml, living state).
+#
+# groups: the corpus group of each biome. A biome with no group (water and
+# ether, where nothing is ever found) goes straight to the tier pool.
+# entries: pools of finds, keyed "<group or biome>-<tier>", "pocket-<tier>"
+# for pickpocketed finds, or a bare tier as the last resort.
+#
+# Every entry is checked like a model's answer when it loads: no digits in
+# the name, a keyword no real item answers to, a weight in tenths of a pound
+# from 0.1 to 25. Values stay inside the tier (cheap 1 to 6, average 10 to
+# 15, rare 40 to 200 gold) and each pool's average sits near the middle.
+# Pocket and bare-tier entries weigh at most 1 lb and name nothing too big
+# for a pocket. Write for players: wrap at 80 columns, no numbers in the
+# text, plain words. TestShippedCorpusSeed checks all of it.
+groups:
+  interior: dwelling
+  fort: dwelling
+  city_backstreet: street
+  city_thoroughfare: street
+  sewer: underground
+  dungeon: underground
+  cave: underground
+  ruins: ruins
+  road: waterside
+  shore: waterside
+  river: waterside
+  farmland: waterside
+  land: waterside
+  forest: wild
+  dense_forest: wild
+  plains: wild
+  swamp: wild
+  cliffs: wild
+  mountains: wild
+  desert: wild
+  snow: wild
+  spiderweb: wild
+entries:
+  dwelling-cheap:
+    - name: Bent Tin Thimble
+      name_simple: thimble
+      material: tin
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A tin thimble, pressed a little out of shape. The dimples on its top
+        are worn smooth from years of pushing needles through heavy cloth.
+  street-cheap:
+    - name: Chipped Clay Marble
+      name_simple: marble
+      material: clay
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A small clay marble, glazed blue a long time ago. One side is
+        chipped flat, as if a cart wheel rolled over it.
+  underground-cheap:
+    - name: Corroded Copper Button
+      name_simple: button
+      material: copper
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A copper button gone green with damp. Two thread holes still show,
+        and a scrap of dark wool is caught in one of them.
+  waterside-average:
+    - name: Driftwood Heron Carving
+      name_simple: heron
+      material: driftwood
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A heron carved from pale driftwood, standing on one leg. The water
+        has rubbed it smooth, but the long beak is still sharp.
+  ruins-average:
+    - name: Faded Mosaic Tile
+      name_simple: tile
+      material: fired clay
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A square tile from an old floor, painted with half of a red bird.
+        The glaze is cracked, and grey mortar still clings to its back.
+  wild-average:
+    - name: Polished Agate Pebble
+      name_simple: agate
+      material: agate
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A pebble of banded agate, red and cream, polished smooth by a
+        stream. Held up to the light, its stripes glow like a sunset.
+  street-rare:
+    - name: Enamelled Guild Medallion
+      name_simple: medallion
+      material: bronze
+      weight_lbs: 0.5
+      value: 125
+      description: >-
+        A heavy medallion on a broken chain, enamelled green and gold with
+        the mark of a merchant guild. The enamel is chipped at one edge.
+  pocket-rare:
+    - name: Garnet Hair Comb
+      name_simple: comb
+      material: silver
+      weight_lbs: 0.2
+      value: 140
+      description: >-
+        A silver comb for pinning up hair, set with a row of small, dark red
+        garnets. A few fine hairs are still caught between its teeth.
+  wild-rare:
+    - name: Spiral Snail Fossil
+      name_simple: fossil
+      material: stone
+      weight_lbs: 1.2
+      value: 95
+      description: >-
+        A stone the size of a palm, split open to show a coiled snail shell
+        inside. It turned to stone long before any town was built.
