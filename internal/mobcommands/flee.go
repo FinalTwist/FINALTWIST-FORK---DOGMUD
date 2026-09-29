@@ -8,6 +8,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/activity"
 )
 
 // Flee starts a mob's flee through the player's rules (actions.BeginFlee):
@@ -19,6 +21,21 @@ func Flee(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// Non-combatant mobs never flee (they should never be in combat).
 	if mob.IsNonCombatant() {
 		return true, nil
+	}
+
+	// A flee breaks a fold-cast when there is a live combat to flee, before
+	// the flee gates run, exactly as the player's fold-casting intercept in
+	// usercommands.go does. Without this the mob finishes its spell first,
+	// because handleMobFoldCasting runs ahead of handleMobFlee. An
+	// out-of-combat flee is refused and must not destroy the cast.
+	if mob.Character.Activity != nil && mob.Character.Activity.IsCasting() && mob.Character.IsInCombat() {
+		_ = mob.Character.Activity.TransitionToFree(state.TransitionReason{
+			Trigger: activity.TriggerCastCancel,
+			Actor:   state.ActorRef{MobInstanceId: mob.InstanceId},
+		})
+		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi> breaks their concentration.`,
+			mob.Character.Name))
 	}
 
 	begin := actions.BeginFlee(actions.NewMobActorInRoom(mob, room), strings.TrimSpace(rest))
