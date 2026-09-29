@@ -345,3 +345,29 @@ func TestGenerateHoldsPlayerKeyTextToItsRules(t *testing.T) {
 		}
 	}
 }
+
+// A player's own key proposes a value the server does not trust, even
+// clamped: Mint rolls it in the tier instead, keeping the proposal for the
+// record (spec S3). A server-key value is kept, clamped.
+func TestMintRollsAPlayerKeyFindsValue(t *testing.T) {
+	withCatalog(t)
+	r := goodReply()
+	r.Value = 14 // inside average (10 to 15), so a clamp alone would keep it
+	res := GenResult{Reply: r, Generator: GeneratorOpenAI, Moderated: true, PlayerKey: true}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), Tier: TierAverage, Result: &res, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Value != TierAverage.Range().Min || rec.ValueProposed != 14 || !rec.PlayerKey {
+		t.Fatalf("rolled by the server (first die: the tier's minimum), proposal kept: %+v", rec)
+	}
+
+	res.PlayerKey = false
+	_, rec, err = Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), Tier: TierAverage, Result: &res, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Value != 14 {
+		t.Fatalf("a server-key value stands: %+v", rec)
+	}
+}
