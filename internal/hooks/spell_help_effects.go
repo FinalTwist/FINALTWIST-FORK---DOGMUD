@@ -14,7 +14,7 @@ import (
 )
 
 // Spell effect unification, parity slice 3b
-// (docs/superpowers/specs/2026-09-28-spell-effect-unification-design.md):
+// (docs/superpowers/specs/completed/2026-09-28-spell-effect-unification-design.md):
 // the helpful effects (condition, heal, shield, purge), the default arm and
 // the one area-help target filler. Each applier serves every pairing (PM,
 // PP, MS, MM, MP) through the spellEffectCtx spell_effects.go defines.
