@@ -160,3 +160,73 @@ func TestASameDayRestartDoesNotSeedTwice(t *testing.T) {
 			ownerSpent(booted, 5), strangerSpent(booted, 2), strangersForSpent(booted, 5))
 	}
 }
+
+// A day the ledger started without seed marks (it rolled over while the
+// server ran, or the boot seeded nothing because the companion's file was
+// yesterday's or missing) still has its own counts in budget.yaml. The next
+// same-day restart must not add the backup on top of them.
+func restartKeepsOneCount(t *testing.T, now time.Time, boot func(m *AICompanionModule)) {
+	t.Helper()
+	dir := t.TempDir()
+	apiframework.ResetBudgetForTest(dir)
+	t.Cleanup(func() { apiframework.ResetBudgetForTest(``) })
+	clock := func() time.Time { return now }
+	apiframework.SetClockForTest(clock)
+	cfg := Config{DailyTokensPerCompanion: 100000, StrangerDailyTokens: 100000, StrangerTokensPerOwner: 100000}
+	m := &AICompanionModule{cfg: cfg}
+	m.books.Store(apiframework.Shared())
+	boot(m)
+	server := route{kind: routeServer}
+	h1, ok1 := m.reserveRoute(server, 5, 0, 900)
+	h2, ok2 := m.reserveRoute(server, 5, 2, 900)
+	if !ok1 || !ok2 {
+		t.Fatal("fixture: both holds fit")
+	}
+	m.settleRoute(h1, 400)
+	m.settleRoute(h2, 300)
+	backup := m.budgetStateToSave()
+	if backup.Day != today(now) || backup.Owners[5] != 400 {
+		t.Fatalf("fixture: the backup is today's counts: %+v", backup)
+	}
+	apiframework.SaveBudget()
+
+	apiframework.ResetBudgetForTest(dir) // a same-day restart: budget.yaml reads back
+	apiframework.SetClockForTest(clock)
+	booted := &AICompanionModule{cfg: cfg}
+	booted.books.Store(apiframework.Shared())
+	booted.restoreBudget(backup)
+	if ownerSpent(booted, 5) != 400 || strangerSpent(booted, 2) != 300 || strangersForSpent(booted, 5) != 300 {
+		t.Fatalf("counted once, not twice: owner=%d stranger=%d perOwner=%d",
+			ownerSpent(booted, 5), strangerSpent(booted, 2), strangersForSpent(booted, 5))
+	}
+}
+
+func today(t time.Time) string { return t.UTC().Format(`2006-01-02`) }
+
+// The server ran past midnight on the ledger's clock: the new day has no
+// seed marks, only its own spending.
+func TestADayThatStartsWithARolloverDoesNotSeedTwice(t *testing.T) {
+	late := time.Date(2026, 3, 4, 23, 30, 0, 0, time.UTC)
+	past := late.Add(time.Hour)
+	restartKeepsOneCount(t, past, func(m *AICompanionModule) {
+		apiframework.SetClockForTest(func() time.Time { return late })
+		m.restoreBudget(budgetState{Day: m.fw().Day()}) // the boot marks yesterday
+		apiframework.SetClockForTest(func() time.Time { return past })
+	})
+}
+
+// The server booted on yesterday's companion file, so restoreBudget seeded
+// nothing and marked nothing.
+func TestABootOnYesterdaysFileDoesNotSeedTwice(t *testing.T) {
+	now := time.Date(2026, 3, 5, 12, 0, 0, 0, time.UTC)
+	restartKeepsOneCount(t, now, func(m *AICompanionModule) {
+		m.restoreBudget(budgetState{Day: today(now.Add(-24 * time.Hour)), Owners: map[int]int{5: 999}})
+	})
+}
+
+// The server booted with no companion file at all (loadBudget returns
+// before restoreBudget).
+func TestABootWithNoFileDoesNotSeedTwice(t *testing.T) {
+	now := time.Date(2026, 3, 5, 12, 0, 0, 0, time.UTC)
+	restartKeepsOneCount(t, now, func(m *AICompanionModule) {})
+}

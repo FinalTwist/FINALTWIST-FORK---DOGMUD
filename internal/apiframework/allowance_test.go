@@ -502,3 +502,23 @@ func TestTheShippedShareKnobs(t *testing.T) {
 		t.Fatalf("shipped shares resolve to baubles 25, the companion uncapped: %d/%d", s.BaublesSharePercent, s.CompanionSharePercent)
 	}
 }
+
+// A dimension with spending today seeds nothing, mark or no mark: its own
+// counts already hold what a backup would add. Another dimension, spent in
+// by no one, still seeds.
+func TestSeedAllowancesRefusesASpentDimension(t *testing.T) {
+	k := NewBooksForTest()
+	h, err := k.Reserve(ConsumerCompanion, 400, true, Charge{Dim: DimCompanionOwner, UserId: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.Settle(h, 400, false)
+	k.SeedAllowances(DimCompanionOwner, k.Day(), map[int]int{5: 400, 6: 50})
+	if k.Allowance(DimCompanionOwner, 5) != 400 || k.Allowance(DimCompanionOwner, 6) != 0 {
+		t.Fatalf("a spent dimension seeds nothing: %d, %d", k.Allowance(DimCompanionOwner, 5), k.Allowance(DimCompanionOwner, 6))
+	}
+	k.SeedAllowances(DimCompanionStranger, k.Day(), map[int]int{2: 300})
+	if k.Allowance(DimCompanionStranger, 2) != 300 {
+		t.Fatalf("an unspent dimension still seeds: %d", k.Allowance(DimCompanionStranger, 2))
+	}
+}

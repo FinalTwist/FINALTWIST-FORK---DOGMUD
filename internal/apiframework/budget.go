@@ -464,7 +464,11 @@ func (k *Books) SeedTokens(consumer string, day string, tokens int) {
 // quarantined budget.yaml hands out a second allowance. It applies once per
 // dimension per day: the mark is saved with the day, so a normal restart
 // seeds nothing, and a quarantine, which loses the marks with the counts,
-// lets the next boot seed again. A stale day seeds nothing.
+// lets the next boot seed again. A dimension that already has spending
+// today seeds nothing either, marked or not (as SeedTokens refuses a
+// consumer that has spent): a day that began with a rollover, or on a boot
+// that seeded nothing, has no marks, and its own counts already hold what
+// the backup would add. A stale day seeds nothing.
 func SeedAllowances(dim string, day string, spent map[int]int) {
 	shared.SeedAllowances(dim, day, spent)
 }
@@ -475,7 +479,7 @@ func (k *Books) SeedAllowances(dim string, day string, spent map[int]int) {
 	defer k.l.mu.Unlock()
 	k.l.loadLocked()
 	k.l.rollLocked()
-	if day != k.l.st.Day || k.l.st.Seeded[dim] {
+	if day != k.l.st.Day || k.l.st.Seeded[dim] || k.l.spentInLocked(dim) {
 		return
 	}
 	for userId, tokens := range spent {
@@ -485,6 +489,18 @@ func (k *Books) SeedAllowances(dim string, day string, spent map[int]int) {
 	}
 	k.l.st.Seeded[dim] = true
 	k.l.dirty = true
+}
+
+// spentInLocked reports whether anyone has spent anything today in dim.
+// Caller holds mu.
+func (l *ledger) spentInLocked(dim string) bool {
+	prefix := dim + `:`
+	for key, tokens := range l.st.ByUser {
+		if tokens > 0 && strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // Allowances is every user's spend today in one dimension, by user id: a
