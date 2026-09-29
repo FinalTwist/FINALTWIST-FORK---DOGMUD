@@ -7,11 +7,27 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 )
+
+// skipIfSymlinkPrivilegeDenied lets an account without
+// SeCreateSymbolicLinkPrivilege (common on Windows outside Developer Mode or
+// an elevated shell) skip a symlink-based test rather than fail it; any
+// other error from os.Symlink still fails the test.
+func skipIfSymlinkPrivilegeDenied(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		return
+	}
+	if strings.Contains(strings.ToLower(err.Error()), `privilege`) {
+		t.Skip(`symlink creation needs a privilege this account does not have: ` + err.Error())
+	}
+	t.Fatal(err)
+}
 
 // writeDataFiles writes each file (slash path relative to root).
 func writeDataFiles(t *testing.T, root string, files map[string]string) {
@@ -141,4 +157,129 @@ func TestDiskRefsFailsClosed(t *testing.T) {
 			t.Fatal("a data folder that is not there must fail the scan")
 		}
 	})
+}
+
+// A symlinked save file is not a regular DirEntry, but the file it resolves
+// to must still be read like any other save, or the id inside it is a false
+// negative that lets a live record be pruned.
+func TestDiskRefsFollowsSymlinkedSaveFile(t *testing.T) {
+	root := t.TempDir()
+	now := time.Now().UTC()
+	// Outside root: if it lived inside root under a .yaml name, the walk
+	// would read it directly and the test would pass without ever
+	// exercising the symlink path.
+	real := filepath.Join(t.TempDir(), `real-7.yaml`)
+	if err := os.WriteFile(real, []byte("character:\n  items:\n  - itemid: 900\n    bauble: B0000001\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, `users`, `7.yaml`)
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	skipIfSymlinkPrivilegeDenied(t, os.Symlink(real, link))
+
+	refs, _, _, err := DiskRefs(root, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := sortedIds(refs); !reflect.DeepEqual(got, []string{`B0000001`}) {
+		t.Fatalf("refs %v, want [B0000001]", got)
+	}
+}
+
+// A dangling symlink cannot be resolved to a file to read, so the sweep
+// fails closed naming it rather than silently skipping whatever it might
+// have pointed at.
+func TestDiskRefsFailsClosedOnDanglingSymlink(t *testing.T) {
+	root := t.TempDir()
+	now := time.Now().UTC()
+	link := filepath.Join(root, `users`, `7.yaml`)
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	skipIfSymlinkPrivilegeDenied(t, os.Symlink(filepath.Join(root, `does-not-exist.yaml`), link))
+
+	_, _, _, err := DiskRefs(root, now)
+	want := filepath.ToSlash(filepath.Join(`users`, `7.yaml`))
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("err %v, want an error naming %s", err, want)
+	}
+}
+
+// A symlinked directory is never followed (it could loop, or it could hide
+// saves the sweep would then miss), so it fails the whole sweep closed
+// rather than being silently skipped.
+func TestDiskRefsFailsClosedOnSymlinkedDirectory(t *testing.T) {
+	root := t.TempDir()
+	now := time.Now().UTC()
+	realDir := filepath.Join(t.TempDir(), `elsewhere`)
+	if err := os.MkdirAll(realDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(realDir, `1.yaml`), []byte("character:\n  items:\n  - bauble: B0000099\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, `users`, `alts`)
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	skipIfSymlinkPrivilegeDenied(t, os.Symlink(realDir, link))
+
+	_, _, _, err := DiskRefs(root, now)
+	want := filepath.ToSlash(filepath.Join(`users`, `alts`))
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("err %v, want an error naming %s", err, want)
+	}
+}
+
+// A `bauble:` key whose value is a mapping or a sequence is not a reference
+// this reader understands; treating it as "no reference" would be a false
+// negative, so the file fails to parse instead.
+func TestDiskRefsFailsClosedOnNonScalarBaubleValue(t *testing.T) {
+	now := time.Now().UTC()
+	t.Run(`a mapping`, func(t *testing.T) {
+		root := t.TempDir()
+		writeDataFiles(t, root, map[string]string{`users/5.yaml`: "character:\n  items:\n  - bauble:\n      nested: B0000001\n"})
+		if _, _, _, err := DiskRefs(root, now); err == nil || !strings.Contains(err.Error(), `parse users/5.yaml`) {
+			t.Fatalf("err %v, want a parse error naming users/5.yaml", err)
+		}
+	})
+	t.Run(`a sequence`, func(t *testing.T) {
+		root := t.TempDir()
+		writeDataFiles(t, root, map[string]string{`users/5.yaml`: "character:\n  items:\n  - bauble:\n      - B0000001\n"})
+		if _, _, _, err := DiskRefs(root, now); err == nil || !strings.Contains(err.Error(), `parse users/5.yaml`) {
+			t.Fatalf("err %v, want a parse error naming users/5.yaml", err)
+		}
+	})
+}
+
+// Directory-level WalkDir errors (a folder that cannot be listed) must name
+// the folder the same way file-level errors name the file, or the failure
+// is unactionable.
+func TestDiskRefsWrapsDirectoryWalkErrorsWithPath(t *testing.T) {
+	if runtime.GOOS == `windows` {
+		t.Skip(`chmod-based unreadability is not reliable on windows`)
+	}
+	if os.Geteuid() == 0 {
+		t.Skip(`running as root defeats permission checks`)
+	}
+	root := t.TempDir()
+	now := time.Now().UTC()
+	locked := filepath.Join(root, `users`, `locked`)
+	if err := os.MkdirAll(locked, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(locked, `7.yaml`), []byte("character:\n  items:\n  - bauble: B0000001\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(locked, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(locked, 0o755) })
+
+	_, _, _, err := DiskRefs(root, now)
+	want := filepath.ToSlash(filepath.Join(`users`, `locked`))
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("err %v, want an error naming %s", err, want)
+	}
 }

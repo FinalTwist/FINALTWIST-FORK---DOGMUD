@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"gopkg.in/yaml.v3"
 )
 
@@ -73,24 +74,42 @@ func scanDisk(root string, now time.Time, add func(id string)) (files int, parse
 	}
 	limit := UntakenLimit()
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, werr error) error {
-		if werr != nil {
-			if errors.Is(werr, fs.ErrNotExist) {
-				return nil
-			}
-			return werr
-		}
 		rel, rerr := filepath.Rel(root, path)
 		if rerr != nil {
 			return rerr
 		}
 		rel = filepath.ToSlash(rel)
+		if werr != nil {
+			if errors.Is(werr, fs.ErrNotExist) {
+				return nil
+			}
+			return fmt.Errorf(`walk %s: %w`, rel, werr)
+		}
 		if d.IsDir() {
 			if sweepSkipDirs[rel] {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if !d.Type().IsRegular() {
+		regular := d.Type().IsRegular()
+		if d.Type()&fs.ModeSymlink != 0 {
+			// A symlink is resolved by hand: WalkDir never follows one on
+			// its own, and d.Type() here describes the link, not what it
+			// points at.
+			target, staterr := os.Stat(path)
+			if staterr != nil {
+				return fmt.Errorf(`symlink %s: %w`, rel, staterr)
+			}
+			if target.IsDir() {
+				// Not followed (a symlinked directory could loop back on
+				// itself), and not silently skipped either: it could hide
+				// saves the sweep would then miss.
+				mudlog.Warn(`baubles`, `action`, `sweep`, `result`, `symlinked directory not followed`, `path`, rel)
+				return fmt.Errorf(`symlinked directory %s: not followed, a save could be hiding behind it`, rel)
+			}
+			regular = target.Mode().IsRegular()
+		}
+		if !regular {
 			return nil
 		}
 		name := d.Name()
@@ -178,7 +197,11 @@ func walkYAML(n *yaml.Node, depth int, now time.Time, untaken time.Duration, flo
 		if floor[n] {
 			limit = untaken
 		}
-		if id, ok := itemRefIn(n, now, limit); ok {
+		id, ok, ierr := itemRefIn(n, now, limit)
+		if ierr != nil {
+			return ierr
+		}
+		if ok {
 			add(id)
 		}
 	}
@@ -191,11 +214,17 @@ func walkYAML(n *yaml.Node, depth int, now time.Time, untaken time.Duration, flo
 }
 
 // itemRefIn reads a mapping as an item: its `bauble` id, unless it is a
-// find left lying untaken past untaken (when untaken is not 0).
-func itemRefIn(m *yaml.Node, now time.Time, untaken time.Duration) (string, bool) {
+// find left lying untaken past untaken (when untaken is not 0). A `bauble`
+// key whose value is not a scalar (a map or a sequence, never a shape this
+// reader writes) is a parse failure of the file, not "no reference": reading
+// it as absent would be a false negative that lets a live record be pruned.
+func itemRefIn(m *yaml.Node, now time.Time, untaken time.Duration) (string, bool, error) {
 	it := items.Item{}
 	for i := 0; i+1 < len(m.Content); i += 2 {
 		k, v := m.Content[i], m.Content[i+1]
+		if k.Value == `bauble` && v.Kind != yaml.ScalarNode {
+			return ``, false, fmt.Errorf(`bauble at line %d: value is a %s, not a scalar`, v.Line, yamlKindName(v.Kind))
+		}
 		if v.Kind != yaml.ScalarNode {
 			continue
 		}
@@ -207,12 +236,28 @@ func itemRefIn(m *yaml.Node, now time.Time, untaken time.Duration) (string, bool
 		}
 	}
 	if _, ok := seqOf(it.Bauble); !ok {
-		return ``, false
+		return ``, false, nil
 	}
 	if untaken > 0 {
 		if age, lying := it.BaubleUntakenFor(now); lying && age >= untaken {
-			return ``, false
+			return ``, false, nil
 		}
 	}
-	return it.Bauble, true
+	return it.Bauble, true, nil
+}
+
+// yamlKindName names a node kind for an error message.
+func yamlKindName(k yaml.Kind) string {
+	switch k {
+	case yaml.MappingNode:
+		return `mapping`
+	case yaml.SequenceNode:
+		return `sequence`
+	case yaml.AliasNode:
+		return `alias`
+	case yaml.DocumentNode:
+		return `document`
+	default:
+		return `non-scalar`
+	}
 }
