@@ -244,3 +244,68 @@ func TestAdminBauble_PromoteAndCorpus(t *testing.T) {
 	assert.Contains(t, out, "The seed file could not be read")
 	assert.Contains(t, out, "the seed already in use is kept")
 }
+
+// baubleEdit and baubleRetire tell the admin when a change took text out of
+// the fallback corpus, and, in red, when the corpus could not be cleaned up
+// even though the record itself changed (Task 7's ErrCorpusCleanup, left
+// untested by that implementer).
+func TestAdminBauble_EditAndRetireReportCorpusCleanup(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreItems := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket",
+			Type: items.Object, Subtype: items.Mundane, Weight: 0.2, Value: 1, NotSalable: true},
+	})
+	defer restoreItems()
+	dir := t.TempDir()
+	baubles.SetDirForTest(dir)
+	defer items.SetBaubleResolver(nil)
+	seedPath := filepath.Join(dir, "bauble-corpus.yaml")
+	require.NoError(t, os.WriteFile(seedPath, []byte("groups:\n  interior: dwelling\nentries: {}\n"), 0o644))
+	overlayDir := filepath.Join(dir, "ovl")
+	overlayPath := filepath.Join(overlayDir, "corpus.promoted.yaml")
+	baubles.LoadCorpusFrom(seedPath, overlayPath)
+	defer baubles.ClearCorpusForTest()
+
+	admin, room := getTestUserAndRoom(t)
+
+	newPromoted := func(name, simple string) baubles.Record {
+		rec, err := baubles.Create(baubles.Record{
+			Name: name, NameSimple: simple, Tier: baubles.TierCheap, Value: 4, WeightLbs: 0.2,
+			Description: "A wooden thread spool painted with a band of faded blue.",
+			Status:      baubles.StatusReady, Generator: baubles.GeneratorOpenAI, Moderated: true,
+			Source: baubles.SourceSearch, Biome: "interior", Zone: "ashwick",
+		})
+		require.NoError(t, err)
+		_, err = baubles.Promote(rec.Id)
+		require.NoError(t, err)
+		return rec
+	}
+
+	// A clean edit: its one promoted entry leaves the corpus, and the admin
+	// is told how many.
+	edited := newPromoted("Painted Wooden Spool", "spool")
+	out := adminSaid(t, "edit "+edited.Id+" material copper", admin, room)
+	assert.Contains(t, out, "Its old text left the fallback corpus (promoted entries removed: 1).")
+	assert.Contains(t, out, "Bauble "+edited.Id+" is now")
+
+	// The overlay's directory is blocked: a cleanup that cannot save the
+	// overlay still lets the edit (and the retire below) stand, but is
+	// reported in red rather than silently dropped.
+	stuck := newPromoted("Carved Walnut Button", "button")
+	require.NoError(t, os.RemoveAll(overlayDir))
+	require.NoError(t, os.WriteFile(overlayDir, []byte("a file where the overlay's directory should be"), 0o644))
+
+	out = adminSaid(t, "edit "+stuck.Id+" material oak", admin, room)
+	assert.Contains(t, out, "Bauble "+stuck.Id+" is now")
+	assert.Contains(t, out, "the fallback corpus entries promoted from it could not be removed")
+	assert.NotContains(t, out, "promoted entries removed", "removed is 0 when cleanup itself failed")
+	got, _ := baubles.Get(stuck.Id)
+	assert.Equal(t, "oak", got.Material, "the record itself still changed")
+
+	out = adminSaid(t, "retire "+stuck.Id, admin, room)
+	assert.Contains(t, out, "is retired")
+	assert.Contains(t, out, "the fallback corpus entries promoted from it could not be removed")
+	got, _ = baubles.Get(stuck.Id)
+	assert.Equal(t, baubles.StatusRetired, got.Status, "retire still retires despite the cleanup failure")
+}
