@@ -196,6 +196,14 @@ search could match.
     scorer make the choice through the one helper, so they agree for any arm
     count. An explicitly named arm whose slot is cursed refuses; it never
     silently picks another arm.
+13. **A shield next to a two-hander takes the last available hand** (owner,
+    2026-09-29). With a 2H in the main hands and every other hand full, a
+    shield swaps out the item in the highest uncursed hand that is not part
+    of a 2H, instead of today's "no room for a shield" refusal. The refusal
+    stays only when no such hand exists (for example at 2 arms).
+14. **Bloom pushing extra arms past `max_rank` stays with the mutation
+    deepening balance pass** (owner, 2026-09-29); the slot rule handles any
+    count up to 6 regardless.
 
 ## 5a: Object and action gates
 
@@ -355,8 +363,12 @@ cursed the choice is today's, exactly (E11, E16). The candidates:
   `ExtraArm4` on the same skip. Fill is today's `FindFirstEmptySlot(pairs,
   true)`. Today's only swap is `Offhand`, so a cursed offhand item now sends
   the shield to the first uncursed extra arm. When `Weapon` holds a 2H and no
-  slot is empty, today's "Your two-handed weapon leaves no room for a
-  shield." stands: today has no swap there, and the ruling adds none.
+  slot is empty, the shield swaps out the item in the LAST available hand
+  (owner, 2026-09-29): the highest arm, counting down, whose slot is not part
+  of a 2H and holds nothing cursed. With no such hand (2 arms, or every other
+  hand cursed or holding a 2H) today's "Your two-handed weapon leaves no room
+  for a shield." stands, or the shared cursed line when the only candidates
+  are cursed.
 - **2H weapon**: whole pairs only, half pairs never (E15), ordered as today
   chooses: a free pair first, then by fewest occupants, the earlier pair on a
   tie (`FindFirstFreePair`, then `FindCheapestPairToDisplace`; a stable sort
@@ -525,6 +537,7 @@ Proven able to fail by a temporary violation in each row.
 | Rings or wrists full and all cursed: refused | no | no | yes |
 | Hands full, main hand cursed: 1H goes to the first uncursed hand it may use (2 to 6 arms) | no (refused) | no (refused) | yes (ruling 12) |
 | Hands full, offhand item cursed: shield goes to the first uncursed extra arm | no (refused) | no (refused) | yes (ruling 12) |
+| 2H in the main hands, no empty hand: shield swaps the last available hand | no ("no room") | no ("no room") | yes, from 3 arms (ruling 13) |
 | 2H skips a pair holding a cursed item, tries the next pair | no (refused on today's pair) | no | yes (ruling 12) |
 | `equip X armN` over a cursed item in arm N refuses, never another arm | yes (own copy) | n/a | yes (helper's arm-N case) |
 | Nothing cursed: `Wear`'s slot choice | today's | today's | today's, for every arm count |
@@ -674,7 +687,10 @@ Hands work the same way on every arm a character has: with a cursed weapon
 stuck in the main hand, a new one-hander goes into the first uncursed hand
 it may use (the offhand only for a dual wielder, then extra arms 3 to 6);
 a shield skips a cursed offhand item for the first uncursed extra arm; a
-two-hander skips a pair holding anything cursed for the next pair. Only when
+two-hander skips a pair holding anything cursed for the next pair. A
+character with three or more arms holding a two-hander can now take up a
+shield even with every hand full: it swaps out the item in the last free
+hand (ruling 13); at two arms "no room for a shield" still refuses. Only when
 every eligible hand or pair is cursed does it fail with that line, and with
 nothing cursed every equip lands exactly where it does today. `equip X armN` now behaves like `equip X` apart from where the item goes: a
 player too weak for the item is refused ("You aren't strong enough to handle
@@ -768,8 +784,12 @@ mention of the mob's own name in its emote text is hidden at shapes too.
     uncursed extra arm, refused at 2 arms;
   - shield with a cursed offhand item, hands full: refused at 2 arms; from
     3 arms up the first uncursed extra arm, refused when every extra arm is
-    cursed too; with a 2H in `Weapon` and no empty slot,
-    today's "no room for a shield" line at every count;
+    cursed too;
+  - shield with a 2H in `Weapon` and no empty slot: "no room for a shield"
+    at 2 arms; at 3, 4 and 6 arms it swaps the last available hand (arm 3,
+    arm 4 and arm 6 respectively, a one-hander's slot, never a 2H pair); with
+    that hand cursed it takes the next one down; with every candidate cursed,
+    the shared cursed line;
   - two-hander with a cursed item in the cheapest pair: the next whole pair
     at 4 and 6 arms (never the half pair at 3), refused at 2 and 3;
   - wrists: `Wrist1` cursed, every wrist full, extra wrists present: the
@@ -835,7 +855,8 @@ mention of the mob's own name in its emote text is hidden at shapes too.
   `DualWieldBonus` or `ShieldBonus` in the score. Tuning, not parity.
 - Bloom deepens `extra-arms` past its `max_rank: 1` because
   `BloomAdvanceMutation` reads the global `MutationMaxLevel` instead of
-  `effectiveMax` (E14). A finding, filed, not fixed here; the slot choice
+  `effectiveMax` (E14). Owner ruling 14: stays with the mutation deepening
+  balance pass (already filed there); the slot choice
   handles every count up to the cap of 4 extra arms either way.
 - Disarm and forced unequips (`combat/criteffects.go:61`,
   `hooks/combat_shared_helpers.go:243`), which bypass `RemoveEquipment` and
