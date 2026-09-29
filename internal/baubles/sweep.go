@@ -69,7 +69,12 @@ func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (refere
 		shard := shardOf(seq)
 		if refs[id] {
 			referenced++
-			r.LastSeenAt, r.UnseenSweeps = now, 0
+			// Never earlier than a sighting already recorded: a clock
+			// stepped back between sweeps must not shorten the keep window.
+			if now.After(r.LastSeenAt) {
+				r.LastSeenAt = now
+			}
+			r.UnseenSweeps = 0
 			shards[shard] = true
 			continue
 		}

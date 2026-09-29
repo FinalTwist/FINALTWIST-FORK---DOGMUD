@@ -193,6 +193,27 @@ func TestApplySweepWriteFailurePrunesNothing(t *testing.T) {
 	}
 }
 
+// A clock stepped back between sweeps never moves a sighting earlier: a
+// seen record keeps the later LastSeenAt it already has, and is still
+// counted seen.
+func TestApplySweepNeverMovesLastSeenBackwards(t *testing.T) {
+	SetDirForTest(t.TempDir())
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+	now := time.Now().UTC()
+	id := sweepRecord(t, `Skewed Clock Bead`, func(r *Record) {
+		r.FoundAt, r.LastSeenAt, r.UnseenSweeps = now.Add(-48*time.Hour), now, 1
+	})
+	stored, _ := Get(id)
+
+	if ref, _ := applySweep(now.Add(-time.Hour), map[string]bool{id: true}, KeepDuration()); ref != 1 {
+		t.Fatalf("referenced %d, want 1", ref)
+	}
+	r, _ := Get(id)
+	if !r.LastSeenAt.Equal(stored.LastSeenAt) || r.UnseenSweeps != 0 {
+		t.Fatalf("LastSeenAt %v UnseenSweeps %d, want %v kept and 0", r.LastSeenAt, r.UnseenSweeps, stored.LastSeenAt)
+	}
+}
+
 // A record found after the sweep began is left alone.
 func TestApplySweepLeavesNewerRecordsAlone(t *testing.T) {
 	SetDirForTest(t.TempDir())
