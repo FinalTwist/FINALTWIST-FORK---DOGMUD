@@ -574,11 +574,14 @@ Pickpockets a target mob or player, or robs an item from a room container.
      scaled by 100/Dexterity, kept between StealPocketMinSeconds and
      StealPocketMaxSeconds) the outcome is revealed under the mud lock
      (`resolve`). `StealResult.Pending` is set meanwhile. A FAILED roll is
-     caught however the pause ends (owner ruling 2026-09-29; `caught`): beside
-     the mark, `caughtByMob` as below; away from it or offline, the mark cries
-     thief in its own room and `theftCrime` records the crime against the thief
-     (through the `pocketCrime` seam), with no attack; an online thief is told
-     and trained on the loss. A mark that is gone or dead catches nobody. A
+     caught however the pause ends (owner ruling 2026-09-29; `caught`): with
+     the thief and the mark both still in the theft room, `caughtByMob` as
+     below; otherwise, or offline, the mark cries thief in its own room and
+     `theftCrime` records the crime against the thief in the theft room, away
+     mode (through the `pocketCrime` seam). The mark attacks only when it and
+     the thief have both left the theft room and are together again
+     (`markAttacksThief`); the bystanders there witness nothing. An online
+     thief is told and trained on the loss. A mark that is gone or dead catches nobody. A
      SUCCESSFUL roll whose thief has left the room, gone offline, started
      fighting or come under attack by then, or whose mark has moved, died or
      gone, loses the chance ("You lose your chance at X's pocket."): nothing

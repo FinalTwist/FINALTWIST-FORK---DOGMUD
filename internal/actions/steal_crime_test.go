@@ -5,23 +5,28 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/opinions"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
-// A pickpocket caught AWAY from the theft (the mark felt a hand after the
-// thief had gone; slice H review finding b) has one witness, the mark: a
-// same-faction bystander in the mark's room saw nothing, so it neither
-// identifies the thief nor counts as an external witness. In the act,
-// that bystander does both, as ever.
-func TestTheftWitnessesAwayAreTheMarkAlone(t *testing.T) {
+// seedTheftFaction registers one faction, thornwall_citizens, and points
+// every book a recorded theft writes (crimes, reputation, opinions, and the
+// knowledge and bounty files under DataFiles) at temp dirs, so a test can
+// run theftCrime for real and read back what it recorded.
+func seedTheftFaction(t *testing.T) {
+	t.Helper()
 	// Registered before t.Setenv, so it runs after the environment is put
 	// back: the registry reloads from wherever it loaded before.
 	t.Cleanup(func() { _ = factions.LoadAllDefinitions() })
 	dir := t.TempDir()
 	t.Setenv("DOGMUD_FACTIONS_DIR_OVERRIDE", dir)
 	t.Setenv("DOGMUD_FACTIONS_REP_DIR_OVERRIDE", t.TempDir())
+	t.Setenv("DOGMUD_FACTIONS_CRIMES_DIR_OVERRIDE", t.TempDir())
+	t.Setenv("DOGMUD_OPINIONS_DIR_OVERRIDE", t.TempDir())
 	body := "faction_id: thornwall_citizens\ndisplay_name: \"Thornwall Citizenry\"\ndescription: \"x\"\ndefault_rep: 0\nallies: []\nenemies: []\n"
 	if err := os.WriteFile(filepath.Join(dir, "thornwall_citizens.yaml"), []byte(body), 0644); err != nil {
 		t.Fatal(err)
@@ -29,7 +34,27 @@ func TestTheftWitnessesAwayAreTheMarkAlone(t *testing.T) {
 	if err := factions.LoadAllDefinitions(); err != nil {
 		t.Fatal(err)
 	}
+	factions.ClearCache()
+	crimes.ClearCache()
+	opinions.ClearCache()
+	t.Cleanup(func() {
+		factions.ClearCache()
+		crimes.ClearCache()
+		opinions.ClearCache()
+	})
+	cfg := configs.GetConfig()
+	cfg.FilePaths.DataFiles = configs.ConfigString(t.TempDir())
+	configs.SetConfigForTest(t, cfg)
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{"default": {BiomeId: "default"}}))
+}
+
+// A pickpocket caught AWAY from the theft (the mark felt a hand after the
+// thief had gone; slice H review finding b) has one witness, the mark: a
+// same-faction bystander in the mark's room saw nothing, so it neither
+// identifies the thief nor counts as an external witness. In the act,
+// that bystander does both, as ever.
+func TestTheftWitnessesAwayAreTheMarkAlone(t *testing.T) {
+	seedTheftFaction(t)
 
 	room := &rooms.Room{RoomId: 9702, Lamp: rooms.LampPtr(90)}
 	mark := newStealTestMob(9921, 0, 100)

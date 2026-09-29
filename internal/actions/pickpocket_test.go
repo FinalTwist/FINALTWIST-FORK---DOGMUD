@@ -9,7 +9,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/crimes"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/knowledge"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -493,6 +496,65 @@ func TestPickpocketFailedRollIsCaughtHoweverThePauseEnds(t *testing.T) {
 		if name == `logged out` && (len(h.thief.sent) != 1 || len(h.thief.awards) != 0) {
 			t.Errorf("logged out: told and trained nothing after the attempt line: %q %+v", h.thief.sent, h.thief.awards)
 		}
+	}
+}
+
+// A failed roll whose thief and mark have both left the theft room, and are
+// together somewhere else at the reveal, is not a catch in the act: the
+// crime belongs to the theft room, and the bystanders where they meet saw
+// no theft, so none of them identifies the thief. The mark, which can see
+// the thief now, still cries thief and attacks.
+func TestPickpocketCaughtTogetherElsewhereIsNotInTheAct(t *testing.T) {
+	h := setupPocket(t, 9618, 7618)
+	seedTheftFaction(t)
+	h.room.Lamp = rooms.LampPtr(90)
+	h.room.AddMob(h.mark.InstanceId)
+	h.mark.MobId = 9718
+	h.mark.Groups = []string{"thornwall_citizens"}
+	elsewhere := &rooms.Room{RoomId: 9694, Lamp: rooms.LampPtr(90)}
+	seedPocketRooms(t, h.room, elsewhere)
+	bystander := newStealTestMob(9890, 0, 100)
+	bystander.MobId = 9790
+	bystander.Character.RoomId = elsewhere.RoomId
+	bystander.Groups = []string{"thornwall_citizens"}
+	mobs.SetInstanceForTest(bystander.InstanceId, bystander)
+	t.Cleanup(func() { mobs.SetInstanceForTest(bystander.InstanceId, nil) })
+	elsewhere.AddMob(bystander.InstanceId)
+	events.DrainQueuedInputsForTest(h.mark.InstanceId)
+
+	runPocketAttempt = func(p *pocketAttempt) StealResult {
+		h.thief.room = elsewhere
+		h.room.RemoveMob(h.mark.InstanceId)
+		h.mark.Character.RoomId = elsewhere.RoomId
+		elsewhere.AddMob(h.mark.InstanceId)
+		return resolvePocketInLine(p)
+	}
+	res := startPocketAttempt(h.thief, h.mark, false)
+	if !res.Detected || said(h.thief, "catches you in the act") != 0 || said(h.thief, "felt your hand") != 1 {
+		t.Fatalf("caught, but not in the act: %+v %q", res, h.thief.sent)
+	}
+	got := crimes.AllForFaction("thornwall_citizens", false)
+	if len(got) != 1 {
+		t.Fatalf("one theft recorded: %+v", got)
+	}
+	if got[0].RoomId != h.room.RoomId || got[0].HadExternalWitness || got[0].Perpetrator.Type != crimes.PerpPlayer {
+		t.Fatalf("in the theft room, the mark its only witness: %+v", *got[0])
+	}
+	subject := knowledge.PlayerSubject(7618)
+	if knowledge.Get(int(bystander.MobId), subject) != nil {
+		t.Fatal("the bystander where they met saw no theft, and learns nothing")
+	}
+	if r := knowledge.Get(int(h.mark.MobId), subject); r == nil || len(r.CrimesWitnessed) != 1 {
+		t.Fatalf("the mark learns who robbed it: %+v", r)
+	}
+	attacks := 0
+	for _, in := range events.DrainQueuedInputsForTest(h.mark.InstanceId) {
+		if in == "attack @7618" {
+			attacks++
+		}
+	}
+	if attacks != 1 {
+		t.Fatalf("the mark, beside the thief, attacks: %d", attacks)
 	}
 }
 

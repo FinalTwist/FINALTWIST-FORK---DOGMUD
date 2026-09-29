@@ -40,9 +40,10 @@ import (
 //     (takeFromMob); or being caught (caughtByMob).
 //
 // A failed roll is caught however the pause ends (owner ruling
-// 2026-09-29): beside the mark, in the act; away from it or offline, the
-// mark cries thief in its room and the crime is recorded, with no attack
-// (caught). A successful roll whose thief has left the room, logged off or
+// 2026-09-29): with the thief and the mark both still in the theft room,
+// in the act; otherwise, or offline, the mark cries thief in its room and
+// the crime is recorded in the theft room, with the mark its only witness;
+// the mark attacks only a thief it is beside now (caught). A successful roll whose thief has left the room, logged off or
 // started fighting by then, or whose mark has gone, loses the chance:
 // nothing is taken. A bauble already named for it stays in the mark's pocket, to be
 // found by the next attempt. Pickpocketed baubles are pocket-sized: the
@@ -345,22 +346,28 @@ var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room) {
 }
 
 // caught is a failed roll's reveal, wherever the thief is by now (owner
-// ruling 2026-09-29). Beside the mark it is the ordinary catch in the act
-// (caughtByMob: the room sees it, the crime, the attack). Anywhere else,
-// or offline, the mark felt the hand all the same: it cries thief in its
-// own room, and the theft is recorded against the thief in the room it
-// happened in (pocketCrime), but it attacks nobody, since the thief is not
-// there. An online thief is told and trained on the loss. An online thief
-// with no room (GetRoom nil) is away.
+// ruling 2026-09-29). With the thief and the mark both still in the theft
+// room it is the ordinary catch in the act (caughtByMob: the room sees it,
+// the crime, the attack). Anywhere else, or offline, the mark felt the hand
+// all the same: it cries thief in its own room, and the theft is recorded
+// against the thief in the room it happened in (pocketCrime), where only
+// the mark witnessed it. The mark attacks only a thief it is beside now
+// (both having left the theft room and met again); the bystanders there
+// saw no theft. An online thief is told and trained on the loss. An online
+// thief with no room (GetRoom nil) is away.
 //
 // The locals are named actor (the thief) and room (the mark's room) so the
 // repo-root narration guard, which recognises viewpoints by receiver name,
 // audits these lines.
 func (p *pocketAttempt) caught(actor Actor, online bool, m *mobs.Mob) StealResult {
+	together := false
 	if online {
 		actor.AwardResolved(false, actor.GetCharacter().CandidateFor(string(skills.Skullduggery)))
 		if here := actor.GetRoom(); here != nil && here.RoomId == m.Character.RoomId {
-			return caughtByMob(actor, m, here)
+			if here.RoomId == p.roomId {
+				return caughtByMob(actor, m, here)
+			}
+			together = true
 		}
 		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" follows you.`, p.mobName))
@@ -376,6 +383,9 @@ func (p *pocketAttempt) caught(actor Actor, online bool, m *mobs.Mob) StealResul
 	}
 	if theftRoom != nil {
 		pocketCrime(p.userId, m, theftRoom)
+	}
+	if together {
+		markAttacksThief(actor, m)
 	}
 	return StealResult{Detected: true, DefenderName: p.mobName, Reason: `detected`}
 }

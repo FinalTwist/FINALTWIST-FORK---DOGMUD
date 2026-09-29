@@ -638,10 +638,15 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 
 	theftCrime(actor.GetUserId(), m, room, false)
 
-	// A victim that cannot be fought (a non-combatant shopkeeper, a
-	// player-attack-immune NPC) does not attack; it has already raised the
-	// crime above. stealFromMob never reaches here with one (it refuses to
-	// steal from them), so for `steal` this changes nothing.
+	markAttacksThief(actor, m)
+}
+
+// markAttacksThief is a mark that caught actor stealing turning on them.
+// A victim that cannot be fought (a non-combatant shopkeeper, a
+// player-attack-immune NPC) does not attack; its caller has already raised
+// the crime. stealFromMob never reaches here with one (it refuses to steal
+// from them), so for `steal` this changes nothing.
+func markAttacksThief(actor Actor, m *mobs.Mob) {
 	if !m.IsNonCombatant() && !m.PlayerAttackImmune {
 		m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
 	}
