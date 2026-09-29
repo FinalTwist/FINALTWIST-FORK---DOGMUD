@@ -352,23 +352,27 @@ var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room) {
 // happened in (pocketCrime), but it attacks nobody, since the thief is not
 // there. An online thief is told and trained on the loss. An online thief
 // with no room (GetRoom nil) is away.
-func (p *pocketAttempt) caught(thief Actor, online bool, m *mobs.Mob) StealResult {
+//
+// The locals are named actor (the thief) and room (the mark's room) so the
+// repo-root narration guard, which recognises viewpoints by receiver name,
+// audits these lines.
+func (p *pocketAttempt) caught(actor Actor, online bool, m *mobs.Mob) StealResult {
 	if online {
-		thief.AwardResolved(false, thief.GetCharacter().CandidateFor(string(skills.Skullduggery)))
-		if here := thief.GetRoom(); here != nil && here.RoomId == m.Character.RoomId {
-			return caughtByMob(thief, m, here)
+		actor.AwardResolved(false, actor.GetCharacter().CandidateFor(string(skills.Skullduggery)))
+		if here := actor.GetRoom(); here != nil && here.RoomId == m.Character.RoomId {
+			return caughtByMob(actor, m, here)
 		}
-		thief.SendText(messaging.CategorySystem, fmt.Sprintf(
+		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" follows you.`, p.mobName))
 	}
-	markRoom := rooms.LoadRoom(m.Character.RoomId)
-	if markRoom != nil {
-		markRoom.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
+	room := rooms.LoadRoom(m.Character.RoomId)
+	if room != nil {
+		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> pats a pocket and cries, "Thief!"`, m.Character.Name), p.userId)
 	}
 	theftRoom := rooms.LoadRoom(p.roomId)
 	if theftRoom == nil {
-		theftRoom = markRoom // the theft's room is gone: the crime is recorded where the mark is
+		theftRoom = room // the theft's room is gone: the crime is recorded where the mark is
 	}
 	if theftRoom != nil {
 		pocketCrime(p.userId, m, theftRoom)
