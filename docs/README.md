@@ -32,7 +32,7 @@ setting, or [`schemas/`](schemas/) if you want to author content.
 | [`guides/DEPLOYMENT_GUIDE.md`](guides/DEPLOYMENT_GUIDE.md) | Deploying to the production droplet |
 | [`guides/ADVERTISING_LISTINGS.md`](guides/ADVERTISING_LISTINGS.md) | Copy used for MUD-listing sites |
 | [`guides/TESTING_GUIDE.md`](guides/TESTING_GUIDE.md) | Reproducible race-enabled test baseline, local and CI |
-| [`../.claude/skills/dogmud-end-of-day/SKILL.md`](../.claude/skills/dogmud-end-of-day/SKILL.md) | The end-of-day SOP: archive shipped specs and plans under `completed/` with every reference repointed, tidy the repo root, write the session handoff |
+| [`../.claude/skills/dogmud-end-of-day/SKILL.md`](../.claude/skills/dogmud-end-of-day/SKILL.md) | The end-of-day SOP: archive shipped specs and plans under `completed/` with every reference repointed, tidy the repo root, sweep `C:\tmp` and `C:\gotmp` (clean merged worktrees, cargo targets idle a day, scratch idle two days; other repos' checkouts and anything unmerged left alone), write the session handoff |
 
 ## Audits & findings
 
