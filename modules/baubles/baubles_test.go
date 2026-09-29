@@ -483,6 +483,17 @@ func TestBuildConfigDefaultsAndBounds(t *testing.T) {
 		!c.ModerateOutput || c.MaxConcurrent != 4 || c.MaxCompletionTokens != 800 {
 		t.Fatalf("defaults: %+v", c)
 	}
+	if c.DailyTokensPerUser != 20000 {
+		t.Fatalf("default DailyTokensPerUser: %d", c.DailyTokensPerUser)
+	}
+	if buildConfig(func(k string) any {
+		if k == `DailyTokensPerUser` {
+			return -5
+		}
+		return nil
+	}).DailyTokensPerUser != 0 {
+		t.Fatal("a negative allowance is no cap")
+	}
 	c = buildConfig(func(k string) any {
 		switch k {
 		case `TimeoutSeconds`:
@@ -951,4 +962,102 @@ func chatBody(content string, tokens int) string {
 		`usage`:   map[string]any{`total_tokens`: tokens},
 	})
 	return string(b)
+}
+
+func finderSpent(id int) int { return apiframework.Allowance(apiframework.DimBaublesFinder, id) }
+
+// A find is charged to its finder, on the server's key and on their own.
+// Moderation is on, as in slice H's player-key tests, so the finder's find
+// is moderated and everyone's (it is charged the same either way).
+func TestAFindIsChargedToItsFinder(t *testing.T) {
+	f := newFakeOpenAI(t)
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+	if _, err := m.generate(context.Background(), request()); err != nil {
+		t.Fatal(err)
+	}
+	if finderSpent(7) != 240 {
+		t.Fatalf("the server's key: the finder is charged what it cost: %d", finderSpent(7))
+	}
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+	before := apiframework.Today().Tokens
+	if res, err := m.generate(context.Background(), request()); err != nil || !res.PlayerKey {
+		t.Fatalf("fixture: named on the finder's key: %+v %v", res, err)
+	}
+	if finderSpent(7) != 480 || apiframework.Today().Tokens != before {
+		t.Fatalf("their own key: charged to them, nothing of the server's: finder=%d server %d->%d",
+			finderSpent(7), before, apiframework.Today().Tokens)
+	}
+}
+
+// Over their allowance, a finder's find is a generic trinket: no call on
+// either key, and the relay's breaker is not fed.
+func TestAFinderOverTheirAllowanceGetsNoName(t *testing.T) {
+	f := newFakeOpenAI(t)
+	// The relay route opens with or without moderation (slice H keeps text
+	// it cannot moderate to its finder): only the allowance stops it. Its
+	// refusal falls through to the server's key, which the same allowance
+	// refuses too.
+	m := testModule(t, f, nil)
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+	apiframework.Shared().SetAllowanceForTest(apiframework.DimBaublesFinder, 7, m.snapshot().DailyTokensPerUser)
+	for i := 0; i < 4; i++ { // more refusals in a row than testModule's BreakerErrors (3)
+		_, err := m.generate(context.Background(), request())
+		if !errors.Is(err, apiframework.ErrOverAllowance) || apiframework.RefusedBy(err) != apiframework.DimBaublesFinder {
+			t.Fatalf("over the allowance, and it says whose: %v", err)
+		}
+	}
+	if relay.sends != 0 || atomic.LoadInt32(&f.chats) != 0 || len(relay.results) != 0 {
+		t.Fatalf("no call anywhere, the relay's breaker unfed: sends=%d chats=%d results=%v", relay.sends, f.chats, relay.results)
+	}
+	if apiframework.Blocked(apiframework.ConsumerBaubles, time.Now()) {
+		t.Fatal("a refusal feeds no breaker of the server's")
+	}
+	m.mu.Lock()
+	server, player, failures := m.stats.server, m.stats.player, m.stats.failures
+	m.mu.Unlock()
+	if server != 0 || player != 0 || failures != 0 {
+		t.Fatalf("a refusal is no naming and no failure in bauble status: server=%d player=%d failed=%d", server, player, failures)
+	}
+}
+
+// Baubles hold at most their share of the day's budget; the companion
+// still has the rest.
+func TestBaublesOverTheirShareFallBack(t *testing.T) {
+	f := newFakeOpenAI(t)
+	m := testModule(t, f, nil)
+	restore := apiframework.SetServerForTest(apiframework.ServerSettings{
+		Endpoint:         apiframework.Endpoint{BaseURL: f.srv.URL, APIKey: `sk-test`},
+		DailyTokenBudget: 10000, BaublesSharePercent: 25, BreakerErrors: 3, BreakerSeconds: 60,
+	})
+	t.Cleanup(restore)
+	if _, err := apiframework.Reserve(apiframework.ConsumerBaubles, 2400, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.generate(context.Background(), request()); !errors.Is(err, apiframework.ErrOverShare) ||
+		apiframework.RefusedBy(err) != apiframework.RefusedShare {
+		t.Fatalf("over a 2500-token share, and it says so: %v", err)
+	}
+	if atomic.LoadInt32(&f.chats) != 0 {
+		t.Fatal("a refused reservation makes no call")
+	}
+	if _, err := apiframework.Reserve(apiframework.ConsumerCompanion, 5000, true); err != nil {
+		t.Fatal("the companion still has the rest of the day")
+	}
+}
+
+// An admin's regeneration has no finder: it charges no allowance and
+// counts under the baubles share.
+func TestAdminRegenChargesNoFinder(t *testing.T) {
+	f := newFakeOpenAI(t)
+	m := testModule(t, f, nil)
+	req := request()
+	req.FinderUserId = 0
+	if _, err := m.generate(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if finderSpent(0) != 0 || baublesTokens() != 240 {
+		t.Fatalf("no finder charged, the share counts it: finder0=%d share=%d", finderSpent(0), baublesTokens())
+	}
 }

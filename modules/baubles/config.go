@@ -29,6 +29,11 @@ type Config struct {
 	RetryTransient      bool
 	MaxConcurrent       int
 
+	// DailyTokensPerUser is what one finder's finds may spend in a UTC day,
+	// on the server's key or their own (apiframework's baubles.finder
+	// allowance). 0 is no cap.
+	DailyTokensPerUser int
+
 	ModerateOutput  bool
 	ModerationModel string
 	LogRequests     bool
@@ -125,6 +130,7 @@ func buildConfig(get getter) Config {
 		MaxCompletionTokens: clampInt(asInt(get(`MaxCompletionTokens`), 800), 200, 4000),
 		RetryTransient:      asBool(get(`RetryTransient`)),
 		MaxConcurrent:       clampInt(asInt(get(`MaxConcurrent`), 4), 1, 32),
+		DailyTokensPerUser:  max(asInt(get(`DailyTokensPerUser`), 20000), 0),
 		ModerateOutput:      true,
 		ModerationModel:     strings.TrimSpace(asString(get(`ModerationModel`))),
 		LogRequests:         asBool(get(`LogRequests`)),

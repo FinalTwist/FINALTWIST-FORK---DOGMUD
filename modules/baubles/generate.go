@@ -22,6 +22,15 @@ var (
 	errSlotsBusy   = errors.New(`all generation slots busy`)
 )
 
+// finderCharges is the finder's own allowance, when there is a finder (an
+// admin's regeneration has none and counts only under the baubles share).
+func finderCharges(cfg Config, finderId int) []apiframework.Charge {
+	if finderId <= 0 {
+		return nil
+	}
+	return []apiframework.Charge{{Dim: apiframework.DimBaublesFinder, UserId: finderId, Limit: cfg.DailyTokensPerUser}}
+}
+
 // generate is the baubles.GeneratorFunc this module installs. It runs on a
 // delivery goroutine WITHOUT the mud lock (see actions/search_bauble.go), so
 // it touches no game state. Any error sends the find down the
@@ -50,7 +59,14 @@ func (m *BaublesModule) generate(ctx context.Context, req baubles.GenRequest) (b
 		// statistic (m.count) and feeds no breaker, as before this slice.
 		return baubles.GenResult{}, err
 	}
-	m.count(playerKey, err != nil)
+	// A refused reservation (a spent day, share or allowance) made no call:
+	// it is neither a naming nor a failure in `bauble status`, and it feeds
+	// no breaker (its report is a no-op). baubles.Generate logs the refusal,
+	// naming the counter (apiframework.RefusedBy), and unlike errSlotsBusy it
+	// still gets its model call line below when LogRequests is on.
+	if apiframework.RefusedBy(err) == `` {
+		m.count(playerKey, err != nil)
+	}
 	if cfg.LogRequests {
 		mudlog.Info(`baubles`, `action`, `model call`, `zone`, req.Place.Zone, `tier`, string(req.Tier),
 			`model`, model, `playerKey`, playerKey, `tokens`, tokens, `error`, errString(err))
@@ -159,13 +175,17 @@ func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenReq
 				// The finder's own slot, never one of the server's: a busy
 				// one (their last find still naming) goes to the server.
 				if release, free := m.takeFinderSlot(req.FinderUserId); free {
-					content, tokens, report, err = viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)
+					content, tokens, report, err = viaPlayer(ctx, cfg, r, req.FinderUserId, relayModel, chat)
 					release()
 					switch {
 					case err == nil && refusedByAllowlist(content):
 						// Plain enough for the model, not for other players
 						// (ruling 15): not the key's failure, so its breaker
 						// hears nothing, and the server's key names the find.
+						// The tokens the finder's key spent stay charged to
+						// their allowance, and the server's key charges it
+						// again: the finder's key did the work, and the owner
+						// intends both to count.
 					case err == nil:
 						return content, tokens, relayModel, true, report, nil
 					default:
@@ -185,7 +205,7 @@ func (m *BaublesModule) name(ctx context.Context, cfg Config, req baubles.GenReq
 		return ``, 0, cfg.Model, false, func(error) {}, errSlotsBusy
 	}
 	defer release()
-	content, tokens, report, err = viaServer(ctx, cfg, chat)
+	content, tokens, report, err = viaServer(ctx, cfg, chat, req.FinderUserId)
 	return content, tokens, cfg.Model, false, report, err
 }
 
@@ -195,9 +215,11 @@ func canceled(ctx context.Context) bool { return errors.Is(ctx.Err(), context.Ca
 
 // viaPlayer names the find through the finder's own key, in their browser.
 // The player's provider may not accept a reasoning effort, and the relay
-// sets its own model, so neither is the server's. Nothing is reserved
-// against the server's budget; the player's finds breaker is fed.
-func viaPlayer(ctx context.Context, r apiframework.Relay, userId int, model string, chat apiframework.Chat) (string, int, func(error), error) {
+// sets its own model, so neither is the server's. Nothing of the server's
+// is reserved; the finder's own allowance is, and the player's finds
+// breaker is fed.
+func viaPlayer(ctx context.Context, cfg Config, r apiframework.Relay, userId int, model string, chat apiframework.Chat) (string, int, func(error), error) {
+	none := func(error) {}
 	// The outcome is held against the finder's key for finds only (the
 	// relay keeps a breaker per purpose, and their companion's is never
 	// touched), so a provider that cannot serve finds stops being asked.
@@ -209,22 +231,33 @@ func viaPlayer(ctx context.Context, r apiframework.Relay, userId int, model stri
 	chat.Model, chat.Effort = model, ``
 	body, err := chat.Body()
 	if err != nil {
-		return ``, 0, func(error) {}, err
+		return ``, 0, none, err
 	}
-	status, raw, _, err := r.Send(ctx, userId, body, apiframework.CarriesNoPlayerData)
+	prompt := apiframework.EstimateTokens(chat.Messages) + schemaOverhead
+	// Held against the finder's allowance only. A refusal is nobody's
+	// failure, so the relay is neither asked nor fed.
+	hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, prompt+chat.MaxTokens, false, finderCharges(cfg, userId)...)
+	if err != nil {
+		return ``, 0, none, err
+	}
+	status, raw, sent, err := r.Send(ctx, userId, body, apiframework.CarriesNoPlayerData)
 	if err == nil && status != http.StatusOK {
 		// The body is the provider's own text about the player's own
 		// account: neither kept nor logged. The status says enough.
 		err = &apiframework.StatusError{Status: status}
 	}
 	if err != nil {
+		// A request that may have left is charged as the provider may have
+		// billed it; one that never left costs nothing.
+		n, _ := apiframework.Charged(0, sent, status, prompt, chat.MaxTokens, true)
+		apiframework.Settle(hold, n, false)
 		return ``, 0, report, err
 	}
 	reply := apiframework.DecodeChat(status, raw)
 	// The count came through the player's browser, which they can write:
 	// held to what one request could cost before it is recorded (spec S3).
-	prompt := apiframework.EstimateTokens(chat.Messages) + schemaOverhead
 	tokens, _ := apiframework.Charged(reply.Tokens, true, status, prompt, chat.MaxTokens, true)
+	apiframework.Settle(hold, tokens, false)
 	return reply.Content, tokens, report, reply.Err
 }
 
@@ -236,7 +269,7 @@ func viaPlayer(ctx context.Context, r apiframework.Relay, userId int, model stri
 // retries included, once its answer has been parsed and checked. Only a failure that says the provider or key is unwell reaches
 // the provider breaker the companion shares (apiframework.ProviderFailure);
 // a bauble model or schema the provider refuses pauses baubles only.
-func viaServer(ctx context.Context, cfg Config, chat apiframework.Chat) (string, int, func(error), error) {
+func viaServer(ctx context.Context, cfg Config, chat apiframework.Chat, finderId int) (string, int, func(error), error) {
 	none := func(error) {}
 	s := apiframework.Server()
 	if !s.HasKey() {
@@ -255,7 +288,7 @@ func viaServer(ctx context.Context, cfg Config, chat apiframework.Chat) (string,
 	if !ok {
 		return ``, 0, none, errBreakerOpen
 	}
-	hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true)
+	hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true, finderCharges(cfg, finderId)...)
 	if err != nil {
 		apiframework.Release(apiframework.ConsumerBaubles, ticket)
 		return ``, 0, none, err
