@@ -386,6 +386,21 @@ plain carrier ("Curious Trinket").
   the map racing a write is a fatal error. Everything that finds items by name
   goes through `NameMatch` via `FindMatchIn`, so `get`, `drop`, `look`,
   `appraise`, `sell`, `give` and `N.name` all behave the same.
+- **Finder-only baubles** (`BaubleView.Finder` set: `internal/baubles`
+  `Record.KeptToFinder`, a player key's text the server could not
+  moderate). Every viewer-agnostic accessor (`GetSpec`, `Name`,
+  `DisplayName`, `GetLongDescription`, ...) shows the generic trinket; only
+  the viewer-aware ones in `bauble_viewer.go` (`GetSpecFor`,
+  `DisplayNameFor`, `NameFor`, `LongDescriptionFor`) show the finder's own
+  text, and only to `BaubleView.FinderUserId`. Matching is viewer-agnostic,
+  so such a bauble matches ONLY by its generic words (`trinket`, `bauble`,
+  the generic name), for everyone INCLUDING its finder: a hidden word that
+  matched would confirm it to anyone who typed it (`look horse`), and as a
+  whole-word match (strength 3) it would beat a real "Horseshoe" the word
+  only starts (strength 2), so `get horse` would take the trinket. The
+  trade-off: the finder reads "Painted Wooden Horse" but refers to it as a
+  trinket. Moderated player-key and server-key baubles have no `Finder` and
+  match by their real words as above.
 - `IsSpecial()` is false for a bauble. Any code that rebuilds an item from
   its ItemId alone (`items.New(id)`) drops the link; the sell path has its
   own bauble branch for this reason. Display code that groups items by

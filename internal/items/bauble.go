@@ -219,7 +219,6 @@ func matchStrength(i *Item, input string) int {
 	}
 	in := util.NormalizeForMatch(input)
 	names := []string{util.NormalizeForMatch(i.Name()), util.NormalizeForMatch(i.NameSimple()), withoutPossessives(i.Name())}
-	names = append(names, i.baubleFinderNames()...)
 	if len(i.Adjectives) > 0 {
 		names = append(names, util.NormalizeForMatch(strings.Join(i.Adjectives, " ")+" "+i.NameSimple()))
 	}
@@ -231,24 +230,6 @@ func matchStrength(i *Item, input string) int {
 		return 2
 	}
 	return 1
-}
-
-// baubleFinderNames is a finder-only bauble's own name and keyword,
-// normalised for matching, so its finder can type the words they read
-// (`drop horse`). Matching shows nobody any text. Nil for any other item.
-func (i *Item) baubleFinderNames() []string {
-	if i.Bauble == `` {
-		return nil
-	}
-	p := baubleResolver.Load()
-	if p == nil || *p == nil {
-		return nil
-	}
-	v, ok := (*p)(i.Bauble)
-	if !ok || v.Finder == nil {
-		return nil
-	}
-	return []string{util.NormalizeForMatch(v.Finder.Name), util.NormalizeForMatch(v.Finder.NameSimple), withoutPossessives(v.Finder.Name)}
 }
 
 // anyBauble reports whether any item in the list is a bauble.

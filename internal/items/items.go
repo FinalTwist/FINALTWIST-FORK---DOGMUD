@@ -635,8 +635,11 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 		// keyword (checked below like any item's), so it never outranks a
 		// real item the player named in full, and among partial matches
 		// FindMatchIn prefers the real item.
-		// A finder-only bauble also answers to the words its finder reads.
-		wordPart, wordFull := baubleWordMatch(input, append([]string{simpleName, displayName, withoutPossessives(i.Name())}, i.baubleFinderNames()...)...)
+		// A finder-only bauble's i.Name() is its generic name, so it matches
+		// by its generic words alone. Its hidden words never match, for its
+		// finder either: matching is viewer-agnostic, and a hidden word that
+		// matched would confirm the hidden text to anyone who typed it.
+		wordPart, wordFull := baubleWordMatch(input, simpleName, displayName, withoutPossessives(i.Name()))
 		baublePartial = wordPart || wordFull
 	}
 	for _, name := range names {

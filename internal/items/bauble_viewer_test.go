@@ -49,9 +49,11 @@ func TestFinderOnlyBaubleIsGenericToEveryoneButItsFinder(t *testing.T) {
 		itm.GetSpecFor(7).NameSimple != `horse` || !strings.Contains(itm.LongDescriptionFor(7), `toy horse`) {
 		t.Fatalf("the finder reads their own text: %q %q", itm.DisplayNameFor(7), itm.LongDescriptionFor(7))
 	}
-	// The finder types the words they read; matching shows nobody any text.
-	if part, _ := itm.NameMatch(`horse`, true); !part {
-		t.Error("the finder's word matches the trinket")
+	// Matching is viewer-agnostic, so a hidden word that matched would
+	// confirm the hidden text to anyone who guessed it. The trinket answers
+	// only to its generic words, for its finder too.
+	if part, full := itm.NameMatch(`horse`, true); part || full {
+		t.Error("a hidden word must not match the trinket")
 	}
 	if _, full := itm.NameMatch(`trinket`, true); !full {
 		t.Error("the generic keyword still names it in full")
@@ -69,5 +71,73 @@ func TestViewerAccessorsAreTheirTwinsForAnyOtherItem(t *testing.T) {
 	if itm.DisplayNameFor(7) != itm.DisplayName() || itm.NameFor(7) != itm.Name() ||
 		itm.LongDescriptionFor(7) != itm.GetLongDescription() || itm.GetSpecFor(7).Name != itm.GetSpec().Name {
 		t.Fatal("an ordinary item reads the same to every viewer")
+	}
+}
+
+// A finder-only bauble matches by its generic words alone. Its hidden
+// words ("horse") match for nobody, its finder included (matching is not
+// viewer-aware; the finder calls it a trinket): otherwise `look horse`
+// would confirm a hidden word to anyone, and a whole-word hidden match
+// (strength 3) would beat a real "Horseshoe" the word only starts
+// (strength 2), so `get horse` would pick up the trinket. A moderated
+// player-key bauble and a server-key bauble keep matching by their real
+// words.
+func TestFinderOnlyBaubleMatchesOnlyByItsGenericWords(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`, Type: Object, Subtype: Mundane, Weight: 0.2, Value: 1},
+		7401:         {ItemId: 7401, Name: `Horseshoe`, NameSimple: `horseshoe`, Type: Object, Value: 4},
+	})
+	t.Cleanup(func() { restore(); SetBaubleResolver(nil) })
+	SetBaubleResolver(testBaubleResolver(map[string]BaubleView{
+		`kept`: {
+			Name: `Trinket`, NameSimple: `trinket`, Value: 12, WeightLbs: 0.2,
+			FinderUserId: 7, PlayerText: true,
+			Finder: &BaubleView{Name: `Painted Wooden Horse`, NameSimple: `horse`, Value: 12, WeightLbs: 0.2, PlayerText: true},
+		},
+		`moderated`: {Name: `Carved Bone Horse`, NameSimple: `figurine`, Value: 12, PlayerText: true},
+		`server`:    {Name: `Tin Rocking Horse`, NameSimple: `toy`, Value: 12},
+	}))
+	kept := New(BaubleItemId)
+	kept.Bauble = `kept`
+	moderated := New(BaubleItemId)
+	moderated.Bauble = `moderated`
+	server := New(BaubleItemId)
+	server.Bauble = `server`
+	shoe := New(7401)
+
+	pick := func(input string, list ...Item) Item {
+		part, full := FindMatchIn(input, list...)
+		if full.ItemId != 0 {
+			return full
+		}
+		return part
+	}
+
+	for _, word := range []string{`horse`, `wooden horse`, `painted`, `hor`} {
+		if part, full := kept.NameMatch(word, true); part || full {
+			t.Errorf("%q: a hidden word matches the finder-only bauble", word)
+		}
+		if st := matchStrength(&kept, word); st != 0 {
+			t.Errorf("%q: a hidden word ranks the finder-only bauble at %d", word, st)
+		}
+		if got := pick(word, kept); got.ItemId != 0 {
+			t.Errorf("%q: look finds the finder-only bauble alone, got %+v", word, got)
+		}
+	}
+	for _, list := range [][]Item{{kept, shoe}, {shoe, kept}} {
+		if got := pick(`horse`, list...); got.ItemId != 7401 {
+			t.Fatalf("get horse -> the real horseshoe, got %+v", got)
+		}
+	}
+	if got := pick(`trinket`, shoe, kept); got.Bauble != `kept` {
+		t.Fatalf("trinket names the finder-only bauble, got %+v", got)
+	}
+	for _, b := range []Item{moderated, server} {
+		if part, _ := b.NameMatch(`horse`, true); !part {
+			t.Errorf("%s: a shown bauble matches by its real words", b.Bauble)
+		}
+		if got := pick(`horse`, b); got.Bauble != b.Bauble {
+			t.Errorf("%s: horse finds it, got %+v", b.Bauble, got)
+		}
 	}
 }
