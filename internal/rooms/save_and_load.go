@@ -186,6 +186,16 @@ func LoadRoomInstance(roomId int) *Room {
 	// list rather than by un-skipping Exits.
 	room.applyDefusedExits()
 
+	// A find left lying untaken past its limit is gone before anything can
+	// touch the room, not only before a visitor sees it (Prepare): a mob
+	// wandering in loads a room without preparing it. The bauble catalog
+	// sweep stops counting such a find on a room file's floor as a reference
+	// (internal/baubles/sweep_disk.go), so its record may already be pruned.
+	// At boot, factions.ValidateHoldingCells loads some rooms before
+	// baubles.Load: a find removed then is still removed, but there is no
+	// record yet to mark vanished, and the sweep prunes it later as lost.
+	room.removeUntakenBaubles(time.Now())
+
 	return room
 }
 
