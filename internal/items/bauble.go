@@ -181,6 +181,12 @@ func startsWord(typedWord string, nameWord string) bool {
 // It reads the same name variants NameMatch does.
 func matchStrength(i *Item, input string) int {
 	part, full := i.NameMatch(input, true)
+	if !full {
+		// With contains allowed, NameMatch stops at the first name variant
+		// that contains input ("rag doll" for `doll`) before it reaches an
+		// exact one (the keyword "doll"), so ask for the exact one too.
+		_, full = i.NameMatch(input, false)
+	}
 	if full {
 		return 4
 	}
@@ -202,27 +208,68 @@ func matchStrength(i *Item, input string) int {
 	return 1
 }
 
-// strongestWithBauble picks, among items that input matches at all, the
-// strongest match (matchStrength); on a tie a real item beats a bauble,
-// then list order. ok is false when no bauble matches, so the caller keeps
-// its own choice.
-func strongestWithBauble(input string, items []Item) (best Item, ok bool) {
-	bestStrength := 0
+// anyBauble reports whether any item in the list is a bauble.
+func anyBauble(items []Item) bool {
 	for idx := range items {
-		i := items[idx]
-		st := matchStrength(&i, input)
-		if st == 0 {
-			continue
-		}
-		if i.IsBauble() {
-			ok = true
-		}
-		switch {
-		case st > bestStrength:
-			best, bestStrength = i, st
-		case st == bestStrength && best.IsBauble() && !i.IsBauble():
-			best = i
+		if items[idx].IsBauble() {
+			return true
 		}
 	}
-	return best, ok
+	return false
+}
+
+// strongestBauble is the bauble input matches best (matchStrength), the
+// first in list order on a tie, and its strength; 0 when no bauble matches.
+func strongestBauble(input string, items []Item) (best Item, strength int) {
+	for idx := range items {
+		i := items[idx]
+		if !i.IsBauble() {
+			continue
+		}
+		if st := matchStrength(&i, input); st > strength {
+			best, strength = i, st
+		}
+	}
+	return best, strength
+}
+
+// findMatchWithBaubles is FindMatchIn (no explicit N.) over a list holding a
+// bauble. The real items are chosen among themselves by the list-order
+// rule (findMatchInOrder), exactly as if no bauble were there, and only
+// that choice is weighed against the best bauble (strongestBauble):
+//   - a real item named in full wins outright;
+//   - a bauble named in full (its exact name or keyword) beats a real item
+//     matched only in part;
+//   - otherwise the real item wins on an equal or stronger match: a bauble
+//     named by a whole word ("button" for "Tarnished Copper Button") beats
+//     a real item the word only starts ("Buttoned Leather Vest");
+//   - except that a household's bauble (BaubleHousehold set: it lies where
+//     it belongs, and taking it is theft) never beats a real item on a
+//     partial match, so `get candle` finds the Candlestick, not the Stub of
+//     Candle. `steal` names household baubles on their own
+//     (householdBaubleNamed).
+func findMatchWithBaubles(input string, items []Item) (pMatch Item, fMatch Item) {
+	real := make([]Item, 0, len(items))
+	for idx := range items {
+		if !items[idx].IsBauble() {
+			real = append(real, items[idx])
+		}
+	}
+	realPart, realFull := findMatchInOrder(input, 1, real)
+	if realFull.ItemId > 0 {
+		return Item{}, realFull
+	}
+
+	bauble, strength := strongestBauble(input, items)
+	switch {
+	case strength == 0:
+		return realPart, Item{}
+	case strength == 4:
+		return Item{}, bauble
+	case realPart.ItemId > 0 && bauble.BaubleHousehold != 0:
+		return realPart, Item{}
+	case realPart.ItemId > 0 && matchStrength(&realPart, input) >= strength:
+		return realPart, Item{}
+	}
+	return bauble, Item{}
 }

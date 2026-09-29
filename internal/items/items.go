@@ -713,6 +713,22 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 
 	itemName, itemNumber := util.GetMatchNumber(itemName)
 
+	// With a bauble in the list and no explicit N., the real items are
+	// chosen among themselves by the list-order rule below, exactly as if
+	// no bauble were there, and only that choice is weighed against the
+	// best bauble (findMatchWithBaubles). An explicit N. counts every
+	// match in list order.
+	if itemNumber == 1 && anyBauble(items) {
+		return findMatchWithBaubles(itemName, items)
+	}
+	return findMatchInOrder(itemName, itemNumber, items)
+}
+
+// findMatchInOrder is FindMatchIn's list-order rule: the itemNumber-th full
+// match, else the itemNumber-th partial match, else the itemNumber-th item
+// whose name merely contains itemName.
+func findMatchInOrder(itemName string, itemNumber int, items []Item) (pMatch Item, fMatch Item) {
+
 	var matchItem Item
 	var closeMatchItem Item
 
@@ -740,21 +756,6 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 
 	}
 
-	// A full match too: a real item the name fully matches beats a bauble
-	// it fully matches as well, wherever each is in the list (a bauble's
-	// keyword is also kept off real items' keywords when it is made).
-	if itemNumber == 1 && matchItem.IsBauble() {
-		for _, i := range items {
-			if i.IsBauble() {
-				continue
-			}
-			if _, full := i.NameMatch(itemName, false); full {
-				matchItem = i
-				break
-			}
-		}
-	}
-
 	// If no "starts with" or "exact" matches are found, try and find the first items that contain the supplied name
 	// Note: Can't have an exact match if there was never a close match
 	if closeMatchItem.ItemId == 0 {
@@ -766,23 +767,10 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 				closeMatchItemCt++
 				if closeMatchItemCt == itemNumber {
 					closeMatchItem = i
+					break
 				}
 			}
 
-		}
-	}
-
-	// Short of a full match, when a bauble is among the matches the
-	// strongest match wins (matchStrength), and a real item wins only on an
-	// equal or stronger match: a bauble named by a whole word ("button" for
-	// "Tarnished Copper Button") beats a real item the word merely starts or
-	// sits inside ("Buttoned Leather Vest"), and a real item named just as
-	// well beats the bauble. List order breaks the remaining ties. An
-	// explicit N. keeps plain list order, and a list with no bauble among
-	// its matches is chosen exactly as before.
-	if itemNumber == 1 && matchItem.ItemId == 0 {
-		if best, ok := strongestWithBauble(itemName, items); ok {
-			closeMatchItem = best
 		}
 	}
 

@@ -358,17 +358,25 @@ plain carrier ("Curious Trinket").
   in front are dropped; hyphens split words; `dol` or `sm doll` match too;
   `doll small` (wrong order) is none. A bauble is a FULL match only for its
   exact name or the generic keywords, like any item, so it never outranks a
-  real item named in full. `FindMatchIn`, with no `N.` given, prefers a real
-  item to a bauble among full matches (a real "Brass Lantern" beats a bauble
-  of the same name). Short of a full match, when a bauble is among the
-  matches the strongest match wins (`matchStrength`: 4 exact, 3 whole
-  words, 2 the start of words, 1 merely contained) and a real item wins
-  only on an equal or stronger match (`strongestWithBauble`): with a "Round
-  Shield" and a bauble "Shield-Maiden's Brooch", `get shield` takes the
-  shield (a whole word in both), but with a "Buttoned Leather Vest" and a
-  bauble "Tarnished Copper Button", `sell button` sells the button (a whole
-  word beats the start of one). A list with no bauble among its matches is
-  chosen exactly as before; `N.name` above 1 keeps plain list order. `AuthoredKeyword(word)` (in
+  real item named in full. `FindMatchIn`, with no `N.` given and a bauble in
+  the list, hands off to `findMatchWithBaubles`: the real items are chosen
+  among themselves by the list-order rule (`findMatchInOrder`, the rule a
+  list with no bauble uses), exactly as if no bauble were there, so a
+  bauble never re-orders real items ("Ironwood Staff" before "Iron Dagger":
+  `iron` takes the staff with or without an "Ironbound Locket" about). Only
+  that real choice is weighed against the best bauble (`strongestBauble`,
+  by `matchStrength`: 4 exact, 3 whole words, 2 the start of words, 1
+  merely contained). A real item named in full wins outright (a real "Brass
+  Lantern" beats a bauble of the same name); a bauble named in full beats a
+  real item matched in part; otherwise the real item wins on an equal or
+  stronger match: with a "Round Shield" and a bauble "Shield-Maiden's
+  Brooch", `get shield` takes the shield (a whole word in both), but with a
+  "Buttoned Leather Vest" and a bauble "Tarnished Copper Button", `sell
+  button` sells the button (a whole word beats the start of one). A
+  household's bauble (`BaubleHousehold` set: taking it is theft) never beats
+  a real item on a partial match, so `get candle` takes a "Candlestick" over
+  a household "Stub of Candle"; `steal` names household baubles on its own.
+  `N.name` above 1 keeps plain list order over every item. `AuthoredKeyword(word)` (in
   itemspec.go) is whether a loaded item answers to a word, as its keyword or
   any word of its name: `internal/baubles` keeps bauble keywords off those. It reads
   a snapshot (`authoredWords`, an atomic pointer) that every writer of the
@@ -883,7 +891,8 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
     // Support for numbered items (e.g., "sword 2" for second sword)
     itemName, itemNumber := util.GetMatchNumber(itemName)
     
-    // Find matches with numbering support
+    // With a bauble in the list and no N., findMatchWithBaubles (see the
+    // Baubles section); otherwise findMatchInOrder, the list-order rule.
     // Returns partial match and full match separately
 }
 ```

@@ -892,7 +892,13 @@ The owner's review list, less items 2, 4, 6 and 8 (the owner's to do).
 - **Matching (5).** `items.FindMatchIn` ranks candidates by match strength
   (exact name, whole words, word start, substring); a real item beats a
   bauble only on an equal or stronger match, so `button` finds the
-  Tarnished Copper Button over the Buttoned Leather Vest.
+  Tarnished Copper Button over the Buttoned Leather Vest. Corrected
+  2026-09-29 (owner ruling): the ranking no longer re-orders real items
+  against each other. The real items are chosen among themselves by the
+  old list-order rule, as if no bauble were there, and only that choice is
+  weighed against the best bauble (`findMatchWithBaubles`). A household's
+  bauble never beats a real item on a partial match (`candle` finds a
+  Candlestick, not a household Stub of Candle).
 - **Search skill (7).** `BaubleSkillFactor` reuses
   `combat.SkillMultiplier`, rescaled to 0..1.
 - **Recognition sight (9).** An owner who cannot make out shapes
