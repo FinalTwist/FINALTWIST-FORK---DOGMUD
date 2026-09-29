@@ -266,3 +266,35 @@ func TestHandlePlayerFlee_TerminalCancellationRetractsAdmission(t *testing.T) {
 		t.Fatal("terminal cancellation left the old short admission reusable")
 	}
 }
+
+// Catches the terminal-cancellation hook firing on the flee command's own
+// Engaged -> Disengaging transition: it retracted the admission the command
+// had just published and told the player "The fight ends before you need to
+// flee." on every flee. Only Disengaging -> Idle, other than a successful flee
+// or death, is a fight ending early.
+func TestFleeCommand_OwnTransitionDoesNotCancelTheAdmission(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	u := users.GetByUserId(1)
+	room := rooms.LoadRoom(1)
+	if err := u.Character.Validate(); err != nil {
+		t.Fatalf("validate fleer: %v", err)
+	}
+	u.Character.StaminaMax.Value = 1000
+	u.Character.Stamina = 1000
+	u.Character.SetAggro(0, 100, characters.DefaultAttack)
+	u.Character.CombatPhase.OnRoundTick()
+	events.DrainQueuedMessagesForTest(u.UserId)
+
+	if _, err := usercommands.Flee("", u, room, 0); err != nil {
+		t.Fatalf("Flee returned %v", err)
+	}
+	for _, msg := range events.DrainQueuedMessagesForTest(u.UserId) {
+		if strings.Contains(msg, "fight ends before") {
+			t.Fatalf("the flee command's own transition cancelled it: %q", msg)
+		}
+	}
+	if adm, admitted := u.Character.TakeFleeAdmission(); !admitted || !adm.IncludeSkill {
+		t.Fatalf("admission after a paid flee = %+v, %v; want ready with skill", adm, admitted)
+	}
+}

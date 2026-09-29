@@ -256,7 +256,7 @@ In `internal/hooks/NewRound_DoCombat_helpers.go`:
 	includeSkill := admission.IncludeSkill
 ```
 
-In `internal/hooks/CombatPhase_FleeCancellation.go` the body becomes (it now cancels for ANY character and only speaks to a player):
+In `internal/hooks/CombatPhase_FleeCancellation.go` the body after the unchanged `from`/`to`/trigger filter (KEEP that filter: without it the command's own `Engaged -> Disengaging` transition cancels the admission and prints the line on every flee) becomes (it now cancels for ANY character and only speaks to a player):
 
 ```go
 			if !c.CancelFleeAdmission() {

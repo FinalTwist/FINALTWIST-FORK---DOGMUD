@@ -16,6 +16,11 @@ import (
 func wireFleeCancellationMessage(c *characters.Character) {
 	c.CombatPhase.Inner().AfterTransition("flee_terminal_cancellation",
 		func(from, to combatphase.State, r state.TransitionReason) {
+			if from != combatphase.Disengaging || to != combatphase.Idle ||
+				r.Trigger == combatphase.TriggerFleeSuccess ||
+				r.Trigger == combatphase.TriggerSelfDied {
+				return
+			}
 			if !c.CancelFleeAdmission() {
 				return
 			}
