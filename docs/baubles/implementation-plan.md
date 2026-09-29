@@ -832,7 +832,7 @@ catch.
 
   | Town | Fence | Where | Shop |
   |---|---|---|---|
-  | Thornwall City | Fence Dealer Siv (104), Torvan Cresk (249) | in the city | yes |
+  | Thornwall City | Fence Dealer Siv (104) | in the city | yes |
   | New Plymouth | Ysolde (9323) | Common, in the city | yes |
   | New Plymouth, Kilnreach Works | Mother Coyle (9213), A Market Hawker (9209), A River-Road Smuggler (9215) | the Outskirts, next to both | yes |
   | Stillwater | Sly Tam (9172) | North Road North, next door | yes |
@@ -844,25 +844,24 @@ catch.
   The Tri-Rivers towns (Greenford, the Confluence) had no shady character
   at all; Varro, an importer on the quay, was the closest fit.
 - **Every fence keeps a shop** (owner ruling 14, 2026-09-28, replacing the
-  first cut's stash-paying go-betweens). Torvan, Ysolde, the Smuggler, Tam
-  and Malk each have a `shop:` block (lockpicks, a disarm kit, torches) and
+  first cut's stash-paying go-betweens). Ysolde, the Smuggler, Tam and Malk
+  each have a `shop:` block (lockpicks, a disarm kit, torches) and
   `craft_support: general`, like Siv, and pay from persisted shop gold with
-  the normal restock. All but Torvan are `non_combatant: true`, so they
-  cannot be attacked or robbed. Shop gold: Malk 2000; Ysolde, the Smuggler
-  and Tam 1000. Two departures from the ruling, for reasons found in the
-  world files:
-  - Torvan stays fightable: quest 14 (The Undertow) has players fight him
-    for the strongbox key, and a non-combatant cannot be attacked or stolen
-    from, so the quest could not be finished. His purse stays 75 gold, so
-    his shop seeds at the 500 floor and killing him pays little.
+  the normal restock. All are `non_combatant: true`, so they cannot be
+  attacked or robbed. Shop gold: Malk 2000; Ysolde, the Smuggler and Tam
+  1000. One departure from the ruling, for a reason found in the world
+  files:
   - Tam's `behavior_archetype` goes from `thief` to `noncombat_shopkeeper`:
     a thief archetype picks players' pockets, and a non-combatant one could
     do it with no answer (no attack, no stealing back).
 
+  Torvan Cresk (249) is not a fence (owner ruling, 2026-09-29): quest 14
+  (The Undertow) has players fight him for the strongbox key, so he stays
+  as he was before PR #175. Thornwall City is covered by Siv.
+
   `TestEveryTownHasAFenceNearby` checks every fence has a shop and a
-  `craft_support`, and is `non_combatant` unless listed in
-  `fightableFences`. Resale of bought baubles is slice D (the owner's), not
-  here.
+  `craft_support`, and is `non_combatant`, and that Torvan is not a fence.
+  Resale of bought baubles is slice D (the owner's), not here.
 
 ### Phase 6d: The owner's fix round on PR #175 (written)
 
@@ -902,8 +901,8 @@ The owner's review list, less items 2, 4, 6 and 8 (the owner's to do).
   marked (`Record.GivenToMob`, `baubles.MarkGiven`); picked back out of
   that mob's pocket it is not the mob's stolen goods, so no fence premium
   and no heat. A theft clears the mark.
-- **Fences are shopkeepers (13).** See the roster above (Torvan and Tam
-  are explained there). The stash code
+- **Fences are shopkeepers (13).** See the roster above (Tam is
+  explained there). The stash code
   (`stashFence`, `BaubleBuyersInRoom`) is gone; bauble sales, `offer` and
   `appraise` ask the room's merchants only.
 

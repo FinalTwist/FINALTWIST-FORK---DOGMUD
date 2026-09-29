@@ -774,14 +774,11 @@ func TestStolenBauble_AFencePaysFromItsShopGold(t *testing.T) {
 }
 
 // Every town has a fence in it or a zone or two away (owner ruling,
-// 2026-09-28), and every fence is a non-hostile shopkeeper, non-combatant
-// unless a quest has players fight it (fightableFences). Read from the world's mob files (a mob's folder is its
-// zone), so moving or dropping a fence is caught.
-// fightableFences are the fences a quest has players fight, so they cannot
-// be non-combatant: Torvan Cresk carries the strongbox key of quest 14 (The
-// Undertow). Each keeps a small purse, so killing one pays little.
-var fightableFences = map[string]bool{`Torvan Cresk`: true}
-
+// 2026-09-28), and every fence is a non-hostile, non-combatant shopkeeper.
+// Read from the world's mob files (a mob's folder is its zone), so moving
+// or dropping a fence is caught. Thornwall City's fence is Fence Dealer Siv
+// (104); Torvan Cresk (249) is not a fence, since quest 14 (The Undertow)
+// has players fight him for the strongbox key.
 func TestEveryTownHasAFenceNearby(t *testing.T) {
 	// sourceDir (consider_no_progression_test.go), not a relative path:
 	// another test in this package changes the working directory.
@@ -812,9 +809,7 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 			// Every fence is a shopkeeper (owner ruling 14): it pays from
 			// persisted shop gold, and cannot be attacked or robbed of it.
 			nonCombatant, _ := mob[`non_combatant`].(bool)
-			if !fightableFences[name] {
-				assert.True(t, nonCombatant, "%s: a fence is non_combatant", name)
-			}
+			assert.True(t, nonCombatant, "%s: a fence is non_combatant", name)
 			craft, _ := mob[`craft_support`].(string)
 			assert.NotEmpty(t, craft, "%s: a fence's shop has a craft_support", name)
 			shop, _ := mob[`character`].(map[interface{}]interface{})[`shop`].([]interface{})
@@ -823,6 +818,11 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 			fencesIn[zone] = append(fencesIn[zone], name)
 		}
 	}
+
+	assert.NotContains(t, fencesIn[`thornwall_city`], `Torvan Cresk`,
+		"Torvan Cresk is not a fence: quest 14 has players fight him (owner ruling)")
+	assert.Contains(t, fencesIn[`thornwall_city`], `Fence Dealer Siv`,
+		"Thornwall City's fence is Fence Dealer Siv")
 
 	nearby := map[string][]string{
 		`thornwall_city`:    {`thornwall_city`},
