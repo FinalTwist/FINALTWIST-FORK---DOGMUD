@@ -35,8 +35,8 @@ against `$BASE`, the master commit Task 0 records in
 `/c/tmp/dogmud-baubles-h.base` (outside the worktree), never
 `master...HEAD`: master may move while the slice is in flight.
 
-**CI is out of minutes until 2026-10-01.** The gate (Task 16) is fully
-local: `-race` runs in the Linux test container (`docker compose -f
+**CI is out of minutes until 2026-10-01.** Each PR's gate (Tasks 5b, 11b,
+14e) is fully local: `-race` runs in the Linux test container (`docker compose -f
 compose.test.yml run --build --rm test go test -race ...`), and the real
 boot uses private ports through a `CONFIG_PATH` override file, never the
 main checkout's config, and stops only its own PID.
@@ -100,13 +100,17 @@ corrected below and in Task 14.
 2. **Player-key text (Tasks 7, 9a, 9b, 10).** With a server key and
    moderation available, player-key text is moderated as S3 plans and is
    everyone's. Where moderation is impossible the text is FINDER-ONLY
-   (`Record.FinderOnly`): the finder reads it, everyone else the generic
+   (`Record.KeptToFinder`, derived as `PlayerKey && !Moderated`, so records
+   the pre-slice `moderate` accepted unmoderated are covered too): the
+   finder reads it, everyone else the generic
    trinket. Decided here: "impossible" is no server key, `ModerateOutput`
-   off, or the provider breaker or baubles' own breaker open
+   off, or the provider breaker or the moderation breaker open
    (`moderationPossible`). A check that IS made and fails still refuses
-   the find (S3), and that failure feeds baubles' own breaker, never the
-   provider's (`apiframework.RecordConsumer`), so a run of failures turns
-   later finds finder-only instead of refusing them. The allowlist, the
+   the find (S3). Every check made, on either route, is recorded on the
+   moderation check's OWN breaker (`moderationBreaker`, via
+   `apiframework.RecordConsumer`), never the provider's and never the
+   naming breaker, so a run of failures turns later player-key finds
+   finder-only instead of refusing them. The allowlist, the
    value re-roll, the `RecentNames` exclusion and never-promotable (slice
    C promotes only `PlayerKey` false and `Moderated` true) all still apply.
    **Per-viewer naming is inverted, not routed:** the owner's brief was to
@@ -114,15 +118,16 @@ corrected below and in Task 14.
    count above (about 156 room sends plus templates, GMCP, shops, auctions)
    makes that neither contained nor safe, since one missed site leaks. So
    the catalog's viewer-agnostic view of a finder-only record IS the
-   generic trinket, and seven single-reader sites ask for the finder's view
-   (`GetSpecFor`, `DisplayNameFor`, `NameFor`, `LongDescriptionFor`,
+   generic trinket, and ten single-reader functions ask for the finder's
+   view (`GetSpecFor`, `DisplayNameFor`, `NameFor`, `LongDescriptionFor`,
    `Record.MaterialFor`). The guard the owner asked for therefore takes two
    halves: `TestFinderOnlyBaubleIsGenericToEveryoneButItsFinder` (items)
    proves every viewer-agnostic accessor shows the generic trinket, so no
    render path, old or new, can use them to leak; and the root guard
    `TestFinderViewReachesOnlyItsReader` fails when a finder-view call
-   appears outside the listed single-reader functions, or inside any room
-   send's arguments anywhere. Accepted limits: the finder's action echoes
+   appears outside the listed functions, when a listed function's call
+   count changes, or when one sits inside anything that sends beyond its
+   one reader. Accepted limits: the finder's action echoes
    (get, drop, give, sell, put) print the generic name; a stranger who
    guesses a word of a finder-only name can match the trinket with it
    (matching shows no text; the finder needs it to type what they read).
@@ -151,13 +156,30 @@ corrected below and in Task 14.
 - Task 0: no wait for #175 or slice M (both merged); anchors refreshed and extended.
 - Task 4: the rows go after `Modules.aicompanion.ModerationModel`.
 - Task 7: `GenResult.FinderOnly`; `Generate` accepts unmoderated player-key text only as finder-only.
-- Task 9a (new): `Record.FinderOnly`, its generic view and `MaterialFor`; the item layer's viewer-aware accessors and finder matching.
-- Task 9b (new): the seven single-reader sites and the root finder-view guard.
-- Task 10: the policy above replaces `playerRouteOpen`; `apiframework.RecordConsumer`.
-- Tasks 6, 11, 16: `-race` in the test container; Task 16 boots on private ports.
+- Task 9a (new): `Record.KeptToFinder` (derived), its generic view and `MaterialFor`; the item layer's viewer-aware accessors and finder matching; baubles never enchanted.
+- Task 9b (new): the ten single-reader sites (four of them per-user GMCP payloads) and the root finder-view guard, which pins a call count per function and fails on any finder-view call inside a room send, a `Command`, `merchantSay`, an `events.Message` or a `SendText` to anyone but the viewer.
+- Task 9c (new): the AI companion tells its model a player-key bauble as its carrier (`ModelName`, `ModelDescription`).
+- Task 9d (new): `bauble show` prints player key, moderated and finder only; `bauble list` filters.
+- Task 10: the policy above replaces `playerRouteOpen`; moderation has its own breaker (`moderationBreaker`, fed on both routes by `apiframework.RecordConsumer`).
+- Tasks 6, 11: `-race` in the test container.
 - Task 14: `ownerRecognizes` row re-keyed to the new text.
-- Tasks 14a, 14b, 14c (new): household guard, companion theft, pickpocket walk-out.
-- Task 15: docs for all of it.
+- Tasks 14a, 14b, 14c (new): household guard (with the AI companion refused up front), companion theft, pickpocket walk-out (with an away mode for witnesses).
+- Delivery: three PRs, H1 (Tasks 0 to 5, docs 5a, gate 5b), H2 (H2-0, 6 to 11, docs 11a, gate 11b), H3 (H3-0, 12 to 14c, docs 14d, gate 14e); the single docs Task 15 and gate Task 16 are gone, split into those six.
+
+### Review fixes folded in (blind review of `7c90163af`, verified against source first)
+
+| Finding | Verified | Where fixed |
+|---|---|---|
+| a: records the pre-slice `moderate` accepted unmoderated stay public | true: `generate.go:248-276` accepted them with `Moderated` false; a stored flag would never cover them | 9a: finder-only is DERIVED (`Record.KeptToFinder` = `PlayerKey && !Moderated`), no stored field; old-record case in `TestFinderOnlyRecordView` |
+| b: an away catch finds bystanders in the mark's room as witnesses, with `RecordMet` | true: `steal.go:638, 664`; `crimes.go:229-263` | 14c: `theftWitnesses` away mode (the mark alone, no external witness, no meeting), `theftCrime(..., away)`, crime recorded in the theft's room; `TestTheftWitnessesAwayAreTheMarkAlone` with a real faction and a second same-faction mob |
+| c: guard gaps (other `SendText` receivers, `merchantSay`, `Command`, a function-level allowlist) | true: 13 `xxxRoom.SendText` sites, `who.room.SendText`, `offer.go:59, 79`, `look.go:95` | 9b: guard rewritten (per-function call counts; beyond-reader calls; `SendText` receiver must root at the viewer) and its probe covers each shape |
+| d: `RecordConsumer` on `ConsumerBaubles` never opens (naming success resets it) | true: `generate.go:73-77` reports before moderation; `breaker.go:100-101` resets | 10: `moderationBreaker`, both routes, checked in `moderationPossible` and `moderate`; `TestFailedChecksOpenTheModerationBreakerAlone` (server, player, server) |
+| e: admin views and per-user GMCP | true: `admin.bauble.go:170-223`; `gmcp.Room.go:257`; `gmcp.Char.go:994, 1016` | 9d; 9b (three more GMCP sites) |
+| f: AI companion prompts carry item names | true, at the six sites named and three more (`actions.go:508, 624`; `scene.go:278, 288`) | 9c |
+| g: boot path and log line | true: dogmud-shipping `SKILL.md:150-178`; `main.go:1549` | 5b, 11b, 14e Step 6 |
+| h: steal help | true: `steal.template:26-32` says walking away loses the chance | 14d |
+| i: guards in 14b and 14c | partly: `TestEveryTextSurfaceIsRegistered` walks YAML keys only; the Go-line guard is `TestNarrationSitesMatchViewpointAudit`, whose candidates need an actor line plus exactly one of actee or observer (`:1106-1124`) | 14b Step 4 and 14c Step 5 run both; rows prepared for every line the guard can report (14b's refusal is actor-only and cannot be one) |
+| LOW | each checked | typed-word match noted in `internal/items/context.md` (11a); baubles never enchanted (9a Step 8b; `enchantments.go:203`); companion get refused up front (14a Step 7b); file map test names; 14b cooldown noted (`steal.go:136`) and Step 2 claim corrected; 14c keeps `roomId`, loads rooms at the reveal, and a roomless online thief is away; `moderate` reads `Server()` and the clock once; `RecordConsumer`'s no-probe behaviour documented; Task 5 Step 2 expected output and the `PlainText` note; Task 11 returns before `m.count` on `errSlotsBusy`; Task 2 replaces the whole comment; Task 13 anchor `:55`; Task 12 case off the threshold; config.yaml moderation comment and `baubles.go:141` reworded |
 - Removed: nothing in S1 to S4, U2 or U4 was redundant with FinalTwist's round (lint, catalog prune and lock, matching, SkillMultiplier, the recognition sight gate, the return window, best offer, honest-to-stolen, fences as shopkeepers); each section's code was re-read unfixed at `3bd6ccaa3` (table above). The Task 0 steps that waited for #175 and slice M are gone.
 
 ---
@@ -317,10 +339,17 @@ greps every quoted anchor against the merged code before Task 1.
 | `bauble_finder_view_guard_test.go` | Create | Task 9b: root guard |
 | `internal/apiframework/breaker.go` | Modify | Task 10: `RecordConsumer` |
 | `internal/actions/get.go`, `internal/usercommands/get.go` | Modify | Task 14a: `ErrHouseholdBauble` |
-| `internal/actions/economy_test.go`, `internal/usercommands/household_bauble_test.go` | Modify | Task 14a tests |
+| `internal/actions/get_household_test.go`, `internal/usercommands/get_household_test.go` | Create | Task 14a tests |
+| `modules/aicompanion/actions.go`, `modules/aicompanion/harm_test.go` | Modify | Task 14a: the companion is refused a household's bauble up front |
+| `modules/aicompanion/perception.go`, `scene.go`, `actions.go`; `internal/items/bauble_model.go`; `modules/aicompanion/bauble_prompt_test.go` | Modify / Create | Task 9c |
+| `internal/usercommands/admin.bauble.go`, `admin.bauble_test.go`, `command.bauble.template` | Modify | Task 9d |
+| `internal/enchantments/enchantments.go`, `internal/enchantments/bauble_test.go` | Modify / Create | Task 9a: no bauble is enchanted |
+| `modules/gmcp/gmcp.Room.go` | Modify | Task 9b |
+| `_datafiles/world/dogmud/templates/help/steal.template` | Modify | PR H3 docs |
+| `internal/actions/steal_crime_test.go` | Create | Task 14c: witnesses away from the theft |
 | `internal/actions/steal.go`, `internal/actions/steal_test.go` | Modify | Task 14b (companion refusal); Task 14c (`theftCrime`) |
 | `internal/actions/steal_pocket.go`, `internal/actions/pickpocket_test.go` | Modify | Task 14c |
-| docs (`context.md` x9, `docs/aicompanion/settings.md`, `docs/baubles/implementation-plan.md`) | Modify | Task 15 |
+| docs (`context.md` in every touched package, `docs/aicompanion/settings.md`, `docs/baubles/implementation-plan.md`) | Modify | Tasks 5a, 11a, 14d, one share per PR |
 | `docs/README.md` | Modify | this plan's row (the amendment commit) |
 
 New non-code files: none (every created file is Go). This plan is
@@ -333,6 +362,29 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ```
 
 Use a heredoc for every message (bash command-substitutes backticks inside `-m`). Stage named paths only; never `git add -A` or `git add .`.
+
+---
+
+## Delivery: three PRs, in order (review, 2026-09-29)
+
+Slice H ships as three PRs, each with its own share of the docs and its
+own local gate, each branched from `origin/master` after the one before it
+has merged. Smaller PRs keep each review and each CI-less local gate to
+one concern.
+
+| PR | Branch | Tasks | Content |
+|---|---|---|---|
+| H1 | `fix/baubles-hardening-h` (this branch; its first commit is this plan) | 0, 1 to 5, 5a docs, 5b gate | S1 key secrecy, S2 endpoints, error-text scrub and hard locks, S4 output cleaning |
+| H2 | `fix/baubles-hardening-h2`, from `origin/master` after H1 merges | H2-0, 6 to 11 (with 9a to 9d), 11a docs, 11b gate | S3 and finder-only text, with review fixes a, c, d, e, f |
+| H3 | `fix/baubles-hardening-h3`, from `origin/master` after H2 merges | H3-0, 12 to 14c, 14d docs, 14e gate | U2, U4, the household guard, companion theft, the pickpocket walk-out, with review fixes b, h, i |
+
+All three reuse the worktree `C:\tmp\dogmud-baubles-h`, so every command
+below stays as written; each PR's first task switches it to that PR's
+branch and records that PR's base in `/c/tmp/dogmud-baubles-h.base`. The
+owner (or the coordinator on the owner's word) pushes, opens and merges
+each PR; a gate task ends by handing the branch over, never by pushing.
+
+## PR H1: S1, S2, S4
 
 ---
 
@@ -684,7 +736,20 @@ with
 	return host == `api.openai.com` || strings.HasSuffix(host, `.openai.azure.com`)
 ```
 
-and change the doc comment's second sentence to: `https, and exactly api.openai.com or an Azure OpenAI host (*.openai.azure.com), unless the operator has deliberately allowed another provider.`
+and replace the whole doc comment above `EndpointAllowed`
+
+```go
+// EndpointAllowed keeps the key and whatever is sent going where they are
+// meant to: https, and an OpenAI (or Azure OpenAI) host, unless the operator
+// has deliberately allowed another provider.
+```
+with
+```go
+// EndpointAllowed keeps the key and whatever is sent going where they are
+// meant to: https, and exactly api.openai.com or an Azure OpenAI resource
+// (*.openai.azure.com), unless the operator has deliberately allowed
+// another provider (AllowCustomEndpoint, hard-locked).
+```
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -1060,7 +1125,9 @@ func TestCleanReplyFoldsTypography(t *testing.T) {
 - [ ] **Step 2: Run to verify they fail**
 
 Run: `go test ./internal/baubles/ -run "TestCleanReplyStrips|TestCleanReplyRefusesLinks|TestCleanReplyCountsRunes|TestCleanReplyErrorsQuoteLittle|TestCleanReplyFoldsTypography" -v`
-Expected: FAIL: zero width space, RLO, BOM and others "survived"; link cases "must be refused"; the 41-rune and 19-rune cases; the long quote; both folds (the curly quotes and dashes survive today, and the ellipsis too, since today's `cleanLine` does no NFKC).
+Expected: FAIL in each of the five. In `TestCleanReplyStripsInvisibleAndFormatCharacters`, "survived" errors for the zero width space, RLO, BOM and the other runes, then the test stops at its first `Fatalf`, "NBSP and em space read as spaces" (today's `whitespaceRE` is ASCII `\s`, so NBSP survives), so the OSC and fullwidth checks below it do not run yet; the link cases "must be refused"; the 41-rune and 19-rune cases; the long quote; both folds (the curly quotes and dashes survive today, and the ellipsis too, since today's `cleanLine` does no NFKC).
+
+Note for Step 3: `PlainText` (`validate.go:129`, the room text sent in the prompt) is `cleanLine`, so NFKC, the typography fold and the dropped format characters apply to prompt text too. That is intended (the model gets plain text); record it in the context.md step.
 
 - [ ] **Step 3: Implement the cleaning**
 
@@ -1182,7 +1249,7 @@ with
 	}
 ```
 
-Known limits of `linkRE`, accepted (owner review 2026-09-28) and written into the context.md in Task 15:
+Known limits of `linkRE`, accepted (owner review 2026-09-28) and written into the context.md in Task 5a:
 
 - It misses a top-level domain longer than six letters (`evil.example`, `shop.museum` is six and caught) and a domain written with the ideographic full stop U+3002 (`evil。com`; NFKC leaves U+3002 alone). On the server route the text is moderated and the server's own key wrote it; on a player's key the ASCII allowlist (Task 7) refuses U+3002 outright, and a long TLD still needs a period glued to letters, which the allowlist's period rule refuses.
 - It refuses a model's missing-space typo such as `horse.Its` (it reads as `horse.its`, domain-shaped) on every route. The find falls back as any unusable reply does; the prompt (Task 10) asks for a space after every sentence.
@@ -1211,6 +1278,269 @@ refused; errors quote at most 60 runes.
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
 ```
+
+---
+
+### Task 5a: PR H1 docs
+
+(Text quoted from a `context.md` here is shown unwrapped; the file wraps it, so match it by its words and rewrap the replacement to the file's width.)
+
+**Files:**
+- Modify: `internal/baubles/context.md`, `internal/apiframework/context.md`, `internal/configs/context.md`, `modules/baubles/context.md`
+- Modify: `_datafiles/config.yaml` (comments only), `docs/aicompanion/settings.md`
+
+- [ ] **Step 0: Verify every symbol these docs name**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && grep -rn "var keyTextRE\|var typographyFold\|func cleanRune\|func quoteShort\|var linkRE\|linkRE = \|APIKey ConfigSecret\|Modules.baubles.ModerationModel" internal modules
+```
+Expected: at least one hit for each pattern except `var linkRE` (`linkRE` is declared inside a `var (...)` block, so `linkRE = ` finds it instead). A symbol with no hit is not in the code: fix the doc text, never the grep.
+
+- [ ] **Step 1: `internal/baubles/context.md`**
+
+- In the **validate.go** file bullet, describe `CleanReply` as: `` `CleanReply` (the text checks the schema cannot make: NFKC, curly quotes, en and em dashes and the ellipsis folded to ASCII (`typographyFold`), invisible and format characters dropped (`cleanRune`), rune lengths, link-shaped text refused (`linkRE`), errors quoting at most 60 runes (`quoteShort`)) and `PlainText`, which is `cleanLine`, so the room text in a prompt is folded the same way. ``
+- Add a gotcha: `` - **`linkRE` is a heuristic.** It misses a top-level domain longer than six letters and a domain written with U+3002 (NFKC keeps it); server-key text is moderated, and player-key text is held to the ASCII allowlist, which refuses both. It also refuses a missing-space typo such as `horse.Its` on every route; that find falls back like any unusable reply. Accepted by the owner, 2026-09-28. ``
+
+- [ ] **Step 2: `internal/apiframework/context.md`**
+
+- In the **wire.go** bullet change `` `Reply` and `DecodeChat`; `` to `` `Reply` and `DecodeChat` (a non-200's kept text has key-shaped strings scrubbed by `keyTextRE` before the 300-byte cut); ``.
+- In the config paragraph, after the `AllowCustomEndpoint` description add: `` Without it `EndpointAllowed` accepts exactly `api.openai.com` and `*.openai.azure.com` over https; Azure's AI Services hosts (`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) and every other host need `AllowCustomEndpoint`, which, like the other three, is hard-locked (`configs.hardLocked`), so only config.yaml sets it. `APIKey` is a `configs.ConfigSecret`. ``
+
+- [ ] **Step 3: `internal/configs/context.md`**
+
+Where the `APIFramework` section is shown (the block around `APIKeyEnv: "OPENAI_API_KEY"`), add below it: `` `APIFramework.APIKey` is a `ConfigSecret`. `hardLocked` also holds `Modules.baubles.Model`, `.MaxCompletionTokens`, `.MaxConcurrent`, `.UsePlayerKeys`, `.ModerateOutput` and `.ModerationModel`. `` (If the file already lists `hardLocked`'s rows, add the six baubles rows to that list instead.)
+
+- [ ] **Step 4: `modules/baubles/context.md`**
+
+In the Config paragraph, add after the list: `` `Model`, `MaxCompletionTokens`, `MaxConcurrent`, `UsePlayerKeys`, `ModerateOutput` and `ModerationModel` are hard-locked (`configs.hardLocked`): only config.yaml sets them. ``
+
+- [ ] **Step 5: `_datafiles/config.yaml` comments**
+
+First confirm the disk copy equals HEAD and check the skip-worktree bit:
+```bash
+cd /c/tmp/dogmud-baubles-h && git diff --quiet HEAD -- _datafiles/config.yaml; echo "differs=$?"; git ls-files -v _datafiles/config.yaml
+```
+If `differs=0`: edit the disk copy with the Edit tool. If `differs=1`: STOP editing disk; write `git show HEAD:_datafiles/config.yaml` to the scratchpad, make the edit there with the Edit tool, then stage it with `blob=$(git hash-object -w <scratch copy>) && git update-index --cacheinfo 100644,$blob,_datafiles/config.yaml`, and if `git ls-files -v` then prints `H` where it printed `S`, restore the bit with `git update-index --skip-worktree _datafiles/config.yaml`.
+
+Replace (a comment; no value changes)
+```yaml
+  # A find is named through the finder's OWN key when they ticked "Also name
+  # things I find while searching" on the Companion key page (UsePlayerKeys),
+  # else through the server's key (APIFramework: its one daily budget and
+  # breaker, shared with the AI companion), else it is a generic "Trinket".
+```
+with
+```yaml
+  # A find is named through the finder's OWN key when they ticked "Also name
+  # things I find while searching" on the Companion key page (UsePlayerKeys),
+  # else through the server's key (APIFramework: its one daily budget and
+  # breaker, shared with the AI companion), else it is a generic "Trinket".
+  # Model, MaxCompletionTokens, MaxConcurrent, UsePlayerKeys, ModerateOutput
+  # and ModerationModel are hard-locked: only this file changes them.
+```
+
+- [ ] **Step 6: `docs/aicompanion/settings.md`**
+
+- Line 30's comment: change `Off: any other host is refused` to `Off: only api.openai.com and *.openai.azure.com are accepted (Azure AI Services hosts need it on)`.
+- Directly after the paragraph that ends `page refuses the bauble request shape from a key whose box is not ticked.` (line 346), add a blank line and:
+
+```markdown
+`AllowCustomEndpoint` off accepts exactly `api.openai.com` and Azure OpenAI
+resources (`*.openai.azure.com`). Azure's AI Services hosts
+(`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) need it on, and
+it is hard-locked: only the config file changes it.
+```
+
+- [ ] **Step 7: The context.md audit, and commit**
+
+Run: `cd /c/tmp/dogmud-baubles-h && python tools/context_md_audit.py 2>&1 | grep -E "baubles|apiframework|configs" ; echo "exit=$?"`
+Expected: no phantom symbols in these packages (grep exit 1 means none listed). The tool only reads files.
+
+```bash
+cd /c/tmp/dogmud-baubles-h && git add internal/baubles/context.md internal/apiframework/context.md internal/configs/context.md modules/baubles/context.md _datafiles/config.yaml docs/aicompanion/settings.md && git commit -F - <<'EOF'
+docs(baubles): PR H1 key secrecy, endpoints, locks and cleaning
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+EOF
+```
+If Step 5 staged `config.yaml` through `update-index`, leave it out of `git add` (it is already staged) and confirm with `git diff --cached --stat` before committing.
+
+---
+
+### Task 5b: PR H1 gate
+
+**Files:** none new. Every diff runs from `$BASE` (`/c/tmp/dogmud-baubles-h.base`, Task 0 Step 1), never `master...HEAD`.
+
+- [ ] **Step 1: gofmt on the committed blobs (the Windows CRLF false positive)**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && for f in $(git diff --name-only $BASE..HEAD -- '*.go'); do out=$(git show HEAD:"$f" | gofmt -l); [ -n "$out" ] && echo "UNFORMATTED: $f"; done; echo done
+```
+Expected: only `done`. For a listed file, run `gofmt -w <file>`, check `git diff` shows only whitespace, and commit it as a fixup.
+
+- [ ] **Step 2: Size under the CI lint inversion**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --shortstat $BASE..HEAD
+```
+Expected: under 300 files and under 20,000 lines.
+
+- [ ] **Step 3: Build, vet, tests**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && go build ./... && go vet ./internal/configs/ ./internal/apiframework/ ./internal/baubles/ ./internal/usercommands/ ./modules/baubles/ ./modules/aicompanion/ . && go test ./internal/configs/ ./internal/apiframework/ ./internal/baubles/ ./internal/usercommands/ ./modules/baubles/ ./modules/aicompanion/ . 2>&1 | tail -12
+```
+Expected: no vet output, every package `ok`.
+
+- [ ] **Step 4: The guards this PR leans on, by name**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && go test . -count=1 -run "TestNoDisplayReadsRawConfig|TestFindRawConfigInTemplateMatcher" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"
+```
+```bash
+cd /c/tmp/dogmud-baubles-h && go test ./internal/apiframework/ -count=1 -run "TestNoTestPrintsAKey|TestNoServerKeyReachesTheConfigDisplay|TestEndpointAllowed|TestDecodeChatScrubsKeysFromErrorText" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"
+```
+Expected: every named test `--- PASS`. A name that does not appear has changed on master: find it with `grep -n "^func Test"` before calling the gate green.
+
+- [ ] **Step 5: Boot smoke in the test process (no port)**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && DOGMUD_BOOT_SMOKE=1 go test . -count=1 -run TestSmoke_ServerBootsCleanWithRealData -timeout 600s 2>&1 | tail -5
+```
+Expected: `ok`.
+
+- [ ] **Step 6: A real boot on private ports, stopped by its own PID**
+
+The owner runs their own server on this machine. This boot uses dogmud-shipping's fixed path `C:\tmp\dogmud-boot-check\boot-check.exe` (its firewall rule is keyed on that path, so no "Windows Security Alert" pops up), private ports through a `CONFIG_PATH` override file (never the main checkout's config), and is stopped by the PID it started, never by name or port.
+
+First check the path is free (another session may be using it):
+```bash
+git -C /c/tmp/dogmud-baubles-h worktree list | grep -F "dogmud-boot-check"; ls /c/tmp/dogmud-boot-check 2>/dev/null | head -3
+```
+Expected: no output from either (each exits 1). If the directory exists, STOP and ask: it may be another session's boot check.
+
+Build (Bash):
+```bash
+git -C /c/tmp/dogmud-baubles-h worktree add --detach /c/tmp/dogmud-boot-check HEAD && cd /c/tmp/dogmud-boot-check && go build -o boot-check.exe . && cat > /c/tmp/dogmud-boot-check.overrides.yaml <<'EOF'
+Network:
+  TelnetPort: [33533]
+  LocalPort: 9899
+  HttpPort: 8391
+  HttpsPort: 0
+  AIPort: 0
+EOF
+echo built
+```
+Expected: `built`. The worktree's `_datafiles/config.yaml` is the committed blob; the override file lives outside every checkout.
+
+Run (PowerShell), wait for `Server Ready` or 180 seconds, and stop exactly that PID:
+```powershell
+$env:CONFIG_PATH = 'C:\tmp\dogmud-boot-check.overrides.yaml'
+$p = Start-Process -FilePath 'C:\tmp\dogmud-boot-check\boot-check.exe' -WorkingDirectory 'C:\tmp\dogmud-boot-check' -RedirectStandardOutput 'C:\tmp\dogmud-boot-check.log' -RedirectStandardError 'C:\tmp\dogmud-boot-check.err' -WindowStyle Hidden -PassThru
+$deadline = (Get-Date).AddSeconds(180)
+while ((Get-Date) -lt $deadline -and -not $p.HasExited -and -not (Select-String -Path 'C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err' -Pattern 'Server Ready' -Quiet)) { Start-Sleep -Seconds 2 }
+"pid=$($p.Id) exited=$($p.HasExited)"
+Select-String -Path 'C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err' -Pattern 'Server Ready|status=listening|^panic:|goroutine [0-9]+ \[running\]|runtime error|bind:' | Select-Object -First 20
+if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -Confirm:$false }
+Remove-Item Env:\CONFIG_PATH
+```
+Expected: `exited=False` (it stayed up), a `Server Ready` line, a `Telnet status=listening port=33533` line (`main.go:1549` logs `"Telnet", "status", "listening", "port", ...`) and none naming 33333 or 44444, and no `panic:`, `goroutine ... [running]`, `runtime error` or `bind:` line (a bind error means a collision with a port someone else holds). Do not grep for the bare word `panic`: `GamePlay.MapConsistencyEnforce` has the value `panic`.
+
+Clean up (PowerShell; `Remove-Item` succeeds where `git worktree remove` can fail on a just-stopped exe):
+```powershell
+Remove-Item -Recurse -Force 'C:\tmp\dogmud-boot-check'; Remove-Item -Force 'C:\tmp\dogmud-boot-check.overrides.yaml','C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err'
+```
+then `git -C /c/tmp/dogmud-baubles-h worktree prune`.
+
+- [ ] **Step 7: Race, in the Linux test container**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && docker compose -f compose.test.yml run --build --rm test go test -race -count=1 ./internal/apiframework/ ./internal/baubles/ ./internal/configs/ 2>&1 | tail -8
+```
+Expected: `ok` for all three, no `WARNING: DATA RACE`. CI is out of minutes until 2026-10-01; this run IS the race gate.
+
+- [ ] **Step 8: Lint, go.mod, docs, tree**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && golangci-lint run --new-from-merge-base=$BASE
+```
+Expected: `0 issues` (a finding on a line this PR did not write is pre-existing; check `git log -L`).
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --exit-code $BASE..HEAD -- go.mod go.sum; echo "exit=$?"; git diff --name-only $BASE..HEAD -- '*context.md' _datafiles/config.yaml docs/; git status --short
+```
+Expected: `exit=0`; the four `context.md` files of Task 5a, `_datafiles/config.yaml`, `docs/aicompanion/settings.md`, this plan and `docs/README.md` listed; a clean tree.
+
+- [ ] **Step 9: Hand over**
+
+No push from here. Report the branch, `$BASE`, the commit list (`git log --oneline $BASE..HEAD`) and each gate result. When the owner says to ship it: `git push -u origin fix/baubles-hardening-h`, then `gh pr create --repo pruuk/DOGMud --base master --head fix/baubles-hardening-h --title "Slice H1: key secrecy, OpenAI-only endpoints, hard locks, output cleaning"`, and read back the URL `gh` prints: it must say `pruuk/DOGMud`. PR H2 starts only after this PR has merged.
+
+---
+
+## PR H2: S3 and finder-only text
+
+---
+
+### Task H2-0: Branch PR H2 from master
+
+**Files:** none in the repo.
+
+- [ ] **Step 1: PR H1 is merged; switch the worktree**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && gh pr list --repo pruuk/DOGMud --state merged --head fix/baubles-hardening-h --json number,mergedAt && git status --short && git fetch -q origin && git switch -c fix/baubles-hardening-h2 origin/master && BASE=$(git rev-parse HEAD) && echo "$BASE" > /c/tmp/dogmud-baubles-h.base && echo "BASE=$BASE"
+```
+Expected: one merged PR listed, a clean tree, and a new `BASE`. If the list is empty, STOP: H2 waits for H1. If `git switch` refuses because `_datafiles/config.yaml` differs, the worktree has a local edit: restore it from `git show HEAD:_datafiles/config.yaml` first.
+
+- [ ] **Step 2: H2's anchors exist**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && anchors=$(mktemp) && cat > "$anchors" <<'EOF'
+internal/baubles/validate.go|var authoredKeyword = items.AuthoredKeyword
+internal/items/itemspec.go|var authoredWords atomic.Pointer[map[string]bool]
+internal/items/itemspec.go|func AuthoredKeyword(word string) bool {
+internal/items/bauble_placement_test.go|func TestAuthoredKeywordIsSafeWhileItemsAreWritten(
+internal/baubles/generate.go|cleaned, err := CleanReply(res.Reply)
+internal/baubles/generate.go|if r.Zone == zone && r.Generator == GeneratorOpenAI {
+internal/baubles/generate.go|PlayerKey     bool // named through the finder's own key, not the server's
+internal/baubles/mint.go|limited := ApplyLimitsFor(res.Reply, tier, source)
+internal/baubles/admin.go|r.Moderated = res.Moderated
+internal/baubles/record.go|func (r Record) View() items.BaubleView {
+internal/actions/bauble_admin.go|req.RecentNames = append(req.RecentNames, rec.Name)
+internal/items/items.go|func (i *Item) GetLongDescription() string {
+internal/items/items.go|if i.GetSpec().QuestToken != `` {
+internal/items/bauble.go|func baubleSpec(base ItemSpec, id string) ItemSpec {
+internal/actions/search_bauble.go|name := itm.DisplayName()
+internal/actions/steal.go|fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, b.DisplayName()))
+internal/usercommands/inventory.go|iNameFormatted := fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, item.Name())
+internal/usercommands/look.go|itemDesc := lookItem.GetLongDescription()
+internal/usercommands/appraise.go|if rec.Material != `` {
+internal/usercommands/admin.bauble.go|fmt.Fprintf(&b, "  generator:   %s %s (prompt v%d, %d tokens)\r\n", rec.Generator, rec.Model, rec.PromptVersion, rec.Tokens)
+modules/gmcp/gmcp.Char.go|payload.Inventory.Backpack.Items = append(payload.Inventory.Backpack.Items, newInventory_Item(itm))
+modules/gmcp/gmcp.Room.go|Name:      itm.Name(),
+internal/apiframework/breaker.go|func (k *Books) Release(consumer string, t Ticket) {
+internal/enchantments/enchantments.go|func ApplyTier(item *items.Item, def *EnchantmentDef, tier int) {
+modules/aicompanion/perception.go|carried = append(carried, it.Name())
+modules/aicompanion/actions.go|inside = append(inside, ct.Items[i].Name())
+modules/baubles/generate.go|_, err = baubles.CleanReply(reply)
+modules/baubles/generate.go|if cfg.UsePlayerKeys && req.FinderUserId > 0 {
+modules/baubles/generate.go|func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (bool, error) {
+modules/baubles/baubles.go|slots chan struct{}
+modules/baubles/prompt.go|const PromptVersion = 4
+modules/baubles/baubles_test.go|func TestModerationOutageNeverSpoilsAPlayerKeyFind(
+_datafiles/config.yaml|MaxConcurrent: 4           # more finds at once than this are generic
+docs/aicompanion/settings.md|The key page also has a box, "Also name things I find while searching
+docs/baubles/implementation-plan.md|- **Moderation** of a player-key find: a flag refuses; a check that cannot be
+EOF
+missing=0; while IFS= read -r line; do f=${line%%|*}; a=${line#*|}; grep -qF -- "$a" "$f" || { echo "MISSING in $f: $a"; missing=1; }; done < "$anchors"; rm -f "$anchors"; echo "missing=$missing"
+```
+Expected: `missing=0`. For a `MISSING` line, STOP before the task that edits it and re-read the code, as Task 0 Step 4 says.
+
+- [ ] **Step 3: Baseline green**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && go build ./... && go test ./internal/baubles/ ./internal/items/ ./internal/apiframework/ ./internal/actions/ ./internal/usercommands/ ./internal/enchantments/ ./modules/baubles/ ./modules/aicompanion/ ./modules/gmcp/ . 2>&1 | tail -12
+```
+Expected: every package `ok`; a failure here is pre-existing, recorded, not this PR's.
 
 ---
 
@@ -1643,8 +1973,9 @@ with
 	PlayerKey     bool // named through the finder's own key, not the server's
 
 	// FinderOnly is player-key text the server could not moderate: its
-	// finder reads it, everyone else the generic trinket (Record.FinderOnly,
-	// owner ruling 2026-09-29). Only ever with PlayerKey and a finder.
+	// finder reads it, everyone else the generic trinket (the record derives
+	// it: Record.KeptToFinder; owner ruling 2026-09-29). Only ever with
+	// PlayerKey and a finder.
 	FinderOnly bool
 }
 ```
@@ -1951,7 +2282,8 @@ accessors give the finder's view to whoever asks for one viewer.
 - Modify: `internal/items/bauble.go` (`BaubleView`, `baubleSpec`, new `baubleSpecFor`, new `baubleFinderNames`, `matchStrength`)
 - Modify: `internal/items/items.go` (`DisplayName`, `GetLongDescription`, `NameMatch`)
 - Create: `internal/baubles/record_test.go`
-- Modify: `internal/baubles/record.go` (`Record.FinderOnly`, `View`, new `MaterialFor`), `internal/baubles/fallback.go` (new `genericDescriptionFor`), `internal/baubles/mint.go`, `internal/baubles/admin.go`, `internal/baubles/generate_test.go`
+- Modify: `internal/baubles/record.go` (new `KeptToFinder`, `View`, new `MaterialFor`), `internal/baubles/fallback.go` (new `genericDescriptionFor`), `internal/baubles/generate_test.go`
+- Modify: `internal/enchantments/enchantments.go` (`ApplyTier`); Create: `internal/enchantments/bauble_test.go`
 
 - [ ] **Step 1: Write the failing item-layer tests**
 
@@ -2063,7 +2395,7 @@ type BaubleView struct {
 	WeightLbs   float64
 
 	// FinderUserId and Finder make a finder-only view (internal/baubles
-	// Record.FinderOnly, owner ruling 2026-09-29): the fields above are what
+	// Record.KeptToFinder, owner ruling 2026-09-29): the fields above are what
 	// everyone sees, Finder what player FinderUserId sees, and only through
 	// the viewer-aware accessors (bauble_viewer.go). Nil Finder: everyone
 	// sees the fields above.
@@ -2263,12 +2595,23 @@ import (
 
 // A finder-only record (owner ruling 2026-09-29) shows the generic trinket
 // to everyone and its own text to its finder alone; its value and weight
-// are the item's for everyone. Retired text wins over both.
+// are the item's for everyone. Retired text wins over both. Finder-only is
+// DERIVED (KeptToFinder: PlayerKey and not Moderated), never stored, so a
+// record written before this slice, which has no such field, is kept to its
+// finder too (review finding a).
 func TestFinderOnlyRecordView(t *testing.T) {
+	// Exactly the shape the pre-slice moderate left: a player's own key,
+	// accepted unmoderated.
 	r := Record{Id: `b0000001`, Status: StatusReady, Name: `Painted Wooden Horse`, NameSimple: `horse`,
 		Description: `A child's toy horse, its red paint flaking.`, Material: `pine`, Value: 12, WeightLbs: 0.3,
-		FoundByUserId: 7, PlayerKey: true, FinderOnly: true}
+		FoundByUserId: 7, PlayerKey: true, Moderated: false}
+	if !r.KeptToFinder() {
+		t.Fatal("unmoderated player-key text is its finder's alone")
+	}
 	v := r.View()
+	if !v.PlayerText {
+		t.Fatal("player-key text is marked, so no model prompt carries it (Task 9c)")
+	}
 	if v.Name != genericName || v.NameSimple != genericNameSimple || strings.Contains(v.Description, `horse`) {
 		t.Fatalf("everyone sees the generic trinket: %+v", v)
 	}
@@ -2293,9 +2636,13 @@ func TestFinderOnlyRecordView(t *testing.T) {
 	if v := r.View(); v.Finder != nil || v.Name != retiredName {
 		t.Fatalf("retired text wins: %+v", v)
 	}
-	r.Status, r.FinderOnly = StatusReady, false
-	if v := r.View(); v.Name != r.Name || v.Finder != nil || r.MaterialFor(8) != `pine` {
-		t.Fatalf("not finder-only: everyone's: %+v", v)
+	r.Status, r.Moderated = StatusReady, true
+	if v := r.View(); v.Name != r.Name || v.Finder != nil || r.MaterialFor(8) != `pine` || !v.PlayerText {
+		t.Fatalf("moderated player-key text is everyone's, and still never a model's: %+v", v)
+	}
+	r.PlayerKey = false
+	if v := r.View(); v.Name != r.Name || v.Finder != nil || v.PlayerText || r.KeptToFinder() {
+		t.Fatalf("server-key text is everyone's: %+v", v)
 	}
 }
 ```
@@ -2303,24 +2650,26 @@ func TestFinderOnlyRecordView(t *testing.T) {
 Append to `internal/baubles/generate_test.go`:
 
 ```go
-// A finder-only result stays finder-only in its record, kept to the finder
-// Mint records (owner ruling 2026-09-29); a regeneration, always on the
+// A finder-only result reaches the record kept to the finder Mint records
+// (owner ruling 2026-09-29), whatever GenResult.FinderOnly said: the record
+// derives it from PlayerKey and Moderated. A regeneration, always on the
 // server's key, makes it everyone's.
 func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
 	withCatalog(t)
-	res := GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, PlayerKey: true, FinderOnly: true}
+	// FinderOnly deliberately left false: the record must not trust it.
+	res := GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, PlayerKey: true, Moderated: false}
 	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), FinderUserId: 7, Tier: TierAverage, Result: &res, Randn: first})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !rec.FinderOnly || rec.FoundByUserId != 7 || rec.View().Finder == nil {
+	if !rec.KeptToFinder() || rec.FoundByUserId != 7 || rec.View().Finder == nil {
 		t.Fatalf("finder-only, kept to user 7: %+v", rec)
 	}
 	got, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.FinderOnly || got.PlayerKey || got.View().Finder != nil {
+	if got.KeptToFinder() || got.PlayerKey || got.View().Finder != nil {
 		t.Fatalf("named again on the server's key: everyone's: %+v", got)
 	}
 }
@@ -2329,24 +2678,34 @@ func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
 - [ ] **Step 6: Run to verify they fail**
 
 Run: `go test ./internal/baubles/ -run "TestFinderOnlyRecordView|TestFinderOnlyReachesTheRecordAndRegenClearsIt" -v`
-Expected: build failure `unknown field FinderOnly in struct literal of type Record` (and `r.MaterialFor undefined`).
+Expected: build failure `r.KeptToFinder undefined` (and `r.MaterialFor undefined`, `v.PlayerText undefined`).
 
 - [ ] **Step 7: The record**
 
-In `internal/baubles/record.go`, replace
+Finder-only is derived, not stored (review finding a): a stored flag would leave every record the pre-slice `moderate` accepted unmoderated (`PlayerKey` true, `Moderated` false, and no new field) public, and would trust whatever a generator put in `GenResult.FinderOnly`. `Mint` and `ApplyRegenerated` already copy `PlayerKey` and `Moderated`, so they need no change for it.
+
+In `internal/items/bauble.go` `BaubleView`, add below the `Finder` field Step 3 added:
 
 ```go
-	PlayerKey     bool      `yaml:"player_key,omitempty"` // named through the finder's own key
+	// PlayerText: the record's text was written by a player's own key,
+	// moderated or not. Such text never goes into any language model's
+	// prompt (spec S3): ModelName and ModelDescription (Task 9c) show the
+	// carrier's own name instead.
+	PlayerText bool
 ```
-with
+
+In `internal/baubles/record.go`, directly above `// Text shown for a bauble whose text an admin has withdrawn.`, add:
+
 ```go
-	PlayerKey     bool      `yaml:"player_key,omitempty"` // named through the finder's own key
-	// FinderOnly: named on the finder's own key while the server could not
-	// moderate the text (no server key, ModerateOutput off, or a breaker
-	// open), so only FoundByUserId reads it and everyone else the generic
-	// trinket (View; owner ruling 2026-09-29). Never promotable: it is
-	// PlayerKey and not Moderated.
-	FinderOnly bool `yaml:"finder_only,omitempty"`
+// KeptToFinder reports whether the record's text is its finder's alone:
+// text a player's own key wrote that was never moderated (owner ruling
+// 2026-09-29). Derived, never stored, so a record named before the rule
+// (PlayerKey, Moderated false) is kept to its finder too. Never promotable
+// to the corpus either way (slice C takes only server-key moderated text).
+func (r Record) KeptToFinder() bool {
+	return r.PlayerKey && !r.Moderated
+}
+
 ```
 
 In `View`, replace
@@ -2362,10 +2721,11 @@ with
 		v.Description = retiredDescription
 		return v
 	}
-	if r.FinderOnly {
-		// Text a player's own key wrote that the server could not moderate
-		// (owner ruling 2026-09-29): its finder reads it through the item
-		// layer's viewer-aware accessors, everyone else the generic trinket.
+	v.PlayerText = r.PlayerKey
+	if r.KeptToFinder() {
+		// Text a player's own key wrote that was never moderated (owner
+		// ruling 2026-09-29): its finder reads it through the item layer's
+		// viewer-aware accessors, everyone else the generic trinket.
 		own := v
 		v.Name, v.NameSimple, v.Description = genericName, genericNameSimple, genericDescriptionFor(r.Id)
 		if r.FoundByUserId > 0 {
@@ -2378,12 +2738,14 @@ with
 // MaterialFor is the material as viewerUserId may read it (appraise): a
 // finder-only record's is its finder's alone, like its name (View).
 func (r Record) MaterialFor(viewerUserId int) string {
-	if r.FinderOnly && (viewerUserId <= 0 || viewerUserId != r.FoundByUserId) {
+	if r.KeptToFinder() && (viewerUserId <= 0 || viewerUserId != r.FoundByUserId) {
 		return ``
 	}
 	return r.Material
 }
 ```
+
+`own` is copied after `PlayerText` is set, so the finder's view carries it too (`v.Finder.Finder` stays nil).
 
 In `internal/baubles/fallback.go`, replace
 
@@ -2414,40 +2776,84 @@ func genericDescriptionFor(id string) string {
 }
 ```
 
-In `internal/baubles/mint.go`, replace
+`Mint` copies `PlayerKey` and `Moderated` from the result and `ApplyRegenerated` takes both (Task 9 added `PlayerKey` there), so neither needs a line for finder-only: the record derives it. A regen is always server-key (`BaubleRequestForRecord` carries no finder), so it makes the text everyone's.
 
-```go
-		PlayerKey:      res.PlayerKey,
-```
-with
-```go
-		PlayerKey:      res.PlayerKey,
-		FinderOnly:     res.FinderOnly,
-```
-
-In `internal/baubles/admin.go` `ApplyRegenerated`, directly after the `r.PlayerKey = res.PlayerKey` line Task 9 added, add:
-
-```go
-		r.FinderOnly = res.FinderOnly // a regen is on the server's key: everyone's
-```
-
-- [ ] **Step 8: Run to verify they pass**
+- [ ] **Step 8: Run to verify they pass, and prove the derivation**
 
 Run: `go test ./internal/baubles/ ./internal/items/`
 Expected: `ok` for both.
 
+Probe: temporarily make `KeptToFinder` return `false` and rerun `go test ./internal/baubles/ -run "TestFinderOnlyRecordView|TestFinderOnlyReachesTheRecordAndRegenClearsIt" -v`. Expected: FAIL "unmoderated player-key text is its finder's alone" and "finder-only, kept to user 7". Restore, rerun, PASS.
+
+- [ ] **Step 8b: No bauble is ever enchanted (its text would be baked)**
+
+`enchantments.ApplyTier` writes `item.Spec = &newSpec` built from `GetSpec()` (`internal/enchantments/enchantments.go:203`), and an item with a `Spec` never consults the catalog again (`items.go:325-327`), so an enchanted bauble would carry its text baked in, past a retire, and past the finder-only view. Decided: baubles are never enchantment targets. Today no path offers one (`TargetType` is a weapon or armour slot, and a bauble is an `Object`), so this is a guard, not a behaviour change.
+
+Create `internal/enchantments/bauble_test.go`:
+
+```go
+package enchantments
+
+import (
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/items"
+)
+
+// A bauble is never enchanted: ApplyTier would bake its catalog text into
+// Item.Spec, past a retire and past the finder-only view (slice H).
+func TestApplyTier_NeverTouchesABauble(t *testing.T) {
+	def := &EnchantmentDef{EnchantId: "test-edge", Tiers: []TierDef{{Tier: 0, Adjective: "gleaming"}}}
+	itm := items.Item{ItemId: items.BaubleItemId, Bauble: "b0000001"}
+	ApplyTier(&itm, def, 0)
+	if itm.Spec != nil || len(itm.Adjectives) != 0 {
+		t.Fatalf("the bauble is untouched: spec %v adjectives %v", itm.Spec != nil, itm.Adjectives)
+	}
+}
+```
+
+Run: `go test ./internal/enchantments/ -run TestApplyTier_NeverTouchesABauble -v`
+Expected: FAIL "the bauble is untouched: spec true".
+
+In `internal/enchantments/enchantments.go` `ApplyTier`, replace
+
+```go
+func ApplyTier(item *items.Item, def *EnchantmentDef, tier int) {
+	if tier < 0 || tier >= len(def.Tiers) {
+		return
+	}
+```
+with
+```go
+func ApplyTier(item *items.Item, def *EnchantmentDef, tier int) {
+	if tier < 0 || tier >= len(def.Tiers) {
+		return
+	}
+	// A bauble's text lives in the catalog and may be one viewer's alone;
+	// a baked Spec would outlive both (slice H). Never enchanted.
+	if item.IsBauble() {
+		return
+	}
+```
+
+Run: `go test ./internal/enchantments/`
+Expected: `ok`.
+
 - [ ] **Step 9: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-h && git add internal/items/bauble.go internal/items/items.go internal/items/bauble_viewer.go internal/items/bauble_viewer_test.go internal/baubles/record.go internal/baubles/record_test.go internal/baubles/fallback.go internal/baubles/mint.go internal/baubles/admin.go internal/baubles/generate_test.go && git commit -F - <<'EOF'
+cd /c/tmp/dogmud-baubles-h && git add internal/items/bauble.go internal/items/items.go internal/items/bauble_viewer.go internal/items/bauble_viewer_test.go internal/baubles/record.go internal/baubles/record_test.go internal/baubles/fallback.go internal/baubles/generate_test.go internal/enchantments/enchantments.go internal/enchantments/bauble_test.go && git commit -F - <<'EOF'
 feat(baubles): finder-only text reads as a trinket to everyone else
 
-Record.FinderOnly keeps unmoderated player-key text to its finder: the
-catalog's view of such a record is the generic trinket, with the finder's
-own view beside it, so every viewer-agnostic item accessor, and every
-render path built on one, shows "Trinket". GetSpecFor, DisplayNameFor,
-NameFor and LongDescriptionFor give one viewer's view; the finder can
-still type the words they read. Mint records it; a regen clears it.
+Record.KeptToFinder (PlayerKey and not Moderated, derived, so records
+named before this slice are covered) keeps unmoderated player-key text to
+its finder: the catalog's view of such a record is the generic trinket,
+with the finder's own view beside it, so every viewer-agnostic item
+accessor, and every render path built on one, shows "Trinket".
+GetSpecFor, DisplayNameFor, NameFor and LongDescriptionFor give one
+viewer's view; the finder can still type the words they read.
+BaubleView.PlayerText marks player-key text for Task 9c. Baubles are never
+enchanted, so their text is never baked into Item.Spec.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -2457,14 +2863,17 @@ EOF
 
 ### Task 9b: The finder's own view at the single-reader sites, and the guard
 
-Seven functions show a bauble to the one player who holds or finds it.
-Each asks for that player's view; every other render path keeps the
-viewer-agnostic accessors, which Task 9a made show the generic trinket.
+Ten functions show a bauble to the one player who holds, finds or stands
+over it: the find lines, the pickpocket success line, inventory, look,
+the room listing, appraise, and four per-user GMCP payloads (the backpack,
+the bandolier, the component bag, `Room.Info.Contents.Items`). Each asks
+for that player's view; every other render path keeps the viewer-agnostic
+accessors, which Task 9a made show the generic trinket.
 
 **Files:**
 - Modify: `internal/actions/search_bauble.go` (`BaubleDelivery.deliver`), `internal/actions/steal.go` (`takeFromMob`)
 - Modify: `internal/usercommands/inventory.go` (`Inventory`), `internal/usercommands/look.go` (`Look`, `lookRoom`), `internal/usercommands/appraise.go` (`appraiseBauble`)
-- Modify: `modules/gmcp/gmcp.Char.go` (`GMCPCharModule.GetCharNode`)
+- Modify: `modules/gmcp/gmcp.Char.go` (`GMCPCharModule.GetCharNode`, `buildBandolierContainer`, `buildComponentBagContainer`), `modules/gmcp/gmcp.Room.go` (`GMCPRoomModule.GetRoomNode`)
 - Create: `bauble_finder_view_guard_test.go`, `internal/usercommands/finder_only_bauble_test.go`
 
 - [ ] **Step 1: Write the failing guard and its probe**
@@ -2498,23 +2907,40 @@ import (
 // path that uses them cannot leak it, and this guard stops a new caller of
 // the finder's view from reaching anyone else.
 //
+// Two rules, so neither a new function nor a new line inside a listed one
+// slips past (review finding c):
+//   - Each listed function makes exactly `calls` finder-view calls. A new
+//     call in Look (which also talks to another player) changes the count
+//     and fails until someone reads it and updates the row.
+//   - No finder-view call may sit inside anything that sends beyond its one
+//     reader: a room send (roomSendSelectors), a mob's Command (a `say`),
+//     merchantSay, an events.Message literal, or a SendText whose receiver
+//     is not provably the viewer (the receiver's root identifier must be
+//     the viewer argument's: user.SendText(..., x.NameFor(user.UserId))).
+//
 // KNOWN LIMITS (each is a way a real leak could pass):
-//   - A finder-view value kept in a variable and later sent to a room is not
-//     traced: only a call written inside a room send's arguments is
-//     (finderViewInRoomSends). Keep each one inline in a send to its viewer,
-//     or in a variable used only for such sends (deliver's `name`).
+//   - A finder-view value kept in a variable and later sent is not traced;
+//     the call count makes every such variable a reviewed line.
 //   - The five method names are matched by name, not by type, and only
 //     inside function bodies (not package-level initialisers).
 //   - internal/items and internal/baubles define the accessors and are not
 //     scanned.
-var finderViewSites = map[string]string{
-	"internal/actions/search_bauble.go|BaubleDelivery.deliver": "the find's own lines, sent to the finder alone (who.send); the room line names no item",
-	"internal/actions/steal.go|takeFromMob":                    "the thief's own success line (actor.SendText); the room is not told what was taken",
-	"internal/usercommands/appraise.go|appraiseBauble":         "the appraisal, sent to the player who asked for it (user.SendText); the room line names no item",
-	"internal/usercommands/inventory.go|Inventory":             "the player's own inventory listing",
-	"internal/usercommands/look.go|Look":                       "what the looker reads about an item they carry or one on the floor; the room lines beside them keep DisplayName",
-	"internal/usercommands/look.go|lookRoom":                   "the looker's own view of the room's floor and their own stash",
-	"modules/gmcp/gmcp.Char.go|GMCPCharModule.GetCharNode":     "the player's own Char.Inventory backpack",
+type finderViewSite struct {
+	calls int
+	why   string
+}
+
+var finderViewSites = map[string]finderViewSite{
+	"internal/actions/search_bauble.go|BaubleDelivery.deliver":    {1, "the find's own lines, sent to the finder alone (who.send); the room line names no item"},
+	"internal/actions/steal.go|takeFromMob":                       {3, "the thief's own success line (actor.SendText); the room is not told what was taken"},
+	"internal/usercommands/appraise.go|appraiseBauble":            {4, "the appraisal, sent to the player who asked for it (user.SendText); the room line names no item"},
+	"internal/usercommands/inventory.go|Inventory":                {2, "the player's own inventory listing"},
+	"internal/usercommands/look.go|Look":                          {4, "what the looker reads about an item they carry or one on the floor; the room lines beside them keep DisplayName"},
+	"internal/usercommands/look.go|lookRoom":                      {2, "the looker's own view of the room's floor and their own stash"},
+	"modules/gmcp/gmcp.Char.go|GMCPCharModule.GetCharNode":        {1, "the player's own Char.Inventory backpack"},
+	"modules/gmcp/gmcp.Char.go|buildBandolierContainer":           {1, "the player's own bandolier payload (GetCharNode passes user.UserId)"},
+	"modules/gmcp/gmcp.Char.go|buildComponentBagContainer":        {1, "the player's own component bag payload (GetCharNode passes user.UserId)"},
+	"modules/gmcp/gmcp.Room.go|GMCPRoomModule.GetRoomNode":        {1, "Room.Info.Contents.Items, built for one user and sent to that user"},
 }
 
 // finderViewSelectors are the viewer-aware accessors.
@@ -2522,21 +2948,59 @@ var finderViewSelectors = map[string]bool{
 	"GetSpecFor": true, "DisplayNameFor": true, "NameFor": true, "LongDescriptionFor": true, "MaterialFor": true,
 }
 
-// roomSendSelectors show text to a room, never to one reader alone.
-// SendText is one too, but only on a receiver named room (a user's
-// SendText is a single reader), which isRoomSend checks.
-var roomSendSelectors = map[string]bool{
+// beyondReaderCalls send text beyond one reader, by callee name, whatever
+// the receiver: the room sends, a mob's Command (a `say`), merchantSay.
+var beyondReaderCalls = map[string]bool{
 	"SendTextCommunication": true, "SendTextVisual": true, "SendTextVisualHidingNames": true,
 	"SendTextVisualAsLit": true, "SendTextVisualAsLitHidingNames": true, "SendTextVisualWithAudio": true,
-	"SendTextToExits": true, "SendTrio": true,
+	"SendTextToExits": true, "SendRoomCommunication": true, "SendTrio": true, "Command": true, "merchantSay": true,
 }
 
-func isRoomSend(sel *ast.SelectorExpr) bool {
-	if roomSendSelectors[sel.Sel.Name] {
-		return true
+// rootIdent is the identifier an expression hangs from: user for
+// user.UserId, actor for actor.GetUserId(), "" when there is none.
+func rootIdent(e ast.Expr) string {
+	for {
+		switch x := e.(type) {
+		case *ast.Ident:
+			return x.Name
+		case *ast.SelectorExpr:
+			e = x.X
+		case *ast.CallExpr:
+			e = x.Fun
+		case *ast.ParenExpr:
+			e = x.X
+		case *ast.StarExpr:
+			e = x.X
+		default:
+			return ""
+		}
 	}
-	id, ok := sel.X.(*ast.Ident)
-	return ok && sel.Sel.Name == "SendText" && id.Name == "room"
+}
+
+// calleeName is a call's function name: Sel for a selector, the identifier
+// for a plain call.
+func calleeName(call *ast.CallExpr) (string, *ast.SelectorExpr) {
+	switch f := call.Fun.(type) {
+	case *ast.SelectorExpr:
+		return f.Sel.Name, f
+	case *ast.Ident:
+		return f.Name, nil
+	}
+	return "", nil
+}
+
+// finderViewCallsIn returns every finder-view call within n.
+func finderViewCallsIn(n ast.Node) []*ast.CallExpr {
+	var out []*ast.CallExpr
+	ast.Inspect(n, func(m ast.Node) bool {
+		if c, ok := m.(*ast.CallExpr); ok {
+			if name, _ := calleeName(c); finderViewSelectors[name] {
+				out = append(out, c)
+			}
+		}
+		return true
+	})
+	return out
 }
 
 type finderViewFile struct {
@@ -2544,10 +3008,10 @@ type finderViewFile struct {
 	file *ast.File
 }
 
-// scanFinderView returns every function that calls a finder-view accessor
-// and every such call written inside a room send's arguments.
-func scanFinderView(fset *token.FileSet, files []finderViewFile) (callers map[string]bool, inRoomSends []string) {
-	callers = map[string]bool{}
+// scanFinderView returns how many finder-view calls each function makes,
+// and every such call that sits inside a send beyond its one reader.
+func scanFinderView(fset *token.FileSet, files []finderViewFile) (calls map[string]int, leaks []string) {
+	calls = map[string]int{}
 	for _, f := range files {
 		for _, decl := range f.file.Decls {
 			fd, ok := decl.(*ast.FuncDecl)
@@ -2555,39 +3019,60 @@ func scanFinderView(fset *token.FileSet, files []finderViewFile) (callers map[st
 				continue
 			}
 			key := f.rel + "|" + lookupFuncName(fd)
+			report := func(c *ast.CallExpr, via string) {
+				name, _ := calleeName(c)
+				leaks = append(leaks, fmt.Sprintf("%s:%d in %s: %s inside %s",
+					f.rel, fset.Position(c.Pos()).Line, key, name, via))
+			}
 			ast.Inspect(fd.Body, func(n ast.Node) bool {
-				call, ok := n.(*ast.CallExpr)
-				if !ok {
-					return true
-				}
-				sel, ok := call.Fun.(*ast.SelectorExpr)
-				if !ok {
-					return true
-				}
-				if finderViewSelectors[sel.Sel.Name] {
-					callers[key] = true
-				}
-				if !isRoomSend(sel) {
-					return true
-				}
-				for _, arg := range call.Args {
-					ast.Inspect(arg, func(m ast.Node) bool {
-						c, ok := m.(*ast.CallExpr)
-						if !ok {
-							return true
+				switch x := n.(type) {
+				case *ast.CompositeLit:
+					// events.Message{UserId: ..., Text: ...}: queued to some
+					// user, not provably the viewer.
+					if sel, ok := x.Type.(*ast.SelectorExpr); ok && sel.Sel.Name == "Message" {
+						for _, c := range finderViewCallsIn(x) {
+							report(c, "events.Message")
 						}
-						if s, ok := c.Fun.(*ast.SelectorExpr); ok && finderViewSelectors[s.Sel.Name] {
-							inRoomSends = append(inRoomSends, fmt.Sprintf("%s:%d in %s: %s inside %s",
-								f.rel, fset.Position(c.Pos()).Line, key, s.Sel.Name, sel.Sel.Name))
+					}
+				case *ast.CallExpr:
+					name, sel := calleeName(x)
+					if finderViewSelectors[name] {
+						calls[key]++
+					}
+					switch {
+					case beyondReaderCalls[name]:
+						for _, arg := range x.Args {
+							for _, c := range finderViewCallsIn(arg) {
+								report(c, name)
+							}
 						}
-						return true
-					})
+					case name == "SendText" && sel != nil:
+						receiver := rootIdent(sel.X)
+						if inner, ok := sel.X.(*ast.CallExpr); ok {
+							if n, _ := calleeName(inner); n == "GetRoom" {
+								receiver = "" // a room reached through its reader is still a room
+							}
+						}
+						if s, ok := sel.X.(*ast.SelectorExpr); ok && strings.HasSuffix(strings.ToLower(s.Sel.Name), "room") {
+							receiver = "" // who.room.SendText, any xxxRoom field
+						}
+						if id, ok := sel.X.(*ast.Ident); ok && strings.HasSuffix(strings.ToLower(id.Name), "room") {
+							receiver = "" // room, fromRoom, markRoom: a room variable
+						}
+						for _, arg := range x.Args {
+							for _, c := range finderViewCallsIn(arg) {
+								if len(c.Args) == 0 || receiver == "" || rootIdent(c.Args[0]) != receiver {
+									report(c, receiver+".SendText")
+								}
+							}
+						}
+					}
 				}
 				return true
 			})
 		}
 	}
-	return callers, inRoomSends
+	return calls, leaks
 }
 
 // TestFinderViewReachesOnlyItsReader fails when a function not in
@@ -2637,27 +3122,31 @@ func TestFinderViewReachesOnlyItsReader(t *testing.T) {
 		}
 	}
 
-	callers, inRoomSends := scanFinderView(fset, files)
+	calls, leaks := scanFinderView(fset, files)
 	var problems []string
-	for key := range callers {
-		if _, ok := finderViewSites[key]; !ok {
-			problems = append(problems, key+": reads a bauble as one viewer sees it, and is not in finderViewSites")
+	for key, got := range calls {
+		want, ok := finderViewSites[key]
+		switch {
+		case !ok:
+			problems = append(problems, fmt.Sprintf("%s: makes %d finder-view call(s), and is not in finderViewSites", key, got))
+		case got != want.calls:
+			problems = append(problems, fmt.Sprintf("%s: makes %d finder-view call(s), finderViewSites says %d: read each one before changing the row", key, got, want.calls))
 		}
 	}
 	for key := range finderViewSites {
-		if !callers[key] {
+		if calls[key] == 0 {
 			problems = append(problems, key+": in finderViewSites but reads no finder view (stale)")
 		}
 	}
-	problems = append(problems, inRoomSends...)
+	problems = append(problems, leaks...)
 	sort.Strings(problems)
 	if len(problems) > 0 {
 		t.Errorf("%d finder-view problem(s):\n  %s", len(problems), strings.Join(problems, "\n  "))
 	}
 }
 
-// TestFinderViewGuardCatchesALeak proves the scan can fail: a finder view
-// inside a room send is reported wherever it is, and any caller is found.
+// TestFinderViewGuardCatchesALeak proves the scan can fail on every shape
+// it claims to catch, and passes the one private shape.
 func TestFinderViewGuardCatchesALeak(t *testing.T) {
 	fset := token.NewFileSet()
 	src := `package probe
@@ -2666,24 +3155,47 @@ func Shout(room *rooms.Room, itm items.Item, uid int) {
 	room.SendTextVisual(1, fmt.Sprintf("%s", itm.DisplayNameFor(uid)))
 }
 
-func Mine(u *users.UserRecord, itm items.Item) { u.SendText(1, itm.NameFor(u.UserId)) }
+func Mine(user *users.UserRecord, itm items.Item) { user.SendText(1, itm.NameFor(user.UserId)) }
+
+func ToAnother(user *users.UserRecord, u *users.UserRecord, itm items.Item) {
+	u.SendText(1, itm.NameFor(user.UserId))
+}
+
+func Chained(user *users.UserRecord, itm items.Item) { user.GetRoom().SendText(1, itm.NameFor(user.UserId)) }
+
+func Says(room *rooms.Room, mob *mobs.Mob, itm items.Item, uid int) {
+	merchantSay(room, mob, itm.NameFor(uid))
+	mob.Command("say " + itm.NameFor(uid))
+}
+
+func Queued(itm items.Item, uid int) {
+	events.AddToQueue(events.Message{UserId: 2, Text: itm.NameFor(uid)})
+}
 `
 	file, err := parser.ParseFile(fset, "probe.go", src, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	callers, inRoomSends := scanFinderView(fset, []finderViewFile{{rel: "probe.go", file: file}})
-	if !callers["probe.go|Shout"] || !callers["probe.go|Mine"] || len(callers) != 2 {
-		t.Fatalf("both callers found: %v", callers)
+	calls, leaks := scanFinderView(fset, []finderViewFile{{rel: "probe.go", file: file}})
+	if calls["probe.go|Says"] != 2 || calls["probe.go|Mine"] != 1 || len(calls) != 6 {
+		t.Fatalf("every call counted, per function: %v", calls)
 	}
-	if len(inRoomSends) != 1 || !strings.Contains(inRoomSends[0], "Shout") || !strings.Contains(inRoomSends[0], "SendTextVisual") {
-		t.Fatalf("the room send is reported, the private one is not: %v", inRoomSends)
+	want := []string{"Shout", "ToAnother", "Chained", "Says", "Says", "Queued"}
+	if len(leaks) != len(want) {
+		t.Fatalf("want %d leaks (%v), got:\n  %s", len(want), want, strings.Join(leaks, "\n  "))
+	}
+	for _, l := range leaks {
+		if strings.Contains(l, "|Mine:") || strings.Contains(l, " in probe.go|Mine") {
+			t.Fatalf("the player's own SendText is private: %v", l)
+		}
 	}
 }
 ```
 
+`user.GetRoom().SendText` roots at `user`, so the receiver check alone would pass it; the `GetRoom` and `...room` checks in the `SendText` branch catch it, `who.room.SendText`, and every `xxxRoom.SendText` (13 such sites at `3bd6ccaa3`).
+
 Run: `go test . -run "TestFinderViewReachesOnlyItsReader|TestFinderViewGuardCatchesALeak" -v`
-Expected: `TestFinderViewGuardCatchesALeak` PASS (the scan works on the probe); `TestFinderViewReachesOnlyItsReader` FAIL listing all seven `finderViewSites` keys as stale (no site calls a finder view yet).
+Expected: `TestFinderViewGuardCatchesALeak` PASS (the scan works on the probe); `TestFinderViewReachesOnlyItsReader` FAIL listing all ten `finderViewSites` keys as stale (no site calls a finder view yet).
 
 - [ ] **Step 2: Write the failing command test**
 
@@ -2734,7 +3246,7 @@ func TestFinderOnlyBaubleReadsByViewer(t *testing.T) {
 	for _, finder := range []int{user.UserId, user.UserId + 1000} {
 		rec, err := baubles.Create(baubles.Record{Name: "Painted Wooden Horse", NameSimple: "horse", Tier: baubles.TierCheap,
 			Value: 3, WeightLbs: 0.5, Description: "A child's toy horse, its red paint flaking.", Status: baubles.StatusReady,
-			PlayerKey: true, FinderOnly: true, FoundByUserId: finder})
+			PlayerKey: true, Moderated: false, FoundByUserId: finder})
 		require.NoError(t, err)
 		itm := items.New(items.BaubleItemId)
 		itm.Bauble = rec.Id
@@ -2886,6 +3398,39 @@ with
 			payload.Inventory.Backpack.Items = append(payload.Inventory.Backpack.Items, d)
 ```
 
+and, in the same function, replace
+
+```go
+			Bandolier:    buildBandolierContainer(user.Character),
+			ComponentBag: buildComponentBagContainer(user.Character),
+```
+with
+```go
+			Bandolier:    buildBandolierContainer(user.Character, user.UserId),
+			ComponentBag: buildComponentBagContainer(user.Character, user.UserId),
+```
+
+Change `func buildBandolierContainer(c *characters.Character) *GMCPCharModule_Payload_Container {` to `func buildBandolierContainer(c *characters.Character, viewerUserId int) *GMCPCharModule_Payload_Container {` and its loop body `cont.Items = append(cont.Items, newInventory_Item(itm))` (the one over `c.PotionItems`) to:
+
+```go
+		d := newInventory_Item(itm)
+		d.Name = itm.NameFor(viewerUserId) // the wearer's own view
+		cont.Items = append(cont.Items, d)
+```
+and do the same for `buildComponentBagContainer` (signature with `viewerUserId int`, the loop over `contents`). Those are their only callers (`gmcp.Char.go:523-524`; no test calls them).
+
+`modules/gmcp/gmcp.Room.go`, `GMCPRoomModule.GetRoomNode` (built for one `user`, sent to that user): replace
+
+```go
+				Name:      itm.Name(),
+				QuestFlag: itm.GetSpec().QuestToken != ``,
+```
+with
+```go
+				Name:      itm.NameFor(user.UserId), // their own view of a finder-only bauble
+				QuestFlag: itm.GetSpec().QuestToken != ``,
+```
+
 - [ ] **Step 4: Run to verify both tests pass**
 
 Run: `go build ./... && go test . -run "TestFinderViewReachesOnlyItsReader|TestFinderViewGuardCatchesALeak" -v && go test ./internal/usercommands/ -run TestFinderOnlyBaubleReadsByViewer -v`
@@ -2893,7 +3438,7 @@ Expected: PASS, PASS, PASS.
 
 - [ ] **Step 5: Prove the guard fails on a real leak**
 
-In `internal/usercommands/look.go`, temporarily change the floor-item room line's `floorItem.DisplayName()` (in `is looking at the <ansi fg="item">%s</ansi> %s.`) to `floorItem.DisplayNameFor(user.UserId)`. Run `go test . -run TestFinderViewReachesOnlyItsReader -v`. Expected: FAIL naming `internal/usercommands/look.go:<line> in internal/usercommands/look.go|Look: DisplayNameFor inside SendTextVisual`. Restore (`git diff internal/usercommands/look.go` shows only Step 3's lines), rerun, PASS.
+In `internal/usercommands/look.go`, temporarily change the floor-item room line's `floorItem.DisplayName()` (in `is looking at the <ansi fg="item">%s</ansi> %s.`) to `floorItem.DisplayNameFor(user.UserId)`. Run `go test . -run TestFinderViewReachesOnlyItsReader -v`. Expected: FAIL naming both `internal/usercommands/look.go|Look: makes 5 finder-view call(s), finderViewSites says 4` and `internal/usercommands/look.go:<line> in internal/usercommands/look.go|Look: DisplayNameFor inside SendTextVisual`. Then also try `u.SendText(messaging.CategoryMobEmote, lookItem.NameFor(user.UserId))` inside the look-at-a-player branch (`u` is the looked-at player, `look.go:95`): expected FAIL `NameFor inside u.SendText`. Restore (`git diff internal/usercommands/look.go` shows only Step 3's lines), rerun, PASS.
 
 - [ ] **Step 6: Run the touched packages and the root guards**
 
@@ -2903,13 +3448,369 @@ Expected: all `ok`.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-h && git add bauble_finder_view_guard_test.go internal/usercommands/finder_only_bauble_test.go internal/actions/search_bauble.go internal/actions/steal.go internal/usercommands/inventory.go internal/usercommands/look.go internal/usercommands/appraise.go modules/gmcp/gmcp.Char.go && git commit -F - <<'EOF'
+cd /c/tmp/dogmud-baubles-h && git add bauble_finder_view_guard_test.go internal/usercommands/finder_only_bauble_test.go internal/actions/search_bauble.go internal/actions/steal.go internal/usercommands/inventory.go internal/usercommands/look.go internal/usercommands/appraise.go modules/gmcp/gmcp.Char.go modules/gmcp/gmcp.Room.go && git commit -F - <<'EOF'
 feat(baubles): a finder reads their own finder-only bauble
 
 The find lines, the pickpocket success line, inventory, look, the room
-listing, the appraisal and the web client backpack ask for the reader's
-own view. A root guard lists those seven single-reader functions and fails
-on any other caller of the finder's view, or on one inside a room send.
+listing, the appraisal and four per-user GMCP payloads ask for the
+reader's own view. A root guard pins the finder-view call count of each of
+those ten functions and fails on any other caller, or on a finder-view
+call inside a room send, a Command, merchantSay, an events.Message, or a
+SendText to anyone but the viewer.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+EOF
+```
+
+---
+
+### Task 9c: Player-key text never reaches the AI companion's model
+
+Review finding f. The AI companion describes what it perceives to its
+model: its own gear and pack (`perception.go:184, 194`), what lies in the
+room (`perception.go:213`, `scene.go:149`), its owner's weapon
+(`perception.go:293`), its carried and worn things (`scene.go:278, 288`),
+a take-from line (`actions.go:508`), a looked-at item's description
+(`actions.go:624`) and a container's contents (`actions.go:661`). A
+finder-only bauble already reads "Trinket" there (Task 9a), but MODERATED
+player-key text is everyone's, and spec S3 keeps player-key text out of
+every model prompt, not only the baubles module's. So these sites use two
+model-safe accessors that show any player-key bauble as its carrier's own
+name ("Curious Trinket") and description.
+
+**Files:**
+- Create: `internal/items/bauble_model.go`
+- Modify: `internal/items/bauble_viewer_test.go`
+- Modify: `modules/aicompanion/perception.go`, `modules/aicompanion/scene.go`, `modules/aicompanion/actions.go`
+- Create: `modules/aicompanion/bauble_prompt_test.go`
+
+- [ ] **Step 1: Write the failing item test**
+
+Append to `internal/items/bauble_viewer_test.go`:
+
+```go
+// Player-key text, moderated or not, never goes into a language model's
+// prompt (spec S3): ModelName and ModelDescription show such a bauble as
+// its carrier ("Curious Trinket"), and are Name and GetLongDescription for
+// anything else.
+func TestModelAccessorsKeepPlayerKeyTextOut(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`,
+			Description: `A small curiosity.`, Type: Object, Subtype: Mundane},
+	})
+	defer restore()
+	views := map[string]BaubleView{
+		`player`: {Name: `Painted Wooden Horse`, NameSimple: `horse`, Description: `A child's toy horse.`, PlayerText: true},
+		`server`: {Name: `Tin Soldier`, NameSimple: `soldier`, Description: `A dented tin soldier.`},
+	}
+	SetBaubleResolver(func(id string) (BaubleView, bool) { v, ok := views[id]; return v, ok })
+	defer SetBaubleResolver(nil)
+
+	mine := New(BaubleItemId)
+	mine.Bauble = `player`
+	if mine.ModelName() != `Curious Trinket` || strings.Contains(mine.ModelDescription(), `horse`) {
+		t.Fatalf("player-key text stays out of the prompt: %q %q", mine.ModelName(), mine.ModelDescription())
+	}
+	if mine.Name() != `Painted Wooden Horse` {
+		t.Fatal("players still read moderated player-key text")
+	}
+	server := New(BaubleItemId)
+	server.Bauble = `server`
+	if server.ModelName() != `Tin Soldier` || !strings.Contains(server.ModelDescription(), `tin soldier`) {
+		t.Fatalf("server-key text is the model's to read: %q", server.ModelName())
+	}
+}
+```
+
+Run: `go test ./internal/items/ -run TestModelAccessorsKeepPlayerKeyTextOut -v`
+Expected: build failure `mine.ModelName undefined`.
+
+- [ ] **Step 2: The accessors**
+
+Create `internal/items/bauble_model.go`:
+
+```go
+package items
+
+// Model-safe accessors. Text a player's own key wrote, moderated or not,
+// never goes into any language model's prompt (spec S3; the baubles
+// module's RecentNames and regeneration keep it out of theirs, and these
+// keep it out of the AI companion's). Such a bauble reads as its carrier
+// item's own spec ("Curious Trinket"). Use these, never Name or
+// GetLongDescription, for anything a model is told.
+
+// ModelName is Name for a model's prompt.
+func (i *Item) ModelName() string {
+	if spec, ok := i.playerTextCarrier(); ok {
+		return spec.Name
+	}
+	return i.Name()
+}
+
+// ModelDescription is GetLongDescription for a model's prompt.
+func (i *Item) ModelDescription() string {
+	if spec, ok := i.playerTextCarrier(); ok {
+		return i.longDescriptionFrom(spec)
+	}
+	return i.GetLongDescription()
+}
+
+// playerTextCarrier is the carrier's own spec when this is a bauble whose
+// text a player's own key wrote.
+func (i *Item) playerTextCarrier() (ItemSpec, bool) {
+	if i.Bauble == `` {
+		return ItemSpec{}, false
+	}
+	p := baubleResolver.Load()
+	if p == nil || *p == nil {
+		return ItemSpec{}, false
+	}
+	v, ok := (*p)(i.Bauble)
+	if !ok || !v.PlayerText {
+		return ItemSpec{}, false
+	}
+	spec := GetItemSpec(i.ItemId)
+	if spec == nil {
+		return ItemSpec{}, false
+	}
+	return *spec, true
+}
+```
+
+Run: `go test ./internal/items/`
+Expected: `ok`.
+
+- [ ] **Step 3: Write the failing companion test**
+
+Create `modules/aicompanion/bauble_prompt_test.go`:
+
+```go
+package aicompanion
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+)
+
+// What the companion is told about a room never carries text a player's
+// own key wrote (spec S3; review finding f): a player-key bauble lying
+// there reads as its carrier.
+func TestRoomThingsKeepPlayerKeyTextOut(t *testing.T) {
+	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`,
+			Type: items.Object, Subtype: items.Mundane},
+	}))
+	items.SetBaubleResolver(func(id string) (items.BaubleView, bool) {
+		return items.BaubleView{Name: `Painted Wooden Horse`, NameSimple: `horse`, PlayerText: true}, true
+	})
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+
+	b := items.New(items.BaubleItemId)
+	b.Bauble = `b0000001`
+	room := &rooms.Room{RoomId: 1, Items: []items.Item{b}}
+	got := strings.Join(roomThings(room), `, `)
+	if strings.Contains(got, `Horse`) || !strings.Contains(got, `Curious Trinket`) {
+		t.Fatalf("the companion reads the carrier, never the player's text: %q", got)
+	}
+}
+```
+
+Run: `go test ./modules/aicompanion/ -run TestRoomThingsKeepPlayerKeyTextOut -v`
+Expected: FAIL "the companion reads the carrier, never the player's text: \"Painted Wooden Horse\"".
+
+- [ ] **Step 4: Route every model-facing item name**
+
+Replace `.Name()` with `.ModelName()` at each of these (the receiver varies; the expression is otherwise unchanged):
+
+| File | Text today |
+|---|---|
+| `modules/aicompanion/perception.go` | `worn = append(worn, it.Name())` |
+| `modules/aicompanion/perception.go` | `carried = append(carried, it.Name())` |
+| `modules/aicompanion/perception.go` | `out = append(out, it.Name())` (in `roomThings`) |
+| `modules/aicompanion/perception.go` | ``parts = append(parts, `carrying `+w.Name())`` |
+| `modules/aicompanion/scene.go` | ``Kind: `item`, Name: item.Name(), Class: `lying here`,`` |
+| `modules/aicompanion/scene.go` | ``sc.Carried = append(sc.Carried, thing{Ref: fmt.Sprintf(`p%d`, i+1), Kind: `carried`, Name: item.Name(),`` |
+| `modules/aicompanion/scene.go` | ``sc.Worn = append(sc.Worn, thing{Ref: fmt.Sprintf(`w%d`, wi), Kind: `worn`, Name: item.Name(),`` |
+| `modules/aicompanion/actions.go` | `t.Key, it.Name(), t.Name, delay, round)` (the `take_from` issue) |
+| `modules/aicompanion/actions.go` | `inside = append(inside, ct.Items[i].Name())` |
+
+and in `actions.go` `lookAt` replace `		desc = plainText(item.GetLongDescription())` with `		desc = plainText(item.ModelDescription())`.
+
+Then list what is left, to read each by eye:
+```bash
+cd /c/tmp/dogmud-baubles-h && grep -n "\.Name()\|\.DisplayName()\|GetLongDescription()" modules/aicompanion/*.go | grep -v _test
+```
+Expected at `3bd6ccaa3` plus this step: only `combat.go:650` (a weapon's name: a bauble is never a weapon), `economy.go:98, 113` (shop wares: shops never stock a bauble, `sell_bauble.go`), `inventory.go:32` (keyword matching, not sent) and the `profile.go` directory entries (`e.Name()`, files). Anything else that names an item to the model: route it the same way, and say so in the commit.
+
+- [ ] **Step 5: Run to verify it passes**
+
+Run: `go test ./modules/aicompanion/ ./internal/items/`
+Expected: `ok` for both.
+
+Probe: temporarily make `playerTextCarrier` return `ItemSpec{}, false` and rerun both new tests. Expected: FAIL in each. Restore, rerun, PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && git add internal/items/bauble_model.go internal/items/bauble_viewer_test.go modules/aicompanion/perception.go modules/aicompanion/scene.go modules/aicompanion/actions.go modules/aicompanion/bauble_prompt_test.go && git commit -F - <<'EOF'
+fix(aicompanion): player-key bauble text never reaches the model
+
+items.Item ModelName and ModelDescription show a bauble whose text a
+player's own key wrote, moderated or not, as its carrier; every item name
+and description the AI companion tells its model goes through them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+EOF
+```
+
+---
+
+### Task 9d: `bauble show` and `bauble list` tell an admin whose text it is
+
+Review finding e. `bauble show` (`admin.bauble.go:170-199`) prints no
+`PlayerKey`, `Moderated` or finder-only state, and `bauble list`
+(`:203-223`) cannot find the records an admin most needs to review.
+
+**Files:**
+- Modify: `internal/usercommands/admin.bauble.go` (`baubleShow`'s builder, `baubleList`)
+- Modify: `_datafiles/world/dogmud/templates/admincommands/help/command.bauble.template`
+- Modify: `internal/usercommands/admin.bauble_test.go`
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `internal/usercommands/admin.bauble_test.go` (it imports `strings`, `baubles`, `items`, `assert`, `require`; add `"github.com/GoMudEngine/GoMud/internal/events"`):
+
+```go
+// An admin sees whose text a bauble carries (review finding e), and can
+// list only the player-key, the unmoderated or the finder-only ones.
+func TestAdminBauble_ShowsAndFiltersPlayerKeyText(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+	admin, room := getTestUserAndRoom(t)
+
+	mine, err := baubles.Create(baubles.Record{Name: "Painted Wooden Horse", NameSimple: "horse", Tier: baubles.TierCheap,
+		Value: 3, WeightLbs: 0.5, Description: "A toy horse.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI, PlayerKey: true, FoundByUserId: 7})
+	require.NoError(t, err)
+	_, err = baubles.Create(baubles.Record{Name: "Tin Soldier", NameSimple: "soldier", Tier: baubles.TierCheap,
+		Value: 3, WeightLbs: 0.5, Description: "A tin soldier.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI, Moderated: true})
+	require.NoError(t, err)
+
+	events.DrainQueuedMessagesForTest(admin.UserId)
+	_, _ = Bauble("show "+mine.Id, admin, room, 0)
+	out := strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), "\n")
+	assert.Contains(t, out, "player key: yes")
+	assert.Contains(t, out, "moderated: no")
+	assert.Contains(t, out, "finder only: yes (user 7)")
+
+	for filter, wantHorse := range map[string]bool{"playerkey": true, "unmoderated": true, "finderonly": true, "": true} {
+		_, _ = Bauble(strings.TrimSpace("list 10 "+filter), admin, room, 0)
+		out = strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), "\n")
+		assert.Equal(t, wantHorse, strings.Contains(out, "Painted Wooden Horse"), filter)
+		assert.Equal(t, filter == "", strings.Contains(out, "Tin Soldier"), filter)
+	}
+}
+```
+
+Run: `go test ./internal/usercommands/ -run TestAdminBauble_ShowsAndFiltersPlayerKeyText -v`
+Expected: FAIL on "player key: yes" and on the filtered lists still showing the Tin Soldier.
+
+- [ ] **Step 2: Show and filter**
+
+In `internal/usercommands/admin.bauble.go`, replace
+
+```go
+	fmt.Fprintf(&b, "  generator:   %s %s (prompt v%d, %d tokens)\r\n", rec.Generator, rec.Model, rec.PromptVersion, rec.Tokens)
+```
+with
+```go
+	fmt.Fprintf(&b, "  generator:   %s %s (prompt v%d, %d tokens)\r\n", rec.Generator, rec.Model, rec.PromptVersion, rec.Tokens)
+	fmt.Fprintf(&b, "  player key: %s, moderated: %s\r\n", yesNo(rec.PlayerKey), yesNo(rec.Moderated))
+	if rec.KeptToFinder() {
+		fmt.Fprintf(&b, "  finder only: yes (user %d); everyone else sees a plain Trinket\r\n", rec.FoundByUserId)
+	}
+```
+and add at the end of the file:
+
+```go
+
+// yesNo is a flag for the admin bauble views.
+func yesNo(v bool) string {
+	if v {
+		return `yes`
+	}
+	return `no`
+}
+```
+(no `yesNo` exists in `internal/usercommands` at `3bd6ccaa3`.)
+
+In `baubleList`, replace
+
+```go
+	n := 10
+	if len(args) > 0 {
+		if v, err := strconv.Atoi(args[0]); err == nil && v > 0 {
+			n = v
+		}
+	}
+	recent := baubles.Recent(n)
+```
+with
+```go
+	n := 10
+	filter := ``
+	for _, a := range args {
+		if v, err := strconv.Atoi(a); err == nil && v > 0 {
+			n = v
+			continue
+		}
+		filter = strings.ToLower(a)
+	}
+	keep := func(r baubles.Record) bool {
+		switch filter {
+		case `playerkey`:
+			return r.PlayerKey
+		case `unmoderated`:
+			return !r.Moderated && r.Generator == baubles.GeneratorOpenAI
+		case `finderonly`:
+			return r.KeptToFinder()
+		}
+		return true
+	}
+	recent := make([]baubles.Record, 0, n)
+	for _, r := range baubles.Recent(baubles.Count()) {
+		if len(recent) >= n {
+			break
+		}
+		if keep(r) {
+			recent = append(recent, r)
+		}
+	}
+```
+(`baubles.Recent(n int) []Record` and `baubles.Count() int`, `catalog.go:226, 233`; the loop below the old line, `for _, r := range recent`, is unchanged.)
+
+In `command.bauble.template`, change the `bauble list [n]` line to `<ansi fg="command">bauble list [n] [playerkey|unmoderated|finderonly]</ansi>` and add under its description: `  Only baubles named on a player's own key, those never moderated, or those shown to their finder alone.`
+
+- [ ] **Step 3: Run to verify it passes**
+
+Run: `go test ./internal/usercommands/ -run "TestAdminBauble" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"`
+Expected: PASS for both admin bauble tests.
+
+- [ ] **Step 4: Commit**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && git add internal/usercommands/admin.bauble.go internal/usercommands/admin.bauble_test.go _datafiles/world/dogmud/templates/admincommands/help/command.bauble.template && git commit -F - <<'EOF'
+feat(bauble): admins see and filter player-key and finder-only text
+
+bauble show prints whose key named the text, whether it was moderated and
+whether it is kept to its finder; bauble list takes a playerkey,
+unmoderated or finderonly filter.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -2931,12 +3832,13 @@ is no pre-check closing that route any more (the original plan's
 `playerRouteOpen` is dropped). After the answer:
 
 - Moderation possible (`moderationPossible`: `ModerateOutput` on, a server
-  key, neither the provider breaker nor baubles' own open): the name,
-  keyword, description and material are moderated. Clean: `Moderated`,
-  everyone reads it. Flagged: refused. The check made and failing:
-  refused, and the failure is held against baubles' own breaker
-  (`apiframework.RecordConsumer`), never the provider's; a clean or
-  flagged answer counts as a success there.
+  key, neither the provider breaker nor the moderation breaker open):
+  the name, keyword, description and material are moderated. Clean:
+  `Moderated`, everyone reads it. Flagged: refused. The check made and
+  failing: refused. Every check made, on either route, is recorded on the
+  moderation breaker (`moderationBreaker`, `apiframework.RecordConsumer`),
+  never the provider's and never the naming breaker `ConsumerBaubles`; a
+  clean or flagged answer counts as a success there.
 - Moderation impossible: no call is made, and the find is `FinderOnly`:
   the finder reads it, everyone else the generic trinket (Task 9a).
 - A server-key find is unchanged: moderated when `ModerateOutput` is on
@@ -2996,7 +3898,13 @@ In `internal/apiframework/breaker.go`, directly above `// Release hands a ticket
 // never the provider's: for a check that belongs to one feature but is not
 // a model call on the server's key (baubles' moderation of text a
 // player's own key wrote; owner ruling 2026-09-29). err nil is a success.
-// There is no ticket: the check never asked Allow for leave.
+// There is no ticket: the check never asked Allow for leave, so it is
+// never the half-open probe. Once an opened breaker's cooldown is up,
+// Blocked lets every such check through again (no probe is out), a
+// success resets the run without clearing the trip, and BreakerErrors
+// failures in a row open it for another cooldown. That is the right
+// shape for a free check that cannot overload anyone; a caller that needs
+// one-probe semantics uses Allow and Record.
 func RecordConsumer(consumer string, err error, now time.Time) {
 	shared.RecordConsumer(consumer, err, now)
 }
@@ -3019,7 +3927,10 @@ In `modules/baubles/baubles_test.go`, add two fields to `fakeOpenAI` after `modS
 ```go
 	flagWord       string       // when set, any moderation input containing it is flagged
 	lastModeration atomic.Value // the last moderation inputs, newline-joined
+	moderations    int32        // moderation calls made, status answered or not
 ```
+
+and, as the first line of the `/moderations` case, add `			atomic.AddInt32(&f.moderations, 1)`.
 
 and replace the `/moderations` case body
 
@@ -3063,8 +3974,8 @@ In `modules/baubles/baubles_test.go`:
 ```go
 // Moderation policy (spec S3; owner ruling 2026-09-29): a flag always keeps
 // a find out, and a check that is made and fails keeps out a find on EITHER
-// key. On the finder's own key that failure is held against baubles' own
-// breaker, never the provider's the companion shares.
+// key. Every failed check is held against the moderation breaker alone,
+// never the naming breaker and never the provider's the companion shares.
 func TestModerationOutageRefusesAPlayerKeyFind(t *testing.T) {
 	f := newFakeOpenAI(t)
 	f.modStatus = 500
@@ -3077,8 +3988,11 @@ func TestModerationOutageRefusesAPlayerKeyFind(t *testing.T) {
 	if _, err := m.generate(context.Background(), request()); err == nil || relay.sends != 1 {
 		t.Fatalf("the finder's key named it, the check failed: refused (sends=%d)", relay.sends)
 	}
-	if n := apiframework.Shared().ConsumerFailures(apiframework.ConsumerBaubles); n != 1 || apiframework.BreakerFailures() != 0 {
-		t.Fatalf("baubles' own breaker holds the failed check (%d), the provider's nothing (%d)", n, apiframework.BreakerFailures())
+	// Both failed checks, the server-key one and the player-key one, are on
+	// the moderation breaker; the naming breaker and the provider's hold none.
+	if n := apiframework.Shared().ConsumerFailures(moderationBreaker); n != 2 ||
+		apiframework.Shared().ConsumerFailures(apiframework.ConsumerBaubles) != 0 || apiframework.BreakerFailures() != 0 {
+		t.Fatalf("the moderation breaker holds both failed checks (%d), the naming breaker and the provider's none", n)
 	}
 	f.modStatus, f.flagged = 0, true
 	if _, err := m.generate(context.Background(), request()); err == nil {
@@ -3125,7 +4039,7 @@ Append to `modules/baubles/baubles_test.go`:
 
 ```go
 // Where the server cannot moderate (no server key, ModerateOutput off, the
-// provider breaker or baubles' own open), a finder's own key still names
+// provider breaker or the moderation breaker open), a finder's own key still names
 // the find, and its text is kept to that finder (owner ruling 2026-09-29):
 // FinderOnly, not Moderated, and no moderation call is made.
 func TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly(t *testing.T) {
@@ -3143,9 +4057,9 @@ func TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly(t *testing.T) {
 			apiframework.SetBreakerForTest(5, time.Now().Add(time.Minute))
 			return m
 		},
-		`baubles breaker open`: func(t *testing.T, f *fakeOpenAI) *BaublesModule {
+		`moderation breaker open`: func(t *testing.T, f *fakeOpenAI) *BaublesModule {
 			m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
-			apiframework.Shared().SetConsumerBreakerForTest(apiframework.ConsumerBaubles, 0, time.Now().Add(time.Minute))
+			apiframework.Shared().SetConsumerBreakerForTest(moderationBreaker, 0, time.Now().Add(time.Minute))
 			return m
 		},
 	}
@@ -3161,6 +4075,45 @@ func TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly(t *testing.T) {
 		if got := f.lastModeration.Load(); got != nil {
 			t.Errorf("%v: no moderation call is made: %v", name, got)
 		}
+	}
+}
+
+// The moderation breaker is its own (review finding d): a server-key find
+// whose naming succeeds does not reset a run of failed checks, so checks
+// failing on both routes open it, and then a finder's own key's text is
+// kept to the finder with no check tried, while the naming breaker, which
+// saw only successes, stays closed. Sequence: server find, player find,
+// server find, each with the check failing (BreakerErrors 3).
+func TestFailedChecksOpenTheModerationBreakerAlone(t *testing.T) {
+	f := newFakeOpenAI(t)
+	f.modStatus = 500
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+	relay := &fakeRelay{allowed: map[int]bool{}, model: `player-model`, provider: newFakeOpenAI(t)}
+	apiframework.SetRelay(relay)
+
+	for i, playerKey := range []bool{false, true, false} {
+		relay.allowed[7] = playerKey
+		if _, err := m.generate(context.Background(), request()); err == nil {
+			t.Fatalf("find %d: the check failed, so it is refused", i)
+		}
+	}
+	if !apiframework.Blocked(moderationBreaker, time.Now()) {
+		t.Fatal("three failed checks in a row, whatever the route, open the moderation breaker")
+	}
+	if apiframework.Blocked(apiframework.ConsumerBaubles, time.Now()) || apiframework.BreakerOpen(time.Now()) {
+		t.Fatal("every naming call succeeded: the naming and provider breakers stay closed")
+	}
+
+	f.modStatus = 0
+	checks := atomic.LoadInt32(&f.moderations)
+	relay.allowed[7] = true
+	res, err := m.generate(context.Background(), request())
+	if err != nil || !res.FinderOnly || res.Moderated || atomic.LoadInt32(&f.moderations) != checks {
+		t.Fatalf("with the breaker open, the finder's text is kept to them, unchecked: %+v %v", res, err)
+	}
+	relay.allowed[7] = false
+	if _, err := m.generate(context.Background(), request()); !errors.Is(err, errBreakerOpen) {
+		t.Fatalf("and a server-key find is refused, unchecked: %v", err)
 	}
 }
 
@@ -3244,20 +4197,31 @@ func chatBody(content string, tokens int) string {
 - [ ] **Step 4: Run to verify the new and rewritten tests fail**
 
 Run: `go test ./modules/baubles/ -v 2>&1 | grep -E "^(=== RUN|--- FAIL|--- PASS|FAIL|ok)" | grep -E "FAIL|ok"`
-Expected: the package builds (Task 7 added `GenResult.FinderOnly`, and `apiframework.Shared().SetConsumerBreakerForTest` already exists), and FAIL for `TestModerationOutageRefusesAPlayerKeyFind` (the finder's key is accepted unmoderated today, and nothing feeds baubles' breaker), `TestNoKeyAtAll` and `TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly` (named, but never `FinderOnly`), `TestPlayerKeyTextOutsideTheAllowlistFallsBackToTheServer` (the accented name is used on the finder's key today), `TestPlayerKeyTypographyIsFoldedNotRefused` (today `generate` keeps the RAW reply, so the description still carries the curly apostrophe and the em dash), `TestEveryTextFieldIsModerated` (two inputs sent, not four) and `TestSystemPromptStatesTheAllowedCharacters`.
+Expected: build failure `undefined: moderationBreaker`. To see the assertions fail too, add Step 5's `const moderationBreaker` line alone and rerun: FAIL for `TestModerationOutageRefusesAPlayerKeyFind` (the finder's key is accepted unmoderated today, and nothing feeds a moderation breaker), `TestFailedChecksOpenTheModerationBreakerAlone` (never opens), `TestNoKeyAtAll` and `TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly` (named, but never `FinderOnly`), `TestPlayerKeyTextOutsideTheAllowlistFallsBackToTheServer` (the accented name is used on the finder's key today), `TestPlayerKeyTypographyIsFoldedNotRefused` (today `generate` keeps the RAW reply, so the description still carries the curly apostrophe and the em dash), `TestEveryTextFieldIsModerated` (two inputs sent, not four) and `TestSystemPromptStatesTheAllowedCharacters`.
 
 - [ ] **Step 5: The moderation test and the allowlist fallback**
 
 In `modules/baubles/generate.go`, add, directly above `name`:
 
 ```go
+// moderationBreaker is the moderation check's OWN consumer breaker, apart
+// from ConsumerBaubles (review finding d): a naming call's success on the
+// server's key reports to ConsumerBaubles before moderation runs
+// (generate), and a breaker shared by both would have every good naming
+// call reset the run of failed checks, so it could never open; and failed
+// naming calls would count as moderation failures. It is fed only by
+// moderate, on both routes (apiframework.RecordConsumer), and read by
+// moderationPossible and moderate.
+const moderationBreaker = `baubles-moderation`
+
 // moderationPossible reports whether the server can moderate a reply now:
 // ModerateOutput on, a server key, and neither the provider breaker nor
-// baubles' own open. Player-key text named while it is not is kept to its
-// finder (FinderOnly; owner ruling 2026-09-29), never shown to anyone else
-// unmoderated.
-func moderationPossible(cfg Config, now time.Time) bool {
-	return cfg.ModerateOutput && apiframework.Server().HasKey() && !apiframework.Blocked(apiframework.ConsumerBaubles, now)
+// the moderation breaker open (apiframework.Blocked reads both). s and now
+// are read once by the caller and passed in. Player-key text named while
+// it is not is kept to its finder (FinderOnly; owner ruling 2026-09-29),
+// never shown to anyone else unmoderated.
+func moderationPossible(cfg Config, s apiframework.ServerSettings, now time.Time) bool {
+	return cfg.ModerateOutput && s.HasKey() && !apiframework.Blocked(moderationBreaker, now)
 }
 ```
 
@@ -3378,27 +4342,28 @@ Replace the whole of `moderate` and its doc comment with:
 //   - Server-key text: checked when ModerateOutput is on, and kept out when
 //     the check cannot be made or fails; not checked when it is off.
 //   - Player-key text: checked whenever the server can
-//     (moderationPossible), and then a failed check keeps it out too, and
-//     is held against baubles' own breaker (apiframework.RecordConsumer),
-//     never the provider's. When the server cannot check it, no call is
-//     made and it is kept to its finder (finderOnly: everyone else reads
-//     the generic trinket).
+//     (moderationPossible), and then a failed check keeps it out too.
+//     When the server cannot check it, no call is made and it is kept to
+//     its finder (finderOnly: everyone else reads the generic trinket).
+//   - Every check made, on either route, is recorded on the moderation
+//     breaker alone (apiframework.RecordConsumer), never the provider's
+//     and never the naming breaker. A flag is the check working.
 //
-// The check is free and is not a model call, so it reserves nothing; it
-// does not try while the provider breaker is open.
+// The check is free and is not a model call, so it reserves nothing. The
+// server settings and the clock are read once here and passed on.
 func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (moderated bool, finderOnly bool, err error) {
 	now := time.Now()
-	if playerKey && !moderationPossible(cfg, now) {
+	s := apiframework.Server()
+	if playerKey && !moderationPossible(cfg, s, now) {
 		return false, true, nil
 	}
 	if !cfg.ModerateOutput {
 		return false, false, nil
 	}
-	s := apiframework.Server()
 	if !s.HasKey() {
 		return false, false, errNoRoute
 	}
-	if apiframework.BreakerOpen(now) {
+	if apiframework.Blocked(moderationBreaker, now) {
 		return false, false, errBreakerOpen
 	}
 	// Every field a player reads or types. CleanReply always leaves a
@@ -3410,12 +4375,10 @@ func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool
 	}
 	flags, err := apiframework.Moderate(s.Endpoint, cfg.ModerationModel, time.Duration(cfg.TimeoutSeconds)*time.Second,
 		texts, apiframework.CarriesNoPlayerData, nil)
-	if playerKey {
-		// Enough failed checks in a row open baubles' own breaker, and
-		// later player-key finds are kept to their finders instead of
-		// refused (moderationPossible). A flag is the check working.
-		apiframework.RecordConsumer(apiframework.ConsumerBaubles, err, now)
-	}
+	// Enough failed checks in a row, on either route, open the moderation
+	// breaker: later player-key finds are then kept to their finders, and
+	// server-key finds refused, until it closes. A flag is the check working.
+	apiframework.RecordConsumer(moderationBreaker, err, now)
 	if err != nil {
 		return false, false, fmt.Errorf(`moderation: %w`, err)
 	}
@@ -3446,7 +4409,13 @@ with
 	} else if cfg.UsePlayerKeys && !cfg.ModerateOutput {
 		detail += ` ModerateOutput is off: finds named on finders' own keys are shown to those finders alone.`
 	}
+	if now := time.Now(); cfg.ModerateOutput && apiframework.Blocked(moderationBreaker, now) && !apiframework.BreakerOpen(now) {
+		detail += ` The moderation breaker is open (the moderation endpoint keeps failing): server-key finds are generic and finders' own keys' finds are shown to those finders alone until ` +
+			apiframework.BreakerUntil(moderationBreaker).Format(`15:04:05`) + `.`
+	}
 ```
+
+The existing naming-breaker line (`baubles.go:141`, "Baubles' own breaker is open (the provider is fine; check Modules.baubles.Model)") now describes the NAMING breaker only; reword it to ` Baubles' naming breaker is open (the provider is fine; check Modules.baubles.Model)`.
 
 - [ ] **Step 8: The system prompt states the allowed characters (PromptVersion 5)**
 
@@ -3489,9 +4458,9 @@ Expected: only `ok`.
 
 - [ ] **Step 10: Probe the policy and the allowlist fallback**
 
-Temporarily change `moderationPossible`'s body to `return cfg.ModerateOutput && apiframework.Server().HasKey()` (dropping the breaker check), run `go test ./modules/baubles/ -run TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly -v`. Expected: FAIL naming `provider breaker open` (refused by `errBreakerOpen`) and `baubles breaker open` (a moderation call is made). Restore, rerun, PASS.
+Temporarily change `moderationPossible`'s body to `return cfg.ModerateOutput && s.HasKey()` (dropping the breaker check), run `go test ./modules/baubles/ -run TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly -v`. Expected: FAIL naming `provider breaker open` and `moderation breaker open` (both refused by `errBreakerOpen` instead of kept to the finder). Restore, rerun, PASS.
 
-Temporarily delete the `if playerKey { apiframework.RecordConsumer(...) }` block from `moderate`, run `go test ./modules/baubles/ -run TestModerationOutageRefusesAPlayerKeyFind -v`. Expected: FAIL "baubles' own breaker holds the failed check (0)". Restore, rerun, PASS.
+Temporarily delete the `apiframework.RecordConsumer(moderationBreaker, err, now)` line from `moderate`, run `go test ./modules/baubles/ -run "TestModerationOutageRefusesAPlayerKeyFind|TestFailedChecksOpenTheModerationBreakerAlone" -v`. Expected: FAIL "the moderation breaker holds both failed checks (0)" and "three failed checks in a row, whatever the route, open the moderation breaker". Then, instead, change it to `apiframework.RecordConsumer(apiframework.ConsumerBaubles, err, now)` (the shared breaker the review found) and rerun the second test: expected FAIL, since each good naming call resets the run. Restore, rerun, PASS.
 
 Temporarily change `refusedByAllowlist`'s last line to `return false`, run `go test ./modules/baubles/ -run TestPlayerKeyTextOutsideTheAllowlistFallsBackToTheServer -v`. Expected: FAIL "refused on the finder's key, named on the server's" (the accented name is kept on the player's key; `baubles.Generate` would refuse it later, but this test calls the module directly). Restore, rerun, PASS.
 
@@ -3502,10 +4471,11 @@ cd /c/tmp/dogmud-baubles-h && git add internal/apiframework/breaker.go internal/
 fix(baubles): player-key text is moderated, or kept to its finder
 
 Where the server can moderate, a finder's own key's text is checked like
-the server's: a flag or a failed check refuses it, and the failure feeds
-baubles' own breaker (apiframework.RecordConsumer), never the provider's.
-Where it cannot (no server key, ModerateOutput off, a breaker open), the
-find is FinderOnly. Text outside the plain-text allowlist falls back to
+the server's: a flag or a failed check refuses it. Every check made, on
+either route, feeds the moderation check's own breaker
+(apiframework.RecordConsumer), never the naming breaker or the
+provider's. Where it cannot (no server key, ModerateOutput off, a breaker
+open), the find is FinderOnly. Text outside the plain-text allowlist falls back to
 the server's key without touching the player's breaker. The keyword and
 material are moderated with the name and description on every route, and
 the system prompt (version 5) states the allowed characters.
@@ -3635,7 +4605,16 @@ In `modules/baubles/generate.go`:
 
 (a) Add `errSlotsBusy = errors.New(`all generation slots busy`)` to the error `var` block.
 
-(b) In `generate`, delete the whole block from `// A fixed number of calls at once.` through the closing `}` of the `select` (the `m.mu.Lock()`, `slots := m.slots`, `m.mu.Unlock()` and the `select`).
+(b) In `generate`, delete the whole block from `// A fixed number of calls at once.` through the closing `}` of the `select` (the `m.mu.Lock()`, `slots := m.slots`, `m.mu.Unlock()` and the `select`). Then, directly after `	content, tokens, model, playerKey, report, err := m.name(ctx, cfg, req, chat)`, add:
+
+```go
+	if errors.Is(err, errSlotsBusy) {
+		// Refused at the door, not a call that failed: it counts in no
+		// statistic (m.count) and feeds no breaker, as before this slice.
+		return baubles.GenResult{}, err
+	}
+```
+(`m.count` at `baubles.go:101` would otherwise count a busy refusal as a failed call, which the old slot check, returning before `m.count`, never did.)
 
 (c) In `name`, replace Task 10's relay call and its `switch`
 
@@ -3742,6 +4721,301 @@ EOF
 
 ---
 
+### Task 11a: PR H2 docs
+
+(Text quoted from a `context.md` here is shown unwrapped; match it by its words and rewrap the replacement to the file's width.)
+
+**Files:**
+- Modify: `internal/baubles/context.md`, `modules/baubles/context.md`, `internal/items/context.md`, `internal/apiframework/context.md`, `internal/actions/context.md`, `internal/usercommands/context.md`, `modules/gmcp/context.md`, `modules/aicompanion/context.md`, `internal/enchantments/context.md`
+- Modify: `_datafiles/config.yaml` (comments only), `docs/aicompanion/settings.md`, `docs/baubles/implementation-plan.md`
+
+- [ ] **Step 0: Verify every symbol these docs name**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && grep -rn "func CheckPlayerKeyText\|func AuthoredName\|func moderationPossible\|func refusedByAllowlist\|func (m \*BaublesModule) takeFinderSlot\|func (m \*BaublesModule) takeServerSlot\|const PromptVersion = 5\|const moderationBreaker\|func (r Record) KeptToFinder\|func (r Record) MaterialFor\|func genericDescriptionFor\|func (i \*Item) GetSpecFor\|func (i \*Item) DisplayNameFor\|func (i \*Item) NameFor\|func (i \*Item) LongDescriptionFor\|func (i \*Item) ModelName\|func (i \*Item) ModelDescription\|func RecordConsumer\|PlayerText bool\|FinderOnly bool" internal modules
+```
+Expected: at least one hit for each pattern (`FinderOnly bool` is `GenResult`'s; there is no stored `Record.FinderOnly`). Fix the doc text, never the grep.
+
+- [ ] **Step 1: `internal/baubles/context.md`**
+
+- In the **validate.go** bullet add: `` An authored item's whole name is refused (`items.AuthoredName`). ``
+- Add a file bullet: `` - **playerkey.go**: `CheckPlayerKeyText`, the plain-text allowlist for text a player's own key wrote, on the CLEANED name, keyword, description and material: ASCII letters, space, `' " - , . ! ?`, and every run of periods followed by a space, a `"` or the end. ``
+- In the **generate.go** bullet add: `` `Generate` refuses a `PlayerKey` result that fails `CheckPlayerKeyText`, or is neither `Moderated` nor `FinderOnly` with a finder, and any `FinderOnly` result that is not `PlayerKey`; `RecentNames` skips `PlayerKey` records. ``
+- Change the `GenResult` signature line to `/* Reply, Generator, Model, PromptVersion, Tokens, Moderated, PlayerKey, FinderOnly */`.
+- In the mint section add: `` `Mint` rolls a `PlayerKey` find's value with `tier.RollValue`, keeping the key's proposal in `ValueProposed`. `ApplyRegenerated` takes the new result's `PlayerKey` (a regen is always server-key). ``
+- In the **record.go** bullet add: `` `KeptToFinder()` is `PlayerKey && !Moderated`: DERIVED, never stored, so records named before slice H are covered. Such a record's `View` is the generic trinket (`genericName`, `genericNameSimple`, `genericDescriptionFor(id)`, stable per id) with its own text in `BaubleView.Finder` for `FoundByUserId` (none when that is 0); retired text wins over both. `View` sets `BaubleView.PlayerText` for any `PlayerKey` record, so no model prompt carries it (`items.Item.ModelName`). `MaterialFor(viewerUserId)` is the material for the finder alone. Never promotable (slice C takes only server-key moderated text). ``
+- Add a gotcha: `` - **Finder-only text is fail-safe, not routed.** The catalog's viewer-agnostic view of a finder-only record IS the generic trinket, so every render path shows "Trinket" unless it asks the item layer for one viewer's view (`items.Item.GetSpecFor` and kin), which only the single-reader functions listed in the repo-root `bauble_finder_view_guard_test.go` do, each with a pinned call count. Never read a record's `Name`, `Description` or `Material` for display outside the admin command; use the item accessors or `MaterialFor`. ``
+
+- [ ] **Step 2: `modules/baubles/context.md`**
+
+- Replace "How a call goes" step 2 with: `` 2. `name` picks the route; a slot is taken there (see 3 and 4). A busy server slot returns `errSlotsBusy` before `generate` counts anything. ``
+- In step 3, after "on their key." insert `` It takes the finder's own slot (`takeFinderSlot`, one in flight per finder), never a server slot; a busy one goes to the server. The relay's token count passes through `Charged(..., relayed=true)`. An answer that parses and cleans but fails `baubles.CheckPlayerKeyText` (`refusedByAllowlist`) is not the key's failure: its breaker hears nothing and the find goes on to the server's key (ruling 15). ``
+- In step 4, after "`viaServer`:" insert `` one of the `MaxConcurrent` server slots (`takeServerSlot`; none free is `errSlotsBusy` at once, not a queue; it covers the model call only); ``
+- Replace step 6 with: `` 6. `baubles.ParseReply` and `CleanReply` (the cleaned text is kept). Then `moderate`, on the name, keyword, description and material, through the server key, reading the server settings and the clock once. Server-key text: checked when `ModerateOutput` is on (a flag, or a check that cannot be made or fails, refuses), unchecked when off. Player-key text: checked whenever `moderationPossible` (`ModerateOutput` on, a server key, neither the provider breaker nor the moderation breaker open); a flag or a failed check refuses. Every check made, on either route, is recorded on the moderation check's OWN breaker, `moderationBreaker` (`apiframework.RecordConsumer`), never on the naming breaker `ConsumerBaubles` (whose run a good naming call resets) and never on the provider's. When moderation is not possible no call is made and the find is `FinderOnly`: its finder reads it, everyone else the generic trinket (owner ruling 2026-09-29). ``
+- Replace the "Moderation on a player's key" gotcha with: `` - **Moderation on a player's key.** Moderated when the server can, and then refused on a flag or a failed check; kept to its finder when it cannot, never shown to anyone else unmoderated. Also held to plain ASCII after folding (`CheckPlayerKeyText`; text outside it falls back to the server's key without touching the player's breaker), its value re-rolled by the server (`Mint`), its name never in another prompt (`RecentNames`), and never in the AI companion's prompts either (`items.Item.ModelName`). Pinned by `TestModerationOutageRefusesAPlayerKeyFind`, `TestFailedChecksOpenTheModerationBreakerAlone`, `TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly`, `TestNoKeyAtAll`, `TestPlayerKeyTextOutsideTheAllowlistFallsBackToTheServer`, `TestPlayerKeyTypographyIsFoldedNotRefused`. ``
+- Add a gotcha: `` - **The moderation breaker has no probe.** `RecordConsumer` carries no ticket, so once its cooldown is up every check is let through again, and `BreakerErrors` failures in a row reopen it. Fine for a free check; do not copy it for a model call. ``
+- In the Config paragraph change `` `MaxConcurrent` (4) `` to `` `MaxConcurrent` (4, server-key calls only) ``.
+- In the **prompt.go** bullet (the `PromptVersion` history) add: `` 5: the system prompt states the characters the player-key allowlist accepts. ``
+- In the **generate.go** bullet list `moderationPossible`, `moderationBreaker` and `refusedByAllowlist` beside `name`; add `takeServerSlot` and `takeFinderSlot` to the **baubles.go** bullet, and note that `info` reports the naming breaker and the moderation breaker separately.
+
+- [ ] **Step 3: `internal/items/context.md`**
+
+- After the `AuthoredKeyword(word)` sentence add: `` `AuthoredName(name)` is whether a loaded item's whole name matches after NFKC, lower case and collapsed spaces (`normalizeItemName`); `baubles.CleanReply` refuses such a name. Both read one snapshot (`authored`, an atomic pointer to words and names together). `` and change `(`authoredWords`, an atomic pointer)` to `(`authored`)`.
+- In the "Baubles: one carrier, catalog-backed identity" section, add: `` - **Finder-only baubles and viewer-aware accessors** (`bauble_viewer.go`; owner ruling 2026-09-29). `BaubleView.FinderUserId` and `Finder` carry a finder-only record's own text beside the generic view. `GetSpec` and everything built on it (`Name`, `NameSimple`, `DisplayName`, `NameComplex`, `GetLongDescription`, templates, GMCP) show the generic view to everyone; `GetSpecFor(viewerUserId)`, `DisplayNameFor`, `NameFor` and `LongDescriptionFor` show the finder their own text, and are each other item's viewer-agnostic twin. Call them only where the output reaches that one viewer (the repo-root guard pins every caller and its call count). `displayNameFrom` and `longDescriptionFrom` are the spec-taking bodies of `DisplayName` and `GetLongDescription`. ``
+- Add: `` - **Matching a finder-only bauble** (accepted, owner review 2026-09-29): `NameMatch` and `matchStrength` also match its own words (`baubleFinderNames`) so its finder can type what they read. A stranger who guesses a word of that hidden name can match the trinket with it too; no text is ever shown to them, and the item still reads "Trinket". ``
+- Add: `` - **Model-safe accessors** (`bauble_model.go`): `ModelName` and `ModelDescription` show any bauble whose text a player's own key wrote (`BaubleView.PlayerText`), moderated or not, as its carrier's own spec ("Curious Trinket"). Anything a language model is told uses these (the AI companion's perception, scene and actions). ``
+- Add: `` - A bauble is never enchanted (`enchantments.ApplyTier` returns at once): an item with a `Spec` never consults the catalog again, so a baked bauble would outlive a retire and the finder-only view. ``
+
+- [ ] **Step 4: `internal/apiframework/context.md`**
+
+In the **breaker.go** bullet, after `Allow`, `Record`, `Release` add `` `RecordConsumer` (one outcome against a consumer's own breaker alone, no ticket and so never the half-open probe: for a feature's check that is not a model call, such as baubles' moderation, which uses its own consumer name `baubles-moderation`) ``.
+
+- [ ] **Step 5: `internal/actions/context.md`, `internal/usercommands/context.md`, `modules/gmcp/context.md`, `modules/aicompanion/context.md`, `internal/enchantments/context.md`**
+
+- `internal/actions/context.md`, in the bauble search paragraph: `` `BaubleRequestForRecord` omits a `PlayerKey` record's name. The find lines (`BaubleDelivery.deliver`) and the pickpocket success line (`takeFromMob`) name a bauble as their one reader sees it (`items.Item.DisplayNameFor`), so a finder reads their own finder-only bauble; everywhere else it is "Trinket". ``
+- `internal/usercommands/context.md`, beside the bauble look and appraise notes: `` A finder-only bauble (unmoderated player-key text) reads as "Trinket" to everyone but its finder. `inventory`, `look` (a carried or floor item, and the room's floor and stash listing) and the bauble `appraise` ask for the reader's own view (`DisplayNameFor`, `NameFor`, `LongDescriptionFor`, `GetSpecFor`, `baubles.Record.MaterialFor`); every room line and every other command keeps the viewer-agnostic name. `bauble show` prints `player key`, `moderated` and `finder only`; `bauble list [n] [playerkey|unmoderated|finderonly]` filters. ``
+- `modules/gmcp/context.md`, beside `Char.Inventory` and `Room.Info`: `` Item names in the backpack, the bandolier, the component bag and `Room.Info.Contents.Items` are the recipient's own view (`items.Item.NameFor(user.UserId)`), so a finder reads their own finder-only bauble; every other payload uses the viewer-agnostic name. ``
+- `modules/aicompanion/context.md`, in its perception or prompt section: `` Every item name and description told to the model goes through `items.Item.ModelName` and `ModelDescription`: text a player's own key wrote, moderated or not, never reaches a model prompt (spec S3). ``
+- `internal/enchantments/context.md`, at `ApplyTier`: `` It refuses a bauble (`items.Item.IsBauble`): a baked `Spec` would outlive the catalog's text. ``
+
+- [ ] **Step 6: `_datafiles/config.yaml` comments**
+
+Confirm the disk copy and the bit exactly as Task 5a Step 5 does (`git diff --quiet HEAD -- _datafiles/config.yaml; echo "differs=$?"; git ls-files -v _datafiles/config.yaml`), and follow the same `differs=1` procedure if needed. Replace
+```yaml
+    MaxConcurrent: 4           # more finds at once than this are generic
+    # Check names with the moderation endpoint (needs the server's key);
+    # fails closed. A find named on a player's own key on a server with no
+    # key of its own is not moderated, as with the AI companion.
+```
+with
+```yaml
+    MaxConcurrent: 4           # server-key calls at once; more are generic
+    # Check the name, keyword, description and material with the moderation
+    # endpoint (needs the server's key). A flag, or a check that is made and
+    # fails, keeps the find out on either key. Server-key text that cannot
+    # be checked is kept out. Text a finder's own key wrote that cannot be
+    # checked (no server key, this off, a breaker open) is shown to its
+    # finder alone, a plain "Trinket" to everyone else. Either way it must
+    # be plain ASCII letters and ' " - , . ! ? (curly quotes and dashes are
+    # folded first); text that is not goes to the server's key.
+```
+
+- [ ] **Step 7: `docs/aicompanion/settings.md` and `docs/baubles/implementation-plan.md`**
+
+In `docs/aicompanion/settings.md`, replace the paragraph beginning `The key page also has a box, "Also name things I find while searching` (through `page refuses the bauble request shape from a key whose box is not ticked.`) with:
+
+```markdown
+The key page also has a box, "Also name things I find while searching (uses
+this key)", off unless the player ticks it. Ticked, and with
+`Modules.baubles.Enabled` and `UsePlayerKeys` on, the baubles that player
+finds are named on their own key through the same relay, with nothing of
+theirs in the request (only the room's authored text). Unlike the
+companion's speech, a bauble's text is shown to other players, so while
+the server can moderate it (`Modules.baubles.ModerateOutput` on, a server
+key, no breaker open) it is moderated, and a flag or a failed check refuses
+it. When the server cannot, the find is kept to its finder: they read its
+name and description, and everyone else sees a plain "Trinket". Either
+way it is held to plain ASCII letters and simple punctuation (text that is
+not goes to the server's key instead, without counting against the
+player's key), never passed to another find's prompt or the companion's,
+and its value is rolled by the server. Unticked, their finds use the
+server's key, or stay generic trinkets when there is none. The relay page
+refuses the bauble request shape from a key whose box is not ticked.
+```
+
+In `docs/baubles/implementation-plan.md`, replace the bullet
+```markdown
+- **Moderation** of a player-key find: a flag refuses; a check that cannot be
+  made accepts it unmoderated (a server-key find is refused), so a working
+  player key never becomes a trinket over the server's route.
+```
+with
+```markdown
+- **Moderation** of a player-key find (hardening, 2026-09-28/29): moderated
+  whenever the server can (a flag or a failed check refuses on either key,
+  and every check feeds the moderation breaker, not the naming breaker);
+  when it cannot (no server key, moderation off, a breaker open), the find
+  is FINDER-ONLY: its finder reads it, everyone else sees a plain Trinket.
+  Player-key text must also pass `baubles.CheckPlayerKeyText` after curly
+  quotes and dashes are folded, and text that does not goes to the
+  server's key without counting against the player's.
+```
+
+- [ ] **Step 8: The context.md audit, and commit**
+
+Run: `cd /c/tmp/dogmud-baubles-h && python tools/context_md_audit.py 2>&1 | grep -E "baubles|items|apiframework|actions|usercommands|gmcp|aicompanion|enchantments" ; echo "exit=$?"`
+Expected: no phantom symbols in these packages.
+
+```bash
+cd /c/tmp/dogmud-baubles-h && git add internal/baubles/context.md modules/baubles/context.md internal/items/context.md internal/apiframework/context.md internal/actions/context.md internal/usercommands/context.md modules/gmcp/context.md modules/aicompanion/context.md internal/enchantments/context.md _datafiles/config.yaml docs/aicompanion/settings.md docs/baubles/implementation-plan.md && git commit -F - <<'EOF'
+docs(baubles): PR H2 moderation, finder-only text and model-safe names
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+EOF
+```
+If Step 6 staged `config.yaml` through `update-index`, leave it out of `git add` and confirm with `git diff --cached --stat`.
+
+---
+
+### Task 11b: PR H2 gate
+
+**Files:** none new. Every diff runs from `$BASE` (Task H2-0 Step 1).
+
+- [ ] **Step 1: gofmt on the committed blobs**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && for f in $(git diff --name-only $BASE..HEAD -- '*.go'); do out=$(git show HEAD:"$f" | gofmt -l); [ -n "$out" ] && echo "UNFORMATTED: $f"; done; echo done
+```
+Expected: only `done`.
+
+- [ ] **Step 2: Size**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --shortstat $BASE..HEAD
+```
+Expected: under 300 files and under 20,000 lines.
+
+- [ ] **Step 3: Build, vet, tests**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && go build ./... && go vet ./internal/baubles/ ./internal/items/ ./internal/apiframework/ ./internal/actions/ ./internal/usercommands/ ./internal/enchantments/ ./modules/baubles/ ./modules/aicompanion/ ./modules/gmcp/ . && go test ./internal/baubles/ ./internal/items/ ./internal/apiframework/ ./internal/actions/ ./internal/usercommands/ ./internal/enchantments/ ./modules/baubles/ ./modules/aicompanion/ ./modules/gmcp/ . 2>&1 | tail -14
+```
+Expected: no vet output, every package `ok`.
+
+- [ ] **Step 4: The guards this PR leans on, by name**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && go test . -count=1 -run "TestFinderViewReachesOnlyItsReader|TestFinderViewGuardCatchesALeak|TestNarrationSitesMatchViewpointAudit|TestEveryTextSurfaceIsRegistered|TestEveryCreatureLookupDeclaresItsViewer|TestNoDisplayReadsRawConfig" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"
+```
+```bash
+cd /c/tmp/dogmud-baubles-h && go test ./internal/apiframework/ ./internal/items/ -count=1 -run "TestNoTestPrintsAKey|TestRecordConsumerFeedsOnlyItsOwnBreaker|TestFinderOnlyBaubleIsGenericToEveryoneButItsFinder|TestModelAccessorsKeepPlayerKeyTextOut" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"
+```
+Expected: every named test `--- PASS`.
+
+- [ ] **Step 5: Boot smoke in the test process (no port)**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && DOGMUD_BOOT_SMOKE=1 go test . -count=1 -run TestSmoke_ServerBootsCleanWithRealData -timeout 600s 2>&1 | tail -5
+```
+Expected: `ok`.
+
+- [ ] **Step 6: A real boot on private ports, stopped by its own PID**
+
+Check the fixed boot path is free:
+```bash
+git -C /c/tmp/dogmud-baubles-h worktree list | grep -F "dogmud-boot-check"; ls /c/tmp/dogmud-boot-check 2>/dev/null | head -3
+```
+Expected: no output (each exits 1); if the directory exists, STOP and ask.
+
+Build (Bash):
+```bash
+git -C /c/tmp/dogmud-baubles-h worktree add --detach /c/tmp/dogmud-boot-check HEAD && cd /c/tmp/dogmud-boot-check && go build -o boot-check.exe . && cat > /c/tmp/dogmud-boot-check.overrides.yaml <<'EOF'
+Network:
+  TelnetPort: [33533]
+  LocalPort: 9899
+  HttpPort: 8391
+  HttpsPort: 0
+  AIPort: 0
+EOF
+echo built
+```
+
+Run (PowerShell):
+```powershell
+$env:CONFIG_PATH = 'C:\tmp\dogmud-boot-check.overrides.yaml'
+$p = Start-Process -FilePath 'C:\tmp\dogmud-boot-check\boot-check.exe' -WorkingDirectory 'C:\tmp\dogmud-boot-check' -RedirectStandardOutput 'C:\tmp\dogmud-boot-check.log' -RedirectStandardError 'C:\tmp\dogmud-boot-check.err' -WindowStyle Hidden -PassThru
+$deadline = (Get-Date).AddSeconds(180)
+while ((Get-Date) -lt $deadline -and -not $p.HasExited -and -not (Select-String -Path 'C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err' -Pattern 'Server Ready' -Quiet)) { Start-Sleep -Seconds 2 }
+"pid=$($p.Id) exited=$($p.HasExited)"
+Select-String -Path 'C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err' -Pattern 'Server Ready|status=listening|^panic:|goroutine [0-9]+ \[running\]|runtime error|bind:' | Select-Object -First 20
+if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -Confirm:$false }
+Remove-Item Env:\CONFIG_PATH
+```
+Expected: `exited=False`, `Server Ready`, `Telnet status=listening port=33533` (and no 33333 or 44444), no `panic:`, `goroutine ... [running]`, `runtime error` or `bind:` line. Never grep the bare word `panic`.
+
+Clean up (PowerShell), then `git -C /c/tmp/dogmud-baubles-h worktree prune`:
+```powershell
+Remove-Item -Recurse -Force 'C:\tmp\dogmud-boot-check'; Remove-Item -Force 'C:\tmp\dogmud-boot-check.overrides.yaml','C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err'
+```
+
+- [ ] **Step 7: Race, in the Linux test container**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && docker compose -f compose.test.yml run --build --rm test go test -race -count=1 ./internal/items/ ./internal/baubles/ ./internal/apiframework/ ./internal/actions/ ./modules/baubles/ ./modules/aicompanion/ 2>&1 | tail -10
+```
+Expected: `ok` for all six, no `WARNING: DATA RACE`. This run IS the race gate until CI has minutes again.
+
+- [ ] **Step 8: Lint, go.mod, docs, tree**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && golangci-lint run --new-from-merge-base=$BASE
+```
+Expected: `0 issues`.
+```bash
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --exit-code $BASE..HEAD -- go.mod go.sum; echo "exit=$?"; git diff --name-only $BASE..HEAD | sed -n 's#^\(internal/[^/]*\|modules/[^/]*\)/.*#\1#p' | sort -u; git diff --name-only $BASE..HEAD -- '*context.md' _datafiles/config.yaml docs/ _datafiles/world/dogmud/templates/; git status --short
+```
+Expected: `exit=0`; every package in the first list has its `context.md` in the second; `_datafiles/config.yaml`, both docs and `command.bauble.template` present; a clean tree.
+
+- [ ] **Step 9: Hand over**
+
+No push from here. Report the branch, `$BASE`, `git log --oneline $BASE..HEAD` and each gate result. When the owner says to ship: `git push -u origin fix/baubles-hardening-h2`, `gh pr create --repo pruuk/DOGMud --base master --head fix/baubles-hardening-h2 --title "Slice H2: player-key moderation, finder-only text, model-safe names"`, and read back that the URL says `pruuk/DOGMud`. PR H3 starts only after this one has merged.
+
+---
+
+## PR H3: U2, U4 and the steal work
+
+---
+
+### Task H3-0: Branch PR H3 from master
+
+**Files:** none in the repo.
+
+- [ ] **Step 1: PR H2 is merged; switch the worktree**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && gh pr list --repo pruuk/DOGMud --state merged --head fix/baubles-hardening-h2 --json number,mergedAt && git status --short && git fetch -q origin && git switch -c fix/baubles-hardening-h3 origin/master && BASE=$(git rev-parse HEAD) && echo "$BASE" > /c/tmp/dogmud-baubles-h.base && echo "BASE=$BASE"
+```
+Expected: one merged PR, a clean tree, a new `BASE`. An empty list: STOP, H3 waits for H2.
+
+- [ ] **Step 2: H3's anchors exist**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && anchors=$(mktemp) && cat > "$anchors" <<'EOF'
+internal/baubles/find.go|chance := s.chanceFor(o.Place.Biome, o.SkillFactor)
+internal/baubles/find.go|SkillFactor float64
+internal/actions/search_bauble.go|var searchBaubleRoll = func(o baubles.FindOpts) (baubles.ValueTier, bool) {
+internal/actions/search_bauble.go|SkillFactor: BaubleSkillFactor(actor.GetCharacter()),
+internal/actions/search_feature.go|Feature:     feature.WindowName(),
+sight_penalty_guard_test.go|"forager":  {"ForageCore": true},
+sight_penalty_guard_test.go|func TestSightPenaltyGuardSeesTheSpellAlias(
+internal/actions/stolen_bauble.go|`<ansi fg="mobname">%s</ansi> points at %s. "That's mine! Thief!"`,
+internal/actions/steal.go|is caught trying to pocket the <ansi fg="itemname">%s</ansi>!`,
+internal/actions/search.go|is snooping around.
+internal/usercommands/look.go|is looking around.
+internal/usercommands/look.go|is looking into the room from somewhere...
+internal/actions/get.go|matchItem, found := room.FindOnFloor(itemName, stash)
+internal/usercommands/get.go|if peekFound && !getFromStash && peekItem.BaubleBelongsTo(room.RoomId) {
+internal/actions/steal.go|// Deliberately NOT mobs.CheckPlayerHarm: that policy also blocks charmed
+internal/actions/steal.go|func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
+internal/actions/steal.go|witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
+internal/actions/steal_pocket.go|if !p.success {
+internal/actions/pickpocket_test.go|h2.thief.room = newSearchTestRoom(9698) // walks off
+modules/aicompanion/actions.go|return actionOutcome{Refused: `cannot pick that up`}
+_datafiles/world/dogmud/templates/help/steal.template|fight before it is done, and you lose your chance. Now and then
+EOF
+missing=0; while IFS= read -r line; do f=${line%%|*}; a=${line#*|}; grep -qF -- "$a" "$f" || { echo "MISSING in $f: $a"; missing=1; }; done < "$anchors"; rm -f "$anchors"; echo "missing=$missing"
+```
+Expected: `missing=0`. A `MISSING` line: STOP before the task that edits it.
+
+- [ ] **Step 3: Baseline green**
+
+```bash
+cd /c/tmp/dogmud-baubles-h && go build ./... && go test ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/mobcommands/ ./internal/rooms/ ./modules/aicompanion/ . 2>&1 | tail -10
+```
+Expected: every package `ok`.
+
+---
+
 ### Task 12: U2, `RollFind` pays a sight penalty
 
 **Files:**
@@ -3765,8 +5039,9 @@ func TestRollFindPaysTheSightPenalty(t *testing.T) {
 	if _, found := RollFind(FindOpts{Place: NewPlace(601, `town`, ``, `interior`), Randn: always(40000), Now: t0}); !found {
 		t.Fatal("4% hits 5% in the light")
 	}
-	// ...and not under 5% x (1 - 0.2) = 4%.
-	if _, found := RollFind(FindOpts{Place: NewPlace(602, `town`, ``, `interior`), SightPenalty: 0.2, Randn: always(40000), Now: t0}); found {
+	// ...and not under 5% x (1 - 0.3) = 3.5%, well clear of the 4% roll
+	// (a case exactly on the threshold would hang on float rounding).
+	if _, found := RollFind(FindOpts{Place: NewPlace(602, `town`, ``, `interior`), SightPenalty: 0.3, Randn: always(40000), Now: t0}); found {
 		t.Fatal("the dark costs the chance")
 	}
 	if used, _, _, open := WindowState(602, 0, t0); !open || used != 1 {
@@ -4066,7 +5341,7 @@ Expected: PASS (the probe, the real-tree walk, and no stale row).
 
 Temporarily delete the `SightPenalty:` line (and its comment) from `searchForBauble` in `internal/actions/search_bauble.go`. Run `go test . -run TestEveryRollSiteAppliesTheSightPenalty -v`. Expected: FAIL listing `internal/actions/search_bauble.go:<line> in searchForBauble: actions.searchBaubleRoll`. Restore the line (`git diff internal/actions/search_bauble.go` must show only Step 3's change), rerun, PASS.
 
-Also temporarily delete the new `sightExemptSites` row and rerun: expected FAIL listing `internal/actions/search_bauble.go:56 in var searchBaubleRoll: baubles.RollFind` (56 at `e711ee9de`; the line shifts if the file shifted). Restore, rerun, PASS.
+Also temporarily delete the new `sightExemptSites` row and rerun: expected FAIL listing `internal/actions/search_bauble.go:55 in var searchBaubleRoll: baubles.RollFind` (55 at `3bd6ccaa3`; the line shifts if the file shifted). Restore, rerun, PASS.
 
 - [ ] **Step 9: Commit**
 
@@ -4488,16 +5763,72 @@ Expected: every named test PASS, `internal/mobcommands` `ok`.
 
 Probe: temporarily delete the `if !stash && matchItem.BaubleBelongsTo(room.RoomId) {...}` gate from `GetItemFromFloor` and rerun both tests. Expected: FAIL for BOTH `TestGetItemFromFloor_RefusesAHouseholdsBaubleToEveryTaker` (the mob took it) and `TestHouseholdBauble_GetRefusesThroughTheSharedPickup` (the player took it: the player-only copy is gone). Restore, rerun, PASS.
 
+- [ ] **Step 7b: The AI companion is refused up front, not silently**
+
+A mob's `get` of a household's bauble now does nothing and says nothing. The AI companion issues `get` as a command (`modules/aicompanion/actions.go:360-369`, `m.issue(... "get "+target ...)`): the command would quietly fail, the trinket would still lie there, and she could keep choosing it. So `performAction` refuses it before issuing, with a reason she is told.
+
+Append to `modules/aicompanion/harm_test.go`:
+
+```go
+// A household's bauble is not hers to take (slice H, 14a): the get is
+// refused before any command is issued, with a reason she is told, so she
+// does not keep trying a pickup that would quietly fail.
+func TestHouseholdBaubleIsRefusedUpFront(t *testing.T) {
+	owner, _, room, her := harmWorld(t, configs.PVPDisabled)
+	b := items.Item{ItemId: items.BaubleItemId, Bauble: `b0000001`, BaubleHousehold: room.RoomId}
+	room.Items = append(room.Items, b)
+	m, c, _ := strangerModule()
+	sc := &scene{RoomId: room.RoomId, byRef: map[string]*thing{}}
+	sc.byRef[`t1`] = &thing{Ref: `t1`, Kind: `item`, Name: `Trinket`, Item: b, HasItem: true}
+
+	out := m.performAction(c, her, owner, sc, ActionProposal{Verb: `get`, Ref: `t1`},
+		[]stimulus{{Kind: `heard`, FromOwner: true}}, 0, 0)
+	if out.Issued || out.Refused != `it belongs to the household here` {
+		t.Fatalf("refused up front, with the reason: %+v", out)
+	}
+}
+```
+and add `"github.com/GoMudEngine/GoMud/internal/items"` to that file's imports.
+
+Run: `go test ./modules/aicompanion/ -run TestHouseholdBaubleIsRefusedUpFront -v`
+Expected: FAIL (the get is issued, or refused for another reason).
+
+In `modules/aicompanion/actions.go` `performAction`, replace
+
+```go
+	case `get`:
+		if t.Kind != `item` && t.Kind != `gold` {
+			return actionOutcome{Refused: `cannot pick that up`}
+		}
+```
+with
+```go
+	case `get`:
+		if t.Kind != `item` && t.Kind != `gold` {
+			return actionOutcome{Refused: `cannot pick that up`}
+		}
+		// actions.GetItemFromFloor refuses a household's bauble to every
+		// taker (ErrHouseholdBauble); say so now, so she does not keep
+		// issuing a get that quietly does nothing.
+		if t.Kind == `item` && t.Item.BaubleBelongsTo(room.RoomId) {
+			return actionOutcome{Refused: `it belongs to the household here`}
+		}
+```
+
+Run: `go test ./modules/aicompanion/`
+Expected: `ok`.
+
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-h && git add internal/actions/get.go internal/actions/get_household_test.go internal/usercommands/get.go internal/usercommands/get_household_test.go && git commit -F - <<'EOF'
+cd /c/tmp/dogmud-baubles-h && git add internal/actions/get.go internal/actions/get_household_test.go internal/usercommands/get.go internal/usercommands/get_household_test.go modules/aicompanion/actions.go modules/aicompanion/harm_test.go && git commit -F - <<'EOF'
 fix(baubles): every taker leaves a household's bauble where it lies
 
 The household-bauble refusal moves from the player's get into
 actions.GetItemFromFloor (ErrHouseholdBauble), so a mob's, companion's or
-scavenger's get obeys it too. The player's line is unchanged; get all is
-unchanged.
+scavenger's get obeys it too. The AI companion is told up front instead
+of issuing a get that quietly fails. The player's line is unchanged; get
+all is unchanged.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -4564,7 +5895,9 @@ func TestSteal_RefusesAnyCompanion(t *testing.T) {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `go test ./internal/actions/ -run TestSteal_RefusesAnyCompanion -v`
-Expected: FAIL for all three cases (today the roll is made: `Pending` true for a player thief, reason empty).
+Expected: FAIL for all three cases with "refused, nothing taken or trained": today the roll is made, and in this package's tests the pickpocket resolves in line (`runPocketAttempt = resolvePocketInLine`, `bauble_testinit_test.go`), so the result is a success or `detected`, never `companion`, and the thief is trained either way.
+
+Note, recorded rather than changed: `Steal` spends the steal cooldown (`TryCooldown`, `steal.go:136`) before `stealFromMob` looks at the target, so a refused companion costs the cooldown, exactly as the non-combatant and attack-immune refusals already do. The test deletes the cooldown each case for that reason. Moving every target refusal ahead of the cooldown is a separate behaviour change, left alone here.
 
 - [ ] **Step 3: Refuse them**
 
@@ -4608,6 +5941,12 @@ Expected: only `ok`.
 
 Probe: temporarily drop `|| companionai.IsBondedCompanion(m.InstanceId)` and rerun `-run TestSteal_RefusesAnyCompanion`. Expected: FAIL naming `an AI companion`. Restore, rerun, PASS.
 
+Then the root text guards (review finding i):
+```bash
+cd /c/tmp/dogmud-baubles-h && go test . -count=1 -run "TestEveryTextSurfaceIsRegistered|TestNarrationSitesMatchViewpointAudit" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)|steal.go"
+```
+Expected: both PASS. `TestEveryTextSurfaceIsRegistered` walks YAML keys only, so no Go line can change it; it runs here because the review asked, and must stay green. `TestNarrationSitesMatchViewpointAudit` treats an event as a candidate only when it has an actor line and exactly one of an actee or an observer line (`narrationCandidateEvent`, `messaging_surface_guard_test.go:1106-1124`); the refusal is an actor line alone, so it is not one. If the guard reports it all the same, register the key it prints, `actions/steal.go|<ansi fg="mobname">%s</ansi> is someone's companion. You can't steal from them.`, in `narrationViewpointRegistry` beside the other bauble rows as `{verdictCorrect, true, false, false, "a refused pickpocket of anyone's companion (slice H, owner ruling 2026-09-29): a private refusal to the thief, as the non-combatant refusal above it; nobody else is told."}` and add `messaging_surface_guard_test.go` to the commit.
+
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -4636,10 +5975,27 @@ attacked. A mark that is gone or dead catches nobody. The flush at
 copyover and shutdown runs the same `resolve`, so it follows the same
 rule.
 
+Review finding b: the faction block finds its witnesses with
+`crimes.WitnessesInRoom` in the room it is given, and every identifying
+witness gets `knowledge.RecordMet(..., SourceWitnessed)` (`steal.go:638,
+664`; `crimes.go:229-263`). Away from the theft, the mark's room now holds
+bystanders who saw nothing, so an AWAY catch has one witness, the mark,
+by its own sight of the room the theft happened in; `hadExternal` is
+false; and nobody records meeting the thief (the mark felt a hand, it did
+not meet anyone). `theftWitnesses` decides the witnesses for both modes.
+
+The attempt keeps the theft room's ID (`roomId`, as today), not a
+`*rooms.Room` across the pause: the reveal loads the room again
+(`rooms.LoadRoom`). An online thief whose room cannot be loaded is treated
+by `pocketThief` as offline (it returns `false`, `steal_pocket.go:104-115`,
+unchanged), and `caught` treats a nil room as away: both land in the away
+catch, which needs no thief room.
+
 **Files:**
-- Modify: `internal/actions/steal.go` (`thiefCaught` split: new `theftCrime`)
-- Modify: `internal/actions/steal_pocket.go` (`pocketAttempt.room`, `startPocketAttempt`, `resolve`, new `caught`, new `pocketCrime`, the file comment)
+- Modify: `internal/actions/steal.go` (`thiefCaught` split: new `theftCrime`, new `theftWitnesses`)
+- Modify: `internal/actions/steal_pocket.go` (`resolve`, new `caught`, new `pocketCrime`, the file comment)
 - Modify: `internal/actions/pickpocket_test.go`
+- Create: `internal/actions/steal_crime_test.go`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -4676,6 +6032,7 @@ and replace its second half
 with
 ```go
 	h2 := setupPocket(t, 9611, 7611)
+	seedPocketRooms(t, h2.room)
 	crimes := stubPocketCrime(t)
 	paused(100*time.Millisecond, 0)
 	util.LockMud()
@@ -4700,6 +6057,17 @@ func stubPocketCrime(t *testing.T) *[]int {
 	return got
 }
 
+// seedPocketRooms makes rooms loadable, as real ones are: the reveal loads
+// the theft room and the mark's room by ID (rooms.LoadRoom).
+func seedPocketRooms(t *testing.T, rs ...*rooms.Room) {
+	t.Helper()
+	m := map[int]*rooms.Room{}
+	for _, r := range rs {
+		m[r.RoomId] = r
+	}
+	t.Cleanup(rooms.SeedRoomsForTest(m, nil))
+}
+
 // A failed roll is caught however the pause ends (owner ruling 2026-09-29).
 // A thief who walked off or logged out, or whose mark moved, is caught away
 // from the mark: the mark cries thief in its own room and the crime is
@@ -4714,16 +6082,14 @@ func TestPickpocketFailedRollIsCaughtHoweverThePauseEnds(t *testing.T) {
 	}{
 		`walked off`: {func(h *pocketHarness, p *pocketAttempt) { h.thief.room = newSearchTestRoom(9696) }, true, 1, "felt your hand"},
 		`logged out`: {func(h *pocketHarness, p *pocketAttempt) { p.actor = nil }, true, 1, "You attempt to pick"},
-		`mark moved`: {func(h *pocketHarness, p *pocketAttempt) {
-			t.Cleanup(rooms.SeedRoomsForTest(map[int]*rooms.Room{9695: {RoomId: 9695}}, nil))
-			h.mark.Character.RoomId = 9695
-		}, true, 1, "felt your hand"},
+		`mark moved`: {func(h *pocketHarness, p *pocketAttempt) { h.mark.Character.RoomId = 9695 }, true, 1, "felt your hand"},
 		`still here`: {func(h *pocketHarness, p *pocketAttempt) {}, true, 0, "catches you in the act"},
 		`mark gone`:  {func(h *pocketHarness, p *pocketAttempt) { mobs.SetInstanceForTest(h.mark.InstanceId, nil) }, false, 0, "lose your chance"},
 	}
 	for name, c := range cases {
 		c := c
 		h := setupPocket(t, 9617, 7617)
+		seedPocketRooms(t, h.room, newSearchTestRoom(9695))
 		crimes := stubPocketCrime(t)
 		runPocketAttempt = func(p *pocketAttempt) StealResult {
 			c.before(h, p)
@@ -4745,6 +6111,78 @@ func TestPickpocketFailedRollIsCaughtHoweverThePauseEnds(t *testing.T) {
 Run: `go test ./internal/actions/ -run "TestPickpocketAwardsAndCatchesAtTheReveal|TestPickpocketFailedRollIsCaughtHoweverThePauseEnds" -v`
 Expected: build failure `undefined: pocketCrime`.
 
+- [ ] **Step 1b: Write the failing witness test (review finding b)**
+
+`theftCrime` writes to the faction, crime, bounty and knowledge stores, and knowledge writes under `DataFiles/knowledge` (`knowledge/persistence.go:20`), which a test binary would put in the real data tree. So the test drives the one function `theftCrime` takes its witnesses from, with a real faction definition and a real second same-faction mob. Create `internal/actions/steal_crime_test.go`:
+
+```go
+package actions
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/factions"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+)
+
+// A pickpocket caught AWAY from the theft (the mark felt a hand after the
+// thief had gone; slice H review finding b) has one witness, the mark: a
+// same-faction bystander in the mark's room saw nothing, so it neither
+// identifies the thief nor counts as an external witness. In the act,
+// that bystander does both, as ever.
+func TestTheftWitnessesAwayAreTheMarkAlone(t *testing.T) {
+	// Registered before t.Setenv, so it runs after the environment is put
+	// back: the registry reloads from wherever it loaded before.
+	t.Cleanup(func() { _ = factions.LoadAllDefinitions() })
+	dir := t.TempDir()
+	t.Setenv("DOGMUD_FACTIONS_DIR_OVERRIDE", dir)
+	t.Setenv("DOGMUD_FACTIONS_REP_DIR_OVERRIDE", t.TempDir())
+	body := "faction_id: thornwall_citizens\ndisplay_name: \"Thornwall Citizenry\"\ndescription: \"x\"\ndefault_rep: 0\nallies: []\nenemies: []\n"
+	if err := os.WriteFile(filepath.Join(dir, "thornwall_citizens.yaml"), []byte(body), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := factions.LoadAllDefinitions(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{"default": {BiomeId: "default"}}))
+
+	room := &rooms.Room{RoomId: 9702, Lamp: rooms.LampPtr(90)}
+	mark := newStealTestMob(9921, 0, 100)
+	mark.Character.RoomId = room.RoomId
+	mark.Groups = []string{"thornwall_citizens"}
+	bystander := newStealTestMob(9922, 0, 100)
+	bystander.Character.RoomId = room.RoomId
+	bystander.Groups = []string{"thornwall_citizens"}
+	for _, m := range []*mobs.Mob{mark, bystander} {
+		mobs.SetInstanceForTest(m.InstanceId, m)
+		room.AddMob(m.InstanceId)
+	}
+	t.Cleanup(func() {
+		mobs.SetInstanceForTest(mark.InstanceId, nil)
+		mobs.SetInstanceForTest(bystander.InstanceId, nil)
+	})
+	factionIds := factions.FactionsForMob(mark)
+	if len(factionIds) != 1 {
+		t.Fatalf("fixture: the mark is of one faction, got %v", factionIds)
+	}
+
+	inAct, externalInAct := theftWitnesses(factionIds, mark, room, false)
+	if len(inAct.Identifying) != 2 || !externalInAct {
+		t.Fatalf("in the act, the bystander identifies the thief too: %+v external %v", inAct, externalInAct)
+	}
+	away, externalAway := theftWitnesses(factionIds, mark, room, true)
+	if len(away.Identifying) != 1 || away.Identifying[0] != mark.InstanceId || len(away.ShapesOnly) != 0 || externalAway {
+		t.Fatalf("away, the mark alone: %+v external %v", away, externalAway)
+	}
+}
+```
+
+Run: `go test ./internal/actions/ -run TestTheftWitnessesAwayAreTheMarkAlone -v`
+Expected: build failure `undefined: theftWitnesses`. (If, once Step 2 exists, the in-act half finds fewer than two witnesses, the fixture's room is not lit for these mobs: fix the fixture, not the rule. `Groups` is `mobs.Mob.Groups`, read by `factions.FactionsForMob`.)
+
 - [ ] **Step 2: Split the mark's side out of `thiefCaught`**
 
 In `internal/actions/steal.go`, replace
@@ -4764,7 +6202,7 @@ with
 		Trigger: awareness.TriggerSkullduggeryFailed,
 	})
 
-	theftCrime(actor.GetUserId(), m, room)
+	theftCrime(actor.GetUserId(), m, room, false)
 
 	// A victim that cannot be fought (a non-combatant shopkeeper, a
 	// player-attack-immune NPC) does not attack; it has already raised the
@@ -4775,14 +6213,42 @@ with
 	}
 }
 
-// theftCrime is the mark's side of a caught theft by userId in room: a
-// sleeping m wakes, and the theft is recorded as a crime against m's
-// factions (reputation, bounty, witnesses' knowledge). Every part of it
-// goes by user id, so it holds for a thief who has left or logged out: a
-// pickpocket's failed roll revealed after the thief walked away runs it
-// alone (steal_pocket.go, pocketCrime). thiefCaught runs it for a thief
-// still in the room.
-func theftCrime(userId int, m *mobs.Mob, room *rooms.Room) {
+// theftWitnesses is who witnessed userId's theft from m in room, and
+// whether anyone but m identified the thief. In the act: every faction mob
+// in room that saw it, m included, by its sight (crimes.WitnessesInRoom).
+// Away (a pickpocket's failed roll revealed after the thief had gone; slice
+// H review finding b): m alone, by its own sight of room, the room the
+// theft happened in, which felt the hand; bystanders saw nothing, so
+// hadExternal is false.
+func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away bool) (crimes.Witnesses, bool) {
+	if !away {
+		// All witnesses including the victim (excludeInstanceId=0), and the
+		// external ones (excluding the victim) for HadExternalWitness, which
+		// asks whether the theft was identified by someone other than the
+		// victim, not merely noticed, so it reads Identifying.
+		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
+		external := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
+		return witnesses, len(external.Identifying) > 0
+	}
+	var w crimes.Witnesses
+	switch {
+	case messaging.CanSeeClearly(&m.Character, room):
+		w.Identifying = []int{m.InstanceId}
+	case messaging.CanSeeShapes(&m.Character, room):
+		w.ShapesOnly = []int{m.InstanceId}
+	}
+	return w, false
+}
+
+// theftCrime is the mark's side of a caught theft by userId in room (the
+// room the theft happened in): a sleeping m wakes, and the theft is
+// recorded as a crime against m's factions (reputation, bounty, witnesses'
+// knowledge). Every part of it goes by user id, so it holds for a thief
+// who has left or logged out. away is a pickpocket's failed roll revealed
+// after the thief walked away (steal_pocket.go, pocketCrime): the mark is
+// the only witness (theftWitnesses) and nobody records meeting the thief.
+// thiefCaught runs it in the act.
+func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool) {
 	// Chunk 3.3: failed theft wakes a sleeping victim.
 ```
 
@@ -4806,25 +6272,50 @@ with
 
 // stealObserverPass is the theft observer contest:
 ```
-(the second occurrence of that attack block, the one directly above `// stealObserverPass`; the first, which the previous replacement created, stays). Then, inside `theftCrime`, replace each `actor.GetUserId()` with `userId`: four of them, in `crimes.IdentifiedPerp`, `factions.BumpRep`, `justice.MaybeDeclareBounty` and `knowledge.PlayerSubject`. `go build ./internal/actions/` names any one missed as `undefined: actor`.
+(the second occurrence of that attack block, the one directly above `// stealObserverPass`; the first, which the previous replacement created, stays).
+
+Inside `theftCrime`, replace the witness block
+
+```go
+		// All witnesses including the victim (excludeInstanceId=0).
+		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
+		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
+		// External witnesses (excluding victim) for HadExternalWitness.
+		externalWitnesses := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
+		// HadExternalWitness asks whether the theft was identified by
+		// someone other than the victim, not merely noticed, so it reads
+		// Identifying.
+		hadExternal := len(externalWitnesses.Identifying) > 0
+```
+with
+```go
+		witnesses, hadExternal := theftWitnesses(factionIds, m, room, away)
+		perp := crimes.IdentifiedPerp(userId, witnesses)
+```
+and the meeting
+
+```go
+					knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
+						knowledge.SourceWitnessed)
+```
+with
+```go
+					// Away, the mark felt a hand; it met nobody.
+					if !away {
+						knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
+							knowledge.SourceWitnessed)
+					}
+```
+Then replace each remaining `actor.GetUserId()` in `theftCrime` with `userId`: three, in `factions.BumpRep`, `justice.MaybeDeclareBounty` and `knowledge.PlayerSubject`. `go build ./internal/actions/` names any one missed as `undefined: actor`. `steal.go` already imports `messaging`.
+
+Run: `go test ./internal/actions/ -run TestTheftWitnessesAwayAreTheMarkAlone -v`
+Expected: PASS. Probe: temporarily make `theftWitnesses` ignore `away` (delete the `if !away {` line and its closing `}`, so both modes use the room walk) and rerun: expected FAIL "away, the mark alone". Restore, rerun, PASS.
 
 - [ ] **Step 3: The catch away from the mark**
 
 In `internal/actions/steal_pocket.go`:
 
-(a) In `pocketAttempt`, replace `	roomId        int` with:
-
-```go
-	roomId        int
-	room          *rooms.Room // the mark's room at the attempt, where a catch away from it is cried
-```
-
-(b) In `startPocketAttempt`, replace `		roomId:        room.RoomId,` with:
-
-```go
-		roomId:        room.RoomId,
-		room:          room,
-```
+(a), (b): nothing. The attempt keeps only `roomId` across the pause, as today; the reveal loads rooms by ID.
 
 (c) In `resolve`, replace
 
@@ -4873,34 +6364,42 @@ and delete
 (d) Add, directly below `resolve`:
 
 ```go
-// pocketCrime is theftCrime: the mark's side of a catch away from it. A
-// variable so tests can see it raised without the faction books.
-var pocketCrime = theftCrime
+// pocketCrime is the mark's side of a catch away from it: theftCrime in
+// the room the theft happened in, in away mode (the mark the only witness,
+// no meeting recorded). A variable so tests can see it raised without the
+// faction books.
+var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room) {
+	theftCrime(userId, m, theftRoom, true)
+}
 
 // caught is a failed roll's reveal, wherever the thief is by now (owner
 // ruling 2026-09-29). Beside the mark it is the ordinary catch in the act
 // (caughtByMob: the room sees it, the crime, the attack). Anywhere else,
 // or offline, the mark felt the hand all the same: it cries thief in its
-// own room and the theft is recorded against the thief (pocketCrime), but
-// it attacks nobody, since the thief is not there. An online thief is told
-// and trained on the loss.
+// own room, and the theft is recorded against the thief in the room it
+// happened in (pocketCrime), but it attacks nobody, since the thief is not
+// there. An online thief is told and trained on the loss. An online thief
+// with no room (GetRoom nil) is away.
 func (p *pocketAttempt) caught(thief Actor, online bool, m *mobs.Mob) StealResult {
-	markRoom := p.room
-	if markRoom == nil || markRoom.RoomId != m.Character.RoomId {
-		markRoom = rooms.LoadRoom(m.Character.RoomId)
-	}
 	if online {
 		thief.AwardResolved(false, thief.GetCharacter().CandidateFor(string(skills.Skullduggery)))
-		if here := thief.GetRoom(); here != nil && markRoom != nil && here.RoomId == markRoom.RoomId {
+		if here := thief.GetRoom(); here != nil && here.RoomId == m.Character.RoomId {
 			return caughtByMob(thief, m, here)
 		}
 		thief.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" follows you.`, p.mobName))
 	}
+	markRoom := rooms.LoadRoom(m.Character.RoomId)
 	if markRoom != nil {
 		markRoom.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> pats a pocket and cries, "Thief!"`, m.Character.Name), p.userId)
-		pocketCrime(p.userId, m, markRoom)
+	}
+	theftRoom := rooms.LoadRoom(p.roomId)
+	if theftRoom == nil {
+		theftRoom = markRoom // the theft's room is gone: the crime is recorded where the mark is
+	}
+	if theftRoom != nil {
+		pocketCrime(p.userId, m, theftRoom)
 	}
 	return StealResult{Detected: true, DefenderName: p.mobName, Reason: `detected`}
 }
@@ -4932,20 +6431,28 @@ Probe: temporarily change the new guard in `resolve` to `if !p.success && m != n
 
 - [ ] **Step 5: The root guards**
 
-Run: `go test . -count=1 -run "TestNarrationSitesMatchViewpointAudit|TestEveryRollSiteAppliesTheSightPenalty|TestEveryCreatureLookupDeclaresItsViewer" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)|steal_pocket"`
-Expected: PASS. If `TestNarrationSitesMatchViewpointAudit` reports the new `felt your hand` line as an unregistered candidate, add the key it prints to `narrationViewpointRegistry` in `messaging_surface_guard_test.go`, beside the other bauble rows, as `{verdictCorrect, true, false, true, "a failed pickpocket revealed after the thief walked away (owner ruling 2026-09-29): the away sibling of the audited catch in the act; the actee is a mob, and the mark's room is told."}`, and include that file in the commit.
+Run: `go test . -count=1 -run "TestEveryTextSurfaceIsRegistered|TestNarrationSitesMatchViewpointAudit|TestEveryRollSiteAppliesTheSightPenalty|TestEveryCreatureLookupDeclaresItsViewer" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)|steal_pocket"`
+
+Expected: `TestEveryTextSurfaceIsRegistered` PASS (it walks YAML keys only; run because the review asked). `TestNarrationSitesMatchViewpointAudit` should report `caught`'s event, an actor line ("felt your hand") and an observer line ("pats a pocket") with no actee, which is exactly a candidate (`narrationCandidateEvent`: actor plus exactly one of actee or observer). The guard keys an event by its first literal, stripped of quoting and cut to 80 runes (`narrationSiteKey`, `narrationLiteralMaxRunes`). Register every key it prints, using these rows in `narrationViewpointRegistry`, beside the other bauble rows (keys computed from the literals above; use the printed key if it differs):
+
+```go
+	`actions/steal_pocket.go|<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" f`: {verdictCorrect, true, false, true, "a failed pickpocket revealed after the thief walked away (owner ruling 2026-09-29): the away sibling of the audited catch in the act; the actee is a mob, and the mark's own room is told."},
+	`actions/steal_pocket.go|<ansi fg="mobname">%s</ansi> pats a pocket and cries, "Thief!"`: {verdictCorrect, false, false, true, "the mark's room hears it cry thief after a failed pickpocket, with the thief gone or offline (owner ruling 2026-09-29); the thief's line, when online, is the row above."},
+```
+Add only the rows the guard actually reports (an unused row is stale and fails the same test). The 14b refusal line is actor-only and never a candidate (Task 14b Step 4).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-h && git add internal/actions/steal.go internal/actions/steal_pocket.go internal/actions/pickpocket_test.go && git commit -F - <<'EOF'
+cd /c/tmp/dogmud-baubles-h && git add internal/actions/steal.go internal/actions/steal_pocket.go internal/actions/pickpocket_test.go internal/actions/steal_crime_test.go && git commit -F - <<'EOF'
 fix(steal): a failed pickpocket roll is caught however the pause ends
 
 Walking off, logging out, starting a fight or a copyover's flush no longer
 turns a failed roll into a lost chance. Beside the mark it is the catch in
 the act; away from it, the mark cries thief in its room and the crime is
-recorded against the thief (theftCrime, split from thiefCaught), with no
-attack. A successful roll's lost chance is unchanged.
+recorded against the thief in the room of the theft (theftCrime, split
+from thiefCaught), with the mark the only witness, no meeting recorded
+and no attack. A successful roll's lost chance is unchanged.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -4954,65 +6461,61 @@ EOF
 
 ---
 
-### Task 15: Docs and the config comment
+### Task 14d: PR H3 docs
 
 **Files:**
-- Modify: `internal/baubles/context.md`, `modules/baubles/context.md`, `internal/items/context.md`, `internal/apiframework/context.md`, `internal/configs/context.md`, `internal/actions/context.md`, `internal/usercommands/context.md`, `internal/mobcommands/context.md`, `modules/gmcp/context.md`
-- Modify: `_datafiles/config.yaml` (comments only)
-- Modify: `docs/aicompanion/settings.md`, `docs/baubles/implementation-plan.md`
+- Modify: `internal/baubles/context.md`, `internal/actions/context.md`, `internal/usercommands/context.md`, `internal/mobcommands/context.md`, `modules/aicompanion/context.md`
+- Modify: `_datafiles/world/dogmud/templates/help/steal.template`
 
-No new non-code file (every file this slice creates is Go), so no `docs/README.md` row; this plan's row was updated by the amendment commit.
+No new non-code file (every file this slice creates is Go), so no `docs/README.md` row.
 
 - [ ] **Step 0: Verify every symbol the docs will name**
 
 ```bash
-cd /c/tmp/dogmud-baubles-h && grep -n "func CheckPlayerKeyText\|func AuthoredName\|SightPenalty float64\|func moderationPossible\|func refusedByAllowlist\|func (m \*BaublesModule) takeFinderSlot\|func (m \*BaublesModule) takeServerSlot\|var keyTextRE\|var typographyFold\|const PromptVersion = 5\|FinderOnly bool\|func (r Record) MaterialFor\|func genericDescriptionFor\|func (i \*Item) GetSpecFor\|func (i \*Item) DisplayNameFor\|func (i \*Item) NameFor\|func (i \*Item) LongDescriptionFor\|func RecordConsumer\|var ErrHouseholdBauble\|func theftCrime\|var pocketCrime\|func (p \*pocketAttempt) caught" -r internal modules
+cd /c/tmp/dogmud-baubles-h && grep -rn "SightPenalty float64\|var ErrHouseholdBauble\|func theftCrime\|func theftWitnesses\|var pocketCrime\|func (p \*pocketAttempt) caught\|func clampUnit" internal modules
 ```
-Expected: 23 hits (`FinderOnly bool` matches twice: `GenResult` and `Record`). A symbol with no hit is not in the code: fix the doc text, never the grep.
+Expected: at least one hit for each pattern. Fix the doc text, never the grep.
 
 - [ ] **Step 1: `internal/baubles/context.md`**
 
-- In the **validate.go** file bullet, change to: `` `CleanReply` (the text checks the schema cannot make: NFKC, curly quotes, en and em dashes and the ellipsis folded to ASCII (`typographyFold`), invisible and format characters dropped, rune lengths, link-shaped text refused, an authored item's whole name refused through `items.AuthoredName`, errors quoting at most 60 runes) and `PlainText`. ``
-- Add a gotcha: `` - **`linkRE` is a heuristic.** It misses a top-level domain longer than six letters and a domain written with U+3002 (NFKC keeps it); server-key text is moderated, and player-key text is held to the ASCII allowlist, which refuses both. It also refuses a missing-space typo such as `horse.Its` on every route; that find falls back like any unusable reply. Accepted by the owner, 2026-09-28. ``
-- Add a file bullet: `` - **playerkey.go**: `CheckPlayerKeyText`, the plain-text allowlist for text a player's own key wrote, on the CLEANED name, keyword, description and material: ASCII letters, space, `' " - , . ! ?`, and every run of periods followed by a space, a `"` or the end. ``
-- In the **generate.go** bullet add: `` `Generate` refuses a `PlayerKey` result that fails `CheckPlayerKeyText`, or is neither `Moderated` nor `FinderOnly` with a finder, and any `FinderOnly` result that is not `PlayerKey`; `RecentNames` skips `PlayerKey` records. ``
-- Change the `GenResult` signature line to `/* Reply, Generator, Model, PromptVersion, Tokens, Moderated, PlayerKey, FinderOnly */` and the `FindOpts` line to `type FindOpts struct{ Place Place; UserId int; SkillFactor float64; SightPenalty float64; Feature string; Household bool; Randn func(n int) int; Now time.Time }`.
-- Add to the find section: `` `FindOpts.SightPenalty` (0 is none) multiplies the chance by `1 - SightPenalty` after the nothing-here check and before the window roll, so a search in the dark spends its roll as one in the light does; callers pass `1 - messaging.SightMult`. ``
-- In the mint section add: `` `Mint` rolls a `PlayerKey` find's value with `tier.RollValue`, keeping the key's proposal in `ValueProposed`, and copies `FinderOnly`. `ApplyRegenerated` takes the new result's `PlayerKey` and `FinderOnly` (a regen is always server-key, so it clears both). ``
-- In the **record.go** bullet add: `` `Record.FinderOnly` (owner ruling 2026-09-29): player-key text the server could not moderate. `View` then returns the generic trinket (`genericName`, `genericNameSimple`, `genericDescriptionFor(id)`, stable per id) with the record's own text in `BaubleView.Finder` for `FoundByUserId`, and no finder view at all when that is 0; retired text wins over both. `MaterialFor(viewerUserId)` is the material for the finder alone. Never promotable (slice C takes only `PlayerKey` false and `Moderated` true). ``
-- Add a gotcha: `` - **Finder-only text is fail-safe, not routed.** The catalog's viewer-agnostic view of a finder-only record IS the generic trinket, so every render path shows "Trinket" unless it asks the item layer for one viewer's view (`items.Item.GetSpecFor` and kin), which only the single-reader sites listed in the repo-root `bauble_finder_view_guard_test.go` do. Never read a record's `Name`, `Description` or `Material` for display outside the admin command; use the item accessors or `MaterialFor`. ``
+- Change the `FindOpts` line to `type FindOpts struct{ Place Place; UserId int; SkillFactor float64; SightPenalty float64; Feature string; Household bool; Randn func(n int) int; Now time.Time }`.
+- Add to the find section: `` `FindOpts.SightPenalty` (0 is none, clamped to 0..1 by `clampUnit`) multiplies the chance by `1 - SightPenalty` after the nothing-here check and before the window roll, so a search in the dark spends its roll as one in the light does; callers pass `1 - messaging.SightMult`. ``
 
-- [ ] **Step 2: `modules/baubles/context.md`**
+- [ ] **Step 1b: `modules/aicompanion/context.md`**
 
-- Replace "How a call goes" step 2 with: `` 2. `name` picks the route; a slot is taken there (see 3 and 4). ``
-- In step 3, after "on their key." insert `` It takes the finder's own slot (`takeFinderSlot`, one in flight per finder), never a server slot; a busy one goes to the server. The relay's token count passes through `Charged(..., relayed=true)`. An answer that parses and cleans but fails `baubles.CheckPlayerKeyText` (`refusedByAllowlist`) is not the key's failure: its breaker hears nothing and the find goes on to the server's key (ruling 15). ``
-- In step 4, after "`viaServer`:" insert `` one of the `MaxConcurrent` server slots (`takeServerSlot`; none free is `errSlotsBusy` at once, not a queue; it covers the model call only); ``
-- Replace step 6 with: `` 6. `baubles.ParseReply` and `CleanReply` (the cleaned text is kept; a player-key reply already passed `baubles.CheckPlayerKeyText` in `name`). Then `moderate`, on the name, keyword (`NameSimple`), description and material, through the server key. Server-key text: checked when `ModerateOutput` is on (a flag, or a check that cannot be made or fails, refuses), unchecked when off. Player-key text: checked whenever `moderationPossible` (`ModerateOutput` on, a server key, neither the provider breaker nor baubles' own open); a flag or a failed check refuses, and the outcome feeds baubles' own breaker (`apiframework.RecordConsumer`), never the provider's. When moderation is not possible no call is made and the find is `FinderOnly`: its finder reads it, everyone else the generic trinket (owner ruling 2026-09-29). ``
-- Replace the "Moderation on a player's key" gotcha with: `` - **Moderation on a player's key.** Moderated when the server can, and then refused on a flag or a failed check; kept to its finder (`FinderOnly`) when it cannot, never shown to anyone else unmoderated. Its text is also held to plain ASCII after folding (`CheckPlayerKeyText`; text outside it falls back to the server's key without touching the player's breaker), its value is re-rolled by the server (`Mint`), and its name never enters another prompt (`RecentNames`). Pinned by `TestModerationOutageRefusesAPlayerKeyFind`, `TestPlayerKeyTextThatCannotBeModeratedIsFinderOnly`, `TestNoKeyAtAll`, `TestPlayerKeyTextOutsideTheAllowlistFallsBackToTheServer`, `TestPlayerKeyTypographyIsFoldedNotRefused`. ``
-- In the Config paragraph change `` `MaxConcurrent` (4) `` to `` `MaxConcurrent` (4, server-key calls only) `` and add after the list: `` `Model`, `MaxCompletionTokens`, `MaxConcurrent`, `UsePlayerKeys`, `ModerateOutput` and `ModerationModel` are hard-locked (`configs.hardLocked`): only config.yaml sets them. ``
-- In the **prompt.go** bullet (it lists the `PromptVersion` history), add: `` 5: the system prompt states the characters the player-key allowlist accepts. ``
-- In the **generate.go** bullet list `moderationPossible` and `refusedByAllowlist` beside `name`; add a **baubles.go** mention of `takeServerSlot` and `takeFinderSlot` in the file list.
-- In the `info` description (if the file quotes the status text), use the new no-key line: finds named on a finder's own key are shown to that finder alone.
+Beside the actions description: `` A `get` of a household's bauble is refused before any command is issued ("it belongs to the household here"): `actions.GetItemFromFloor` would refuse it anyway, silently, and she would keep trying. ``
 
-- [ ] **Step 3: `internal/items/context.md`**
+- [ ] **Step 1c: `_datafiles/world/dogmud/templates/help/steal.template` (review finding h)**
 
-After the `AuthoredKeyword(word)` sentence add: `` `AuthoredName(name)` is whether a loaded item's whole name matches after NFKC, lower case and collapsed spaces (`normalizeItemName`); `baubles.CleanReply` refuses such a name. Both read one snapshot (`authored`, an atomic pointer to words and names together). `` and change `(`authoredWords`, an atomic pointer)` to `(`authored`)`.
+Replace
+```
+Being hidden improves your chances. On failure, your cover
+is blown and the target may attack. Cannot be used on
+other players.
+```
+with
+```
+Being hidden improves your chances. On failure, your cover
+is blown and the target may attack. Cannot be used on
+other players, or on anyone's companion, your own included.
+```
+and replace
+```
+(<ansi fg="yellow">Dexterity</ansi>) make the moment shorter. Walk away or get into a
+fight before it is done, and you lose your chance. Now and then
+```
+with
+```
+(<ansi fg="yellow">Dexterity</ansi>) make the moment shorter. Walk away or get into a
+fight before it is done, and you lose your chance, but only if
+your hands were quick enough: if the mark felt them, walking away
+does not help, and they cry thief all the same. Now and then
+```
+Keep every line within 80 columns (dogmud-player-copy); none of the new lines is longer than the ones around it.
 
-In the "Baubles: one carrier, catalog-backed identity" section, add a bullet: `` - **Finder-only baubles and viewer-aware accessors** (`bauble_viewer.go`; owner ruling 2026-09-29). `BaubleView.FinderUserId` and `Finder` carry a finder-only record's own text beside the generic view. `GetSpec` and everything built on it (`Name`, `NameSimple`, `DisplayName`, `NameComplex`, `GetLongDescription`, templates, GMCP) show the generic view to everyone; `GetSpecFor(viewerUserId)`, `DisplayNameFor`, `NameFor` and `LongDescriptionFor` show the finder their own text, and are each other item's viewer-agnostic twin. Call them only where the output reaches that one viewer (the repo-root guard lists every caller). `NameMatch` and `matchStrength` also match a finder-only bauble's own words (`baubleFinderNames`) so its finder can type what they read; matching shows no text. `displayNameFrom` and `longDescriptionFrom` are the spec-taking bodies of `DisplayName` and `GetLongDescription`. `` and add `bauble_viewer.go` to the file table row for `bauble.go`.
+- [ ] **Step 2: `internal/actions/context.md`**
 
-- [ ] **Step 4: `internal/apiframework/context.md`**
-
-- In the **wire.go** bullet change `` `Reply` and `DecodeChat`; `` to `` `Reply` and `DecodeChat` (a non-200's kept text has key-shaped strings scrubbed by `keyTextRE` before the 300-byte cut); ``.
-- In the config paragraph, after the `AllowCustomEndpoint` description add: `` Without it `EndpointAllowed` accepts exactly `api.openai.com` and `*.openai.azure.com` over https; Azure's AI Services hosts (`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) and every other host need `AllowCustomEndpoint`, which, like the other three, is hard-locked (`configs.hardLocked`), so only config.yaml sets it. `APIKey` is a `configs.ConfigSecret`. ``
-- In the **breaker.go** bullet, after `Allow`, `Record`, `Release` add `` `RecordConsumer` (one outcome against a consumer's own breaker alone, no ticket: for a feature's check that is not a model call, such as baubles' moderation of player-key text) ``.
-
-- [ ] **Step 5: `internal/configs/context.md`**
-
-Where the `APIFramework` section is shown (the block around `APIKeyEnv: "OPENAI_API_KEY"`), add below it: `` `APIFramework.APIKey` is a `ConfigSecret`. `hardLocked` also holds `Modules.baubles.Model`, `.MaxCompletionTokens`, `.MaxConcurrent`, `.UsePlayerKeys`, `.ModerateOutput` and `.ModerationModel`. `` (If slice M's context.md text already lists `hardLocked`'s rows, add the six baubles rows to that list instead.)
-
-- [ ] **Step 6: `internal/actions/context.md`**
-
-In the bauble search paragraph (the one naming `baubles.RollFind`), add: `` Both bauble rolls pass `SightPenalty: 1 - messaging.SightMult(char, room)`; the root sight guard watches `baubles.RollFind` and `actions.searchBaubleRoll`. `BaubleRequestForRecord` omits a `PlayerKey` record's name. ``
+In the bauble search paragraph (the one naming `baubles.RollFind`), add: `` Both bauble rolls pass `SightPenalty: 1 - messaging.SightMult(char, room)`; the root sight guard watches `baubles.RollFind` and `actions.searchBaubleRoll`. ``
 
 In the stolen-baubles paragraph (the one beginning `**Stolen baubles after the theft (`stolen_bauble.go`), add: `` The owner's "points at" line and the household "caught trying to pocket" line (`steal.go`) go through `SendTextVisualHidingNames` with the player's name. ``
 
@@ -5021,13 +6524,11 @@ In the stolen-baubles paragraph (the one beginning `**Stolen baubles after the t
 In the Mob pickpocket path (the numbered `**Three paths:**` list, item 1):
 - Change the first bullet to: `` - Refused for any companion (charmed, the thief's own included, or bonded to the AI companion: "X is someone's companion. You can't steal from them.", reason `companion`), then for non-combatant or player-attack-immune mobs (`mobs.CheckPlayerHarm`), and below skullduggery rank 2. ``
 - Replace the sentences from `A thief who has left the room, gone offline, started fighting or come under attack by then,` through `walking off only ever forfeits.` with: `` A FAILED roll is caught however the pause ends (owner ruling 2026-09-29; `caught`): beside the mark, `caughtByMob` as below; away from it or offline, the mark cries thief in its own room and `theftCrime` records the crime against the thief (through the `pocketCrime` seam), with no attack; an online thief is told and trained on the loss. A mark that is gone or dead catches nobody. A SUCCESSFUL roll whose thief has left the room, gone offline, started fighting or come under attack by then, or whose mark has moved, died or gone, loses the chance ("You lose your chance at X's pocket."): nothing taken, nothing trained. ``
-- Change the Failure bullet to: `` - Failure (`caughtByMob`): "X catches you in the act!", the room sees it, then `thiefCaught` (revealed, then `theftCrime`: a sleeper wakes, the crime; then the attack). ``
+- Change the Failure bullet to: `` - Failure (`caughtByMob`): "X catches you in the act!", the room sees it, then `thiefCaught` (revealed, then `theftCrime` in the act: a sleeper wakes, the crime with every faction witness in the room; then the attack). Away, `theftCrime` runs in the theft's room with the mark its only witness (`theftWitnesses`), no external witness and no meeting recorded. ``
 
 Add to the Get section (or, if none, beside `GetItemFromFloor` in the file table): `` `GetItemFromFloor` refuses a household's bauble (`BaubleBelongsTo`) with `ErrHouseholdBauble`, the item found and nothing moved, for every taker: a player's `get`, a mob's, a companion's, a scavenger's (owner ruling 2026-09-29). Its gates sit in one early-return block. ``
 
-Add to the stealth / bauble search notes: `` The find lines (`BaubleDelivery.deliver`) and the pickpocket success line (`takeFromMob`) name a bauble as their one reader sees it (`items.Item.DisplayNameFor`), so a finder reads their own finder-only bauble; everywhere else a finder-only bauble is "Trinket". ``
-
-- [ ] **Step 7: `internal/usercommands/context.md`**
+- [ ] **Step 3: `internal/usercommands/context.md`**
 
 Run:
 ```bash
@@ -5037,200 +6538,80 @@ Only if that prints a line describing how `look.go` tells the room (at `e711ee9d
 
 Always, in the **Household baubles** section (`get.go`), replace `` An explicit `get <name>` refuses with "The X belongs to this household. To take it anyway, steal <word>." before the ordinary pickup (which would end the player's hiding); `` with `` An explicit `get <name>` is refused by the shared floor pickup (`actions.GetItemFromFloor` returns `actions.ErrHouseholdBauble` for every taker, mobs included), and `get` words it: "The X belongs to this household. To take it anyway, steal <word>.", before anything that would end the player's hiding; ``.
 
-And add, beside the bauble look and appraise notes: `` A finder-only bauble (unmoderated player-key text) reads as "Trinket" to everyone but its finder. `inventory`, `look` (at a carried or floor item, and the room's floor and stash listing) and the bauble `appraise` ask for the reader's own view (`DisplayNameFor`, `NameFor`, `LongDescriptionFor`, `GetSpecFor`, `baubles.Record.MaterialFor`); every room line and every other command keeps the viewer-agnostic name. ``
+- [ ] **Step 4: `internal/mobcommands/context.md`**
 
-- [ ] **Step 7b: `internal/mobcommands/context.md` and `modules/gmcp/context.md`**
+Where `get` is described (`grep -n "get" internal/mobcommands/context.md` finds the command list), add: `` A mob's `get` never takes a household's bauble: `actions.GetItemFromFloor` refuses it (`ErrHouseholdBauble`) and the mob says nothing. ``
 
-In `internal/mobcommands/context.md`, where `get` is described (`grep -n "get" internal/mobcommands/context.md` finds the command list), add: `` A mob's `get` never takes a household's bauble: `actions.GetItemFromFloor` refuses it (`ErrHouseholdBauble`) and the mob says nothing. ``
+- [ ] **Step 5: Run the context.md audit**
 
-In `modules/gmcp/context.md`, beside the `Char.Inventory` description, add: `` The backpack's item names are the player's own view (`items.Item.NameFor(user.UserId)`), so a finder reads their own finder-only bauble; every other payload uses the viewer-agnostic name. ``
-
-- [ ] **Step 8: `_datafiles/config.yaml` comments**
-
-First confirm the disk copy equals HEAD and check the skip-worktree bit:
-```bash
-cd /c/tmp/dogmud-baubles-h && git diff --quiet HEAD -- _datafiles/config.yaml; echo "differs=$?"; git ls-files -v _datafiles/config.yaml
-```
-If `differs=0`: edit the disk copy with the Edit tool. If `differs=1`: STOP editing disk; write `git show HEAD:_datafiles/config.yaml` to the scratchpad, make the edits there with the Edit tool, then stage it with `blob=$(git hash-object -w <scratch copy>) && git update-index --cacheinfo 100644,$blob,_datafiles/config.yaml`, and if `git ls-files -v` then prints `H` where it printed `S`, restore the bit with `git update-index --skip-worktree _datafiles/config.yaml`.
-
-Edits (all comments; no value changes):
-
-Replace
-```yaml
-  # A find is named through the finder's OWN key when they ticked "Also name
-  # things I find while searching" on the Companion key page (UsePlayerKeys),
-  # else through the server's key (APIFramework: its one daily budget and
-  # breaker, shared with the AI companion), else it is a generic "Trinket".
-```
-with
-```yaml
-  # A find is named through the finder's OWN key when they ticked "Also name
-  # things I find while searching" on the Companion key page (UsePlayerKeys),
-  # else through the server's key (APIFramework: its one daily budget and
-  # breaker, shared with the AI companion), else it is a generic "Trinket".
-  # Model, MaxCompletionTokens, MaxConcurrent, UsePlayerKeys, ModerateOutput
-  # and ModerationModel are hard-locked: only this file changes them.
-```
-
-Replace
-```yaml
-    MaxConcurrent: 4           # more finds at once than this are generic
-    # Check names with the moderation endpoint (needs the server's key);
-    # fails closed. A find named on a player's own key on a server with no
-    # key of its own is not moderated, as with the AI companion.
-```
-with
-```yaml
-    MaxConcurrent: 4           # server-key calls at once; more are generic
-    # Check the name, keyword, description and material with the moderation
-    # endpoint (needs the server's key); fails closed on EITHER key. Text a
-    # finder's own key wrote is checked whenever the server can; when it
-    # cannot (no server key, this off, a breaker open) the find is shown to
-    # its finder alone and is a plain "Trinket" to everyone else. Either way
-    # it must be plain ASCII letters and ' " - , . ! ? (curly quotes and
-    # dashes are folded first); text that is not goes to the server's key.
-```
-
-- [ ] **Step 9: `docs/aicompanion/settings.md`**
-
-- Line 30's comment: change `Off: any other host is refused` to `Off: only api.openai.com and *.openai.azure.com are accepted (Azure AI Services hosts need it on)`.
-- Replace the bauble paragraph beginning `The key page also has a box, "Also name things I find while searching` with:
-
-```markdown
-The key page also has a box, "Also name things I find while searching (uses
-this key)", off unless the player ticks it. Ticked, and with
-`Modules.baubles.Enabled` and `UsePlayerKeys` on, the baubles that player
-finds are named on their own key through the same relay, with nothing of
-theirs in the request (only the room's authored text). Unlike the
-companion's speech, a bauble's text is shown to other players, so while
-the server can moderate it (`Modules.baubles.ModerateOutput` on, a server
-key, no breaker open) it is moderated, and a flag or a failed check refuses
-it. When the server cannot, the find is kept to its finder: they read its
-name and description, and everyone else sees a plain "Trinket". Either
-way it is held to plain ASCII letters and simple punctuation (text that is
-not goes to the server's key instead, without counting against the
-player's key), never passed to another find's prompt, and its value is
-rolled by the server. Unticked, their finds use the server's key, or stay
-generic trinkets when there is none. The relay page refuses the bauble
-request shape from a key whose box is not ticked.
-
-`AllowCustomEndpoint` off accepts exactly `api.openai.com` and Azure OpenAI
-resources (`*.openai.azure.com`). Azure's AI Services hosts
-(`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) need it on, and
-it is hard-locked: only the config file changes it.
-```
-
-- [ ] **Step 10: `docs/baubles/implementation-plan.md`**
-
-Replace the bullet
-```markdown
-- **Moderation** of a player-key find: a flag refuses; a check that cannot be
-  made accepts it unmoderated (a server-key find is refused), so a working
-  player key never becomes a trinket over the server's route.
-```
-with
-```markdown
-- **Moderation** of a player-key find (hardening, 2026-09-28/29): moderated
-  whenever the server can (a flag or a failed check refuses on either key,
-  and a failed player-key check feeds baubles' own breaker); when it cannot
-  (no server key, moderation off, a breaker open), the find is FINDER-ONLY:
-  its finder reads it, everyone else sees a plain Trinket. Player-key text
-  must also pass `baubles.CheckPlayerKeyText` after curly quotes and dashes
-  are folded, and text that does not goes to the server's key without
-  counting against the player's.
-```
-
-- [ ] **Step 11: Run the context.md audit**
-
-Run: `cd /c/tmp/dogmud-baubles-h && python tools/context_md_audit.py 2>&1 | grep -E "baubles|items|apiframework|configs|actions|usercommands|mobcommands|gmcp" ; echo "exit=$?"`
+Run: `cd /c/tmp/dogmud-baubles-h && python tools/context_md_audit.py 2>&1 | grep -E "baubles|actions|usercommands|mobcommands|aicompanion" ; echo "exit=$?"`
 Expected: no phantom symbols in the touched packages (grep exit 1 means none listed). The tool only reads files; it writes nothing.
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-h && git add internal/baubles/context.md modules/baubles/context.md internal/items/context.md internal/apiframework/context.md internal/configs/context.md internal/actions/context.md internal/usercommands/context.md internal/mobcommands/context.md modules/gmcp/context.md _datafiles/config.yaml docs/aicompanion/settings.md docs/baubles/implementation-plan.md && git commit -F - <<'EOF'
-docs(baubles): hardening in context.md, settings and config comments
+cd /c/tmp/dogmud-baubles-h && git add internal/baubles/context.md internal/actions/context.md internal/usercommands/context.md internal/mobcommands/context.md modules/aicompanion/context.md _datafiles/world/dogmud/templates/help/steal.template && git commit -F - <<'EOF'
+docs(baubles): PR H3 sight ramp, observer lines and the steal work
+
+The steal help says a failed pocket-pick is caught even if you walk away,
+and that nobody's companion can be stolen from.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
 ```
-If Step 8 staged `config.yaml` through `update-index`, leave it out of `git add` (it is already staged) and confirm with `git diff --cached --stat` before committing.
 
 ---
 
-### Task 16: Gate
+### Task 14e: PR H3 gate
 
-**Files:** none new.
+**Files:** none new. Every diff runs from `$BASE` (Task H3-0 Step 1).
 
-Every diff below runs from `$BASE`, the master commit Task 0 Step 1 recorded, never `master...HEAD`: master can move while the slice is in flight, and the PR's diff is what CI and the reviewers see.
-
-- [ ] **Step 1: gofmt, avoiding the Windows CRLF false positive**
-
-`gofmt -l` on a Windows checkout can list a file whose committed LF blob is fine (the disk copy has CRLF). Check the committed blobs of every Go file this slice changed:
+- [ ] **Step 1: gofmt on the committed blobs**
 
 ```bash
 cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && for f in $(git diff --name-only $BASE..HEAD -- '*.go'); do out=$(git show HEAD:"$f" | gofmt -l); [ -n "$out" ] && echo "UNFORMATTED: $f"; done; echo done
 ```
-Expected: only `done`. For any listed file, run `gofmt -w <file>`, check `git diff` shows only whitespace, and amend it into a fixup commit.
+Expected: only `done`.
 
-- [ ] **Step 1b: Size stays under the CI lint inversion**
+- [ ] **Step 2: Size**
 
-Run:
 ```bash
 cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --shortstat $BASE..HEAD
 ```
-Expected: fewer than 300 files changed and fewer than 20,000 lines (insertions plus deletions). CI's lint gate inverts past either (owner ruling 11); at or over, STOP and report, and split the slice rather than push it.
+Expected: under 300 files and under 20,000 lines.
 
-- [ ] **Step 2: Build and vet**
+- [ ] **Step 3: Build, vet, tests**
 
-Run: `cd /c/tmp/dogmud-baubles-h && go build ./... && go vet ./internal/baubles/ ./internal/items/ ./internal/apiframework/ ./internal/configs/ ./internal/actions/ ./internal/usercommands/ ./internal/mobcommands/ ./internal/rooms/ ./modules/baubles/ ./modules/aicompanion/ ./modules/gmcp/ .`
-Expected: no output.
-
-- [ ] **Step 3: Targeted tests**
-
-Run:
 ```bash
-cd /c/tmp/dogmud-baubles-h && go test ./internal/baubles/ ./modules/baubles/ ./internal/apiframework/ ./internal/items/ -run "CleanReply|PlayerKey|Authored|RollFind|Sight|Moderat|Route|Slot|Relayed|Endpoint|DecodeChat|Key|Mint|RecentNames|Regenerat|Typography|TextField|SystemPrompt|FinderOnly|ViewerAccessors|RecordConsumer" -v 2>&1 | grep -E "^(--- FAIL|FAIL|ok)"
+cd /c/tmp/dogmud-baubles-h && go build ./... && go vet ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/mobcommands/ ./internal/rooms/ ./modules/aicompanion/ . && go test ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/mobcommands/ ./internal/rooms/ ./internal/messaging/ ./modules/aicompanion/ . 2>&1 | tail -12
 ```
+Expected: no vet output, every package `ok`. `internal/rooms`' two zone lifecycle tests fail on Windows only under `DOGMUD_BOOT_SMOKE=1` and skip otherwise; this run does not set it.
+
+- [ ] **Step 4: The guards this PR leans on, by name**
+
 ```bash
-cd /c/tmp/dogmud-baubles-h && go test ./internal/actions/ ./internal/usercommands/ -run "Household|Companion|Pickpocket|Pocket|FinderOnly|TestGetItemFromFloor" -v 2>&1 | grep -E "^(--- FAIL|FAIL|ok)"
+cd /c/tmp/dogmud-baubles-h && go test . -count=1 -run "TestEveryRollSiteAppliesTheSightPenalty|TestSightPenaltyGuard|TestEveryTextSurfaceIsRegistered|TestNarrationSitesMatchViewpointAudit|TestOpposedContestsAreFloored|TestEveryCreatureLookupDeclaresItsViewer|TestFinderViewReachesOnlyItsReader" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"
 ```
-Expected: only `ok` lines.
+Expected: every named test `--- PASS` (the sight guard, its probes and the bauble seam probe; the text surface registry and the viewpoint audit; the contest floor guard; the lookup guard; H2's finder-view guard, since Task 14 edits `look.go` and `steal.go`). A name that does not appear has changed on master: find it with `grep -n "^func Test"`.
 
-- [ ] **Step 4: Full test run for every touched package (not all of internal/combat)**
+- [ ] **Step 5: Boot smoke in the test process (no port)**
 
-Run:
-```bash
-cd /c/tmp/dogmud-baubles-h && go test ./internal/baubles/ ./internal/items/ ./internal/apiframework/ ./internal/configs/ ./internal/actions/ ./internal/usercommands/ ./internal/mobcommands/ ./internal/rooms/ ./internal/messaging/ ./modules/baubles/ ./modules/aicompanion/ ./modules/gmcp/ . 2>&1 | tail -20
-```
-Expected: every line `ok`. The repo-root `.` carries the sight guard, the messaging surface guard, the contest floor guard and the line-number allowlist guards. `internal/rooms`' `TestDeleteZone_RemovesEveryTree` and `TestRenameZone_MovesRewritesAndRekeys` fail on Windows only under `DOGMUD_BOOT_SMOKE=1` and skip otherwise; do not set that variable for this run (Step 4c sets it for the root package alone).
-
-- [ ] **Step 4b: The root guards and the key guard, by name**
-
-Run:
-```bash
-cd /c/tmp/dogmud-baubles-h && go test . -count=1 -run "TestEveryRollSiteAppliesTheSightPenalty|TestSightPenaltyGuard|TestEveryTextSurfaceIsRegistered|TestNarrationSitesMatchViewpointAudit|TestOpposedContestsAreFloored|TestFinderViewReachesOnlyItsReader|TestFinderViewGuardCatchesALeak|TestEveryCreatureLookupDeclaresItsViewer|TestNoDisplayReadsRawConfig" -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)"
-```
-```bash
-cd /c/tmp/dogmud-baubles-h && go test ./internal/apiframework/ -count=1 -run TestNoTestPrintsAKey -v 2>&1 | grep -E "^(--- FAIL|--- PASS|FAIL|ok)" && go test ./internal/items/ ./internal/apiframework/ -count=1
-```
-Expected: every named test `--- PASS` (the sight guard, its three probes and the bauble seam probe; the messaging surface registry and viewpoint audit; the contest floor guard; the finder-view guard and its probe; the creature lookup guard; slice M's raw-config guard; the key guard), then `ok` for `internal/items` and `internal/apiframework`. A named test that does not appear at all means its name changed on master: find it with `grep -n "^func Test" *_test.go` before calling the gate green.
-
-- [ ] **Step 4c: Boot smoke (loads every data file; starts no server)**
-
-Run:
 ```bash
 cd /c/tmp/dogmud-baubles-h && DOGMUD_BOOT_SMOKE=1 go test . -count=1 -run TestSmoke_ServerBootsCleanWithRealData -timeout 600s 2>&1 | tail -5
 ```
-Expected: `ok`. This is `boot_smoke_test.go`, the automated form of dogmud-shipping's boot check: it calls the real `loadAllDataFiles` in the test process and opens no port, so it cannot touch the owner's running server.
+Expected: `ok`.
 
-- [ ] **Step 4d: A real boot, on private ports, stopped by its own PID**
+- [ ] **Step 6: A real boot on private ports, stopped by its own PID**
 
-CI cannot run the boot for us until 2026-10-01, and the resolver and module wiring this slice changes only run in a real process. The owner runs their own server on this machine: this boot uses PRIVATE ports through a `CONFIG_PATH` override file (never the main checkout's config), in a detached worktree, and is stopped by the PID it started, never by name or port.
-
-Run (Bash) to build it:
+Check the fixed boot path is free:
 ```bash
-cd /c/tmp/dogmud-baubles-h && rm -rf /c/tmp/dogmud-baubles-h-boot && git worktree add --detach /c/tmp/dogmud-baubles-h-boot HEAD && cd /c/tmp/dogmud-baubles-h-boot && go build -o boot-check.exe . && cat > /c/tmp/dogmud-baubles-h-boot.overrides.yaml <<'EOF'
+git -C /c/tmp/dogmud-baubles-h worktree list | grep -F "dogmud-boot-check"; ls /c/tmp/dogmud-boot-check 2>/dev/null | head -3
+```
+Expected: no output (each exits 1); if the directory exists, STOP and ask.
+
+Build (Bash):
+```bash
+git -C /c/tmp/dogmud-baubles-h worktree add --detach /c/tmp/dogmud-boot-check HEAD && cd /c/tmp/dogmud-boot-check && go build -o boot-check.exe . && cat > /c/tmp/dogmud-boot-check.overrides.yaml <<'EOF'
 Network:
   TelnetPort: [33533]
   LocalPort: 9899
@@ -5240,69 +6621,53 @@ Network:
 EOF
 echo built
 ```
-Expected: `built`. The worktree's `_datafiles/config.yaml` is the committed blob (a fresh worktree has no skip-worktree divergence), and the override file lives outside every checkout.
 
-Then (PowerShell) start it hidden, wait for `Server Ready` or 180 seconds, and stop exactly that PID:
+Run (PowerShell):
 ```powershell
-$env:CONFIG_PATH = 'C:\tmp\dogmud-baubles-h-boot.overrides.yaml'
-$p = Start-Process -FilePath 'C:\tmp\dogmud-baubles-h-boot\boot-check.exe' -WorkingDirectory 'C:\tmp\dogmud-baubles-h-boot' -RedirectStandardOutput 'C:\tmp\dogmud-baubles-h-boot.log' -RedirectStandardError 'C:\tmp\dogmud-baubles-h-boot.err' -WindowStyle Hidden -PassThru
+$env:CONFIG_PATH = 'C:\tmp\dogmud-boot-check.overrides.yaml'
+$p = Start-Process -FilePath 'C:\tmp\dogmud-boot-check\boot-check.exe' -WorkingDirectory 'C:\tmp\dogmud-boot-check' -RedirectStandardOutput 'C:\tmp\dogmud-boot-check.log' -RedirectStandardError 'C:\tmp\dogmud-boot-check.err' -WindowStyle Hidden -PassThru
 $deadline = (Get-Date).AddSeconds(180)
-while ((Get-Date) -lt $deadline -and -not $p.HasExited -and -not (Select-String -Path 'C:\tmp\dogmud-baubles-h-boot.log','C:\tmp\dogmud-baubles-h-boot.err' -Pattern 'Server Ready' -Quiet)) { Start-Sleep -Seconds 2 }
+while ((Get-Date) -lt $deadline -and -not $p.HasExited -and -not (Select-String -Path 'C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err' -Pattern 'Server Ready' -Quiet)) { Start-Sleep -Seconds 2 }
 "pid=$($p.Id) exited=$($p.HasExited)"
-Select-String -Path 'C:\tmp\dogmud-baubles-h-boot.log','C:\tmp\dogmud-baubles-h-boot.err' -Pattern 'Server Ready|^panic:|goroutine [0-9]+ \[running\]|runtime error|bind:|port=' | Select-Object -First 20
+Select-String -Path 'C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err' -Pattern 'Server Ready|status=listening|^panic:|goroutine [0-9]+ \[running\]|runtime error|bind:' | Select-Object -First 20
 if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -Confirm:$false }
 Remove-Item Env:\CONFIG_PATH
 ```
-Expected: `exited=False` (it stayed up), a `Server Ready` line, a `Starting ... port=` line naming 33533/9899/8391 and not 33333/9999/80, and no `panic:`, `goroutine ... [running]`, `runtime error` or `bind:` line (a bind error would mean it collided with a port someone else holds, and its measurements are not trustworthy). Do not grep for the bare word `panic`: `GamePlay.MapConsistencyEnforce` has the value `panic`.
+Expected: `exited=False`, `Server Ready`, `Telnet status=listening port=33533` (and no 33333 or 44444), no `panic:`, `goroutine ... [running]`, `runtime error` or `bind:` line. Never grep the bare word `panic`.
 
-Clean up (PowerShell holds no lock once the PID is stopped; `Remove-Item` succeeds where `git worktree remove` can fail on Windows):
+Clean up (PowerShell), then `git -C /c/tmp/dogmud-baubles-h worktree prune`:
 ```powershell
-Remove-Item -Recurse -Force 'C:\tmp\dogmud-baubles-h-boot'; Remove-Item -Force 'C:\tmp\dogmud-baubles-h-boot.overrides.yaml','C:\tmp\dogmud-baubles-h-boot.log','C:\tmp\dogmud-baubles-h-boot.err'
+Remove-Item -Recurse -Force 'C:\tmp\dogmud-boot-check'; Remove-Item -Force 'C:\tmp\dogmud-boot-check.overrides.yaml','C:\tmp\dogmud-boot-check.log','C:\tmp\dogmud-boot-check.err'
 ```
-then `git -C /c/tmp/dogmud-baubles-h worktree prune`.
 
-- [ ] **Step 5: Race run on the concurrency-touched packages, in the Linux test container**
+- [ ] **Step 7: Race, in the Linux test container**
 
-Run (Bash):
 ```bash
-cd /c/tmp/dogmud-baubles-h && docker compose -f compose.test.yml run --build --rm test go test -race -count=1 ./internal/items/ ./internal/baubles/ ./modules/baubles/ ./internal/apiframework/ ./internal/actions/ 2>&1 | tail -12
+cd /c/tmp/dogmud-baubles-h && docker compose -f compose.test.yml run --build --rm test go test -race -count=1 ./internal/actions/ ./internal/baubles/ ./modules/aicompanion/ 2>&1 | tail -8
 ```
-Expected: `ok` for all five, no `WARNING: DATA RACE`. CI is out of minutes until 2026-10-01, so this container run IS the race gate; a Docker failure is a blocker to report, not a step to skip.
+Expected: `ok` for all three, no `WARNING: DATA RACE` (the pickpocket pause runs on its own goroutine; `TestPickpocketAwardsAndCatchesAtTheReveal` exercises it).
 
-- [ ] **Step 6: Lint what CI's lint gate sees**
+- [ ] **Step 8: Lint, go.mod, docs, tree**
 
-Run: `cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && golangci-lint run --new-from-merge-base=$BASE`
-Expected: `0 issues`. dogmud-shipping's documented form is `--new-from-merge-base=origin/master`; `$BASE` is that merge base at branch time and stays right if master moves. A finding on a line this slice did not write is pre-existing; check `git log -L` before hunting.
-
-- [ ] **Step 7: go.mod untouched**
-
-Run: `cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --exit-code $BASE..HEAD -- go.mod go.sum; echo "exit=$?"`
-Expected: `exit=0`.
-
-- [ ] **Step 8: Every touched package's context.md was updated**
-
-Run:
 ```bash
-cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --name-only $BASE..HEAD | sed -n 's#^\(internal/[^/]*\|modules/[^/]*\)/.*#\1#p' | sort -u
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && golangci-lint run --new-from-merge-base=$BASE
 ```
+Expected: `0 issues`.
 ```bash
-cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --name-only $BASE..HEAD -- '*context.md' _datafiles/config.yaml docs/
+cd /c/tmp/dogmud-baubles-h && BASE=$(cat /c/tmp/dogmud-baubles-h.base) && git diff --exit-code $BASE..HEAD -- go.mod go.sum; echo "exit=$?"; git diff --name-only $BASE..HEAD | sed -n 's#^\(internal/[^/]*\|modules/[^/]*\)/.*#\1#p' | sort -u; git diff --name-only $BASE..HEAD -- '*context.md' _datafiles/world/dogmud/templates/; git status --short
 ```
-For each package the first command prints, confirm `<pkg>/context.md` is in the second's output, except `internal/rooms` (test-only change). Also confirm `_datafiles/config.yaml`, `docs/aicompanion/settings.md`, `docs/baubles/implementation-plan.md` and `docs/README.md` (this plan's row, from the amendment commit) are there.
+Expected: `exit=0`; every package in the first list has its `context.md` in the second, except `internal/rooms` (a test-only change); `steal.template` listed; a clean tree.
 
-- [ ] **Step 9: Nothing staged by accident, config bit intact**
+- [ ] **Step 9: Hand over**
 
-Run: `cd /c/tmp/dogmud-baubles-h && git status --short && git ls-files -v _datafiles/config.yaml`
-Expected: a clean tree; the config flag letter is what Task 15 Step 8 found it to be before editing.
-
-No push, no PR, no deploy here: the owner runs deploys, and pushing is a separate instruction. When the owner asks to push, every `gh` command carries `--repo pruuk/DOGMud`.
+No push from here. Report the branch, `$BASE`, `git log --oneline $BASE..HEAD` and each gate result. When the owner says to ship: `git push -u origin fix/baubles-hardening-h3`, `gh pr create --repo pruuk/DOGMud --base master --head fix/baubles-hardening-h3 --title "Slice H3: sight ramp, hidden observer names, household guard, companion theft, pickpocket walk-out"`, and read back that the URL says `pruuk/DOGMud`. No deploy: the owner runs deploys.
 
 ---
 
 ## Self-review
 
-**Spec coverage.** S1: Task 1 (`ConfigSecret`, `Validate`, key guard through `DisplayConfigData`). S2: Task 2 (exact hosts), Task 3 (`DecodeChat` scrub, both key forms), Task 4 (six baubles rows in `hardLocked`, `ModerateOutput` and `ModerationModel` included per ruling 13). S3 as amended (owner ruling 2026-09-29): moderated where possible and refused on a flag or failed check, finder-only where not (Task 10 `moderationPossible`, `moderate`; Task 7 engine rule; Task 9a record, catalog view and item accessors; Task 9b single-reader sites and root guard), the failed player-key check on baubles' own breaker only (Task 10 `RecordConsumer`), allowlist (Task 7 engine; Task 10 `refusedByAllowlist` in `name`, falling back to the server route without feeding the player's breaker, ruling 15), typography folded before the allowlist (Task 5 `typographyFold`, pinned in Tasks 5, 7 and 10), the allowed characters in the prompt (Task 10, `PromptVersion` 5), `NameSimple` moderated and allowlisted (Tasks 7 and 10), material moderated (Task 10), value (Task 8), tokens (Task 11), slots (Task 11), recent names and regen (Task 9), authored names (Task 6), log quoting (Task 5 `quoteShort`, used by Tasks 6 and 7). S4: Task 5 (NFKC, Zs, Cf/Co/Cs/Mn, U+2028/2029, Hangul fillers, links, runes, code-point table, OSC, NBSP; `linkRE`'s accepted limits documented) and the homoglyph pin (Task 7). U2: Tasks 12 and 13 (field, order, log, callers, guard entry, exemption, both probes). U4: Task 14 (the six spec lines, their seven `look.go` siblings, and the two PR bauble theft lines; the characterization test pins behaviour and the grep checks the conversion). Pickpocket walk-out: Task 14c (failed roll caught however the pause ends; success unchanged; mark gone catches nobody; flush follows `resolve`). Household guard: Task 14a (in `GetItemFromFloor`, player copy deleted, `get all` unchanged, both probes). Companion theft: Task 14b (every companion, the thief's own included, charmed or AI-bonded; the stale comment replaced). Point 8: recorded as skipped (amendment, ruling 5). Docs: Task 15. Gate: Task 16 (diffs from `$BASE`, size under 20k lines and 300 files, lint from `$BASE`, the named root guards and the key guard, the boot smoke, a real boot on private ports stopped by PID, `-race` in the Linux test container). Delivery: Task 0 (branch from `origin/master` at `3bd6ccaa3`, every quoted anchor grepped, the race container built).
+**Spec coverage.** S1: Task 1 (`ConfigSecret`, `Validate`, key guard through `DisplayConfigData`). S2: Task 2 (exact hosts), Task 3 (`DecodeChat` scrub, both key forms), Task 4 (six baubles rows in `hardLocked`, `ModerateOutput` and `ModerationModel` included per ruling 13). S3 as amended (owner ruling 2026-09-29): moderated where possible and refused on a flag or failed check, finder-only where not (Task 10 `moderationPossible`, `moderate`; Task 7 engine rule; Task 9a record, catalog view and item accessors; Task 9b single-reader sites and root guard), every check on the moderation breaker alone (Task 10 `moderationBreaker`, `RecordConsumer`), player-key text out of every model prompt (Task 9c), admin views (Task 9d), allowlist (Task 7 engine; Task 10 `refusedByAllowlist` in `name`, falling back to the server route without feeding the player's breaker, ruling 15), typography folded before the allowlist (Task 5 `typographyFold`, pinned in Tasks 5, 7 and 10), the allowed characters in the prompt (Task 10, `PromptVersion` 5), `NameSimple` moderated and allowlisted (Tasks 7 and 10), material moderated (Task 10), value (Task 8), tokens (Task 11), slots (Task 11), recent names and regen (Task 9), authored names (Task 6), log quoting (Task 5 `quoteShort`, used by Tasks 6 and 7). S4: Task 5 (NFKC, Zs, Cf/Co/Cs/Mn, U+2028/2029, Hangul fillers, links, runes, code-point table, OSC, NBSP; `linkRE`'s accepted limits documented) and the homoglyph pin (Task 7). U2: Tasks 12 and 13 (field, order, log, callers, guard entry, exemption, both probes). U4: Task 14 (the six spec lines, their seven `look.go` siblings, and the two PR bauble theft lines; the characterization test pins behaviour and the grep checks the conversion). Pickpocket walk-out: Task 14c (failed roll caught however the pause ends; success unchanged; mark gone catches nobody; flush follows `resolve`; away witnesses the mark alone). Household guard: Task 14a (in `GetItemFromFloor`, player copy deleted, `get all` unchanged, the AI companion refused up front, both probes). Companion theft: Task 14b (every companion, the thief's own included, charmed or AI-bonded; the stale comment replaced). Point 8: recorded as skipped (amendment, ruling 5). Docs: Tasks 5a, 11a, 14d, one share per PR. Gates: Tasks 5b, 11b, 14e (diffs from that PR's `$BASE`, size under 20k lines and 300 files, lint from `$BASE`, the named root guards and the key guard, the boot smoke, a real boot at `C:\tmp\dogmud-boot-check` on private ports stopped by PID, `-race` in the Linux test container). Delivery: three PRs in order (Task 0, H2-0, H3-0 each branch from `origin/master`, record the base and grep that PR's anchors). Review fixes a to i and the LOW list: see the table under "Tasks this amendment adds or changes".
 
-**Placeholder scan.** Tasks 1 and 4 use slice M's landed names (`config_locks.go`, `hardLocked`, `isHardLocked`, `IsLocked`, `DisplayConfigData`), which Task 0 Step 2 confirms. Every quoted anchor, the original 64 and the 33 this amendment adds, was grepped at `3bd6ccaa3` and is re-checked by Task 0 Step 4, which stops the task that owns a missing anchor. The one conditional step is Task 14c Step 5 (register the new pickpocket line only if the narration guard reports it), which names the exact entry to add.
+**Placeholder scan.** Tasks 1 and 4 use slice M's landed names (`config_locks.go`, `hardLocked`, `isHardLocked`, `IsLocked`, `DisplayConfigData`), which Task 0 Step 2 confirms. Every quoted anchor was grepped at `3bd6ccaa3`; Task 0 Step 4 re-checks all of them for H1, and H2-0 Step 2 and H3-0 Step 2 re-check that PR's own after the earlier PRs merge (H1's own anchors are gone by then, by design). The conditional steps name their exact entries: Task 14b Step 4 and Task 14c Step 5 (register only the narration rows the guard reports).
 
-**Type consistency.** `CheckPlayerKeyText(r Reply) error`, `AuthoredName(name string) bool`, `moderationPossible(cfg Config, now time.Time) bool`, `(m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (moderated bool, finderOnly bool, err error)`, `refusedByAllowlist(content string) bool`, `typographyFold *strings.Replacer`, `takeServerSlot() (release func(), ok bool)`, `takeFinderSlot(userId int) (release func(), ok bool)`, `FindOpts.SightPenalty float64`, `quoteShort(s string) string`, `errSlotsBusy`, `chatBody(content string, tokens int) string`, `GenResult.FinderOnly bool`, `Record.FinderOnly bool`, `(r Record) MaterialFor(viewerUserId int) string`, `genericDescriptionFor(id string) string`, `BaubleView.FinderUserId int`, `BaubleView.Finder *BaubleView`, `baubleSpecFor(base ItemSpec, id string, viewerUserId int) ItemSpec`, `(i *Item) GetSpecFor/DisplayNameFor/NameFor/LongDescriptionFor(viewerUserId int)`, `(i *Item) baubleFinderNames() []string`, `displayNameFrom(spec ItemSpec) string`, `longDescriptionFrom(iSpec ItemSpec) string`, `apiframework.RecordConsumer(consumer string, err error, now time.Time)`, `actions.ErrHouseholdBauble`, `theftCrime(userId int, m *mobs.Mob, room *rooms.Room)`, `pocketCrime` (same signature), `(p *pocketAttempt) caught(thief Actor, online bool, m *mobs.Mob) StealResult`, `pocketAttempt.room *rooms.Room`, `scanFinderView(fset *token.FileSet, files []finderViewFile) (map[string]bool, []string)` are used with those signatures everywhere. The original plan's `playerRouteOpen` and `errUnmoderated` are gone: no task defines or calls them.
+**Type consistency.** `CheckPlayerKeyText(r Reply) error`, `AuthoredName(name string) bool`, `moderationPossible(cfg Config, s apiframework.ServerSettings, now time.Time) bool`, `moderationBreaker` (a `string` const), `(r Record) KeptToFinder() bool`, `BaubleView.PlayerText bool`, `(i *Item) ModelName() string`, `(i *Item) ModelDescription() string`, `theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away bool) (crimes.Witnesses, bool)`, `finderViewSite{calls int; why string}`, `(m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (moderated bool, finderOnly bool, err error)`, `refusedByAllowlist(content string) bool`, `typographyFold *strings.Replacer`, `takeServerSlot() (release func(), ok bool)`, `takeFinderSlot(userId int) (release func(), ok bool)`, `FindOpts.SightPenalty float64`, `quoteShort(s string) string`, `errSlotsBusy`, `chatBody(content string, tokens int) string`, `GenResult.FinderOnly bool` (there is no `Record.FinderOnly`), `(r Record) MaterialFor(viewerUserId int) string`, `genericDescriptionFor(id string) string`, `BaubleView.FinderUserId int`, `BaubleView.Finder *BaubleView`, `baubleSpecFor(base ItemSpec, id string, viewerUserId int) ItemSpec`, `(i *Item) GetSpecFor/DisplayNameFor/NameFor/LongDescriptionFor(viewerUserId int)`, `(i *Item) baubleFinderNames() []string`, `displayNameFrom(spec ItemSpec) string`, `longDescriptionFrom(iSpec ItemSpec) string`, `apiframework.RecordConsumer(consumer string, err error, now time.Time)`, `actions.ErrHouseholdBauble`, `theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool)`, `pocketCrime func(userId int, m *mobs.Mob, theftRoom *rooms.Room)`, `(p *pocketAttempt) caught(thief Actor, online bool, m *mobs.Mob) StealResult`, `scanFinderView(fset *token.FileSet, files []finderViewFile) (map[string]int, []string)`, `buildBandolierContainer(c *characters.Character, viewerUserId int)`, `buildComponentBagContainer(c *characters.Character, viewerUserId int)`, `yesNo(v bool) string` are used with those signatures everywhere. Gone, and no task defines or calls them: the original plan's `playerRouteOpen` and `errUnmoderated`, the first amendment's `Record.FinderOnly` field and `pocketAttempt.room`.
