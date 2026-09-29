@@ -4,7 +4,7 @@
 
 **Goal:** Replace the bauble catalog's time-only prune with an owner-ruled periodic sweep that collects every bauble id any item still points at (live world and every save file) and prunes only the records nothing has pointed at for two sweeps and the whole keep window.
 
-**Architecture:** Every store of items gets a `WalkItems(fn func(*items.Item))` method. The main package registers live walks (users, rooms, mobs, shops, guilds) and the auction module registers its own, with `baubles.RegisterLiveSource`. A sweeper goroutine runs at boot and every `Balance.BaubleSweepHours`: it walks the live world under the mud lock, reads every `.yaml` and `.plugin.dat` under DataFiles off the lock (skipping `baubles/` and `economy/`), then updates `LastSeenAt` / `UnseenSweeps` on each record and writes each changed shard without its prunable records before they leave memory. Any error anywhere fails the sweep closed. Two repo-root guards fail when a store of items is not walked.
+**Architecture:** Every store of items gets a `WalkItems(fn func(*items.Item))` method. The main package registers live walks (users, rooms, mobs, shops, guilds) and the auction module registers its own, with `baubles.RegisterLiveSource`. A sweeper goroutine runs at boot and every `Balance.BaubleSweepHours`: it walks the live world under the mud lock, reads every `.yaml` and `.plugin.dat` under DataFiles off the lock (skipping `baubles/` and `economy/snapshots/`), then updates `LastSeenAt` / `UnseenSweeps` on each record and writes each changed shard without its prunable records before they leave memory. Any error anywhere fails the sweep closed. Two repo-root guards fail when a store of items is not walked.
 
 **Tech Stack:** Go 1.25.7, `gopkg.in/yaml.v3` (`yaml.Node` walk), `reflect` + `go/ast` in the guards, PowerShell for the boot smoke, Git Bash for git.
 
@@ -46,7 +46,7 @@
 | 28 | Precedent for the disk half: migration 0.17.0 scans every `.yaml` and `.plugin.dat` under DataFiles with a cheap prefilter, because "a path list missed most of them" | `internal/migration/0.17.0.go:27-33,137-183` |
 | 29 | `users.SearchOfflineUsers` skips `.alts.yaml` and discards `filepath.Walk`'s error, so it cannot fail closed and is not reused | `users.go:593-640` |
 | 30 | Quarantined files are `<path>.corrupt-<stamp>` (`livingstate.go:100`); `util.SafeSave` writes `<path>.new` (`util.go:710`). Neither ends in `.yaml` or `.plugin.dat` | `internal/util` |
-| 31 | Local DataFiles: 5,295 `.yaml`/`.plugin.dat` files, 58 MB; `economy/` is 392 metric snapshot files (41 MB, shop stock counts, no items); excluding `economy/` and `baubles/`: 4,903 files, 8.7 MB read; users: 105 saves + 1 alts file | measured |
+| 31 | Local DataFiles: 5,295 `.yaml`/`.plugin.dat` files, 58 MB; `economy/` is 392 metric snapshot files, all under `economy/snapshots/` (41 MB, shop stock counts, no items); excluding `economy/` and `baubles/`: 4,903 files, 8.7 MB read; users: 105 saves + 1 alts file | measured |
 | 32 | A Go read-plus-regex pass over those 4,903 files took 0.57 to 0.69 s warm on this Windows machine | scratch timing program |
 | 33 | `internal/baubles` has a `TestMain` that sets up the logger (`catalog_test.go:17`); the repo root package has no `TestMain`, so root tests must not call code that logs | |
 | 34 | Test helpers: `setBaubleConfig` (`find_test.go:12`), `withCatalog` (`catalog_test.go:28`); rooms: `seedRegistry` (`rooms_test.go:16`) and the `LoadRoomInstance` file fixture pattern (`save_and_load_test.go:73-165`); actions: `seedBaubleSale`, `newBauble`, `seedSellRoom`, `seedSellMerchant`, `newSellerActor` (`sell_bauble_test.go`) | |
@@ -56,6 +56,13 @@
 | 38 | `golangci-lint` 2.12.2 at `~/go/bin/golangci-lint`; `compose.test.yml` service `test` | |
 | 39 | New names are unused: grep for `WalkItems`, `WalkSlice`, `LoadedRooms`, `GetAllLoadedUsers`, `RegisterLiveSource`, `DiskRefs`, `BaubleSweepHours` finds nothing | |
 | 40 | Module path `github.com/GoMudEngine/GoMud` | `go.mod:1` |
+| 41 | An agent worktree under `.claude/worktrees/` is a second copy of `internal/`; repo walks skip every dot directory for that reason (`durable_write_guard_test.go:110-117`, `identifierGuardSkipDir` `identifier_word_guard_test.go:51-56`) | root guards |
+| 42 | `removeUntakenBaubles` takes finds from `r.Items` only (`internal/rooms/baubles_untaken.go:26-63`), never from `Stash` or containers | rooms |
+| 43 | `Character.StoreItem` calls `i.ClearBaublePlacement()` (`internal/characters/inventory.go:178`); `Pet.StoreItem` (`internal/pets/pets.go:73-85`) does not; its callers are `internal/usercommands/get.go:480` and `give.go:321` | pets |
+| 44 | `factions.ValidateHoldingCells` calls `rooms.LoadRoom` (`main.go:1634-1636`) before `baubles.Load` (`main.go:1648`) | boot order |
+| 45 | Economy snapshots are written to `<DataFiles>/economy/snapshots` (`internal/economy/health/persistence.go:26`) | economy |
+| 46 | `util.SafeSave` renames `<path>.new` over `<path>` with one plain `os.Rename` (`internal/util/util.go:722`); `internal/util` is exempt from the durable-write guard (`durable_write_guard_test.go:23`); `util.go` does not import `runtime` | util |
+| 47 | Transitive AST scan: 84 struct types hold items at some depth; package-level variables naming one: `guilds.byTag`, `items.ItemDisabledSlot`, `mobs.mobInstances`, `mobs.mobs`, `pets.petTypes`, `rooms.roomManager`, `rooms.templateCache`, `shops.shopCache`, `users.userManager`, `auctions.npcBuyers` (plus two `_` interface assertions in `actions`). The auction module's state lives in a local captured by its `init` closures, not a package variable | scratch AST scan |
 
 ## Every place an item can live (the store list)
 
@@ -70,7 +77,7 @@ Live (in memory, walked under the mud lock):
 | Guild vaults | `guilds.Guild` | `All` |
 | Auction house: the lot on the block and seized lots | `auctions.AuctionManager` | registered by the module |
 
-On disk (read off the lock, whole DataFiles tree minus `baubles/` and `economy/`): `users/<id>.yaml` (character, bank, inbox), `users/<id>.alts.yaml` (offline alts), `rooms.instances/<zone>/<id>.yaml` (floors, stashes, containers of rooms not loaded), `mobs.instances/**` (mob equipment), `shops/<zone>/<mob>-room<room>.yaml` (affixed stock), `guilds/<tag>.yaml` (vaults), `crates/<room>-<label>.yaml` (crates whose room is missing or not yet attached), `plugin-data/auctions-v1.0/auctionhistory.plugin.dat` (auction house between saves), and any future store that writes items under DataFiles.
+On disk (read off the lock, whole DataFiles tree minus `baubles/` and `economy/snapshots/`): `users/<id>.yaml` (character, bank, inbox), `users/<id>.alts.yaml` (offline alts), `rooms.instances/<zone>/<id>.yaml` (floors, stashes, containers of rooms not loaded), `mobs.instances/**` (mob equipment), `shops/<zone>/<mob>-room<room>.yaml` (affixed stock), `guilds/<tag>.yaml` (vaults), `crates/<room>-<label>.yaml` (crates whose room is missing or not yet attached), `plugin-data/auctions-v1.0/auctionhistory.plugin.dat` (auction house between saves), and any future store that writes items under DataFiles.
 
 Transient (alive for one call or one tick; listed with reasons in `transientItemHolders`, Task 4): `actions.DropItemResult`, `EquipItemResult`, `GetItemResult`, `GiveItemResult`, `RemoveEquipResult`, `StealOptions`; `characters.HandSlot`, `WornSlot` (views into `Worn`); `combat.DisarmResult`, `weaponSetup`; `events.EquipmentChange`, `ItemOwnership`, `StorageItemSeized`; `hooks.WeaponBreakResult`, `plannedSeizure`; `itemvalue.SwapDelta`; `parser.Match`; `sealedcrate.cratePayload` (disk shape); `usercommands.enchantSlotCandidate`; `modules/aicompanion.thing`. A find being delivered is minted and handed over inside one lock hold (`search_bauble.go:273-320`), so it is never in flight between stores. Checked and holding no items: warehouses (`warehouse.Entry` is `ItemId` + count), caravans, ferries, `economy/snapshots`, `PastAuctionItem`.
 
@@ -81,19 +88,24 @@ Nesting: items do not nest (fact 10). Containers exist only as room containers a
 1. **When and where it runs.** A dedicated sweeper goroutine started from `main.go` just before `Server Ready`: one sweep at once, then every `BaubleSweepHours` (new knob, default 6, floor 1). Not at `SaveAll`: copyover calls `SaveAll` holding the mud lock (fact 22). Shutdown calls `StopSweeper()` before `SaveAll()` so a sweep in progress finishes its writes (bounded wait of 30 s); copyover does not wait (deadlock), which is safe because every catalog write is atomic.
 2. **Locks.** Live half: full `util.LockMud` (fact 20), walking only in-memory values, then released. Disk half: no mud lock, no catalog lock; plain file reads. Apply half: catalog `mu` for the field updates, then per-shard `persistShardPruning` under `writeMu`. The catalog lock is never held across a disk write, as today.
 3. **Two-phase, and why a record needs two unseen sweeps AND the keep window.** A record gets `LastSeenAt=now, UnseenSweeps=0` when referenced, otherwise `UnseenSweeps++` (capped at 2). It is prunable when `UnseenSweeps >= 2` and `now - lastEvidence >= keep`, where `lastEvidence` is the latest of `FoundAt`, `StolenAt`, `RecognizedAt`, `ReturnedAt`, `SoldAt`, `VanishedAt`, `LastSeenAt`. An item moving between stores while one sweep looks can be missed once; nothing is lost unless that repeats for the whole window. Two sweeps also stop a single boot sweep after a long downtime from pruning on one look. A store the sweep NEVER sees would repeat forever; the guards (Tasks 2 and 4) are what prevent that. `ReturnCreditAt` records are kept forever, as today. Records found after the sweep began are left alone.
+   **Deploy grace:** every record already in the catalog has a zero `LastSeenAt`. On the first sweep that counts such a record unseen, its `LastSeenAt` is set to that sweep's time, so every existing record gets a full keep window from the deploy instead of being pruned at the second sweep, hours after it, just because it was found over 30 days ago (`TestApplySweepGivesOldRecordsAFullWindowFromTheFirstSweep`).
 4. **The only pruner is a successful sweep.** `Load` and `SaveAll` stop pruning. A time-only prune would delete a rolled-back sold record whenever sweeps keep failing closed.
 5. **Rolled-back sold baubles.** A sold record that an item points at again is simply seen, so it survives; its `Status`/`SoldAt` are left as they were. It is already sellable (fact 4), and a re-sale overwrites `SoldAt`. Rewriting the sale on sweep evidence would be wrong: a user save on disk lags a sale by up to one autosave, so a sweep in that window would "revive" and erase a real sale.
 6. **Fail closed.** No live source registered, a live source that panics, a data folder that cannot be listed, a file that cannot be read (other than one deleted since the listing), a file that names a bauble and does not parse, or a document nested deeper than 100 levels: the sweep records the error, logs at ERROR, and applies NOTHING (no `LastSeenAt`, no `UnseenSweeps`, no prune).
-7. **Disk scope.** Whole DataFiles, like migration 0.17.0 (fact 28), because a folder list rots the day someone adds a store. Skipped: `baubles/` (the catalog itself) and `economy/` (metric snapshots, 70% of the bytes, no items). A file is parsed only if it contains a `bauble` key (bare or JSON-quoted).
-8. **Untaken finds in never-revisited rooms.** In `rooms.instances/` only, a find with `baubleleftat` older than `UntakenLimit()` is not counted as a reference (the owner's gap "room never revisited"). To make that safe, `LoadRoomInstance` now removes such finds (and marks them vanished) whenever a room is loaded from its instance file, so a pruned find can never be picked up by a mob that wanders into an unprepared room. The live walk counts everything it sees.
+7. **Disk scope.** Whole DataFiles, like migration 0.17.0 (fact 28), because a folder list rots the day someone adds a store. Skipped: `baubles/` (the catalog itself) and `economy/snapshots/` (the dashboard's metric snapshots, written by `internal/economy/health/persistence.go:26`: 70% of the bytes, no items). The rest of `economy/` is scanned like any other folder. A file is parsed only if it contains a `bauble` key (bare or JSON-quoted).
+8. **Untaken finds in never-revisited rooms.** In a `rooms.instances/` file only, and only in the room's top-level `items` list (the floor), a find with `baubleleftat` older than `UntakenLimit()` is not counted as a reference (the owner's gap "room never revisited"). The floor alone, because `removeUntakenBaubles` (`internal/rooms/baubles_untaken.go:26-63`) takes finds only from `r.Items`, never from the stash or a container. To make that safe, `LoadRoomInstance` now removes such finds (and marks them vanished) whenever a room is loaded from its instance file, so a pruned find can never be picked up by a mob that wanders into an unprepared room. The live walk counts everything it sees.
+   **Boot order:** `factions.ValidateHoldingCells` loads the holding-cell rooms (`main.go:1634-1636`) before `baubles.Load` (`main.go:1648`). A find removed from one of those rooms at that moment is still removed, but `MarkVanished` finds no record to mark (the catalog is empty until `Load`), so its record keeps no `VanishedAt`; it is simply unreferenced and the sweep prunes it after the keep window like any lost bauble. The only loss is one "vanished untaken" count in `bauble stats`. Moving the validation after the catalog load would reorder boot for that cosmetic count, so the plan documents it instead.
+   **Placement flag on pets (existing bug, fixed in Task 9):** `Character.StoreItem` clears a bauble's placement (`inventory.go:178`), but `Pet.StoreItem` (`pets.go:73-85`, called from `usercommands/get.go:480` and `give.go:321`) does not, so a find put straight into a pack pet kept its spot, household and untaken time.
 9. **Persistence.** `util.Save` through the existing `writeShard`. Persist before publish for removals: a shard is written without its prunable records first, and only after that write succeeds are they taken out of memory, still under `writeMu`; a record that changed meanwhile and is no longer prunable is kept and the shard marked dirty. `LastSeenAt`/`UnseenSweeps` follow the catalog's write-through rule (set, then written); losing one of those writes only makes a record look seen slightly earlier, which the keep window absorbs.
 10. **Admin visibility.** `bauble status` gains one `Sweep:` line (never run / failed with its error / catalog empty / counts and timings). Every sweep logs one INFO line (`action=sweep records referenced pruned files parsed live disk`), and a failed one an ERROR line.
-11. **Scope widened (flaw found):** `MigrateDetunedRangedWeapons` misses companions' gear (fact 36). It now walks `Character.WalkItems` (Task 3).
+11. **Scope widened (flaw found):** `MigrateDetunedRangedWeapons` misses companions' gear (fact 36). Task 3 makes it walk `Character.WalkItems`. Owner 2026-09-29: no pre-detune bows are carried by companions on prod, so this closes a coverage gap with no live behaviour change (the rescale is value-guarded and idempotent).
+12. **Windows rename retry.** Go opens files on Windows without `FILE_SHARE_DELETE`, so while the sweep reads a save file, a concurrent `util.SafeSave` rename onto that file fails, and `os.Rename` has no retry (`util.go:722`). `SafeSave` gets a short bounded retry on Windows only (five tries, 150 ms in all; Task 8). Production is Linux, where a rename over an open file always succeeds, so prod is unaffected; this protects local servers and playtests.
+13. **What the guards cover, precisely.** Task 4 checks every struct that names `items.Item` directly (reached from a root or listed transient) and every package-level variable whose type or initializer names any struct that holds items at any depth (walked by a live source or listed with a reason). It does not check every type that holds items indirectly: 84 types do, most of them transient actors and results holding a pointer to a walked record, and listing them would bury the real stores. A store is anchored somewhere that outlives a call, and a package-level variable is that anchor; the one exception today, the auction module's state captured in its `init` closure, is registered by hand (Task 10) and named in the guard's comment.
 
 ## Cost estimate
 
 - Disk half, off the lock: about 4,900 files and 9 MB read per sweep locally, 0.6 to 0.7 s warm on Windows (fact 32); the droplet's Linux file reads are cheaper per file. It grows by about 7 KB per user save. Every 6 hours, that is under 3 s of background I/O a day.
-- Live half, under the mud lock: a walk over loaded users, loaded rooms (hundreds), live mobs (hundreds to low thousands) and shops, each character about 40 slot checks: on the order of 100,000 pointer checks, estimated at 1 to 5 ms. The boot smoke (Task 13) records the real `live=` figure; if it exceeds 50 ms, stop and report before shipping.
+- Live half, under the mud lock: a walk over loaded users, loaded rooms (hundreds), live mobs (hundreds to low thousands) and shops, each character about 40 slot checks: on the order of 100,000 pointer checks, estimated at 1 to 5 ms. `SweepStatus.Live` times the hold only, from the moment `sweepLock()` returns to the unlock, so time spent waiting for the lock is not counted. The boot smoke (Task 13) records the real `live=` figure; if it exceeds 50 ms, stop and report before shipping.
 - Apply half: one shard write (500 records) per shard that holds a changed record. With every held record's `LastSeenAt` refreshed, that is every shard holding a held bauble, each sweep: at 10,000 records about 20 writes of a few hundred KB, outside the catalog lock.
 - An empty catalog skips the sweep entirely (no disk read).
 
@@ -118,12 +130,17 @@ Nesting: items do not nest (fact 10). Containers exist only as room containers a
 | `internal/baubles/sweep.go` | create | registry, `applySweep`, `runSweep`, status, sweeper loop |
 | `internal/baubles/sweep_disk.go` | create | `DiskRefs`, the DataFiles scan |
 | `internal/rooms/save_and_load.go` | modify | remove expired untaken finds on instance load |
+| `internal/pets/pets.go`, `internal/pets/pets_test.go` | modify, create | `Pet.StoreItem` clears a bauble's placement |
+| `internal/util/util.go`, `internal/util/safesave_retry_test.go` | modify, create | bounded rename retry in `SafeSave` on Windows |
 | `bauble_sweep.go` (repo root) | create | `registerBaubleSweepSources` |
 | `main.go`, `copyover.go` | modify | start/stop the sweeper; copyover comment |
 | `internal/usercommands/admin.bauble.go` | modify | `Sweep:` line in `bauble status` |
 | `item_walker_guard_test.go`, `bauble_sweep_guard_test.go`, `bauble_sweep_test.go` (repo root) | create | the two guards, registration and real-type disk tests |
 | tests in each package | create/modify | as listed per task |
-| `internal/baubles/context.md` and eight other `context.md` files, `docs/PATCH_NOTES.md`, `docs/README.md` | modify | docs |
+| `internal/baubles/context.md`, eleven other `context.md` files (items, characters, users, rooms, mobs, shops, guilds, sealedcrate, pets, usercommands, auctions), `docs/PATCH_NOTES.md` | modify | docs (Task 12) |
+| `docs/README.md` | modify | the plan's row; already added in the plan's own commit (`0cf96b378`), so no task edits it again |
+
+**Go formatting rule for every task:** after writing or editing any `.go` file, run `gofmt -w <file>` on it before running its tests. Map and struct literals in this plan are not hand-aligned.
 
 ---
 
@@ -693,8 +710,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 3: The bow detune migration reaches companions' gear
 
+> **Owner 2026-09-29: no pre-detune bows are carried by companions on prod, so this closes a coverage gap with no live behaviour change.** The rescale is value-guarded and idempotent, so a second run changes nothing.
+
 **Files:**
-- Modify: `internal/characters/migrate_detuned_bows.go:63-86`
+- Modify: `internal/characters/migrate_detuned_bows.go:39-62` (COVERAGE comment) and `:63-86` (body)
 - Test: `internal/characters/migrate_detuned_bows_test.go` (`TestMigrateDetunedRangedWeapons_ReachesEveryCarriedCollection`)
 
 - [ ] **Step 1: Extend the reach test**
@@ -740,6 +759,30 @@ In `internal/characters/migrate_detuned_bows.go`, replace the body of `func (c *
 
 leaving `updated := items.MigrateDetunedRangedWeapons(ptrs)` and the log line as they are.
 
+In the same file's header comment, replace
+
+```go
+// COVERAGE -- populations this reaches:
+//   - backpack, component bag, potion bandolier, equipped items
+//   - pet inventory (Character.Pet.Items): Pet.StoreItem accepts any item with
+//     ItemId >= 1 with no type filter, and get.go/give.go route items into it,
+//     so a pack pet is first-class player storage and can hold a bow.
+```
+
+with
+
+```go
+// COVERAGE -- populations this reaches: everything Character.WalkItems
+// walks (walk_items.go), which TestItemWalkersVisitEveryItemField (repo
+// root) keeps complete:
+//   - backpack, component bag, potion bandolier, every equipment slot
+//   - pet inventory (Character.Pet.Items): Pet.StoreItem accepts any item with
+//     ItemId >= 1 with no type filter, and get.go/give.go route items into it,
+//     so a pack pet is first-class player storage and can hold a bow.
+//   - each companion's saved pack and gear (Companions[i].Items and
+//     .Equipment), which the hand-listed version of this sweep missed.
+```
+
 - [ ] **Step 4: Run the migration tests**
 
 Run: `go test ./internal/characters/ -run TestMigrateDetunedRangedWeapons`
@@ -779,6 +822,16 @@ grep -rn "type enchantSlotCandidate" internal/usercommands; grep -rn "type thing
 
 If any of them is stored in a package-level variable or a long-lived struct, stop: it is a store, and it needs a sweep root instead of an allowlist entry.
 
+Then confirm each `itemStoreVars` reason (fact 47):
+
+```bash
+grep -n "byTag *=" internal/guilds/registry.go; grep -n "mobInstances *=\|^\s*mobs *= map" internal/mobs/mobs.go
+grep -n "roomManager = \|templateCache *= map" internal/rooms/roommanager.go internal/rooms/template_cache.go
+grep -n "shopCache *=" internal/shops/persistence.go; grep -n "userManager \*ActiveUsers" internal/users/users.go
+grep -n "ItemDisabledSlot *=" internal/items/items.go; grep -n "petTypes *=" internal/pets/pets.go
+grep -n "var npcBuyers" -A3 modules/auctions/npc_buyers.go; grep -n "type shopkeeper" -A5 modules/auctions/npc_buyers.go
+```
+
 - [ ] **Step 2: Write the guard**
 
 Create `bauble_sweep_guard_test.go`:
@@ -791,13 +844,28 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
+
+// What this guards, precisely (plan decision 13): every struct that names
+// items.Item directly is reached from a sweep root or listed transient, and
+// every package-level variable whose type or initializer names a struct
+// that holds items at ANY depth is walked by a live source or listed in
+// itemStoreVars. It does not check every type that holds items indirectly
+// (84 do, mostly actors and results holding a pointer to a walked record):
+// a store needs an anchor that outlives a call, and a package-level
+// variable is that anchor. Known exception: the auction module keeps its
+// state in a local captured by its init closures, not a package variable,
+// so it is registered by hand in modules/auctions and checked by
+// TestBaubleSweepSourcesMatchTheGuardedRoots instead.
 
 // sweepModulePath is go.mod's module line.
 const sweepModulePath = `github.com/GoMudEngine/GoMud`
@@ -829,23 +897,47 @@ var transientItemHolders = map[string]string{
 	`modules/aicompanion.thing`:                  `one prompt's description of the room, alive for one call`,
 }
 
-// itemHolderTypes lists "<dir>.<Type>" for every top-level struct in the
-// repo's non-test Go files with a field whose type mentions items.Item.
-func itemHolderTypes(t *testing.T) []string {
-	t.Helper()
-	_, here, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("cannot find the repo root")
-	}
-	root := filepath.Dir(here)
-	out := []string{}
+// itemStoreVars are the package-level variables that hold items at some
+// depth, each with the live source that walks it or why nothing in it
+// needs walking. Keyed "<dir>.<name>".
+var itemStoreVars = map[string]string{
+	`internal/guilds.byTag`:           `the guilds live source (guilds.All)`,
+	`internal/mobs.mobInstances`:      `the mobs live source (GetAllMobInstanceIds, GetInstance)`,
+	`internal/rooms.roomManager`:      `the rooms live source (LoadedRooms)`,
+	`internal/shops.shopCache`:        `the shops live source (AllShops)`,
+	`internal/users.userManager`:      `the users live source (GetAllLoadedUsers)`,
+	`internal/items.ItemDisabledSlot`: `a sentinel value (ItemId -1), never a real item`,
+	`internal/mobs.mobs`:              `authored mob templates; no runtime item is ever put in one`,
+	`internal/pets.petTypes`:          `authored pet templates; no runtime item is ever put in one`,
+	`internal/rooms.templateCache`:    `authored room templates, cached read-only; no runtime item is ever put in one`,
+	`modules/auctions.npcBuyers`:      `NPC bidders; a shopkeeper's bound shop is in the shops registry, walked by the shops live source`,
+}
+
+// itemScan is what scanItemHolders finds in a source tree.
+type itemScan struct {
+	direct []string        // structs with a field naming items.Item, "<dir>.<Type>"
+	all    map[string]bool // every type that holds an items.Item at any depth
+	vars   []string        // package-level variables naming such a type, "<dir>.<name>"
+}
+
+type scanFile struct {
+	dir     string
+	imports map[string]string // import name -> repo dir
+	f       *ast.File
+}
+
+// scanItemHolders parses every non-test Go file under root. It skips the
+// trees identifierGuardSkipDir (identifier_word_guard_test.go) names, every
+// dot directory included: an agent worktree under .claude/worktrees/ is a
+// second copy of internal/ and must not be read as part of this repo.
+func scanItemHolders(root string) (itemScan, error) {
+	files := []scanFile{}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
-			switch d.Name() {
-			case `.git`, `_datafiles`, `node_modules`, `vendor`:
+			if p != root && identifierGuardSkipDir(d.Name()) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -857,57 +949,129 @@ func itemHolderTypes(t *testing.T) []string {
 		if perr != nil {
 			return perr
 		}
-		inItems := f.Name.Name == `items`
 		rel, _ := filepath.Rel(root, filepath.Dir(p))
-		for _, decl := range f.Decls {
-			gd, ok := decl.(*ast.GenDecl)
+		sf := scanFile{dir: filepath.ToSlash(rel), imports: map[string]string{}, f: f}
+		for _, im := range f.Imports {
+			path, _ := strconv.Unquote(im.Path.Value)
+			if !strings.HasPrefix(path, sweepModulePath+`/`) {
+				continue
+			}
+			dir := strings.TrimPrefix(path, sweepModulePath+`/`)
+			name := dir[strings.LastIndex(dir, `/`)+1:]
+			if im.Name != nil {
+				name = im.Name.Name
+			}
+			sf.imports[name] = dir
+		}
+		files = append(files, sf)
+		return nil
+	})
+	if err != nil {
+		return itemScan{}, err
+	}
+
+	const item = `internal/items.Item`
+	type typeDecl struct {
+		key      string
+		isStruct bool
+		refs     []string
+	}
+	decls := []typeDecl{}
+	for _, sf := range files {
+		for _, d := range sf.f.Decls {
+			gd, ok := d.(*ast.GenDecl)
 			if !ok || gd.Tok != token.TYPE {
 				continue
 			}
 			for _, spec := range gd.Specs {
 				ts := spec.(*ast.TypeSpec)
-				st, ok := ts.Type.(*ast.StructType)
-				if !ok {
+				_, isStruct := ts.Type.(*ast.StructType)
+				decls = append(decls, typeDecl{sf.dir + `.` + ts.Name.Name, isStruct, typeRefs(ts.Type, sf)})
+			}
+		}
+	}
+
+	scan := itemScan{all: map[string]bool{item: true}}
+	for _, d := range decls {
+		if d.isStruct && d.key != item && slices.Contains(d.refs, item) {
+			scan.direct = append(scan.direct, d.key)
+		}
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, d := range decls {
+			if scan.all[d.key] {
+				continue
+			}
+			for _, r := range d.refs {
+				if scan.all[r] {
+					scan.all[d.key] = true
+					changed = true
+					break
+				}
+			}
+		}
+	}
+	for _, sf := range files {
+		for _, d := range sf.f.Decls {
+			gd, ok := d.(*ast.GenDecl)
+			if !ok || gd.Tok != token.VAR {
+				continue
+			}
+			for _, spec := range gd.Specs {
+				vs := spec.(*ast.ValueSpec)
+				refs := []string{}
+				if vs.Type != nil {
+					refs = typeRefs(vs.Type, sf)
+				}
+				for _, v := range vs.Values {
+					refs = append(refs, typeRefs(v, sf)...)
+				}
+				if !slices.ContainsFunc(refs, func(r string) bool { return scan.all[r] }) {
 					continue
 				}
-				for _, fld := range st.Fields.List {
-					if mentionsItem(fld.Type, inItems) {
-						out = append(out, filepath.ToSlash(rel)+`.`+ts.Name.Name)
-						break
+				for _, n := range vs.Names {
+					if n.Name != `_` {
+						scan.vars = append(scan.vars, sf.dir+`.`+n.Name)
 					}
 				}
 			}
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
-	sort.Strings(out)
-	return out
+	sort.Strings(scan.direct)
+	sort.Strings(scan.vars)
+	return scan, nil
 }
 
-// mentionsItem reports whether a field type spells items.Item (or Item,
-// inside package items), not counting function or interface types.
-func mentionsItem(e ast.Expr, inItems bool) bool {
-	found := false
-	ast.Inspect(e, func(n ast.Node) bool {
+// typeRefs lists "<dir>.<Name>" for every type name n mentions, resolving a
+// package selector through the file's imports and a bare name to the
+// file's own package. Field names, composite-literal keys, function types,
+// function literals and interface types are not followed.
+func typeRefs(n ast.Node, sf scanFile) []string {
+	out := []string{}
+	ast.Inspect(n, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.SelectorExpr:
-			if id, ok := x.X.(*ast.Ident); ok && id.Name == `items` && x.Sel.Name == `Item` {
-				found = true
+			if id, ok := x.X.(*ast.Ident); ok {
+				if dir, ok := sf.imports[id.Name]; ok {
+					out = append(out, dir+`.`+x.Sel.Name)
+				}
 			}
 			return false
 		case *ast.Ident:
-			if inItems && x.Name == `Item` {
-				found = true
-			}
-		case *ast.FuncType, *ast.InterfaceType:
+			out = append(out, sf.dir+`.`+x.Name)
+		case *ast.Field:
+			out = append(out, typeRefs(x.Type, sf)...)
+			return false
+		case *ast.KeyValueExpr:
+			out = append(out, typeRefs(x.Value, sf)...)
+			return false
+		case *ast.FuncType, *ast.FuncLit, *ast.InterfaceType:
 			return false
 		}
 		return true
 	})
-	return found
+	return out
 }
 
 // sweepReachableTypes lists "<dir>.<Type>" for every named type reachable
@@ -947,10 +1111,32 @@ func sweepReachableTypes() map[string]bool {
 // as transient with its reason. A new store of items that is neither would
 // have its baubles' records pruned while they still exist.
 func TestEveryItemHolderIsASweepRootOrTransient(t *testing.T) {
-	holders := itemHolderTypes(t)
-	if len(holders) < 20 {
-		t.Fatalf("found only %d item-holding types: the scan is broken, not the repo", len(holders))
+	_, here, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot find the repo root")
 	}
+	scan, err := scanItemHolders(filepath.Dir(here))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scan.direct) < 20 || len(scan.vars) < 5 {
+		t.Fatalf("found only %d item-holding types and %d store variables: the scan is broken, not the repo", len(scan.direct), len(scan.vars))
+	}
+
+	isVar := map[string]bool{}
+	for _, v := range scan.vars {
+		isVar[v] = true
+		if _, ok := itemStoreVars[v]; !ok {
+			t.Errorf("package-level variable %s holds items at some depth and is not in itemStoreVars. If it is a store, register a live source that walks it (bauble_sweep.go); otherwise list it with the reason nothing in it needs walking", v)
+		}
+	}
+	for v := range itemStoreVars {
+		if !isVar[v] {
+			t.Errorf("itemStoreVars lists %s, which no longer holds items; remove it", v)
+		}
+	}
+
+	holders := scan.direct
 	reach := sweepReachableTypes()
 	isHolder := map[string]bool{}
 	for _, h := range holders {
@@ -969,22 +1155,50 @@ func TestEveryItemHolderIsASweepRootOrTransient(t *testing.T) {
 		}
 	}
 }
+
+// The scan skips dot directories: an agent worktree under
+// .claude/worktrees/ is a second copy of the repo, and a struct planted
+// there must not be read as part of it.
+func TestItemHolderScanSkipsDotDirectories(t *testing.T) {
+	root := t.TempDir()
+	src := "package x\n\nimport \"github.com/GoMudEngine/GoMud/internal/items\"\n\ntype Holder struct{ It items.Item }\n\nvar store = map[int]*Holder{}\n"
+	for _, dir := range []string{`internal/x`, `.claude/worktrees/w/internal/y`, `.hidden/z`} {
+		p := filepath.Join(root, filepath.FromSlash(dir), `x.go`)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	scan, err := scanItemHolders(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(scan.direct, []string{`internal/x.Holder`}) || !reflect.DeepEqual(scan.vars, []string{`internal/x.store`}) {
+		t.Fatalf("direct %v vars %v, want only internal/x's Holder and store", scan.direct, scan.vars)
+	}
+}
 ```
+
+Run `gofmt -w bauble_sweep_guard_test.go`.
 
 - [ ] **Step 3: Run it**
 
-Run: `go test . -run TestEveryItemHolderIsASweepRootOrTransient -v`
-Expected: PASS. (The 14 reachable holders are `characters.Character`, `CompanionInfo`, `Worn`, `guilds.Guild`, `pets.Pet`, `rooms.Container`, `rooms.Room`, `sealedcrate.Crate`, `shops.AffixedStockEntry`, `users.Message`, `users.Storage`, `users.StorageSlot`, `auctions.AuctionItem`, `auctions.SeizedLot`.)
+Run: `go test . -run "TestEveryItemHolderIsASweepRootOrTransient|TestItemHolderScanSkipsDotDirectories" -v`
+Expected: PASS. (The 14 reachable direct holders are `characters.Character`, `CompanionInfo`, `Worn`, `guilds.Guild`, `pets.Pet`, `rooms.Container`, `rooms.Room`, `sealedcrate.Crate`, `shops.AffixedStockEntry`, `users.Message`, `users.Storage`, `users.StorageSlot`, `auctions.AuctionItem`, `auctions.SeizedLot`; the 10 store variables are fact 47's.) If the variable check names one this plan did not list, read its declaration: a registry of live state needs a live source, anything else gets a reason in `itemStoreVars`.
 
-- [ ] **Step 4: Prove it can fail (null probe)**
+- [ ] **Step 4: Prove it can fail (null probes)**
 
-Delete the `internal/parser.Match` line from `transientItemHolders` and rerun: expected FAIL naming `internal/parser.Match holds an items.Item but no bauble sweep root reaches it`. Restore it. Then add `` `internal/parser.Nope`: `x`, `` and rerun: expected FAIL `transientItemHolders lists internal/parser.Nope, which no longer holds an item`. Remove it and rerun: PASS.
+(a) Delete the `internal/parser.Match` line from `transientItemHolders` and rerun: expected FAIL naming `internal/parser.Match holds an items.Item but no bauble sweep root reaches it`. Restore it. Then add `` `internal/parser.Nope`: `x`, `` and rerun: expected FAIL `transientItemHolders lists internal/parser.Nope, which no longer holds an item`. Remove it.
+(b) Delete the `internal/rooms.templateCache` line from `itemStoreVars`: expected FAIL `package-level variable internal/rooms.templateCache holds items at some depth and is not in itemStoreVars`. Restore it.
+(c) In `scanItemHolders`, change `identifierGuardSkipDir(d.Name())` to `d.Name() == ".git"`: `TestItemHolderScanSkipsDotDirectories` must FAIL listing `.claude/worktrees/w/internal/y.Holder`. Restore it and rerun: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git -C C:/tmp/dogmud-bauble-sweep add bauble_sweep_guard_test.go
-git -C C:/tmp/dogmud-bauble-sweep commit -m "test: every item-holding struct is a bauble sweep root or listed transient
+git -C C:/tmp/dogmud-bauble-sweep commit -m "test: every item-holding struct and store variable is covered by the bauble sweep
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1189,12 +1403,16 @@ func TestApplySweepPrunesOnlyWhatNothingHolds(t *testing.T) {
 
 	now := time.Now().UTC()
 	old, recent := now.Add(-31*24*time.Hour), now.Add(-2*24*time.Hour)
-	lost := sweepRecord(t, `Lost Long Ago`, func(r *Record) { r.FoundAt = old })
+	// The records meant to go were last seen by a sweep long ago (a zero
+	// LastSeenAt would get the deploy grace instead: see the next test).
+	lost := sweepRecord(t, `Lost Long Ago`, func(r *Record) { r.FoundAt, r.LastSeenAt = old, old })
 	lostRecent := sweepRecord(t, `Lost Lately`, func(r *Record) { r.FoundAt = recent })
-	soldOld := sweepRecord(t, `Sold Long Ago`, func(r *Record) { r.FoundAt, r.Status, r.SoldAt, r.SoldValue = old, StatusSold, old, 2 })
+	soldOld := sweepRecord(t, `Sold Long Ago`, func(r *Record) {
+		r.FoundAt, r.LastSeenAt, r.Status, r.SoldAt, r.SoldValue = old, old, StatusSold, old, 2
+	})
 	soldRecent := sweepRecord(t, `Sold Lately`, func(r *Record) { r.FoundAt, r.Status, r.SoldAt, r.SoldValue = old, StatusSold, recent, 2 })
-	vanished := sweepRecord(t, `Vanished Long Ago`, func(r *Record) { r.FoundAt, r.VanishedAt = old, old })
-	retired := sweepRecord(t, `Retired And Lost`, func(r *Record) { r.FoundAt, r.Status = old, StatusRetired })
+	vanished := sweepRecord(t, `Vanished Long Ago`, func(r *Record) { r.FoundAt, r.LastSeenAt, r.VanishedAt = old, old, old })
+	retired := sweepRecord(t, `Retired And Lost`, func(r *Record) { r.FoundAt, r.LastSeenAt, r.Status = old, old, StatusRetired })
 	credited := sweepRecord(t, `Credited Return`, func(r *Record) {
 		r.FoundAt, r.Status, r.SoldAt, r.SoldValue = old, StatusSold, old, 2
 		r.ReturnCreditUserId, r.ReturnCreditFactions, r.ReturnCreditAt = 7, []string{`town`}, old
@@ -1245,6 +1463,32 @@ func TestApplySweepPrunesOnlyWhatNothingHolds(t *testing.T) {
 	}
 }
 
+// Deploy grace: a record from before the sweep existed has never been seen.
+// The first sweep that counts it unseen starts its keep window, so nothing
+// found long ago is pruned hours after the deploy.
+func TestApplySweepGivesOldRecordsAFullWindowFromTheFirstSweep(t *testing.T) {
+	SetDirForTest(t.TempDir())
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+	setBaubleConfig(t, func(b *configs.Balance) { b.BaubleCatalogKeepDays = 30 })
+	now := time.Now().UTC()
+	id := sweepRecord(t, `Found Before The Sweep`, func(r *Record) { r.FoundAt = now.Add(-400 * 24 * time.Hour) })
+	keep := KeepDuration()
+
+	applySweep(now, nil, keep)
+	if r, _ := Get(id); !r.LastSeenAt.Equal(now) {
+		t.Fatalf("the first sweep starts the keep window: %+v", r)
+	}
+	if _, n := applySweep(now.Add(time.Hour), nil, keep); n != 0 {
+		t.Fatal("hours after the deploy, nothing found long ago is pruned")
+	}
+	if _, n := applySweep(now.Add(keep-time.Second), nil, keep); n != 0 {
+		t.Fatal("inside the window it stays")
+	}
+	if _, n := applySweep(now.Add(keep), nil, keep); n != 1 {
+		t.Fatal("a full keep window after the first sweep it goes")
+	}
+}
+
 // One second inside the keep window a record stays; at exactly the window
 // it goes.
 func TestApplySweepKeepWindowBoundary(t *testing.T) {
@@ -1277,7 +1521,7 @@ func TestApplySweepWriteFailurePrunesNothing(t *testing.T) {
 	t.Cleanup(func() { items.SetBaubleResolver(nil) })
 	now := time.Now().UTC()
 	id := sweepRecord(t, `Unlucky Button`, func(r *Record) {
-		r.FoundAt, r.UnseenSweeps = now.Add(-40*24*time.Hour), minUnseenSweeps
+		r.FoundAt, r.LastSeenAt, r.UnseenSweeps = now.Add(-40*24*time.Hour), now.Add(-40*24*time.Hour), minUnseenSweeps
 	})
 
 	orig := shardWriter
@@ -1548,6 +1792,14 @@ func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (refere
 			shards[shard] = true
 			continue
 		}
+		if r.LastSeenAt.IsZero() {
+			// Deploy grace: a record from before the sweep existed was never
+			// seen. Its keep window starts at the first sweep that counts it,
+			// or everything found over KeepDuration ago would go at the second
+			// sweep, hours after the deploy.
+			r.LastSeenAt = now
+			shards[shard] = true
+		}
 		if r.UnseenSweeps < minUnseenSweeps {
 			r.UnseenSweeps++
 			shards[shard] = true
@@ -1591,7 +1843,22 @@ Expected: `ok`. (`go build ./...` confirms nothing else called `Prune`.)
 - [ ] **Step 8: Null probes**
 
 (a) In `prunableAt`, change `r.UnseenSweeps < minUnseenSweeps` to `r.UnseenSweeps < 1`: `TestApplySweepPrunesOnlyWhatNothingHolds` must FAIL at `first sweep: ... want 2 and 0`. Restore.
-(b) In `persistShardPruning`, move the `delete(c.records, id)` loop above `err := shardWriter(...)` (publish before persist): `TestApplySweepWriteFailurePrunesNothing` must FAIL with `a failed write takes nothing out of memory`. Restore. Rerun: `ok`.
+(b) In `persistShardPruning` the removal loop sits in the `else` of `if err != nil { c.dirty[shard] = true } else { ... }`. Make it run on a failed write too: replace the two lines
+
+```go
+		c.dirty[shard] = true
+	} else {
+```
+
+with
+
+```go
+		c.dirty[shard] = true
+	}
+	{
+```
+
+(a bare block, so it still compiles). `TestApplySweepWriteFailurePrunesNothing` must FAIL with `a failed write takes nothing out of memory`. Restore the `} else {`. Rerun: `ok`.
 
 - [ ] **Step 9: Commit**
 
@@ -1672,6 +1939,7 @@ func TestDiskRefsFindsItemsInEverySaveShape(t *testing.T) {
 		`plugin-data/other-v1.0/state.plugin.dat`:             `{"lot": {"itemid": 900, "bauble": "B0000008"}}`,
 		`shops/town/5-room1.yaml`:                             "---\naffixed_stock:\n- item:\n    itemid: 900\n    bauble: B0000009\n---\naffixed_stock:\n- item:\n    itemid: 900\n    bauble: B0000010\n",
 		`economy/snapshots/1.yaml`:                            "item:\n  bauble: B0000011\n",
+		`economy/ledger.yaml`:                                 "lot:\n  itemid: 900\n  bauble: B0000015\n",
 		`baubles/catalog-0000.yaml`:                           "records:\n- id: B0000012\n  bauble: B0000012\n",
 		`users/7.yaml.corrupt-20260929T000000.000000000Z`:     "character:\n  items:\n  - bauble: B0000013\n",
 		`users/8.yaml.new`:                                    "character:\n  items:\n  - bauble: B0000014\n",
@@ -1683,33 +1951,38 @@ func TestDiskRefsFindsItemsInEverySaveShape(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{`B0000001`, `B0000002`, `B0000003`, `B0000004`, `B0000005`, `B0000006`, `B0000007`, `B0000008`, `B0000009`, `B0000010`}
+	want := []string{`B0000001`, `B0000002`, `B0000003`, `B0000004`, `B0000005`, `B0000006`, `B0000007`, `B0000008`, `B0000009`, `B0000010`, `B0000015`}
 	if got := sortedIds(refs); !reflect.DeepEqual(got, want) {
-		t.Fatalf("refs %v, want %v", got, want)
+		t.Fatalf("refs %v, want %v (economy/snapshots skipped, the rest of economy read)", got, want)
 	}
-	if files != 8 || parsed != 7 {
-		t.Fatalf("read %d files and parsed %d, want 8 and 7 (4024 names no bauble key)", files, parsed)
+	if files != 9 || parsed != 8 {
+		t.Fatalf("read %d files and parsed %d, want 9 and 8 (4024 names no bauble key)", files, parsed)
 	}
 }
 
-// A find lying untaken past the limit is not a reference, but only in
-// rooms.instances, where finds lie on floors (loading the room removes it:
-// rooms.LoadRoomInstance). Anywhere else the same shape still counts.
+// A find lying untaken past the limit is not a reference, but only on a
+// room's floor in rooms.instances (the file's top-level items list), where
+// loading the room removes it (rooms.LoadRoomInstance). The same shape in
+// the room's stash or a container, or in any other file, still counts:
+// nothing removes it from there.
 func TestDiskRefsSkipsExpiredUntakenFindsOnlyOnFloors(t *testing.T) {
 	root := t.TempDir()
 	now := time.Now().UTC()
 	expired := now.Add(-UntakenLimit() - time.Minute).Unix()
 	young := now.Add(-time.Minute).Unix()
+	room := fmt.Sprintf("items:\n- itemid: 900\n  bauble: B0000001\n  baubleleftat: %d\n- itemid: 900\n  bauble: B0000002\n  baubleleftat: %d\n", expired, young) +
+		fmt.Sprintf("stash:\n- itemid: 900\n  bauble: B0000004\n  baubleleftat: %d\n", expired) +
+		fmt.Sprintf("containers:\n  chest:\n    items:\n    - itemid: 900\n      bauble: B0000005\n      baubleleftat: %d\n", expired)
 	writeDataFiles(t, root, map[string]string{
-		`rooms.instances/ashwick/4023.yaml`: fmt.Sprintf("items:\n- itemid: 900\n  bauble: B0000001\n  baubleleftat: %d\n- itemid: 900\n  bauble: B0000002\n  baubleleftat: %d\n", expired, young),
+		`rooms.instances/ashwick/4023.yaml`: room,
 		`users/7.yaml`:                      fmt.Sprintf("character:\n  items:\n  - itemid: 900\n    bauble: B0000003\n    baubleleftat: %d\n", expired),
 	})
 	refs, _, _, err := DiskRefs(root, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := sortedIds(refs); !reflect.DeepEqual(got, []string{`B0000002`, `B0000003`}) {
-		t.Fatalf("refs %v, want [B0000002 B0000003]", got)
+	if got := sortedIds(refs); !reflect.DeepEqual(got, []string{`B0000002`, `B0000003`, `B0000004`, `B0000005`}) {
+		t.Fatalf("refs %v, want [B0000002 B0000003 B0000004 B0000005]", got)
 	}
 }
 
@@ -1794,8 +2067,9 @@ import (
 // plugin-data for the auction house. Like migration 0.17.0 it reads the
 // whole tree rather than a list of store folders, because a list goes stale
 // the day someone adds a store. Two folders are skipped: the catalog itself
-// (baubles/) and economy/, the dashboard's metric snapshots, which hold no
-// items and are most of the tree's bytes.
+// (baubles/) and economy/snapshots/, the dashboard's metric snapshots
+// (internal/economy/health), which hold no items and are most of the tree's
+// bytes. The rest of economy/ is read like any other folder.
 //
 // Cheap: a file with no `bauble` key is read but never parsed. Fail closed:
 // a file that cannot be read, or that names a bauble and does not parse,
@@ -1803,10 +2077,12 @@ import (
 // Quarantined files (`.corrupt-...`) and util.Save's `.new` temp files do
 // not end in .yaml or .plugin.dat, so they are never read.
 
-// sweepSkipDirs are top-level folders under DataFiles the scan skips.
-var sweepSkipDirs = map[string]bool{`baubles`: true, `economy`: true}
+// sweepSkipDirs are folders under DataFiles the scan skips, as slash paths
+// relative to DataFiles.
+var sweepSkipDirs = map[string]bool{`baubles`: true, `economy/snapshots`: true}
 
-// untakenDir is the one folder where a find can lie untaken on a floor.
+// untakenDir is the one folder where a find can lie untaken on a floor: a
+// room file's top-level items list (floorItems).
 const untakenDir = `rooms.instances`
 
 // baubleKeyRe finds a `bauble` key, bare or quoted as JSON writes it. Not
@@ -1823,9 +2099,11 @@ const maxYAMLDepth = 100
 
 // DiskRefs reads every data file under root and returns the record ids the
 // items in them point at, how many files it read, and how many of those it
-// parsed. A find in rooms.instances/ that has lain untaken past
-// UntakenLimit is not counted: loading its room removes it before anything
-// can take it (rooms.LoadRoomInstance). Any error means the result is
+// parsed. A find on a room's floor in rooms.instances/ (the file's
+// top-level items list) that has lain untaken past UntakenLimit is not
+// counted: loading its room removes it before anything can take it
+// (rooms.LoadRoomInstance). A find in a stash or a container always counts,
+// because nothing removes it from there. Any error means the result is
 // incomplete and must not be used to prune.
 func DiskRefs(root string, now time.Time) (refs map[string]bool, files int, parsed int, err error) {
 	refs = map[string]bool{}
@@ -1888,7 +2166,8 @@ func scanDisk(root string, now time.Time, add func(id string)) (files int, parse
 }
 
 // refsInYAML adds the id of every item in raw, every document of it.
-// untaken is the untaken limit where finds lie on floors, 0 elsewhere.
+// untaken is the untaken limit in a room file, 0 elsewhere; it applies only
+// to the floor (floorItems).
 func refsInYAML(raw []byte, now time.Time, untaken time.Duration, add func(id string)) error {
 	dec := yaml.NewDecoder(bytes.NewReader(raw))
 	for {
@@ -1899,13 +2178,36 @@ func refsInYAML(raw []byte, now time.Time, untaken time.Duration, add func(id st
 			}
 			return err
 		}
-		if err := walkYAML(&doc, 0, now, untaken, add); err != nil {
+		floor := map[*yaml.Node]bool{}
+		if untaken > 0 {
+			floor = floorItems(&doc)
+		}
+		if err := walkYAML(&doc, 0, now, untaken, floor, add); err != nil {
 			return err
 		}
 	}
 }
 
-func walkYAML(n *yaml.Node, depth int, now time.Time, untaken time.Duration, add func(id string)) error {
+// floorItems are the entries of a room file's top-level `items` list: the
+// floor, the only place removeUntakenBaubles (internal/rooms) takes an
+// untaken find from. Stash and container items are not in it.
+func floorItems(doc *yaml.Node) map[*yaml.Node]bool {
+	out := map[*yaml.Node]bool{}
+	if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 || doc.Content[0].Kind != yaml.MappingNode {
+		return out
+	}
+	m := doc.Content[0]
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		if m.Content[i].Value == `items` && m.Content[i+1].Kind == yaml.SequenceNode {
+			for _, e := range m.Content[i+1].Content {
+				out[e] = true
+			}
+		}
+	}
+	return out
+}
+
+func walkYAML(n *yaml.Node, depth int, now time.Time, untaken time.Duration, floor map[*yaml.Node]bool, add func(id string)) error {
 	if n == nil {
 		return nil
 	}
@@ -1914,14 +2216,18 @@ func walkYAML(n *yaml.Node, depth int, now time.Time, untaken time.Duration, add
 	}
 	switch n.Kind {
 	case yaml.AliasNode:
-		return walkYAML(n.Alias, depth+1, now, untaken, add)
+		return walkYAML(n.Alias, depth+1, now, untaken, floor, add)
 	case yaml.MappingNode:
-		if id, ok := itemRefIn(n, now, untaken); ok {
+		limit := time.Duration(0)
+		if floor[n] {
+			limit = untaken
+		}
+		if id, ok := itemRefIn(n, now, limit); ok {
 			add(id)
 		}
 	}
 	for _, c := range n.Content {
-		if err := walkYAML(c, depth+1, now, untaken, add); err != nil {
+		if err := walkYAML(c, depth+1, now, untaken, floor, add); err != nil {
 			return err
 		}
 	}
@@ -1958,13 +2264,15 @@ func itemRefIn(m *yaml.Node, now time.Time, untaken time.Duration) (string, bool
 
 - [ ] **Step 4: Run them to see them pass**
 
+Run: `gofmt -w internal/baubles/sweep_disk.go internal/baubles/sweep_disk_test.go` (the test's map literals are not hand-aligned; gofmt realigns them), then `gofmt -l internal/baubles/` (expected: no output).
 Run: `go test ./internal/baubles/ -run TestDiskRefs -v`
 Expected: PASS, all subtests.
 
 - [ ] **Step 5: Null probes**
 
 (a) Change `sweepSkipDirs` to `map[string]bool{`baubles`: true}`: `TestDiskRefsFindsItemsInEverySaveShape` must FAIL listing `B0000011`. Restore.
-(b) In `scanDisk`, change `return fmt.Errorf(`parse %s: %w`, rel, perr)` to `return nil`: the `a file that names a bauble must parse` subtest must FAIL. Restore. Rerun: PASS.
+(b) In `scanDisk`, change `return fmt.Errorf(`parse %s: %w`, rel, perr)` to `return nil`: the `a file that names a bauble must parse` subtest must FAIL. Restore.
+(c) In `walkYAML`, change `if floor[n] {` to `if true {`: `TestDiskRefsSkipsExpiredUntakenFindsOnlyOnFloors` must FAIL missing `B0000004` and `B0000005` (stash and container finds wrongly skipped). Restore. Rerun: PASS.
 
 - [ ] **Step 6: Commit**
 
@@ -1977,11 +2285,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 8: Live sources, `runSweep`, status and the sweeper
+### Task 8: Live sources, `runSweep`, status and the sweeper; the Windows rename retry
 
 **Files:**
-- Modify: `internal/baubles/sweep.go`
-- Test: `internal/baubles/sweep_test.go`
+- Modify: `internal/baubles/sweep.go`, `internal/util/util.go` (`SafeSave`, line 722)
+- Test: `internal/baubles/sweep_test.go`, `internal/util/safesave_retry_test.go`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2093,7 +2401,7 @@ func TestRunSweepSeesLiveAndDisk(t *testing.T) {
 	old := now.Add(-60 * 24 * time.Hour)
 	live := sweepRecord(t, `Held In Hand`, func(r *Record) { r.FoundAt = old })
 	disk := sweepRecord(t, `Kept In A Bank`, func(r *Record) { r.FoundAt = old })
-	gone := sweepRecord(t, `Junked Long Ago`, func(r *Record) { r.FoundAt = old })
+	gone := sweepRecord(t, `Junked Long Ago`, func(r *Record) { r.FoundAt, r.LastSeenAt = old, old })
 	withLiveSources(t, map[string]LiveWalk{`users`: holding(live)})
 	root := t.TempDir()
 	writeDataFiles(t, root, map[string]string{
@@ -2146,6 +2454,23 @@ func TestRunSweepKeepsARolledBackSale(t *testing.T) {
 	runSweep(r.LastSeenAt.Add(KeepDuration()), root)
 	if _, ok := Get(id); ok {
 		t.Fatal("gone for the keep window after its last sighting, it is pruned")
+	}
+}
+
+// Live times the hold of the mud lock, not the wait for it.
+func TestRunSweepLiveTimesTheHoldNotTheWait(t *testing.T) {
+	SetDirForTest(t.TempDir())
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+	sweepRecord(t, `Timed Marble`, nil)
+	withLiveSources(t, map[string]LiveWalk{`users`: holding()})
+	origLock := sweepLock
+	sweepLock = func() {
+		time.Sleep(200 * time.Millisecond) // a busy game loop
+		origLock()
+	}
+	t.Cleanup(func() { sweepLock = origLock })
+	if st := runSweep(time.Now().UTC(), t.TempDir()); !st.OK || st.Live >= 150*time.Millisecond {
+		t.Fatalf("status %+v: Live counted the wait for the lock", st)
 	}
 }
 
@@ -2311,20 +2636,24 @@ var sweepLock, sweepUnlock = util.LockMud, util.UnlockMud
 
 var errNoLiveSources = errors.New(`no live item sources are registered, so the live world cannot be seen`)
 
-// collectLive walks every live store under the mud lock.
-func collectLive(add func(id string)) error {
+// collectLive walks every live store under the mud lock and returns how
+// long it held the lock. The clock starts once the lock is taken, so time
+// spent waiting for it is not counted: the status line and the boot
+// smoke's 50 ms rule measure the hold, which is what stalls the game.
+func collectLive(add func(id string)) (time.Duration, error) {
 	sources := liveSourceList()
 	if len(sources) == 0 {
-		return errNoLiveSources
+		return 0, errNoLiveSources
 	}
 	sweepLock()
 	defer sweepUnlock()
+	start := time.Now()
 	for _, s := range sources {
 		if err := walkLiveSource(s, add); err != nil {
-			return err
+			return time.Since(start), err
 		}
 	}
-	return nil
+	return time.Since(start), nil
 }
 
 func walkLiveSource(s namedWalk, add func(id string)) (err error) {
@@ -2352,7 +2681,7 @@ type SweepStatus struct {
 	Pruned     int           // records it removed
 	Files      int           // data files it read
 	Parsed     int           // of them, files that name a bauble
-	Live       time.Duration // time holding the mud lock
+	Live       time.Duration // time holding the mud lock (not waiting for it)
 	Disk       time.Duration // time reading data files
 }
 
@@ -2409,14 +2738,13 @@ func runSweep(now time.Time, root string) (st SweepStatus) {
 	refs := map[string]bool{}
 	add := func(id string) { refs[id] = true }
 
-	start := time.Now()
-	err := collectLive(add)
-	st.Live = time.Since(start)
+	live, err := collectLive(add)
+	st.Live = live
 	if err != nil {
 		st.Err = err.Error()
 		return st
 	}
-	start = time.Now()
+	start := time.Now()
 	st.Files, st.Parsed, err = scanDisk(root, now, add)
 	st.Disk = time.Since(start)
 	if err != nil {
@@ -2508,9 +2836,10 @@ Expected: `ok`.
 - [ ] **Step 5: Null probes**
 
 (a) In `runSweep`, change the disk-error branch `st.Err = err.Error(); return st` to fall through (delete the `return st` line after `st.Err = err.Error()` in the disk branch): `TestRunSweepFailsClosed/a_save_names_a_bauble_and_does_not_parse` must FAIL (`a failed sweep applies nothing`, UnseenSweeps 2). Restore.
-(b) In `walkLiveSource`, delete the `defer func() { ... recover ... }()`: the `a live source panics` subtest must FAIL by panicking. Restore. Rerun: `ok`.
+(b) In `walkLiveSource`, delete the `defer func() { ... recover ... }()`: the `a live source panics` subtest must FAIL by panicking. Restore.
+(c) In `collectLive`, move `start := time.Now()` above `sweepLock()`: `TestRunSweepLiveTimesTheHoldNotTheWait` must FAIL (`Live counted the wait for the lock`). Restore. Rerun: `ok`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Commit the sweep**
 
 ```bash
 git -C C:/tmp/dogmud-bauble-sweep add internal/baubles/sweep.go internal/baubles/sweep_test.go
@@ -2519,13 +2848,117 @@ git -C C:/tmp/dogmud-bauble-sweep commit -m "feat(baubles): the catalog sweep: l
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
+- [ ] **Step 7: Windows: retry a save's rename that a sweep read blocked (test first)**
+
+Go opens files on Windows without `FILE_SHARE_DELETE`, so while the sweep's `os.ReadFile` holds a save open, a concurrent `util.SafeSave` rename onto it fails, and there is no retry (`internal/util/util.go:722`). Production is Linux, where renaming over an open file always succeeds, so prod is unaffected; this protects local servers and playtests.
+
+Create `internal/util/safesave_retry_test.go`:
+
+```go
+package util
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// On Windows a reader holding the file open (Go opens without
+// FILE_SHARE_DELETE) makes the rename in SafeSave fail for a moment; the
+// bauble sweep reads every save file, so SafeSave retries briefly. Linux
+// renames over an open file freely and never needs the retry.
+func TestSafeSave_RetriesARenameBlockedByAReader(t *testing.T) {
+	if runtime.GOOS != `windows` {
+		t.Skip(`only Windows refuses a rename onto a file another handle has open`)
+	}
+	path := filepath.Join(t.TempDir(), `state.yaml`)
+	require.NoError(t, SafeSave(path, []byte("one\n")))
+	f, err := os.Open(path)
+	require.NoError(t, err)
+	go func() {
+		time.Sleep(40 * time.Millisecond)
+		_ = f.Close()
+	}()
+	require.NoError(t, SafeSave(path, []byte("two\n")))
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, "two\n", string(data))
+}
+```
+
+Run: `go test ./internal/util/ -run TestSafeSave_RetriesARenameBlockedByAReader -v`
+Expected on this Windows machine: FAIL (the rename returns `Access is denied`). If it PASSES before the fix, the premise does not hold on this Go version: stop, delete the test, drop this step, and say so in the PR body.
+
+In `internal/util/util.go`, add `"runtime"` to the imports, and in `SafeSave` replace
+
+```go
+	if err := os.Rename(safePath, path); err != nil {
+```
+
+with
+
+```go
+	if err := renameReplacing(safePath, path); err != nil {
+```
+
+and add after `SafeSave`:
+
+```go
+// renameRetries is how many more times renameReplacing tries on Windows,
+// waiting 10, 20, 30, 40 then 50 ms (150 ms in all).
+const renameRetries = 5
+
+// renameReplacing is os.Rename with a short bounded retry on Windows. There
+// a rename onto a file fails while any other handle has it open without
+// FILE_SHARE_DELETE, which is how Go's os.Open and os.ReadFile open files:
+// the bauble catalog sweep reading every save file can make a save's
+// rename fail for a moment. Linux renames over an open file freely, so
+// there this is one plain os.Rename.
+func renameReplacing(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err == nil || runtime.GOOS != `windows` {
+		return err
+	}
+	for i := 1; i <= renameRetries; i++ {
+		time.Sleep(time.Duration(i) * 10 * time.Millisecond)
+		if err = os.Rename(src, dst); err == nil {
+			return nil
+		}
+	}
+	return err
+}
+```
+
+(`internal/util` is exempt from the durable-write guard as the owner of the durable write, `durable_write_guard_test.go:23`.)
+
+Run: `gofmt -w internal/util/util.go internal/util/safesave_retry_test.go && go test ./internal/util/ -run "TestSafeSave|TestSave" -v`
+Expected: PASS. Null probe: set `renameRetries = 0`; the new test must FAIL again. Restore; PASS.
+
+- [ ] **Step 8: Commit the retry**
+
+```bash
+git -C C:/tmp/dogmud-bauble-sweep add internal/util/util.go internal/util/safesave_retry_test.go
+git -C C:/tmp/dogmud-bauble-sweep commit -m "fix(util): retry a SafeSave rename a concurrent reader blocked, on Windows
+
+Go opens files on Windows without FILE_SHARE_DELETE, so a reader (the
+bauble catalog sweep) can make a save's rename fail for a moment. Linux
+is unaffected.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
 ---
 
-### Task 9: Loading a room removes expired untaken finds
+### Task 9: Loading a room removes expired untaken finds; a pack pet clears a find's placement
 
 **Files:**
-- Modify: `internal/rooms/save_and_load.go` (end of `LoadRoomInstance`)
-- Test: `internal/rooms/baubles_untaken_load_test.go`
+- Modify: `internal/rooms/save_and_load.go` (end of `LoadRoomInstance`), `internal/pets/pets.go` (`StoreItem`, lines 73-85)
+- Test: `internal/rooms/baubles_untaken_load_test.go`, `internal/pets/pets_test.go` (new; the package has no tests yet)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2631,8 +3064,11 @@ with
 	// A find left lying untaken past its limit is gone before anything can
 	// touch the room, not only before a visitor sees it (Prepare): a mob
 	// wandering in loads a room without preparing it. The bauble catalog
-	// sweep stops counting such a find in a room file as a reference
+	// sweep stops counting such a find on a room file's floor as a reference
 	// (internal/baubles/sweep_disk.go), so its record may already be pruned.
+	// At boot, factions.ValidateHoldingCells loads some rooms before
+	// baubles.Load: a find removed then is still removed, but there is no
+	// record yet to mark vanished, and the sweep prunes it later as lost.
 	room.removeUntakenBaubles(time.Now())
 
 	return room
@@ -2651,6 +3087,72 @@ Expected: `ok`.
 ```bash
 git -C C:/tmp/dogmud-bauble-sweep add internal/rooms/save_and_load.go internal/rooms/baubles_untaken_load_test.go
 git -C C:/tmp/dogmud-bauble-sweep commit -m "fix(rooms): a room loaded from its save drops expired untaken finds at once
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+- [ ] **Step 6: A pack pet clears a find's placement (test first)**
+
+`Character.StoreItem` clears a bauble's spot, household and untaken time (`inventory.go:178`); `Pet.StoreItem` (`internal/pets/pets.go:73-85`, called from `usercommands/get.go:480` and `give.go:321`) does not. Create `internal/pets/pets_test.go`:
+
+```go
+package pets
+
+import (
+	"testing"
+	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/items"
+)
+
+// A find put straight into a pack pet has been taken, as one put in a pack
+// has (Character.StoreItem): no spot, no household, no untaken time.
+func TestPetStoreItemClearsBaublePlacement(t *testing.T) {
+	p := Pet{Type: `packmule`, Capacity: 4}
+	it := items.Item{ItemId: items.BaubleItemId, Bauble: `B0000001`}
+	it.LeaveBaubleAt(`on the shelf`, 5, time.Now().Add(-time.Hour))
+	if !p.StoreItem(it) {
+		t.Fatal("the pet took nothing")
+	}
+	if got := p.Items[0]; got.BaubleSpot != `` || got.BaubleHousehold != 0 || got.BaubleLeftAt != 0 {
+		t.Fatalf("stored with its placement: %+v", got)
+	}
+}
+```
+
+Run: `go test ./internal/pets/ -run TestPetStoreItemClearsBaublePlacement`
+Expected: FAIL (`stored with its placement`).
+
+In `internal/pets/pets.go` `func (p *Pet) StoreItem`, replace
+
+```go
+	i.Validate()
+	p.Items = append(p.Items, i)
+	return true
+```
+
+with
+
+```go
+	i.Validate()
+	// A found bauble someone carries is no longer lying anywhere, exactly as
+	// in Character.StoreItem (items/bauble_placement.go).
+	i.ClearBaublePlacement()
+	p.Items = append(p.Items, i)
+	return true
+```
+
+Run: `gofmt -l internal/pets/ && go test ./internal/pets/`
+Expected: no gofmt output, `ok`.
+
+- [ ] **Step 7: Commit the pet fix**
+
+```bash
+git -C C:/tmp/dogmud-bauble-sweep add internal/pets/pets.go internal/pets/pets_test.go
+git -C C:/tmp/dogmud-bauble-sweep commit -m "fix(pets): storing a find in a pack pet clears its placement
+
+Character.StoreItem already did; Pet.StoreItem left the spot, household
+and untaken time on it.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -3051,7 +3553,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 12: Docs
 
 **Files:**
-- Modify: `internal/baubles/context.md`, `internal/items/context.md`, `internal/characters/context.md`, `internal/users/context.md`, `internal/rooms/context.md`, `internal/mobs/context.md`, `internal/shops/context.md`, `internal/guilds/context.md`, `internal/sealedcrate/context.md`, `modules/auctions/context.md`, `docs/PATCH_NOTES.md`
+- Modify: `internal/baubles/context.md`, `internal/items/context.md`, `internal/characters/context.md`, `internal/users/context.md`, `internal/rooms/context.md`, `internal/mobs/context.md`, `internal/shops/context.md`, `internal/guilds/context.md`, `internal/sealedcrate/context.md`, `internal/pets/context.md`, `internal/usercommands/context.md`, `modules/auctions/context.md`, `docs/PATCH_NOTES.md`
+- Not touched here: `docs/README.md` (its row for this plan landed with the plan itself, `0cf96b378`)
 
 - [ ] **Step 1: `internal/baubles/context.md`**
 
@@ -3083,10 +3586,15 @@ Replace the `catalog.go` bullet (from `- **catalog.go**: the in-memory catalog, 
   every `SweepInterval()` (`Balance.BaubleSweepHours`, 6); `StopSweeper` at
   shutdown. `LastSweep()` feeds `bauble status`.
 - **sweep_disk.go**: `DiskRefs(root, now)`: every `.yaml` and `.plugin.dat`
-  under DataFiles except `baubles/` and `economy/`; a file is parsed
-  (`yaml.Node`) only if it has a `bauble` key. In `rooms.instances/` a find
-  untaken past `UntakenLimit()` is not a reference; `rooms.LoadRoomInstance`
-  removes such finds on load.
+  under DataFiles except `baubles/` and `economy/snapshots/`; a file is
+  parsed (`yaml.Node`) only if it has a `bauble` key. On a room file's floor
+  (the top-level `items` list in `rooms.instances/`) a find untaken past
+  `UntakenLimit()` is not a reference; `rooms.LoadRoomInstance` removes such
+  finds on load. Stash and container finds always count.
+- **Deploy grace**: a record whose `LastSeenAt` is zero (every record from
+  before the sweep) gets `LastSeenAt` set by the first sweep that counts it
+  unseen, so it has a full keep window from the deploy.
+- **`SweepStatus.Live`** times the hold of the mud lock, not the wait for it.
 ```
 
 In the API block, replace the line `func Prune(now time.Time) int` with:
@@ -3138,7 +3646,7 @@ and replace `- \`internal/actions/sell_bauble.go\` (\`Get\`, \`Sellable\`, \`Mar
 
 - [ ] **Step 2: The other package docs**
 
-Append a section at the end of each file:
+Append a section at the end of each file (for `internal/usercommands/context.md`, add the bullet inside its **Bauble catalog** section instead):
 
 `internal/items/context.md`:
 
@@ -3165,7 +3673,8 @@ to every item a character holds: backpack, component bag, potion
 bandolier, every equipment slot, the pet's pack, and each companion's saved
 pack and gear. The bauble catalog sweep reads characters through them, and
 `MigrateDetunedRangedWeapons` walks with them (it used to miss companions'
-gear). A new item field on Character, Worn, Pet or CompanionInfo must be
+gear; owner 2026-09-29: no pre-detune bows are carried by companions on
+prod, so that closed a coverage gap with no live behaviour change). A new item field on Character, Worn, Pet or CompanionInfo must be
 walked here: `TestItemWalkersVisitEveryItemField` (repo root) fails naming
 it otherwise.
 ```
@@ -3192,9 +3701,33 @@ every user in memory, zombies included (`GetAllActiveUsers` skips them).
 container, every corpse (the dead character's gear and its loot) and the
 sealed crate. `LoadedRooms()` returns every room in memory, ephemeral ones
 included; the caller holds the mud lock. `LoadRoomInstance` removes finds
-left untaken past `baubles.UntakenLimit()` as soon as a room is loaded from
-its instance file, because the bauble sweep no longer counts them and may
-prune their records.
+left untaken past `baubles.UntakenLimit()` from the floor as soon as a room
+is loaded from its instance file, because the bauble sweep no longer counts
+floor finds that old and may prune their records. At boot,
+`factions.ValidateHoldingCells` loads some rooms before `baubles.Load`; a
+find removed then is not marked vanished (no record is loaded yet) and the
+sweep prunes its record later as lost.
+```
+
+`internal/pets/context.md`:
+
+```markdown
+
+## StoreItem clears a find's placement
+
+`(*Pet).StoreItem` clears a bauble's spot, household and untaken time
+(`Item.ClearBaublePlacement`), as `Character.StoreItem` does: a find put
+straight into a pack pet has been taken.
+```
+
+`internal/usercommands/context.md`, in the **Bauble catalog** (`admin.bauble.go`) section, add a bullet:
+
+```markdown
+- `bauble status` ends with a `Sweep:` line (`baubleSweepLine`) from
+  `baubles.LastSweep()`: not run yet, failed with its error (nothing
+  pruned), catalog empty, or records, still held, pruned, files read and
+  parsed, disk time, mud-lock hold time, and the interval
+  (`Balance.BaubleSweepHours`).
 ```
 
 `internal/mobs/context.md`:
@@ -3271,7 +3804,7 @@ no longer exist anywhere in the world.
 
 - [ ] **Step 4: Check the docs name only real symbols**
 
-Run: `python tools/context_md_audit.py internal/baubles internal/items internal/characters internal/users internal/rooms internal/mobs internal/shops internal/guilds internal/sealedcrate modules/auctions`
+Run: `python tools/context_md_audit.py internal/baubles internal/items internal/characters internal/users internal/rooms internal/mobs internal/shops internal/guilds internal/sealedcrate internal/pets internal/usercommands modules/auctions`
 Expected: nothing reported for the symbols this plan added or named (`WalkSlice`, `WalkItems`, `GetAllLoadedUsers`, `LoadedRooms`, `RegisterLiveSource`, `LiveSourceNames`, `RunSweep`, `LastSweep`, `SweepInterval`, `StartSweeper`, `StopSweeper`, `DiskRefs`, `LiveWalk`, `SweepStatus`). A pre-existing finding in a file this plan did not change is not this task's; note it in the PR body.
 
 Run this check on its own line (it prints matches; `grep -c` would exit 1 on zero and break a chain): `git -C C:/tmp/dogmud-bauble-sweep diff origin/master -- '*.md' | grep '^+' | grep -n $'\u2014\|\u2013'`
@@ -3280,7 +3813,7 @@ Expected: no output (no em or en dash in any added doc line).
 - [ ] **Step 5: Commit**
 
 ```bash
-git -C C:/tmp/dogmud-bauble-sweep add internal/baubles/context.md internal/items/context.md internal/characters/context.md internal/users/context.md internal/rooms/context.md internal/mobs/context.md internal/shops/context.md internal/guilds/context.md internal/sealedcrate/context.md modules/auctions/context.md docs/PATCH_NOTES.md
+git -C C:/tmp/dogmud-bauble-sweep add internal/baubles/context.md internal/items/context.md internal/characters/context.md internal/users/context.md internal/rooms/context.md internal/mobs/context.md internal/shops/context.md internal/guilds/context.md internal/sealedcrate/context.md internal/pets/context.md internal/usercommands/context.md modules/auctions/context.md docs/PATCH_NOTES.md
 git -C C:/tmp/dogmud-bauble-sweep commit -m "docs: the bauble catalog sweep and the item walkers
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -3299,12 +3832,12 @@ Expected: no output. (Fact: `gofmt -l` can false-positive on Windows for a CRLF 
 
 - [ ] **Step 2: build and vet**
 
-Run: `go build ./... && go vet . ./internal/baubles/... ./internal/items/... ./internal/characters/... ./internal/users/... ./internal/rooms/... ./internal/mobs/... ./internal/shops/... ./internal/guilds/... ./internal/sealedcrate/... ./internal/configs/... ./internal/usercommands/... ./internal/actions/... ./modules/auctions/...`
+Run: `go build ./... && go vet . ./internal/baubles/... ./internal/items/... ./internal/characters/... ./internal/users/... ./internal/rooms/... ./internal/mobs/... ./internal/shops/... ./internal/guilds/... ./internal/sealedcrate/... ./internal/pets/... ./internal/util/... ./internal/configs/... ./internal/usercommands/... ./internal/actions/... ./modules/auctions/...`
 Expected: no output, exit 0.
 
 - [ ] **Step 3: Targeted tests, the repo root included**
 
-Run: `go test . ./internal/baubles/ ./internal/items/ ./internal/characters/ ./internal/users/ ./internal/rooms/ ./internal/mobs/ ./internal/shops/ ./internal/guilds/ ./internal/sealedcrate/ ./internal/configs/ ./internal/actions/ ./internal/usercommands/ ./modules/auctions/`
+Run: `go test . ./internal/baubles/ ./internal/items/ ./internal/characters/ ./internal/users/ ./internal/rooms/ ./internal/mobs/ ./internal/shops/ ./internal/guilds/ ./internal/sealedcrate/ ./internal/pets/ ./internal/util/ ./internal/configs/ ./internal/actions/ ./internal/usercommands/ ./modules/auctions/`
 Expected: every line `ok`.
 
 - [ ] **Step 4: Full suite**
@@ -3348,7 +3881,7 @@ schema: 1
 next_seq: 3
 ```
 
-`C:/tmp/dogmud-bauble-boot/_datafiles/world/dogmud/baubles/catalog-0000.yaml` (B0000001: found 90 days ago, already unseen twice, held nowhere: must be pruned; B0000002: held in a room file: must be kept and seen):
+`C:/tmp/dogmud-bauble-boot/_datafiles/world/dogmud/baubles/catalog-0000.yaml` (B0000001: found and last seen by a sweep 90 days ago, already unseen twice, held nowhere: must be pruned; a zero `last_seen_at` would get the deploy grace instead; B0000002: held in a room file: must be kept and seen):
 
 ```yaml
 schema: 1
@@ -3364,6 +3897,7 @@ records:
   source: admin
   found_at: 2026-07-01T00:00:00Z
   generator: local
+  last_seen_at: 2026-07-01T00:00:00Z
   unseen_sweeps: 2
 - id: B0000002
   status: fallback
@@ -3432,7 +3966,7 @@ git -C C:/tmp/dogmud-bauble-sweep push -u origin feature/bauble-prune-sweep
 gh pr create --repo pruuk/DOGMud --base master --head feature/bauble-prune-sweep --title "feat(baubles): periodic catalog sweep prunes records no item points at" --body-file C:/Users/CALABE~1/AppData/Local/Temp/claude/C--Users-Calabe-Davis-workspace-DOGMud/eada5c36-5618-4580-a525-ba54f2e95ea4/scratchpad/bauble-sweep-pr.md
 ```
 
-Before running it, write `bauble-sweep-pr.md` in the scratchpad with: a summary (the owner-ruled sweep; the store list; fail closed; the two guards; `BaubleSweepHours`; the rolled-back sale decision; the untaken-find removal on room load; the detune migration now reaching companions), the plan path `docs/superpowers/plans/2026-09-29-bauble-prune-sweep.md`, a "Local gate (CI out of minutes until 10-01)" section pasting `bauble-sweep-gate.txt`, "No deploy.", and the closing line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. Read the URL `gh` prints and confirm it says `pruuk/DOGMud`.
+Before running it, write `bauble-sweep-pr.md` in the scratchpad with: a summary (the owner-ruled sweep; the store list; fail closed; the two guards; `BaubleSweepHours`; the rolled-back sale decision; the untaken-find removal on room load; the deploy grace; the pack-pet placement fix; the Windows-only `SafeSave` rename retry (prod Linux unaffected); the detune migration now reaching companions, with the owner's 2026-09-29 note that no pre-detune bows are carried by companions on prod), the plan path `docs/superpowers/plans/2026-09-29-bauble-prune-sweep.md`, a "Local gate (CI out of minutes until 10-01)" section pasting `bauble-sweep-gate.txt`, "No deploy.", and the closing line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. Read the URL `gh` prints and confirm it says `pruuk/DOGMud`.
 
 - [ ] **Step 3: Merge past red CI**
 
@@ -3449,6 +3983,8 @@ Report: the PR number and merge SHA; that nothing was deployed; that the owner's
 ---
 
 ## Self-review
+
+Revised 2026-09-29 after a blind review (no blockers), each point verified against source first: dot directories skipped by the holder scan, with a planted-struct test (Task 4); deploy grace for records with no `LastSeenAt` (Decision 3, Task 6); the untaken skip limited to a room file's floor, and `Pet.StoreItem` now clears a find's placement (Decision 8, Tasks 7 and 9); the guard widened to package-level store variables and its limit stated (Decision 13, Task 4); `SweepStatus.Live` times the hold only (Task 8); a Windows-only rename retry in `SafeSave` (Decision 12, Task 8); the boot-order effect on `MarkVanished` documented rather than reordering boot (Decision 8); only `economy/snapshots/` skipped (Decision 7, Task 7); gofmt on every new Go file; the detune COVERAGE comment updated (Task 3); the Task 6 publish-before-persist probe spelled out; `internal/usercommands/context.md` and `internal/pets/context.md` added and the `docs/README.md` row noted as already done (Task 12). Task 3 carries the owner's 2026-09-29 note.
 
 - **Spec coverage.** Research (every store, how to read it off the live world, alts, bank, inbox, rooms and `rooms.instances`, containers, corpses, mobs and `mobs.instances`, shops with `AffixedStock`, auctions, guild vaults, crates; warehouses, caravans, ferries and housing checked and holding no items; nesting): facts table and store list. When and where: Decision 1, Tasks 8 and 10. Locks and game-loop cost: Decision 2, cost estimate, Task 13 Step 7 threshold. Two-phase safety and `last seen`: Decision 3, Task 6. `ReturnCreditAt`: Task 6 test. Rolled-back sale: Decision 5, `TestRunSweepKeepsARolledBackSale`, `TestSell_Bauble_ASoldRecordSellsAgain`. Fail closed: Decision 6, `TestRunSweepFailsClosed`, `TestDiskRefsFailsClosed`. Persistence (`util.Save`, living state, persist before publish): Decision 9, `persistShardPruning`, `TestApplySweepWriteFailurePrunesNothing`. Admin line and log line: Tasks 8 and 11. Config knob per dogmud-balance-config with Go default equal to the shipped value and a test: Task 5. Tests: guard for a missed store (Tasks 2 and 4), per-store (Task 2 subtests per root, Task 10 per store file), fail closed, rollback, keep-window boundary (`TestApplySweepKeepWindowBoundary`). Gate and delivery: Tasks 13 and 14.
 - **Placeholder scan.** Every code step carries its code. The only values filled at execution are the PR number and the pasted gate output, which are run results, not design.
