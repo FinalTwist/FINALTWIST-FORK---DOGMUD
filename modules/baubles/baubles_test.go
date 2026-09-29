@@ -1087,3 +1087,29 @@ func TestTheShippedFinderAllowance(t *testing.T) {
 		t.Fatalf("shipped DailyTokensPerUser through buildConfig: %d", c.DailyTokensPerUser)
 	}
 }
+
+// The status counts roll on the ledger's day, the one clock every daily
+// count shares, not on a clock of their own.
+func TestStatusCountsRollOnTheLedgersClock(t *testing.T) {
+	apiframework.ResetBudgetForTest(``)
+	t.Cleanup(func() { apiframework.ResetBudgetForTest(``) })
+	day1 := time.Date(2020, 3, 4, 12, 0, 0, 0, time.UTC)
+	apiframework.SetClockForTest(func() time.Time { return day1 })
+	m := &BaublesModule{}
+	m.count(false, false)
+	m.count(true, true)
+	apiframework.SetClockForTest(func() time.Time { return day1.Add(24 * time.Hour) })
+	m.count(false, false)
+	m.mu.Lock()
+	day, server, player, failures := m.stats.day, m.stats.server, m.stats.player, m.stats.failures
+	m.mu.Unlock()
+	if day != `2020-03-05` || server != 1 || player != 0 || failures != 0 {
+		t.Fatalf("a new ledger day starts the counts afresh: day=%s server=%d player=%d failed=%d", day, server, player, failures)
+	}
+	// bauble status on a later day, before any call of that day, shows
+	// that day's counts: none.
+	apiframework.SetClockForTest(func() time.Time { return day1.Add(48 * time.Hour) })
+	if d := m.info().Detail; !strings.Contains(d, `Today: 0 named on the server's key, 0 on finders' own keys, 0 failed.`) {
+		t.Fatalf("the status shows the ledger's day: %s", d)
+	}
+}

@@ -231,13 +231,16 @@ func TestRelayCallsReserveNothingOfTheServers(t *testing.T) {
 	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
 	setOwnerSpent(m, 5, m.cfg.DailyTokensPerCompanion)
 
-	if !tryRoute(m, relay, 5, 0, 900) {
+	h, ok := m.reserveRoute(relay, 5, 0, 900)
+	if !ok {
 		t.Fatal("the owner's own key is not refused for the server's spent budgets")
 	}
 	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || ownerSpent(m, 5) != m.cfg.DailyTokensPerCompanion {
 		t.Fatalf("and holds nothing against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), ownerSpent(m, 5))
 	}
-	settleToday(m, relay, 5, 0, 900, 700)
+	// R22: the hold reserveRoute gave back, not one rebuilt here, is what
+	// settles.
+	m.settleRoute(h, 700)
 	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || ownerSpent(m, 5) != m.cfg.DailyTokensPerCompanion {
 		t.Fatalf("nor settles anything against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), ownerSpent(m, 5))
 	}

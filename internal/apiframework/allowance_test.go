@@ -495,7 +495,11 @@ func TestTheShippedShareKnobs(t *testing.T) {
 		t.Fatalf("decode shipped config: %v", err)
 	}
 	if shipped.APIFramework.BaublesSharePercent != 25 || shipped.APIFramework.CompanionSharePercent != 0 {
-		t.Fatalf("shipped knobs: %+v", shipped.APIFramework)
+		// The share knobs and the budget only: the struct also carries the
+		// key, which no test prints.
+		a := shipped.APIFramework
+		t.Fatalf("shipped knobs: BaublesSharePercent=%d CompanionSharePercent=%d DailyTokenBudget=%d",
+			a.BaublesSharePercent, a.CompanionSharePercent, a.DailyTokenBudget)
 	}
 	s := resolveServer(shipped.APIFramework, legacyConfig{})
 	if s.BaublesSharePercent != 25 || s.CompanionSharePercent != 0 {
@@ -520,5 +524,37 @@ func TestSeedAllowancesRefusesASpentDimension(t *testing.T) {
 	k.SeedAllowances(DimCompanionStranger, k.Day(), map[int]int{2: 300})
 	if k.Allowance(DimCompanionStranger, 2) != 300 {
 		t.Fatalf("an unspent dimension still seeds: %d", k.Allowance(DimCompanionStranger, 2))
+	}
+}
+
+// R9, on the ledger alone: its own lock makes check and hold one step, with
+// no mud lock around the callers. Many goroutines reserving against one
+// allowance at once hold, all told, never more than its cap, and exactly as
+// many fit as the cap allows. Run it under -race too.
+func TestConcurrentReservationsNeverPassAnAllowanceTogether(t *testing.T) {
+	restore := SetServerForTest(ServerSettings{Endpoint: Endpoint{BaseURL: DefaultBaseURL}, BreakerErrors: 2, BreakerSeconds: 60})
+	t.Cleanup(restore)
+	k := NewBooksForTest()
+	const limit, tokens, callers = 1000, 30, 200
+	owner := Charge{Dim: DimCompanionOwner, UserId: 5, Limit: limit}
+	start := make(chan struct{})
+	var held atomic.Int64
+	var wg sync.WaitGroup
+	for i := 0; i < callers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			if _, err := k.Reserve(ConsumerCompanion, tokens, true, owner); err == nil {
+				held.Add(tokens)
+			} else if RefusedBy(err) != DimCompanionOwner {
+				t.Errorf("refused by the owner's allowance, not %v", err)
+			}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	if got := k.Allowance(DimCompanionOwner, 5); got > limit || int64(got) != held.Load() || got != limit/tokens*tokens {
+		t.Fatalf("held %d on the allowance (%d granted), cap %d, want %d", got, held.Load(), limit, limit/tokens*tokens)
 	}
 }

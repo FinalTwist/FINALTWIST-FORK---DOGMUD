@@ -4,10 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/apiframework"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // R5, R6: who pays, one to one with the old rules. A passer-by pays from
@@ -229,4 +232,95 @@ func TestABootOnYesterdaysFileDoesNotSeedTwice(t *testing.T) {
 func TestABootWithNoFileDoesNotSeedTwice(t *testing.T) {
 	now := time.Date(2026, 3, 5, 12, 0, 0, 0, time.UTC)
 	restartKeepsOneCount(t, now, func(m *AICompanionModule) {})
+}
+
+// logged is every line tee kept with its colours taken out, one string.
+func logged(tee *logTee) string {
+	tee.mu.Lock()
+	defer tee.mu.Unlock()
+	out := ``
+	for _, line := range tee.lines {
+		out += regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(line, ``) + "\n"
+	}
+	return out
+}
+
+// R43, the logging half: a decision the ledger refuses is logged with the
+// counter that refused it, through dispatch, reserveRoute and
+// logBudgetRefusal as the game runs them.
+func TestARefusedDecisionLogsWhichCounterSaidNo(t *testing.T) {
+	_, _, _, her := harmWorld(t, `off`)
+	srv, hits := countingServer(t)
+	tee := &logTee{}
+	mudlog.SetupLogger(tee, "", "", false)
+	t.Cleanup(func() { mudlog.SetupLogger(nil, "", "", false) })
+	for _, tc := range []struct {
+		name    string
+		stim    stimulus
+		setCaps func(m *AICompanionModule)
+		want    string
+	}{
+		{`a passer-by past their allowance`,
+			stimulus{Kind: `heard`, Speaker: `Bram`, Text: `Mara, hello`, AskerUserId: 2},
+			func(m *AICompanionModule) { m.cfg.StrangerDailyTokens = 10 },
+			apiframework.DimCompanionStranger},
+		{`the owner past the companion's allowance`,
+			stimulus{Kind: `heard`, Speaker: `Corvin`, Text: `Mara, hello`, FromOwner: true, AskerUserId: 1},
+			func(m *AICompanionModule) { m.cfg.DailyTokensPerCompanion = 10 },
+			apiframework.DimCompanionOwner},
+	} {
+		m, c := senderModule(srv.URL, true)
+		c.instanceId = her.InstanceId
+		m.ctrls = map[int]*controller{1: c}
+		m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+		tc.setCaps(m)
+		tee.mu.Lock()
+		tee.lines = nil
+		tee.mu.Unlock()
+
+		util.LockMud()
+		c.push(tc.stim)
+		m.dispatch(c)
+		inFlight := c.inFlight
+		util.UnlockMud()
+		m.decisions.Wait()
+		if inFlight {
+			t.Fatalf("%s: fixture: the call is refused, not started", tc.name)
+		}
+		if got := logged(tee); !regexp.MustCompile(`budgetRefused.*refusedBy="` + regexp.QuoteMeta(tc.want) + `"`).MatchString(got) {
+			t.Fatalf("%s: the refusal log names %s:\n%s", tc.name, tc.want, got)
+		}
+	}
+	if hits.Load() != 0 {
+		t.Fatalf("no refused call reaches the provider: %d", hits.Load())
+	}
+}
+
+// R37: saveBudget writes the ledger's budget.yaml before the companion's
+// own file. The module here has no plugin, so the companion's write
+// panics where it starts: budget.yaml is already on disk only if it was
+// written first.
+func TestSaveBudgetWritesTheLedgerFirst(t *testing.T) {
+	dir := t.TempDir()
+	apiframework.ResetBudgetForTest(dir)
+	t.Cleanup(func() { apiframework.ResetBudgetForTest(``) })
+	m := &AICompanionModule{cfg: Config{Enabled: true, DailyTokensPerCompanion: 100000}}
+	m.books.Store(apiframework.Shared())
+	h, ok := m.reserveRoute(route{kind: routeServer}, 5, 0, 900)
+	if !ok {
+		t.Fatal("fixture: the hold fits")
+	}
+	m.settleRoute(h, 400)
+	panicked := func() (p bool) {
+		defer func() { p = recover() != nil }()
+		m.saveBudget()
+		return false
+	}()
+	if !panicked {
+		t.Fatal("fixture: with no plugin the companion's own write panics")
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, `budget.yaml`))
+	if err != nil || !regexp.MustCompile(`companion\.owner:5: 400`).Match(raw) {
+		t.Fatalf("budget.yaml was written before the companion's file: %v %s", err, raw)
+	}
 }

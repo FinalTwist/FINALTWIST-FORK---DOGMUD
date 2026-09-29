@@ -699,7 +699,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		// unlock, and the reservation is settled in a defer of its own, so
 		// a panic while applying the result still releases the game loop,
 		// still settles exactly once, and still frees the companion to
-		// think again. settled is set first: a panic inside settleTokens
+		// think again. settled is set first: a panic inside settleRoute
 		// itself must not let the outer cleanup settle a second time.
 		func() {
 			util.LockMud()
