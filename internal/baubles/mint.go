@@ -36,12 +36,14 @@ type MintOpts struct {
 	Tier         ValueTier // chosen by the caller; an unknown tier is cheap
 	FoundIn      string    // the feature searched, if any (Record.FoundIn)
 
-	// Result is the finished text from Generate. nil makes a generic
-	// trinket here. Either way its numbers are clamped to Tier.
+	// Result is the finished text from Generate. nil draws from the
+	// fallback corpus here (a generic trinket when it has nothing that
+	// fits). Either way its numbers are clamped to Tier.
 	Result *GenResult
 
-	// Randn picks a generic trinket's value and weight: randn(n) returns
-	// [0, n). nil means util.Rand. Tests pass a fixed function.
+	// Randn picks the corpus entry, or a generic trinket's value and
+	// weight: randn(n) returns [0, n). nil means util.Rand. Tests pass a
+	// fixed function.
 	Randn func(n int) int
 }
 
@@ -49,9 +51,9 @@ type MintOpts struct {
 var ErrNoCarrier = errors.New(`bauble carrier item is not loaded`)
 
 // Mint creates one new bauble: a catalog record with FINAL text (from
-// o.Result, or a generic trinket), and the carrier item pointing at it. The
-// record is on disk before Mint returns. Naming happens before this, off the
-// mud lock (Generate); Mint itself never waits on anything.
+// o.Result, or else from the fallback corpus), and the carrier item pointing
+// at it. The record is on disk before Mint returns. Naming happens before
+// this, off the mud lock (Generate); Mint itself never waits on anything.
 func Mint(o MintOpts) (items.Item, Record, error) {
 	item := items.New(items.BaubleItemId)
 	if item.ItemId != items.BaubleItemId {
@@ -71,9 +73,11 @@ func Mint(o MintOpts) (items.Item, Record, error) {
 		source = SourceAdmin
 	}
 
-	res := GenResult{Reply: GenericTrinket(tier, randn), Generator: GeneratorLocal}
+	var res GenResult
 	if o.Result != nil {
 		res = *o.Result
+	} else {
+		res = Fallback(o.Place, tier, source, RecentFallbackNames(o.Place.Zone, fallbackRecentNames), randn)
 	}
 	if res.Generator == `` {
 		res.Generator = GeneratorLocal

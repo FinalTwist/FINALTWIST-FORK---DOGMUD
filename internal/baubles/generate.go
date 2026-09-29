@@ -16,7 +16,8 @@ import (
 //
 // The model is reached through a seam: modules/baubles installs a
 // GeneratorFunc at boot when it is enabled AND an OpenAI API key is present.
-// With nothing installed, every bauble is a generic trinket (fallback.go).
+// With nothing installed, every bauble comes from the fallback corpus
+// (corpus.go), or is a generic trinket (fallback.go) when nothing fits.
 //
 // ⚠️ Generate BLOCKS for as long as the model takes. It must only run on a
 // goroutine that does not hold util.LockMud(); the caller takes the lock
@@ -87,7 +88,7 @@ type installedGenerator struct {
 var generator atomic.Pointer[installedGenerator]
 
 // SetGenerator installs the model-backed namer. nil uninstalls it, after
-// which every bauble is a generic trinket. info may be nil.
+// which every bauble comes from the fallback corpus. info may be nil.
 func SetGenerator(fn GeneratorFunc, info func() GeneratorInfo) {
 	if fn == nil {
 		generator.Store(nil)
@@ -135,7 +136,7 @@ func noteRefusal(refusedBy string, err error) {
 	}
 	refusalLog.last = now
 	refusalLog.mu.Unlock()
-	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `refusedBy`, refusedBy, `error`, err)
+	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `refusedBy`, refusedBy, `error`, err)
 }
 
 // MaxGenerateTime is the hard ceiling on one Generate call, whatever the
@@ -144,16 +145,20 @@ const MaxGenerateTime = 30 * time.Second
 
 // Generate names one find. It returns the model's answer when a generator
 // is installed and its answer is usable (validated and clamped), and a
-// generic trinket otherwise. It never fails. randn picks a generic
-// trinket's value and weight: pass util.Rand in production (nil gives the
-// deterministic midpoint, for tests).
+// fallback otherwise (FallbackFor: the corpus, else a generic trinket). It
+// never fails. randn picks the fallback: pass util.Rand in production (nil
+// gives the first entry, or the deterministic midpoint, for tests).
 func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenResult {
 	tier := req.Tier
 	if !tier.Valid() {
 		tier = TierCheap
 	}
+	// A find the model does not name comes from the fallback corpus, or is
+	// a generic trinket when the corpus has nothing that fits.
 	generic := func() GenResult {
-		return GenResult{Reply: GenericTrinket(tier, randn), Generator: GeneratorLocal}
+		r := req
+		r.Tier = tier
+		return FallbackFor(r, randn)
 	}
 
 	g := generator.Load()
@@ -171,7 +176,7 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 		if refusedBy := apiframework.RefusedBy(err); refusedBy != `` {
 			noteRefusal(refusedBy, err)
 		} else {
-			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
+			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `error`, err)
 		}
 		return generic()
 	}
@@ -194,14 +199,14 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 		}
 	}
 	if err != nil {
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
+		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `error`, err)
 		return generic()
 	}
 	if TooBigFor(cleaned, req.Source) {
 		// The model's own weight, or the thing its name names, says it
 		// described something no pocket holds, whatever its weight would be
-		// clamped to. A generic (small) trinket instead.
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, `too big for a pocket`, `weight`, cleaned.WeightLbs)
+		// clamped to. A fallback instead (the corpus's pocket pool, or a small trinket).
+		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `error`, `too big for a pocket`, `weight`, cleaned.WeightLbs)
 		return generic()
 	}
 	res.Reply = cleaned

@@ -1,6 +1,7 @@
 package baubles
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -407,5 +408,48 @@ func TestRecentFallbackNamesCountsModelAndCorpusFinds(t *testing.T) {
 	got := RecentFallbackNames(`ashwick`, 5)
 	if len(got) != 2 || got[0] != `Bent Tin Thimble` || got[1] != `Old Cup` {
 		t.Fatalf("newest first, model and corpus finds in the zone only: %v", got)
+	}
+}
+
+// Every way Generate gives up (no generator, an error, a pocket-sized
+// refusal) now goes to the corpus.
+func TestGenerateFallsBackToTheCorpus(t *testing.T) {
+	withCatalog(t)
+	withCorpus(t, testSeed, ``)
+	SetGenerator(nil, nil)
+	req := GenRequest{Tier: TierCheap, Source: SourceSearch, Place: Place{Zone: `ashwick`, Biome: `fort`}}
+	if res := Generate(context.Background(), req, nil); res.Generator != GeneratorCorpus || res.Reply.Name != `Chipped Clay Marble` {
+		t.Fatalf("no generator: the corpus, got %+v", res)
+	}
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{}, errors.New(`boom`)
+	})
+	if res := Generate(context.Background(), req, nil); res.Generator != GeneratorCorpus {
+		t.Fatalf("a failed call: the corpus, got %+v", res)
+	}
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		r := goodReply()
+		r.Name, r.NameSimple = `Bronze Funeral Urn`, `urn`
+		return GenResult{Reply: r}, nil
+	})
+	pocket := GenRequest{Tier: TierCheap, Source: SourcePickpocket, Place: Place{Zone: `ashwick`, Biome: `fort`}}
+	if res := Generate(context.Background(), pocket, nil); res.Generator != GeneratorCorpus || res.Reply.Name != `Brass Snuff Spoon` {
+		t.Fatalf("an urn is too big for a pocket: a pocket entry, got %+v", res)
+	}
+}
+
+// Mint with no result (tests only) draws from the corpus too, and the
+// record says so.
+func TestMintWithNoResultDrawsFromTheCorpus(t *testing.T) {
+	withCatalog(t)
+	withCorpus(t, testSeed, ``)
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: Place{RoomId: 1, Zone: `ashwick`, Biome: `fort`}, Tier: TierCheap, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Generator != GeneratorCorpus || rec.Status != StatusReady || rec.Name != `Chipped Clay Marble` || rec.Model != `corpus:dwelling-cheap` {
+		t.Fatalf("record: %+v", rec)
 	}
 }
