@@ -289,7 +289,13 @@ func (c *Character) HandsRequired(i items.Item) int {
 		return iSpec.Hands
 	}
 
+	// An unregistered species reads as Medium. The upgrade scorer reaches
+	// this for every weapon it weighs (slice 5a), and a nil here used to be a
+	// panic, never a rule.
 	speciesInfo := species.GetSpecies(c.SpeciesId)
+	if speciesInfo == nil {
+		return iSpec.Hands
+	}
 	if speciesInfo.Size == species.Large {
 		return 1
 	}

@@ -268,8 +268,12 @@ func goldenChar(extraArms, speciesId int, dual bool) *Character {
 		c.Mutations["extra-arms"] = extraArms
 	}
 	c.validateMutationSlots()
+	// New() seeds every skill at rank 1 (ensureAllSkills), which is already
+	// dual wield, so the non-dual case must clear it explicitly.
 	if dual {
 		c.SetSkill(string(skills.WeaponCombat), 1)
+	} else {
+		c.Skills[string(skills.WeaponCombat)] = 0
 	}
 	return c
 }
