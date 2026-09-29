@@ -22,6 +22,7 @@ package behaviortree
 import (
 	"fmt"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -225,12 +226,13 @@ func actTryFire(params map[string]any, ctx *EvalContext) Result {
 // actKeepDistance kites the mob away from melee. It fires only when the mob is
 // pinned in melee AND still healthy enough to choose flight over a desperate
 // stand (health above the `health_percent` arg, default 50). It picks a
-// passable exit — preferring the one toward home — and moves through it.
+// passable exit, preferring the one toward home, and flees through it (a flee
+// since slice 4a: it can be blocked, costs stamina and takes a round).
 //
-// Before moving it refreshes the mob's CombatMemory to point at the current
+// Before fleeing it refreshes the mob's CombatMemory to point at the current
 // aggro target, last seen in the room being retreated FROM (where the enemy
-// still stands). This is the linchpin of the kite-and-shoot loop: stepping out
-// of the room makes the next round's ValidateAggro end this mob's aggro, so the
+// still stands). This is the linchpin of the kite-and-shoot loop: escaping the
+// room makes the next round's ValidateAggro end this mob's aggro, so the
 // CombatMemory is the ONLY surviving handle on the foe. The round driver's
 // ranged-mob exemption reads it to keep driving the btree, and try_fire reads
 // it to fire back through the reverse exit.
@@ -245,6 +247,13 @@ func actKeepDistance(params map[string]any, ctx *EvalContext) Result {
 	threshold := getFloatParam(params, "health_percent", 50)
 	if hpPercent(&mob.Character) <= threshold {
 		return Failure // too hurt to safely disengage — let the combat cascade handle it
+	}
+	// Kiting out of melee is a flee (owner ruling 4, 2026-09-28): the blocker
+	// contest, the flee cost and a round disengaging. When a flee could not
+	// even begin (rooted, frenzied, knocked down, grappled), fail so the
+	// selector falls through to fighting.
+	if actions.FleeGate(&mob.Character) != actions.FleeOK {
+		return Failure
 	}
 	room := rooms.LoadRoom(mob.Character.RoomId)
 	if room == nil {
@@ -276,7 +285,7 @@ func actKeepDistance(params map[string]any, ctx *EvalContext) Result {
 		}
 	}
 
-	mob.Command("go " + dir)
+	mob.Command("flee " + dir)
 	return Success
 }
 

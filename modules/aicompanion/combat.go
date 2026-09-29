@@ -8,7 +8,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -447,7 +446,15 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 		threshold += int(m.jitter() * 15)
 	}
 	if f.Stance == `flee` || (threshold > 0 && selfPct < threshold) {
-		if mob.Character.IsInCombat() && !mob.Character.HasConditionFlag(conditions.NoFlee) {
+		// Only when a flee can actually begin: the flee command's own gate
+		// (actions.FleeGate) refuses one out of combat, frenzied, rooted,
+		// grappled or knocked down, and speaking the flee line and setting
+		// Fled for a refused flee remembers a run that never happened. A
+		// flee already under way is left to finish rather than overridden.
+		switch actions.FleeGate(&mob.Character) {
+		case actions.FleeRefuseAlready:
+			return
+		case actions.FleeOK:
 			if !f.Fled {
 				m.combatLine(c, mob, round, c.profile.Combat.Lines.Flee)
 			}

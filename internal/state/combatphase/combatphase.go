@@ -410,9 +410,15 @@ func (m *Machine) TransitionToDisengaging(r state.TransitionReason) error {
 	if err := m.inner.TransitionTo(Disengaging, r); err != nil {
 		return err
 	}
+	// A flee can start mid wind-up (Engaging), where TransitionToEngaging has
+	// already cleared the Engaged data. Record the wind-up target then, so a
+	// failed flee (ResolveFlee(false)) returns to the fight on that target
+	// rather than on a zero one the next aggro check would drop.
 	target := state.ActorRef{}
 	if m.engaged != nil {
 		target = m.engaged.Target
+	} else if m.engaging != nil {
+		target = m.engaging.Target
 	}
 	m.disengaging = &DisengagingData{LastTarget: target}
 	return nil

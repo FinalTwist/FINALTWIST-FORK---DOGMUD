@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -25,7 +26,7 @@ func goRetargetNoticePlainText(line string) string {
 	return strings.TrimSpace(goRetargetNoticeTagPattern.ReplaceAllString(line, ""))
 }
 
-// clearRoomAggroOnDeparture named the mob a player was retargeted onto
+// actions.ClearRoomAggroOnDeparture named the mob a player was retargeted onto
 // regardless of the player's sight ("You turn your attention to Windscour
 // Wyrm!" in an unlit cave with no night vision). The room is unlit, the
 // player has no night vision, so the notice must say "something" and must
@@ -71,14 +72,14 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 	room.AddMob(9303)
 
 	// Player is fighting the departing mob A; mob B is fighting the player,
-	// so RetargetOrEnd-equivalent logic in clearRoomAggroOnDeparture puts the
+	// so RetargetOrEnd-equivalent logic in actions.ClearRoomAggroOnDeparture puts the
 	// player onto mob B when mob A leaves.
 	require.True(t, targeting.Commit(u.Character, state.ActorRef{MobInstanceId: mobA.InstanceId}, targeting.ReasonAttack))
 	require.True(t, targeting.Commit(&mobB.Character, state.ActorRef{UserId: u.UserId}, targeting.ReasonAttack))
 
 	events.DrainQueuedMessagesForTest(u.UserId)
 
-	clearRoomAggroOnDeparture(room, mobA.InstanceId)
+	actions.ClearRoomAggroOnDeparture(room, mobA.InstanceId)
 
 	lines := events.DrainQueuedMessagesForTest(u.UserId)
 	require.Len(t, lines, 1, "the player should get exactly one retarget notice")
@@ -86,7 +87,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 	assert.NotContains(t, lines[0], mobB.Character.Name, "dark routing leaked the retargeted mob's identity")
 }
 
-// The two sends in clearRoomAggroOnDeparture are textually identical: one
+// The two sends in actions.ClearRoomAggroOnDeparture are textually identical: one
 // fires when a hostile mob is attacking the player directly, the other when
 // it is attacking one of the player's companions. Only the direct branch is
 // covered above; this drives the companion branch so it cannot regress
@@ -145,13 +146,13 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranc
 
 	// Player is fighting the departing mob A; mob B is fighting the player's
 	// COMPANION, not the player directly, so the companion branch of
-	// clearRoomAggroOnDeparture is the one that must retarget the player.
+	// actions.ClearRoomAggroOnDeparture is the one that must retarget the player.
 	require.True(t, targeting.Commit(u.Character, state.ActorRef{MobInstanceId: mobA.InstanceId}, targeting.ReasonAttack))
 	require.True(t, targeting.Commit(&mobB.Character, state.ActorRef{MobInstanceId: companion.InstanceId}, targeting.ReasonAttack))
 
 	events.DrainQueuedMessagesForTest(u.UserId)
 
-	clearRoomAggroOnDeparture(room, mobA.InstanceId)
+	actions.ClearRoomAggroOnDeparture(room, mobA.InstanceId)
 
 	lines := events.DrainQueuedMessagesForTest(u.UserId)
 	require.Len(t, lines, 1, "the player should get exactly one retarget notice")

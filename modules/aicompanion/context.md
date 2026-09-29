@@ -386,6 +386,10 @@ skills, health) is never in the mind file; it lives on the owner's
 - Plans come from the model in the background; reflexes run every round
   with `CombatReactionRounds` between moves, using only `attack #id`,
   `fire #id`, `taunt`, `flee`, `drink` and `aid @id`.
+- The run reflex fires only when `actions.FleeGate` returns `FleeOK`, so a
+  companion knocked down, grappled, rooted or frenzied does not speak its
+  flee line or set `Fled` for a flee the engine would refuse. A flee
+  already under way (`FleeRefuseAlready`) ends the reflex for that round.
 - She harms only what her owner could harm (`harmAllowed`): the `attack`
   verb, a harmful `cast`, the plan's chosen target
   (`applyCombatProposal`), the reflex strike at whatever is hurting the

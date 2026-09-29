@@ -265,12 +265,13 @@ func TestActKeepDistance_EngagedAndHealthy_KitesAndRefreshesMemory(t *testing.T)
 	mob.Character.SetAggro(0, target.InstanceId, characters.DefaultAttack)
 	queuedCmds(mob.InstanceId)
 
+	// Owner ruling 4 (2026-09-28): kiting out of melee is a flee, toward home.
 	ctx := &EvalContext{InstanceId: mob.InstanceId, RoomId: here}
 	if got := LookupAction("keep_distance")(nil, ctx); got != Success {
 		t.Fatalf("keep_distance = %v, want Success", got)
 	}
-	if cmds := queuedCmds(mob.InstanceId); !contains(cmds, "go north") {
-		t.Errorf("expected 'go north' queued, got %v", cmds)
+	if cmds := queuedCmds(mob.InstanceId); !contains(cmds, "flee north") {
+		t.Errorf("expected 'flee north' queued, got %v", cmds)
 	}
 	// Retreat must refresh CombatMemory pointing at the target, last seen in
 	// the room we fled FROM (here) — this is what survives the aggro loss and

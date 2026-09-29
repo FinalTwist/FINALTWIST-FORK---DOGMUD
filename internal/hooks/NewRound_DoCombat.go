@@ -335,6 +335,13 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 					RetargetOrEnd(&mob.Character, mobRoom, 0, mob.InstanceId)
 				}
 			}
+
+			// A mob flees by the player's rules (slice 4a): its flee command
+			// only entered Disengaging, and the escape resolves here, a round
+			// later, at the same point as handlePlayerFlee in the player pass.
+			if handleMobFlee(mob, mobRoom) {
+				continue
+			}
 		}
 
 		// Idle companions with autoassist scan for threats to owner

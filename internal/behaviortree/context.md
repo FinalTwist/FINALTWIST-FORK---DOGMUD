@@ -190,7 +190,11 @@ These events fire ONCE per state transition (not per round):
   (e.g., on attack command or attack btree action).
 - `mob_engaged` — fires when Engaging → Engaged completes (after the
   RoundsUntil weapon-wait countdown).
-- `mob_disengaging` — fires when Engaged → Disengaging (flee initiated).
+- `mob_disengaging` — fires when Engaged → Disengaging (flee initiated). Before
+  flee parity slice 4a a mob's flee resolved instantly outside `CombatPhase`,
+  so this event never actually fired for a mob; it does now that
+  `actions.BeginFlee` drives every mob flee through the same transition a
+  player uses.
 - `mob_combat_ended` — fires when any state transitions to Idle (combat
   ends for any reason: target died, flee succeeded, force-idle, etc.).
 
@@ -378,7 +382,7 @@ are subject to perception-scaled reaction delays (see below).
 |--------|--------|-------------|
 | `move` | `direction` (string) | Mob moves in direction. |
 | `attack` | none | Mob attacks the triggering player; if none, picks random player in room. |
-| `flee` | none | Mob flees combat. |
+| `flee` | none | Flee parity slice 4a: in combat, issues `flee` (the mob's `BeginFlee`/`ResolveFlee` escape, gated, costed, and blockable like a player's). Out of combat, walks instead — issues `go <dir>` via `pickRetreatExit` — because a flee out of combat now refuses; this keeps an out-of-combat authored `do: flee` (e.g. the thief's post-steal escape) working. |
 | `cast` | `spell` (string) | Mob casts the named spell. |
 
 ### Combat Targeting — instant
@@ -426,7 +430,7 @@ are subject to perception-scaled reaction delays (see below).
 | Action | Params | Description |
 |--------|--------|-------------|
 | `try_fire` | none | Fire the mob's loaded ranged weapon at its current Aggro target (or CombatMemory target if Aggro just cleared). Issues `fire <targetName>` or `fire <targetName> <direction>` for cross-room shots. Returns Failure if no loaded weapon, no valid target, or shot resolution fails. |
-| `keep_distance` | `min_room_distance` (int, default 1) | Kiting action. If an enemy is in the mob's room and the mob is not already fleeing melee, retreats one exit (preferring exits away from the target). Returns Success on retreat, Failure if no usable exit found. |
+| `keep_distance` | `min_room_distance` (int, default 1) | Kiting action. If an enemy is in the mob's room, the mob is not already fleeing melee, and (flee parity slice 4a) `actions.FleeGate` does not refuse (rooted, frenzied, knocked down or grappled falls through to fighting instead), retreats toward home by issuing `flee <dir>` — a real flee, gated, costed and blockable like a player kiting archer's disengage — instead of a free `go <dir>`. `dir` still comes from `pickRetreatExit` (unlocked, home first). Returns Success on retreat, Failure if no usable exit found or the flee gate refuses. |
 
 **Archer re-engagement exemption (DoCombat hook):** A mob with a loaded
 ranged weapon and a recent `CombatMemory` entry is allowed one extra btree
