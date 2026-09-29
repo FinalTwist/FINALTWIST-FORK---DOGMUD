@@ -393,3 +393,23 @@ func TestPackFlee_SkipsNonGroupmates(t *testing.T) {
 	result := PackFlee(evt)
 	assert.Equal(t, events.Continue, result)
 }
+
+// Owner ruling (2026-09-28, open question 1): when a packmate dies, only
+// packmates already fighting flee; idle ones stay put and are not counted in
+// the scatter line.
+func TestPackFlee_IdlePackmateStaysPut(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob := mobs.GetInstance(100)
+	require.NotNil(t, mob)
+	require.False(t, mob.Character.IsInCombat(), "fixture: mob 100 starts idle")
+	events.DrainQueuedInputsForTest(mob.InstanceId)
+
+	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
+
+	for _, cmd := range events.DrainQueuedInputsForTest(mob.InstanceId) {
+		if cmd == "flee" {
+			t.Fatal("an idle packmate was told to flee")
+		}
+	}
+}

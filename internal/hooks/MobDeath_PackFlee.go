@@ -81,6 +81,13 @@ func PackFlee(e events.Event) events.ListenerReturn {
 			continue
 		}
 
+		// Owner ruling (2026-09-28): only packmates already fighting flee. An
+		// idle one stays put; a flee out of combat is refused anyway (slice
+		// 4a), so counting it would print a scatter nobody performs.
+		if !mob.Character.IsInCombat() {
+			continue
+		}
+
 		// Check alliance: same MobId or same species
 		if mob.MobId != mobs.MobId(evt.MobId) {
 			if mob.Character.SpeciesId == 0 ||
