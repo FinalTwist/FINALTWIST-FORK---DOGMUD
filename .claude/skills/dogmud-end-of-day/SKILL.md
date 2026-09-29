@@ -81,8 +81,32 @@ Afterwards run the guard tests whose constants name spec paths
 
 Write or update the day's `project-session-handoff-YYYY-MM-DD` memory:
 what merged, what is open and on which branch, what is waiting on someone
-else, and every trap the day found. Point `MEMORY.md`'s current-status block
-at it and archive the previous dated block to `STATUS-ARCHIVE.md`.
+else, and every trap the day found.
+
+**Status lives in `status.md`, never in `MEMORY.md`** (owner, 2026-09-28).
+The memory index is pointers only, so it stops overflowing:
+
+- Rewrite the "Now" section of the `status` memory (`status.md`): what is
+  open, what merged, open owner calls, and the Remaining Work table. Retired
+  lines move to `STATUS-ARCHIVE.md` under a dated heading.
+- In `MEMORY.md`, update only the one "Start here" line so it links the new
+  handoff. Add a one-line pointer (about 200 characters) for each NEW memory
+  file; never paste status, tables or long trap text into the index. Long
+  trap text belongs in a topic file such as `reference-standing-traps.md`.
+- Check the index before finishing. These must print nothing, and the size
+  must stay well under 17 KB:
+
+  ```bash
+  awk 'length > 220 {print NR": "length}' MEMORY.md
+  wc -c MEMORY.md
+  ```
+
+  Shorten any over-long line by moving its detail into the topic file it
+  points at.
+
+Other sessions write to the same memory folder. Edit `status.md` and
+`MEMORY.md` with the Edit tool on the lines you own; do not rewrite another
+session's lines.
 
 ## Commit
 
