@@ -113,17 +113,40 @@ func TestReturnCreditsAreOncePerBaubleAndPerFaction(t *testing.T) {
 	MarkReturned(b, 1, []string{`town`}, t0.Add(2*time.Hour))
 	MarkReturned(a, 1, []string{`town`}, t0.Add(3*time.Hour)) // again: no new credit
 
-	if n := ReturnCredits(1, `town`); n != 2 {
+	if n := ReturnCredits(1, `town`, 0); n != 2 {
 		t.Fatalf("town: %d credits", n)
 	}
-	if n := ReturnCredits(1, `guild`); n != 1 {
+	if n := ReturnCredits(1, `guild`, 0); n != 1 {
 		t.Fatalf("guild: %d credits", n)
 	}
-	if n := ReturnCredits(9, `town`); n != 0 {
+	if n := ReturnCredits(9, `town`, 0); n != 0 {
 		t.Fatal("another player's credits are not theirs")
 	}
 	r, _ := Get(a)
 	if !r.ReturnedAt.Equal(t0.Add(3*time.Hour)) || !r.ReturnCreditAt.Equal(t0.Add(time.Hour)) {
 		t.Fatalf("the latest return is kept, the first credit too: %+v", r)
+	}
+}
+
+// A gift to a mob is remembered by mob id (MarkGiven) until the next theft.
+func TestAGiftIsRememberedUntilTheNextTheft(t *testing.T) {
+	SetDirForTest(t.TempDir())
+	rec, err := Create(Record{Name: "Bone Dice", NameSimple: "dice", Tier: TierCheap, Value: 4, Status: StatusReady})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !MarkGiven(rec.Id, 12) {
+		t.Fatal("MarkGiven")
+	}
+	r, _ := Get(rec.Id)
+	if !r.GivenTo(12) || r.GivenTo(13) || r.GivenTo(0) {
+		t.Fatalf("given to mob 12 only: %+v", r)
+	}
+	MarkStolen(rec.Id, Theft{ByUserId: 1, FromMob: 13}, time.Now())
+	if r, _ = Get(rec.Id); r.GivenTo(12) {
+		t.Fatal("a theft ends the gift")
+	}
+	if MarkGiven("B9999999", 12) {
+		t.Fatal("no such record")
 	}
 }

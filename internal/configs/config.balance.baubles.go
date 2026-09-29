@@ -43,6 +43,8 @@ const (
 	defaultBaubleStolenHeatHours = 72 // three real days
 	defaultBaubleFenceBuyPct     = 60
 	defaultBaubleReturnsPerCatch = 3
+	defaultBaubleCatalogKeepDays = 30
+	minBaubleCatalogKeepDays     = 7 // sales stats read the last seven days
 
 	defaultBaubleCheapMin   = 1
 	defaultBaubleCheapMax   = 6
@@ -221,6 +223,13 @@ func (b *Balance) validateBaubles() {
 	if len(b.BaubleFenceGroups) == 0 {
 		b.BaubleFenceGroups = append(ConfigSliceString(nil), defaultBaubleFenceGroups...)
 	}
+	if b.BaubleCatalogKeepDays <= 0 {
+		b.BaubleCatalogKeepDays = defaultBaubleCatalogKeepDays
+	}
+	if b.BaubleCatalogKeepDays < minBaubleCatalogKeepDays {
+		b.BaubleCatalogKeepDays = minBaubleCatalogKeepDays
+	}
+
 	// A return must be worth less than a catch (owner ruling), so at least
 	// two returns make one catch.
 	if b.BaubleReturnsPerCatch <= 0 {

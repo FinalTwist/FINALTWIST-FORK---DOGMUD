@@ -77,15 +77,20 @@ var (
 // serving a sentence resolves them and restores reputation
 // (justice.ClearFactionRecord), and a crime left long enough goes stale
 // (crimes.PruneStale), so returns never earn back what was already given
-// back or forgotten.
-func identifiedTheftCatches(userId int, faction string) int {
-	n := 0
+// back or forgotten. since is the game round of the oldest of them: the
+// returns counted against these catches are only those credited from then
+// on (baubles.ReturnCredits), so returns from before a sentence served are
+// not held against a thief caught again after it.
+func identifiedTheftCatches(userId int, faction string) (n int, since uint64) {
 	for _, c := range crimes.AllForFaction(faction, false) {
 		if c.Kind == crimes.KindTheft && c.Perpetrator.Type == crimes.PerpPlayer && c.Perpetrator.Id == userId {
+			if n == 0 || c.Round < since {
+				since = c.Round
+			}
 			n++
 		}
 	}
-	return n
+	return n, since
 }
 
 // isBaubleOwner reports whether m is who rec was stolen from: the mob
@@ -214,6 +219,12 @@ func recognizeOn(carrier Actor, owners []*mobs.Mob, room *rooms.Room, now time.T
 			if !isBaubleOwner(rec, m, room) || !canRecognize(m) {
 				continue
 			}
+			// The owner must see at least shapes, as a household resident
+			// must (isResident): a blinded owner, or one in the dark,
+			// recognises nothing, spends no recognition and attacks nobody.
+			if !messaging.CanSeeShapes(&m.Character, room) {
+				continue
+			}
 			if !recognitionRoll(&m.Character, char, room) {
 				continue
 			}
@@ -224,16 +235,24 @@ func recognizeOn(carrier Actor, owners []*mobs.Mob, room *rooms.Room, now time.T
 }
 
 // ownerRecognizes is m recognising its stolen itm on carrier: said aloud,
-// recorded, and then the catch.
+// recorded, and then the catch. It follows the crime-witnessing tiers: an
+// owner who sees clearly knows the thief (thiefCaught records them as the
+// identified perpetrator); one who sees only shapes knows its bauble on a
+// figure it cannot name, so the room hears no name, and thiefCaught's
+// witness count records the crime against an unknown perpetrator.
 func ownerRecognizes(carrier Actor, m *mobs.Mob, itm items.Item, room *rooms.Room, now time.Time) {
 	baubles.MarkRecognized(itm.Bauble, carrier.GetUserId(), now)
 	name := itm.DisplayName()
 	carrier.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`<ansi fg="mobname">%s</ansi> stares at the <ansi fg="itemname">%s</ansi> you are carrying. "That's mine! Thief!"`,
 		m.Character.Name, name))
+	who := `a figure`
+	if messaging.CanSeeClearly(&m.Character, room) {
+		who = fmt.Sprintf(`<ansi fg="username">%s</ansi>`, carrier.GetCharacter().Name)
+	}
 	room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
-		`<ansi fg="mobname">%s</ansi> points at <ansi fg="username">%s</ansi>. "That's mine! Thief!"`,
-		m.Character.Name, carrier.GetCharacter().Name), carrier.GetUserId())
+		`<ansi fg="mobname">%s</ansi> points at %s. "That's mine! Thief!"`,
+		m.Character.Name, who), carrier.GetUserId())
 	mudlog.Info(`baubles`, `action`, `recognized`, `id`, itm.Bauble, `owner`, m.Character.Name, `carrierUserId`, carrier.GetUserId())
 	stolenCaught(carrier, m, room)
 }
@@ -253,14 +272,22 @@ func returnShare(prior int, catchRep int, perCatch int) int {
 // StolenBaubleGiven handles a player having given itm to m (usercommands'
 // give, after the transfer). When itm is a bauble stolen from m, it is a
 // return: m says so, the bauble cools, and its thief may earn back some
-// reputation (see the top of this file). It reports whether it was a
-// return. Call under the mud lock.
+// reputation (see the top of this file). Any other bauble a player gives a
+// mob is marked as a gift (baubles.MarkGiven), so picking it back out of
+// that mob's pocket does not make it the mob's stolen goods. It reports
+// whether it was a return. Call under the mud lock.
 func StolenBaubleGiven(giver Actor, m *mobs.Mob, itm items.Item) bool {
 	if !itm.IsBauble() || m == nil {
 		return false
 	}
 	rec, ok := baubles.Get(itm.Bauble)
-	if !ok || !isBaubleOwner(rec, m, giver.GetRoom()) {
+	if !ok {
+		return false
+	}
+	if !isBaubleOwner(rec, m, giver.GetRoom()) {
+		if giver.IsPlayer() {
+			baubles.MarkGiven(itm.Bauble, int(m.MobId))
+		}
 		return false
 	}
 
@@ -272,9 +299,13 @@ func StolenBaubleGiven(giver Actor, m *mobs.Mob, itm items.Item) bool {
 		catchRep := -int(cfg.CrimeRepDeltaTheft) // the delta is a loss
 		perCatch := int(cfg.BaubleReturnsPerCatch)
 		for _, fid := range ownerFactions(m) {
-			prior := baubles.ReturnCredits(userId, fid)
-			if prior >= perCatch*theftCatches(userId, fid) {
-				continue // nothing left to earn back with this faction
+			catches, since := theftCatches(userId, fid)
+			if catches == 0 {
+				continue // nothing to earn back with this faction
+			}
+			prior := baubles.ReturnCredits(userId, fid, since)
+			if prior >= perCatch*catches {
+				continue // all of it earned back already
 			}
 			if share := returnShare(prior, catchRep, perCatch); share > 0 {
 				returnRepBump(fid, userId, share)

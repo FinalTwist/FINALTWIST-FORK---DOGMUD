@@ -68,7 +68,7 @@ func Sell(seller Actor, opts SellOptions) SellResult {
 	// Gated on a merchant actually being in the room, same as
 	// ShopClosedForSleep beside it: "there's no merchant here" still wins
 	// over a sight refusal when there is truly nobody to deal with.
-	if len(room.GetPlayers(rooms.FindMerchant)) > 0 || len(BaubleBuyersInRoom(room)) > 0 {
+	if len(room.GetPlayers(rooms.FindMerchant)) > 0 || len(room.GetMobs(rooms.FindMerchant)) > 0 {
 		if ShopSightRefusal(seller.GetCharacter(), room) {
 			if seller.IsPlayer() {
 				seller.SendText(messaging.CategorySystem, ShopSightRefusalText)
@@ -123,10 +123,12 @@ func affixedSellPrice(item items.Item, cfg shops.PricingConfig) int {
 
 // resolveMerchant finds the first merchant in the room willing to buy probe,
 // returning the merchant mob and its living-economy ShopInventory (nil for
-// legacy-shop merchants).
-func resolveMerchant(room *rooms.Room, probe items.Item) (*mobs.Mob, *shops.ShopInventory) {
+// legacy-shop merchants). A bauble goes to the best offer the merchant can
+// pay instead (bestBaubleMerchant); playerSale says whether the seller is a
+// player, the only sellers a merchant's gold constrains.
+func resolveMerchant(room *rooms.Room, probe items.Item, playerSale bool) (*mobs.Mob, *shops.ShopInventory) {
 	if probe.IsBauble() {
-		return bestBaubleMerchant(room, probe)
+		return bestBaubleMerchant(room, probe, playerSale)
 	}
 	for _, mobId := range room.GetMobs(rooms.FindMerchant) {
 		mob := mobs.GetInstance(mobId)
@@ -186,7 +188,7 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 		}
 		return SellResult{Reason: SellStopRejected}
 	}
-	mob, shopInv := resolveMerchant(room, probe)
+	mob, shopInv := resolveMerchant(room, probe, seller.IsPlayer())
 	if mob == nil {
 		// No WILLING merchant. Distinguish "no merchant present at all" from
 		// "a merchant is here but won't buy this item." For the latter, route
@@ -196,25 +198,34 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 		// rather than the misleading SellStopNoMerchant ("There's no merchant
 		// here.").
 		mob, shopInv = firstMerchantInRoom(room)
-		if mob == nil && probe.IsBauble() {
-			// A fence who keeps no shop still says why it will not buy.
-			if buyers := BaubleBuyersInRoom(room); len(buyers) > 0 {
-				mob = mobs.GetInstance(buyers[0])
-			}
-		}
 		if mob == nil {
 			return SellResult{Reason: SellStopNoMerchant}
 		}
 	}
 	var out SellResult
 	out.Reason = SellStopSoldAll
+	baubleSold := false // the buyer may since have changed from the probe's
 	for out.Sold < quantity {
 		// The item this iteration sells is the first match left, which is not
 		// always the probe: it differs for baubles, which share a keyword but
 		// each have their own name.
 		soldName := probe.GetSpec().Name
+		soldBauble := probe.IsBauble()
 		if next, ok := sellFindItemInChar(char, itemName); ok {
+			soldBauble = next.IsBauble()
 			soldName = next.GetSpec().Name
+			// Each bauble goes to the best offer for it, which is not
+			// always the merchant who took the one before (a fence pays
+			// more for stolen goods only; a merchant runs out of gold).
+			// A real item after a bauble gets its own merchant too, not
+			// the bauble's buyer; until then real items keep the probe's.
+			if out.Sold > 0 && (next.IsBauble() || baubleSold) {
+				if m, inv := resolveMerchant(room, next, seller.IsPlayer()); m != nil {
+					mob, shopInv = m, inv
+				} else if m, inv := firstMerchantInRoom(room); m != nil {
+					mob, shopInv = m, inv // says why nobody will buy it
+				}
+			}
 		}
 		value, res := sellOneToMerchant(seller, itemName, room, mob, shopInv, out.Sold == 0)
 		if res != SellStopSoldAll {
@@ -235,6 +246,7 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 		out.Sold++
 		out.TotalGold += value
 		out.LastItemName = soldName
+		baubleSold = baubleSold || soldBauble
 	}
 	return out
 }
@@ -250,7 +262,7 @@ func sellSweep(seller Actor, room *rooms.Room) SellResult {
 		if spec.ItemId < 1 || spec.QuestToken != "" || spec.Value <= 0 || spec.IsComponent {
 			continue
 		}
-		mob, shopInv := resolveMerchant(room, itm)
+		mob, shopInv := resolveMerchant(room, itm, seller.IsPlayer())
 		if mob == nil {
 			continue
 		}

@@ -228,3 +228,63 @@ func TestRealItemsBeatBaubles(t *testing.T) {
 		t.Fatalf("its keyword is a full match, got %+v", got)
 	}
 }
+
+// A real item beats a bauble only on an equal or stronger match (owner
+// review): a bauble named by a whole word beats a real item the word only
+// starts ("button" for a Buttoned Leather Vest) or sits inside, in either
+// list order; a real item named by a whole word too still wins the tie.
+// With no bauble among the matches, list order decides as it always has.
+func TestARealItemWinsOnlyOnAnEqualOrStrongerMatch(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`, Type: Object, Weight: 0.2, Value: 1},
+		7101:         {ItemId: 7101, Name: `Buttoned Leather Vest`, NameSimple: `vest`, Type: Object, Value: 20},
+		7102:         {ItemId: 7102, Name: `Button Hook`, NameSimple: `hook`, Type: Object, Value: 5},
+		7103:         {ItemId: 7103, Name: `Rebuttoned Coat`, NameSimple: `coat`, Type: Object, Value: 20},
+	})
+	t.Cleanup(func() { restore(); SetBaubleResolver(nil) })
+	SetBaubleResolver(testBaubleResolver(map[string]BaubleView{
+		// Keywords are kept off words real items use, so neither bauble's
+		// keyword is the word typed: they match "button" by name only.
+		`B1`: {Name: `Tarnished Copper Button`, NameSimple: `copper`, Value: 3},
+		`B2`: {Name: `Buttonwood Charm`, NameSimple: `charm`, Value: 3},
+	}))
+	button := New(BaubleItemId)
+	button.Bauble = `B1`
+	charm := New(BaubleItemId)
+	charm.Bauble = `B2`
+	vest, hook, coat := New(7101), New(7102), New(7103)
+
+	pick := func(input string, list ...Item) Item {
+		part, full := FindMatchIn(input, list...)
+		if full.ItemId != 0 {
+			return full
+		}
+		return part
+	}
+
+	if got := pick(`butt`, vest, button); got.Bauble != `` {
+		t.Fatalf("both only start a word: the real item wins the tie, got %+v", got)
+	}
+	if got := pick(`copper`, vest, button); got.Bauble != `B1` {
+		t.Fatalf("its keyword is a full match, got %+v", got)
+	}
+	for _, list := range [][]Item{{vest, button}, {button, vest}} {
+		if got := pick(`button`, list...); got.Bauble != `B1` {
+			t.Fatalf("a whole word beats a word the name only starts (order %v), got %+v", list[0].ItemId, got)
+		}
+	}
+	for _, list := range [][]Item{{hook, button}, {button, hook}} {
+		if got := pick(`button`, list...); got.ItemId != 7102 {
+			t.Fatalf("a real item named by a whole word too wins the tie, got %+v", got)
+		}
+	}
+	if got := pick(`button`, coat, charm); got.Bauble != `B2` {
+		t.Fatalf("a bauble the word starts beats a real item it only sits inside, got %+v", got)
+	}
+	if got := pick(`2.button`, button, vest); got.ItemId != 7101 {
+		t.Fatalf("an explicit N. keeps list order, got %+v", got)
+	}
+	if got := pick(`butt`, vest, hook); got.ItemId != 7101 {
+		t.Fatalf("no bauble among the matches: list order as before, got %+v", got)
+	}
+}

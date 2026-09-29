@@ -12,9 +12,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/shops"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/perception"
+	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -158,25 +162,13 @@ func TestStolenBauble_SoldToTheBestOfferInTheRoom(t *testing.T) {
 	defer seedSellMerchant(t, 1000)()
 	pinStolenClock(t, stolenTestNow)
 
-	const fenceInstId = 302
-	fence := &mobs.Mob{MobId: 3, InstanceId: fenceInstId, HomeRoomId: 1, Zone: "TestZone", Groups: []string{`fence`}}
-	fence.Character.Name = "Siv"
-	fence.Character.RoomId = 1
-	fence.Character.Gold = 1000
-	fence.Character.Conditions = conditions.New()
-	fence.Character.Shop = characters.Shop{{ItemId: sellTestItemId, Price: 100}} // a merchant: Siv keeps a shop
-	mobs.SetInstanceForTest(fenceInstId, fence)
+	fence := seedFence(t, 1000)
 	room := rooms.LoadRoom(1)
-	room.AddMob(fenceInstId)
-	t.Cleanup(func() {
-		room.RemoveMob(fenceInstId)
-		mobs.SetInstanceForTest(fenceInstId, nil)
-	})
 
 	cold := stolenBauble(t, "Bone Dice", "dice", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))
-	m, _ := resolveMerchant(room, cold)
+	m, _ := resolveMerchant(room, cold, true)
 	require.NotNil(t, m)
-	assert.Equal(t, fenceInstId, m.InstanceId, "the fence pays 8 against the merchant's 6")
+	assert.Equal(t, fence.InstanceId, m.InstanceId, "the fence pays 8 against the merchant's 6")
 
 	seller := newSellerActor(t, true)
 	char := seller.GetCharacter()
@@ -211,9 +203,9 @@ func TestStolenBauble_HotOnlyWhereItWasStolen(t *testing.T) {
 	// Picking a merchant for a sale reads the room's zone too: nobody here
 	// will take one hot here, and the honest merchant takes one hot elsewhere.
 	room := rooms.LoadRoom(1)
-	m, _ := resolveMerchant(room, steal("Test Docks"))
+	m, _ := resolveMerchant(room, steal("Test Docks"), true)
 	assert.Nil(t, m, "no willing merchant for a bauble hot here")
-	m, _ = resolveMerchant(room, steal("Greenford"))
+	m, _ = resolveMerchant(room, steal("Greenford"), true)
 	assert.NotNil(t, m)
 
 	seller := newSellerActor(t, true)
@@ -328,6 +320,17 @@ func TestStolenBauble_NoRecognitionWithoutCause(t *testing.T) {
 			require.NoError(t, merchantInstance().Character.AddCondition(sleepConditionId, true))
 			return stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
 		},
+		"owner blinded": func(t *testing.T, h *recognitionHarness) items.Item {
+			owner := &merchantInstance().Character
+			owner.Perception = characters.New().Perception
+			require.NoError(t, owner.Perception.TransitionTo(perception.Blinded, state.TransitionReason{Trigger: "test"}))
+			return stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
+		},
+		"a dark room": func(t *testing.T, h *recognitionHarness) items.Item {
+			h.room.SkyLight, h.room.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(0)
+			require.Equal(t, messaging.SightNone, messaging.ParticipantSight(&merchantInstance().Character, h.room), "fixture: pitch dark")
+			return stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
+		},
 		"owner moved on": func(t *testing.T, h *recognitionHarness) items.Item {
 			merchantInstance().Character.RoomId = 2
 			return stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
@@ -358,6 +361,19 @@ func TestStolenBauble_NoRecognitionWithoutCause(t *testing.T) {
 			assert.False(t, rec.RecognizedSinceTheft())
 		})
 	}
+}
+
+// In dim light an owner who sees only shapes still knows its own bauble on
+// a figure (the crime is then recorded against an unknown perpetrator by
+// thiefCaught's witness count, like any theft seen only as shapes).
+func TestStolenBauble_RecognisedInDimLight(t *testing.T) {
+	h := setupRecognition(t, true)
+	h.room.SkyLight, h.room.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(30)
+	require.Equal(t, messaging.SightShapes, messaging.ParticipantSight(&merchantInstance().Character, h.room), "fixture: shapes only")
+	it := stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
+	require.True(t, h.thief.GetCharacter().StoreItem(it))
+	recognizeIn(h.room, 1, 0)
+	assert.Len(t, h.caught, 1)
 }
 
 // A household's bauble taken with nobody watching belongs to the whole
@@ -444,7 +460,8 @@ func TestReturnShare_ThreeReturnsEqualOneCatch(t *testing.T) {
 type returnHarness struct {
 	giver   Actor
 	bumps   []int
-	catches int // theft crimes naming the thief in the faction's log
+	catches int    // open theft crimes naming the thief in the faction's log
+	since   uint64 // the round of the oldest of them
 }
 
 func setupReturns(t *testing.T) *returnHarness {
@@ -459,10 +476,10 @@ func setupReturns(t *testing.T) *returnHarness {
 	h := &returnHarness{giver: newSellerActor(t, true), catches: 1}
 	origFactions, origBump, origCatches := ownerFactions, returnRepBump, theftCatches
 	ownerFactions = func(*mobs.Mob) []string { return []string{`thornwall_citizens`} }
-	theftCatches = func(userId int, faction string) int {
+	theftCatches = func(userId int, faction string) (int, uint64) {
 		assert.Equal(t, 1, userId)
 		assert.Equal(t, `thornwall_citizens`, faction)
-		return h.catches
+		return h.catches, h.since
 	}
 	returnRepBump = func(fid string, userId int, delta int) {
 		assert.Equal(t, `thornwall_citizens`, fid)
@@ -539,6 +556,32 @@ func TestStolenBauble_ReturnsCannotFarmReputation(t *testing.T) {
 	assert.False(t, StolenBaubleGiven(h.giver, merchantInstance(), items.New(sellTestItemId)), "not a bauble")
 }
 
+// Returns are counted over the same stretch as the catches: a thief whose
+// three returns earned back an old catch, who then served a sentence (the
+// catch resolved) and was caught again, earns back the new catch in full.
+func TestStolenBauble_ReturnsCountSinceTheOldestOpenCatch(t *testing.T) {
+	h := setupReturns(t)
+	pinStolenClock(t, stolenTestNow)
+	origRound := util.GetRoundCount()
+	t.Cleanup(func() { util.SetRoundCountForTest(origRound) })
+
+	give := func(round uint64) {
+		util.SetRoundCountForTest(round)
+		it := stolenBauble(t, "Glass Marble", "marble", 4, 2, 1, stolenTestNow.Add(-time.Hour))
+		require.True(t, StolenBaubleGiven(h.giver, merchantInstance(), it))
+	}
+	h.catches, h.since = 1, 100
+	for r := uint64(110); r < 140; r += 10 {
+		give(r)
+	}
+	give(150)
+	assert.Equal(t, []int{1, 2, 2}, h.bumps, "the first catch earned back; nothing more")
+
+	h.catches, h.since = 1, 500 // served, then caught again
+	give(510)
+	assert.Equal(t, []int{1, 2, 2, 1}, h.bumps, "the new catch starts afresh")
+}
+
 // A return that earns nothing (a catch of 1 split in thirds pays 0, 0, 1)
 // still counts, so the remainder lands on a later return.
 func TestStolenBauble_AReturnWorthNothingStillCounts(t *testing.T) {
@@ -589,7 +632,13 @@ func TestIdentifiedTheftCatchesReadsTheCrimesLog(t *testing.T) {
 	record := func(kind crimes.Kind, perp crimes.Perpetrator) []int {
 		return crimes.Record([]string{fid}, kind, perp, victim, 301, 1, "TestZone", false)
 	}
+	origRound := util.GetRoundCount()
+	t.Cleanup(func() { util.SetRoundCountForTest(origRound) })
+	util.SetRoundCountForTest(100)
 	resolved := record(crimes.KindTheft, me)
+	util.SetRoundCountForTest(200)
+	record(crimes.KindTheft, me)
+	util.SetRoundCountForTest(300)
 	record(crimes.KindTheft, me)
 	record(crimes.KindTheft, crimes.Perpetrator{Type: crimes.PerpPlayer, Id: 42})
 	record(crimes.KindAssault, me)
@@ -597,20 +646,28 @@ func TestIdentifiedTheftCatchesReadsTheCrimesLog(t *testing.T) {
 	require.Len(t, resolved, 1)
 	crimes.Resolve(fid, resolved[0], "stale")
 
-	assert.Equal(t, 1, identifiedTheftCatches(1, fid), "the open theft; a resolved one (served, or gone stale) no longer counts")
-	assert.Equal(t, 1, identifiedTheftCatches(42, fid))
-	assert.Equal(t, 0, identifiedTheftCatches(1, `another_guild`))
+	n, since := identifiedTheftCatches(1, fid)
+	assert.Equal(t, 2, n, "the open thefts; a resolved one (served, or gone stale) no longer counts")
+	assert.Equal(t, uint64(200), since, "the oldest OPEN catch sets the window")
+	n, _ = identifiedTheftCatches(42, fid)
+	assert.Equal(t, 1, n)
+	n, since = identifiedTheftCatches(1, `another_guild`)
+	assert.Equal(t, 0, n)
+	assert.Equal(t, uint64(0), since)
 }
 
-// seedStashFence puts a fence who keeps no shop (a go-between) in room 1,
-// with an empty purse.
-func seedStashFence(t *testing.T) *mobs.Mob {
+// seedFence puts a fence who keeps a legacy shop (as every fence does:
+// they are shopkeepers) in room 1 beside the merchant of seedSellMerchant,
+// with gold in its purse.
+func seedFence(t *testing.T, gold int) *mobs.Mob {
 	t.Helper()
-	const instId = 303
-	m := &mobs.Mob{MobId: 4, InstanceId: instId, HomeRoomId: 1, Zone: "TestZone", Groups: []string{`humanoid`, `fence`}}
-	m.Character.Name = "Sly Tam"
+	const instId = 302
+	m := &mobs.Mob{MobId: 3, InstanceId: instId, HomeRoomId: 1, Zone: "TestZone", Groups: []string{`fence`}}
+	m.Character.Name = "Siv"
 	m.Character.RoomId = 1
+	m.Character.Gold = gold
 	m.Character.Conditions = conditions.New()
+	m.Character.Shop = characters.Shop{{ItemId: sellTestItemId, Price: 100}}
 	mobs.SetInstanceForTest(instId, m)
 	room := rooms.LoadRoom(1)
 	room.AddMob(instId)
@@ -621,61 +678,110 @@ func seedStashFence(t *testing.T) *mobs.Mob {
 	return m
 }
 
-// A fence who keeps no shop buys baubles (and nothing else), paying from a
-// stash kept elsewhere: their own empty purse neither stops the sale nor is
-// drawn on.
-func TestStolenBauble_AFenceWithNoShopBuysFromAStash(t *testing.T) {
+// The best offer in the room is the best one the buyer can pay: a fence
+// with too little gold for its offer does not hide an honest merchant who
+// can pay less. A mob's sale draws on no merchant's gold, so for one the
+// fence is still the best offer.
+func TestStolenBauble_BestOfferSkipsABuyerWhoCannotPay(t *testing.T) {
 	seedBaubleSale(t)
 	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 1000)()
 	pinStolenClock(t, stolenTestNow)
-	tam := seedStashFence(t)
+	fence := seedFence(t, 5)
 	room := rooms.LoadRoom(1)
 
-	require.Equal(t, []int{303}, BaubleBuyersInRoom(room), "no merchant, one go-between")
-	seller := newSellerActor(t, true, sellTestItemId)
-	char := seller.GetCharacter()
-	require.True(t, char.StoreItem(stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenTestNow.Add(-time.Hour))))
-
-	res := Sell(seller, SellOptions{ItemName: "thimble", Quantity: 1})
-	require.Equal(t, 1, res.Sold, "res=%+v", res)
-	assert.Equal(t, 8, char.Gold, "60% of 12 from the stash")
-	assert.Equal(t, 0, tam.Character.Gold, "the go-between's own purse is untouched")
-
-	res = Sell(seller, SellOptions{ItemName: "iron sword", Quantity: 1})
-	assert.Equal(t, 0, res.Sold, "a go-between buys baubles only")
-	assert.Equal(t, SellStopNoMerchant, res.Reason)
-
-	// `sell all` finds the go-between too.
-	require.True(t, char.StoreItem(stolenBauble(t, "Bone Dice", "dice", 12, 99, 1, stolenTestNow.Add(-time.Hour))))
-	res = Sell(seller, SellOptions{SellAllSellable: true})
-	assert.Equal(t, 1, res.Sold, "sell all sells the bauble to the go-between")
-	assert.Equal(t, 16, char.Gold)
-}
-
-// Asleep, a go-between deals with nobody; and a refusal (here, a record the
-// catalog does not know) is spoken by them rather than "no merchant here".
-func TestStolenBauble_AGoBetweenAsleepOrRefusing(t *testing.T) {
-	seedBaubleSale(t)
-	defer seedSellRoom(t)()
-	pinStolenClock(t, stolenTestNow)
-	tam := seedStashFence(t)
-	room := rooms.LoadRoom(1)
+	cold := stolenBauble(t, "Bone Dice", "dice", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))
+	m, _ := resolveMerchant(room, cold, true)
+	require.NotNil(t, m)
+	assert.Equal(t, merchantInstance().InstanceId, m.InstanceId, "the fence offers 8 but has 5")
+	m, _ = resolveMerchant(room, cold, false)
+	require.NotNil(t, m)
+	assert.Equal(t, fence.InstanceId, m.InstanceId, "a mob seller is not paid from the fence's gold")
 
 	seller := newSellerActor(t, true)
-	orphan := items.New(items.BaubleItemId)
-	orphan.Bauble = "B9999999"
-	require.True(t, seller.GetCharacter().StoreItem(orphan))
-	res := Sell(seller, SellOptions{ItemName: "bauble", Quantity: 1})
-	assert.Equal(t, SellStopRejected, res.Reason, "the go-between refuses it themselves")
+	char := seller.GetCharacter()
+	require.True(t, char.StoreItem(cold))
+	res := Sell(seller, SellOptions{ItemName: "dice", Quantity: 1})
+	require.Equal(t, 1, res.Sold, "res=%+v", res)
+	assert.Equal(t, 6, char.Gold, "sold to the merchant who could pay")
+	assert.Equal(t, 5, fence.Character.Gold)
 
-	t.Cleanup(seedSleepCondition(t))
-	require.NoError(t, tam.Character.AddCondition(sleepConditionId, true))
-	assert.Empty(t, BaubleBuyersInRoom(room), "asleep, no deals")
+	// Nobody who can pay: the sale is refused, not made on credit.
+	merchantInstance().Character.Gold = 0
+	require.True(t, char.StoreItem(stolenBauble(t, "Pewter Dice", "dice", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))))
+	res = Sell(seller, SellOptions{ItemName: "dice", Quantity: 1})
+	assert.Equal(t, 0, res.Sold)
+	assert.Equal(t, SellStopMerchantBroke, res.Reason)
+}
+
+// Selling several baubles of one name, each goes to the best offer for
+// it: stolen goods to the fence, and once the fence runs short, the rest
+// to a merchant who can still pay.
+func TestStolenBauble_SellChoosesTheBuyerPerItem(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 1000)()
+	pinStolenClock(t, stolenTestNow)
+	fence := seedFence(t, 1000)
+
+	seller := newSellerActor(t, true)
+	char := seller.GetCharacter()
+	// An honest one first (6 from either; a tie goes to the merchant, who
+	// stands first), then a stolen one (8 from the fence, 6 elsewhere).
+	require.True(t, char.StoreItem(newBauble(t, "Painted Wooden Thimble", "thimble", 12, baubles.StatusReady)))
+	require.True(t, char.StoreItem(stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))))
+	res := Sell(seller, SellOptions{ItemName: "thimble", Quantity: 2})
+	require.Equal(t, 2, res.Sold, "res=%+v", res)
+	assert.Equal(t, 14, char.Gold, "6 for the honest one, 8 for the stolen one")
+	assert.Equal(t, 992, fence.Character.Gold, "the fence bought the stolen one")
+	assert.Equal(t, 994, merchantInstance().Character.Gold, "the merchant bought the honest one")
+
+	// The fence can pay for one stolen bauble; the second goes to the
+	// merchant rather than stopping the sale.
+	fence.Character.Gold = 8
+	char.Gold = 0
+	require.True(t, char.StoreItem(stolenBauble(t, "Bone Dice", "dice", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))))
+	require.True(t, char.StoreItem(stolenBauble(t, "Jade Dice", "dice", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))))
+	res = Sell(seller, SellOptions{ItemName: "dice", Quantity: 2})
+	require.Equal(t, 2, res.Sold, "res=%+v", res)
+	assert.Equal(t, 14, char.Gold, "8 from the fence, then 6 from the merchant")
+	assert.Equal(t, 0, fence.Character.Gold)
+}
+
+// A fence is a shopkeeper: with a living-economy shop it pays from the
+// shop's gold, like any shopkeeper, and its own purse is not touched.
+func TestStolenBauble_AFencePaysFromItsShopGold(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+	pinStolenClock(t, stolenTestNow)
+	merchantInstance().Groups = []string{`fence`}
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000, CraftSupport: shops.CraftSupportGeneral})
+
+	seller := newSellerActor(t, true)
+	char := seller.GetCharacter()
+	require.True(t, char.StoreItem(stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenTestNow.Add(-time.Hour))))
+	res := Sell(seller, SellOptions{ItemName: "thimble", Quantity: 1})
+	require.Equal(t, 1, res.Sold, "res=%+v", res)
+	assert.Equal(t, 8, char.Gold)
+	assert.Equal(t, 992, si.Gold, "paid from the shop's gold")
+	assert.Equal(t, 0, merchantInstance().Character.Gold, "the purse is not the till")
 }
 
 // Every town has a fence in it or a zone or two away (owner ruling,
-// 2026-09-28), and no fence is hostile. Read from the world's mob files
-// (a mob's folder is its zone), so moving or dropping a fence is caught.
+// 2026-09-28), and every fence is a non-hostile shopkeeper, non-combatant
+// unless a quest has players fight it (fightableFences). Read from the world's mob files (a mob's folder is its
+// zone), so moving or dropping a fence is caught.
+// fightableFences are the fences a quest has players fight, so they cannot
+// be non-combatant: Torvan Cresk carries the strongbox key of quest 14 (The
+// Undertow). Each keeps a small purse, so killing one pays little.
+var fightableFences = map[string]bool{`Torvan Cresk`: true}
+
 func TestEveryTownHasAFenceNearby(t *testing.T) {
 	// sourceDir (consider_no_progression_test.go), not a relative path:
 	// another test in this package changes the working directory.
@@ -703,6 +809,16 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 			}
 			hostile, _ := mob[`hostile`].(bool)
 			assert.False(t, hostile, "%s: a fence must be someone you can deal with", name)
+			// Every fence is a shopkeeper (owner ruling 14): it pays from
+			// persisted shop gold, and cannot be attacked or robbed of it.
+			nonCombatant, _ := mob[`non_combatant`].(bool)
+			if !fightableFences[name] {
+				assert.True(t, nonCombatant, "%s: a fence is non_combatant", name)
+			}
+			craft, _ := mob[`craft_support`].(string)
+			assert.NotEmpty(t, craft, "%s: a fence's shop has a craft_support", name)
+			shop, _ := mob[`character`].(map[interface{}]interface{})[`shop`].([]interface{})
+			assert.NotEmpty(t, shop, "%s: a fence keeps a shop", name)
 			zone := filepath.Base(filepath.Dir(f))
 			fencesIn[zone] = append(fencesIn[zone], name)
 		}
@@ -727,4 +843,28 @@ func TestEveryTownHasAFenceNearby(t *testing.T) {
 		}
 		assert.NotEmpty(t, found, "%s has no fence in or near it", town)
 	}
+}
+
+// A name matching a bauble and real items sells the real ones to the
+// merchant who would buy them, not to the fence that took the bauble.
+func TestStolenBauble_RealItemsKeepTheirBuyerAmongBaubles(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 1000)()
+	pinStolenClock(t, stolenTestNow)
+	fence := seedFence(t, 1000) // stocks iron swords too, so it would buy them
+
+	seller := newSellerActor(t, true)
+	char := seller.GetCharacter()
+	// Named exactly "Sword", the bauble is the strongest match, so it goes
+	// first (to the fence, stolen), then the two iron swords.
+	require.True(t, char.StoreItem(stolenBauble(t, "Sword", "sword", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))))
+	require.True(t, char.StoreItem(items.New(sellTestItemId)))
+	require.True(t, char.StoreItem(items.New(sellTestItemId)))
+
+	purse := merchantInstance().Character.Gold
+	res := Sell(seller, SellOptions{ItemName: "sword", Quantity: 3})
+	require.Equal(t, 3, res.Sold, "res=%+v", res)
+	assert.Equal(t, 992, fence.Character.Gold, "the fence bought the stolen bauble and nothing else")
+	assert.Less(t, merchantInstance().Character.Gold, purse, "the merchant bought the swords")
 }

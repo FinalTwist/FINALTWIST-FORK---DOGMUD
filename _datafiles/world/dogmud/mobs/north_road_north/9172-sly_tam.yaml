@@ -1,7 +1,9 @@
 mobid: 9172
 zone: North Road North
-behavior_archetype: thief
+craft_support: general
+behavior_archetype: noncombat_shopkeeper
 hostile: false
+non_combatant: true
 maxwander: 1
 statpool: 36
 itemdropchance: 40
@@ -40,7 +42,7 @@ character:
     he is gone before most people realize something is missing.
   speciesid: 1
   level: 1
-  gold: 18
+  gold: 1000
   stats:
     dexterity:
       base: 110
@@ -52,3 +54,14 @@ character:
       base: 102
   skills:
     skullduggery: 1
+  shop:
+    # A fence's counter goods (docs/baubles: fences are shopkeepers)
+    - itemid: 33       # iron lockpicks
+      quantity: 0
+      quantitymax: 0
+      price: 5
+    - itemid: 36       # basic disarm kit
+      quantity: 0
+      quantitymax: 0
+      price: 30
+    - itemid: 20096    # torch

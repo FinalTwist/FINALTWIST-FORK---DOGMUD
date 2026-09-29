@@ -172,8 +172,14 @@ func pocketBaubleAllowed(m *mobs.Mob) bool {
 }
 
 // markPocketStolen records a bauble taken from a mark's pocket, in room,
-// as stolen.
+// as stolen, unless a player gave it to the mark (baubles.Record.GivenTo).
 func markPocketStolen(it items.Item, userId int, room *rooms.Room, m *mobs.Mob) {
+	if rec, ok := baubles.Get(it.Bauble); ok && rec.GivenTo(int(m.MobId)) {
+		// A player gave it to this mob: taking it back is still a theft
+		// (the crime is the steal's), but the bauble is not the mark's own,
+		// so it does not become stolen goods (no fence premium, no heat).
+		return
+	}
 	theft := baubles.Theft{ByUserId: userId, RoomId: room.RoomId, Zone: room.Zone, FromMob: int(m.MobId), FromName: m.Character.Name}
 	if f := factions.FactionsForMob(m); len(f) > 0 {
 		theft.Faction = f[0]

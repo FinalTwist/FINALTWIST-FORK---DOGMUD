@@ -491,9 +491,8 @@ why (`storageSayStolen`); `add all` stores everything else. The Thornwall
 Bank's item vault is storage, so this is "the bank will not take it". The
 `add N` loop counts only deposits that happened. `give` hands a bauble
 given to a mob to `actions.StolenBaubleGiven`, which treats one given back
-to its owner as a return (docs/baubles Phase 6c). For a bauble, `offer`
-and `appraise` ask `actions.BaubleBuyersInRoom` rather than the room's
-merchants only, so a fence who keeps no shop answers too.
+to its owner as a return (docs/baubles Phase 6c), and marks any other
+bauble given to a mob as a gift (`baubles.MarkGiven`).
 
 ### Crafting: storage is part of the answer (`craft.go`)
 

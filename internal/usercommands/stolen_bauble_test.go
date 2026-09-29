@@ -1,13 +1,11 @@
 package usercommands
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/stretchr/testify/assert"
@@ -143,43 +141,4 @@ func TestGive_AStolenBaubleBackToItsOwnerIsAReturn(t *testing.T) {
 	rec, _ := baubles.Get(it.Bauble)
 	assert.False(t, rec.ReturnedAt.IsZero(), "recorded as returned")
 	assert.False(t, rec.Hot(time.Now()), "and cooled")
-}
-
-// `offer` and `appraise` reach a fence who keeps no shop, for baubles.
-func TestOfferAndAppraise_AGoBetweenFence(t *testing.T) {
-	cleanup := seedAllRegistries()
-	defer cleanup()
-	seedStolenCatalog(t)
-	user, room := getTestUserAndRoom(t)
-	user.Character.Stats.Strength.ValueAdj = 50
-
-	_, mobInstanceId := room.FindByName("skeleton")
-	require.NotZero(t, mobInstanceId)
-	fence := mobs.GetInstance(mobInstanceId)
-	require.False(t, fence.HasShop(), "fixture: the skeleton keeps no shop")
-	origGroups := fence.Groups
-	fence.Groups = []string{`fence`}
-	t.Cleanup(func() { fence.Groups = origGroups })
-
-	cmdTheftZone = room.Zone
-	t.Cleanup(func() { cmdTheftZone = `` })
-	it := cmdBauble(t, "Tarnished Brass Thimble", "thimble", 99, time.Now().Add(-time.Hour)) // value 4
-	require.True(t, user.Character.StoreItem(it))
-
-	// Room lines (a merchant speaking) carry no user id; the player's own
-	// lines carry theirs.
-	said := func() string {
-		return strings.Join(append(events.DrainQueuedMessagesForTest(0), events.DrainQueuedMessagesForTest(user.UserId)...), "\n")
-	}
-	said() // leftovers
-
-	_, err := Offer("thimble", user, room, 0)
-	require.NoError(t, err)
-	assert.Contains(t, said(), "3 gold", "the go-between offers 60% of 4, rounded up")
-
-	_, err = Appraise("thimble", user, room, 0)
-	require.NoError(t, err)
-	out := said()
-	assert.NotContains(t, out, "need to be at a merchant")
-	assert.Contains(t, out, "Tarnished Brass Thimble", "the go-between looks it over")
 }

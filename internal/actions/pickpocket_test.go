@@ -182,6 +182,56 @@ func TestPickpocketTakesTheBaubleTheMarkCarries(t *testing.T) {
 	}
 }
 
+// A bauble a player gave the mark is not the mark's own: picked back out of
+// its pocket, it is taken (the steal is still a steal) but does not become
+// stolen goods, so a fence pays no premium for it. A bauble stolen from
+// someone else before the gift stays that someone's stolen goods.
+func TestPickpocketTakesBackAGiftWithoutMakingItStolenGoods(t *testing.T) {
+	h := setupPocket(t, 9606, 7606)
+	h.room.Zone = "Ashwick"
+	h.mark.MobId = 77 // gifts are marked by mob id, as thefts are
+	pocketBaubleRoll = func(*rooms.Room) bool { return false }
+	mint := func(name string) items.Item {
+		itm, _, err := baubles.Mint(baubles.MintOpts{Tier: baubles.TierCheap, Source: baubles.SourceSearch,
+			Result: &baubles.GenResult{Reply: baubles.Reply{Name: name, NameSimple: "ring", Description: "A ring.", WeightLbs: 0.1, Value: 2}, Generator: baubles.GeneratorOpenAI}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return itm
+	}
+
+	gift := mint("Bent Copper Ring")
+	if StolenBaubleGiven(h.thief, h.mark, gift) {
+		t.Fatal("a gift is not a return")
+	}
+	intoPocket(h.mark, gift)
+	if res := startPocketAttempt(h.thief, h.mark, true); !res.Succeeded {
+		t.Fatalf("the steal succeeds: %+v", res)
+	}
+	if got, ok := h.baubleCarried(); !ok || got.Bauble != gift.Bauble {
+		t.Fatal("the gift is taken back")
+	}
+	if r, _ := baubles.Get(gift.Bauble); r.Stolen || r.StolenGoods() {
+		t.Fatalf("but it is not the mark's stolen goods: %+v", r)
+	}
+
+	// Stolen from another mob first, then given to this one: still the
+	// first owner's stolen goods after the pickpocket.
+	h.thief.char.Items = nil
+	loot := mint("Jade Ring")
+	if !baubles.MarkStolen(loot.Bauble, baubles.Theft{ByUserId: 7606, FromMob: 4242, Zone: "Ashwick"}, time.Now().Add(-time.Hour)) {
+		t.Fatal("fixture")
+	}
+	StolenBaubleGiven(h.thief, h.mark, loot)
+	intoPocket(h.mark, loot)
+	if res := startPocketAttempt(h.thief, h.mark, true); !res.Succeeded {
+		t.Fatalf("the steal succeeds: %+v", res)
+	}
+	if r, _ := baubles.Get(loot.Bauble); !r.StolenGoods() || r.StolenFromMob != 4242 {
+		t.Fatalf("still stolen from its first owner: %+v", r)
+	}
+}
+
 // A mark with no bauble turns one up when the roll says so: named from
 // the mark and the place (never the thief), pocket-sized, handed over with
 // the rest of the loot.

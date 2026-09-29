@@ -28,7 +28,16 @@ was stolen, and how its text was generated.
   id 1) loses to the copy in its own shard, and `Load` rewrites both shards
   so it ends up in its own only.
 - **catalog.go**: the in-memory catalog, write-through to disk, and the
-  resolver installed into `internal/items`.
+  resolver installed into `internal/items`. Disk writes (`persistShard`,
+  `persistMeta`) snapshot under the read lock and write outside it, ordered
+  by a separate write mutex, so `Get` never waits on the disk. A per-user
+  index of return credits backs `ReturnCredits`. `Prune(now)` drops records
+  gone (sold or vanished: `Record.goneAt`) longer than `KeepDuration()`
+  (`Balance.BaubleCatalogKeepDays`, 30, at least 7 because the sales stats
+  read a week), except any with a return credit; a retired record goes only once it too is
+  sold or vanished, since until then the bauble can still be in a pack. It runs at `Load` and at
+  every `SaveAll` and rewrites only the `catalog-*` shards, so
+  `corpus.promoted.yaml` survives.
 - **fallback.go**: `GenericTrinket`, what every find is when the model does
   not name it: "Trinket", a simple description, value and weight at random
   within the tier.
@@ -46,11 +55,15 @@ was stolen, and how its text was generated.
   zone, `StolenZone`: where it cannot be sold or stored), `HeatArea` (a
   zone's area: its `BaubleHeatAreas` group, else itself), `HeatDuration`,
   `ItemIsHotIn`, `Record.RecognizedSinceTheft`, `MarkRecognized`,
-  `MarkReturned` (cools it; the first credited return is kept for good),
-  `ReturnCredits` (a thief's credited returns per faction, which set the
-  next return's share and are capped by the catches it has cost them),
-  `Record.StolenGoods` (stolen and not given back since: what a fence pays
-  its premium for).
+  `MarkReturned` (cools it; the first credited return is kept for good,
+  with its game round in `ReturnCreditRound`), `ReturnCredits(userId,
+  faction, sinceRound)` (a thief's credited returns per faction since a
+  round, the oldest open catch's: they set the next return's share and are
+  capped by the catches it has cost them), `Record.StolenGoods` (stolen and
+  not given back since: what a fence pays its premium for), `MarkGiven`
+  and `Record.GivenTo` (a player gave it to a mob that does not own it,
+  `GivenToMob`; picked from that mob's pocket it is not the mob's stolen
+  goods; a theft clears it).
 - **admin.go**: `CatalogStats`, `Retire`, `Restore`, `Edit` (hand edits,
   checked like a model's answer), `ApplyRegenerated`, the prompt-preview
   seam (`SetPromptPreview`, `PreviewPrompt`) and `LooksLikeId`.
@@ -109,6 +122,8 @@ func Get(id string) (Record, bool)
 func Update(id string, change func(r *Record)) (Record, bool)
 func Count() int
 func Recent(n int) []Record
+func KeepDuration() time.Duration
+func Prune(now time.Time) int
 
 type Place struct{ RoomId int; Zone, Region, Biome string }
 func NewPlace(roomId int, zone string, region string, biome string) Place
@@ -129,8 +144,10 @@ func HeatArea(zone string) string
 func ItemIsHotIn(itm items.Item, zone string, now time.Time) bool
 func MarkRecognized(id string, byUserId int, at time.Time) bool
 func MarkReturned(id string, byUserId int, credited []string, at time.Time) bool
-func ReturnCredits(userId int, faction string) int
+func ReturnCredits(userId int, faction string, sinceRound uint64) int
 func (r Record) StolenGoods() bool
+func MarkGiven(id string, mobId int) bool
+func (r Record) GivenTo(mobId int) bool
 
 func CatalogStats() Stats
 func Retire(id string, admin string) error

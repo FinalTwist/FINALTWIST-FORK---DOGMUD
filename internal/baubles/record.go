@@ -88,6 +88,13 @@ type Record struct {
 	ReturnCreditUserId   int       `yaml:"return_credit_user_id,omitempty"`
 	ReturnCreditFactions []string  `yaml:"return_credit_factions,omitempty"`
 	ReturnCreditAt       time.Time `yaml:"return_credit_at,omitempty"`
+	ReturnCreditRound    uint64    `yaml:"return_credit_round,omitempty"` // the game round of that credit, to compare with crimes' rounds
+
+	// GivenToMob is the mob id a player last gave the bauble to, when that
+	// was not a return (MarkGiven). Picked from that mob's pocket, the
+	// bauble is not the mark's own, so it does not become stolen goods.
+	// A theft (MarkStolen) clears it.
+	GivenToMob int `yaml:"given_to_mob,omitempty"`
 
 	// Generation audit.
 	Generator     Generator `yaml:"generator"`

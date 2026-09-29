@@ -1,9 +1,11 @@
 mobid: 250
 zone: Marches Spur Road
+craft_support: general
 behavior_archetype: noncombat_questgiver
 statpool: 85
 itemdropchance: 0
 hostile: false
+non_combatant: true
 charm_immune: true
 maxwander: 0
 groups:
@@ -37,7 +39,7 @@ character:
     no one. He has been camped here longer than he planned.
   speciesid: 1
   level: 1
-  gold: 50
+  gold: 2000
   stats:
     perception:
       base: 108
@@ -45,3 +47,14 @@ character:
       base: 106
     willpower:
       base: 104
+  shop:
+    # A fence's counter goods (docs/baubles: fences are shopkeepers)
+    - itemid: 33       # iron lockpicks
+      quantity: 0
+      quantitymax: 0
+      price: 5
+    - itemid: 36       # basic disarm kit
+      quantity: 0
+      quantitymax: 0
+      price: 30
+    - itemid: 20096    # torch

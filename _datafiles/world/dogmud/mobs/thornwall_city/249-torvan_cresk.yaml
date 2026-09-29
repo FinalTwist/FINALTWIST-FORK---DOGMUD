@@ -1,5 +1,6 @@
 mobid: 249
 zone: Thornwall City
+craft_support: general
 archetype: fighting
 behavior_archetype: noncombat_questgiver
 statpool: 80
@@ -60,3 +61,17 @@ character:
   items:
     - itemid: 10023
     - itemid: 40034
+  # Torvan stays fightable: quest 14 (The Undertow) has players take the
+  # strongbox key from him. His purse stays small, so killing him pays
+  # little; his shop's gold (seeded at the 500 floor) is not on his body.
+  shop:
+    # A fence's counter goods (docs/baubles: fences are shopkeepers)
+    - itemid: 33       # iron lockpicks
+      quantity: 0
+      quantitymax: 0
+      price: 5
+    - itemid: 36       # basic disarm kit
+      quantity: 0
+      quantitymax: 0
+      price: 30
+    - itemid: 20096    # torch

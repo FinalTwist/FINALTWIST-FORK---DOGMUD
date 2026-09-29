@@ -618,7 +618,8 @@ func stealFromContainer(actor Actor, containerName string,
 // attacks. Shared by stealFromMob and taking a household's bauble
 // (household_bauble.go); the caller sends its own "caught" messages first.
 func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
-	actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
+	// Harmless if it fails (already revealed); combat_fire.go does the same.
+	_ = actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
 		Trigger: awareness.TriggerSkullduggeryFailed,
 	})
 
@@ -806,7 +807,7 @@ func stealHouseholdBauble(actor Actor, itm items.Item, attackerScore float64, ra
 		if spotterMob != nil && householdMember(spotterMob, room) {
 			householdCaught(actor, spotterMob, room)
 		} else {
-			actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
+			_ = actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
 				Trigger: awareness.TriggerSkullduggeryFailed,
 			})
 		}

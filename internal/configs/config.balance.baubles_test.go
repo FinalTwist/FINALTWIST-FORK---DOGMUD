@@ -26,7 +26,7 @@ func TestBaubleDefaults(t *testing.T) {
 	if b.BaublePickpocketTierWeightCheap != 50 || b.BaublePickpocketTierWeightAverage != 40 || b.BaublePickpocketTierWeightRare != 10 {
 		t.Fatal("pickpocket tier weight defaults")
 	}
-	if b.BaubleStolenHeatHours != 72 || b.BaubleFenceBuyPct != 60 || b.BaubleReturnsPerCatch != 3 ||
+	if b.BaubleStolenHeatHours != 72 || b.BaubleFenceBuyPct != 60 || b.BaubleReturnsPerCatch != 3 || b.BaubleCatalogKeepDays != 30 ||
 		len(b.BaubleHeatAreas[`New Plymouth`]) != 8 ||
 		!reflect.DeepEqual([]string(b.BaubleFenceGroups), []string{`fence`}) {
 		t.Fatalf("stolen bauble defaults: heat %d fence %d%% %v returns %d",
@@ -192,6 +192,7 @@ func TestBaubleShippedConfigMatchesDefaults(t *testing.T) {
 		shipped.BaubleFenceBuyPct != defaults.BaubleFenceBuyPct ||
 		!reflect.DeepEqual(shipped.BaubleFenceGroups, defaults.BaubleFenceGroups) ||
 		shipped.BaubleReturnsPerCatch != defaults.BaubleReturnsPerCatch ||
+		shipped.BaubleCatalogKeepDays != defaults.BaubleCatalogKeepDays ||
 		shipped.BaubleCheapMinValue != defaults.BaubleCheapMinValue ||
 		shipped.BaubleCheapMaxValue != defaults.BaubleCheapMaxValue ||
 		shipped.BaubleAverageMinValue != defaults.BaubleAverageMinValue ||

@@ -832,25 +832,80 @@ catch.
 
   | Town | Fence | Where | Shop |
   |---|---|---|---|
-  | Thornwall City | Fence Dealer Siv (104), Torvan Cresk (249) | in the city | Siv yes, Torvan no |
-  | New Plymouth | Ysolde (9323) | Common, in the city | no |
-  | New Plymouth, Kilnreach Works | Mother Coyle (9213), A Market Hawker (9209), A River-Road Smuggler (9215) | the Outskirts, next to both | Coyle and the Hawker yes |
-  | Stillwater | Sly Tam (9172) | North Road North, next door | no |
+  | Thornwall City | Fence Dealer Siv (104), Torvan Cresk (249) | in the city | yes |
+  | New Plymouth | Ysolde (9323) | Common, in the city | yes |
+  | New Plymouth, Kilnreach Works | Mother Coyle (9213), A Market Hawker (9209), A River-Road Smuggler (9215) | the Outskirts, next to both | yes |
+  | Stillwater | Sly Tam (9172) | North Road North, next door | yes |
   | Hartcharn | Wick Orrel (9185), of the Tap and Trough | in town | yes |
   | The Confluence, Greenford | Varro the Importer (9428) | the Confluence; Greenford two zones away | yes |
-  | Ashwick, Watchers Crossing | Peddler Malk (250) | Marches Spur Road, next to both | no |
+  | Ashwick, Watchers Crossing | Peddler Malk (250) | Marches Spur Road, next to both | yes |
   | Pothole Coulee | Thornwall City's fences | two zones away | |
 
   The Tri-Rivers towns (Greenford, the Confluence) had no shady character
   at all; Varro, an importer on the quay, was the closest fit.
-- **Go-betweens.** A fence who keeps no shop (Torvan, Ysolde, the
-  Smuggler, Tam, Malk) buys baubles only, and pays from a stash kept
-  elsewhere: their own purse (18 to 80 gold) is neither needed nor drawn
-  down. Raising their purses instead would have made them gold worth
-  killing (several can be fought), respawning. `BaubleBuyersInRoom` finds
-  them (awake, alive, nobody's companion) for sales, `sell all`, `offer`
-  and `appraise`. A fence who keeps a shop pays from their own purse, as
-  before.
+- **Every fence keeps a shop** (owner ruling 14, 2026-09-28, replacing the
+  first cut's stash-paying go-betweens). Torvan, Ysolde, the Smuggler, Tam
+  and Malk each have a `shop:` block (lockpicks, a disarm kit, torches) and
+  `craft_support: general`, like Siv, and pay from persisted shop gold with
+  the normal restock. All but Torvan are `non_combatant: true`, so they
+  cannot be attacked or robbed. Shop gold: Malk 2000; Ysolde, the Smuggler
+  and Tam 1000. Two departures from the ruling, for reasons found in the
+  world files:
+  - Torvan stays fightable: quest 14 (The Undertow) has players fight him
+    for the strongbox key, and a non-combatant cannot be attacked or stolen
+    from, so the quest could not be finished. His purse stays 75 gold, so
+    his shop seeds at the 500 floor and killing him pays little.
+  - Tam's `behavior_archetype` goes from `thief` to `noncombat_shopkeeper`:
+    a thief archetype picks players' pockets, and a non-combatant one could
+    do it with no answer (no attack, no stealing back).
+
+  `TestEveryTownHasAFenceNearby` checks every fence has a shop and a
+  `craft_support`, and is `non_combatant` unless listed in
+  `fightableFences`. Resale of bought baubles is slice D (the owner's), not
+  here.
+
+### Phase 6d: The owner's fix round on PR #175 (written)
+
+The owner's review list, less items 2, 4, 6 and 8 (the owner's to do).
+
+- **Lint (1).** The two `TransitionToRevealing` results in `steal.go` are
+  discarded with `_ =`.
+- **Catalog pruning and locking (3).** `baubles.Prune(now)` removes sold or
+  vanished records older than `KeepDuration()`
+  (`Balance.BaubleCatalogKeepDays`, 30, at least 7 since the sales stats
+  read a week) and keeps any with a return credit (`ReturnCreditAt`), which
+  the credit window still counts. A retired record is pruned only once it
+  too is sold or vanished: until then the bauble may still be in a
+  player's pack. Prune runs at load and at every
+  `SaveAll`, and rewrites only the `catalog-*` shards, so the corpus
+  overlay survives. Shard and meta writes happen outside the lock
+  `Get` takes (a separate write mutex orders them), so a read never waits
+  on the disk. `ReturnCredits` reads a per-user index instead of scanning
+  the catalog.
+- **Matching (5).** `items.FindMatchIn` ranks candidates by match strength
+  (exact name, whole words, word start, substring); a real item beats a
+  bauble only on an equal or stronger match, so `button` finds the
+  Tarnished Copper Button over the Buttoned Leather Vest.
+- **Search skill (7).** `BaubleSkillFactor` reuses
+  `combat.SkillMultiplier`, rescaled to 0..1.
+- **Recognition sight (9).** An owner who cannot make out shapes
+  (`messaging.CanSeeShapes`: blind, or a dark room) recognises nothing; one
+  who sees only shapes recognises the bauble but names nobody ("a
+  figure"), following the witnessing tiers.
+- **Return window (10).** A return earns credit only against catches still
+  open, and only returns made since the oldest of them count
+  (`Record.ReturnCreditRound`, compared with the crimes' rounds).
+- **Best offer (11).** A bauble goes to the best offer the merchant can
+  actually pay (shop gold, or purse for a legacy merchant); `sell N` picks
+  the buyer again for each bauble.
+- **Gifts (12).** A bauble a player gives a mob that does not own it is
+  marked (`Record.GivenToMob`, `baubles.MarkGiven`); picked back out of
+  that mob's pocket it is not the mob's stolen goods, so no fence premium
+  and no heat. A theft clears the mark.
+- **Fences are shopkeepers (13).** See the roster above (Torvan and Tam
+  are explained there). The stash code
+  (`stashFence`, `BaubleBuyersInRoom`) is gone; bauble sales, `offer` and
+  `appraise` ask the room's merchants only.
 
 ### Phase 7: Optional
 

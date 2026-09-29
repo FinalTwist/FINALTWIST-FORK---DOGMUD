@@ -173,3 +173,56 @@ func sameWord(typedWord string, nameWord string) bool {
 func startsWord(typedWord string, nameWord string) bool {
 	return strings.HasPrefix(nameWord, typedWord)
 }
+
+// matchStrength ranks how well input names i, to choose between a bauble
+// and a real item that both match (FindMatchIn): 4 an exact name or
+// keyword; 3 every typed word a whole word of the name, in order; 2 every
+// typed word the start of a word; 1 the name merely contains it; 0 no match.
+// It reads the same name variants NameMatch does.
+func matchStrength(i *Item, input string) int {
+	part, full := i.NameMatch(input, true)
+	if full {
+		return 4
+	}
+	if !part {
+		return 0
+	}
+	in := util.NormalizeForMatch(input)
+	names := []string{util.NormalizeForMatch(i.Name()), util.NormalizeForMatch(i.NameSimple()), withoutPossessives(i.Name())}
+	if len(i.Adjectives) > 0 {
+		names = append(names, util.NormalizeForMatch(strings.Join(i.Adjectives, " ")+" "+i.NameSimple()))
+	}
+	wordPart, wordFull := baubleWordMatch(in, names...)
+	switch {
+	case wordFull:
+		return 3
+	case wordPart:
+		return 2
+	}
+	return 1
+}
+
+// strongestWithBauble picks, among items that input matches at all, the
+// strongest match (matchStrength); on a tie a real item beats a bauble,
+// then list order. ok is false when no bauble matches, so the caller keeps
+// its own choice.
+func strongestWithBauble(input string, items []Item) (best Item, ok bool) {
+	bestStrength := 0
+	for idx := range items {
+		i := items[idx]
+		st := matchStrength(&i, input)
+		if st == 0 {
+			continue
+		}
+		if i.IsBauble() {
+			ok = true
+		}
+		switch {
+		case st > bestStrength:
+			best, bestStrength = i, st
+		case st == bestStrength && best.IsBauble() && !i.IsBauble():
+			best = i
+		}
+	}
+	return best, ok
+}

@@ -148,48 +148,39 @@ func baubleOfferFor(item items.Item, shopInv *shops.ShopInventory, fence bool, z
 	return BaubleOffer{Price: price}
 }
 
-// stashFence reports whether mob is a fence who keeps no shop: a
-// go-between (a smuggler, a back-alley contact, a peddler) who buys baubles
-// and nothing else, paying from a stash kept elsewhere.
-func stashFence(mob *mobs.Mob) bool {
-	return mob != nil && !mob.HasShop() && IsFence(mob)
-}
-
-// BaubleBuyersInRoom lists the mobs in room a bauble can be offered to:
-// every merchant, and every fence who keeps no shop (stashFence) and is in a
-// state to deal (alive, awake, nobody's companion). Merchants come first.
-func BaubleBuyersInRoom(room *rooms.Room) []int {
-	ids := append([]int(nil), room.GetMobs(rooms.FindMerchant)...)
-	for _, id := range room.GetMobs() {
-		m := mobs.GetInstance(id)
-		if m == nil || !stashFence(m) {
-			continue
-		}
-		if m.Character.IsDead() || m.Character.IsCharmed() || TargetAsleep(&m.Character) {
-			continue
-		}
-		ids = append(ids, id)
+// baubleMerchantGold is the gold a merchant has to pay a player with: its
+// living-economy shop's gold, or its own purse for a legacy merchant. The
+// sale draws down the same gold (sellBaubleToMerchant).
+func baubleMerchantGold(mob *mobs.Mob, shopInv *shops.ShopInventory) int {
+	if shopInv != nil {
+		return shopInv.Gold
 	}
-	return ids
+	return mob.Character.Gold
 }
 
-// bestBaubleMerchant is resolveMerchant for a bauble: the buyer in the room
-// (BaubleBuyersInRoom) paying the most for it (a fence over an honest
-// merchant for stolen goods), or nil when none will buy it. Ties go to the
-// first.
-func bestBaubleMerchant(room *rooms.Room, probe items.Item) (*mobs.Mob, *shops.ShopInventory) {
+// bestBaubleMerchant is resolveMerchant for a bauble: the merchant in the
+// room paying the most for it (a fence over an honest merchant for stolen
+// goods), or nil when none will buy it. For a player's sale (playerSale) a
+// merchant who cannot pay its offer is skipped, so a broke fence does not
+// hide an honest merchant who can. Ties go to the first.
+func bestBaubleMerchant(room *rooms.Room, probe items.Item, playerSale bool) (*mobs.Mob, *shops.ShopInventory) {
 	var best *mobs.Mob
 	var bestInv *shops.ShopInventory
 	bestPrice := 0
-	for _, mobId := range BaubleBuyersInRoom(room) {
+	for _, mobId := range room.GetMobs(rooms.FindMerchant) {
 		mob := mobs.GetInstance(mobId)
 		if mob == nil {
 			continue
 		}
 		shopInv := shops.GetShopInventory(mob.Zone, int(mob.MobId), mob.HomeRoomId)
-		if price := baubleOfferFor(probe, shopInv, IsFence(mob), room.Zone).Price; price > bestPrice {
-			best, bestInv, bestPrice = mob, shopInv, price
+		price := baubleOfferFor(probe, shopInv, IsFence(mob), room.Zone).Price
+		if price <= bestPrice {
+			continue
 		}
+		if playerSale && baubleMerchantGold(mob, shopInv) < price {
+			continue
+		}
+		best, bestInv, bestPrice = mob, shopInv, price
 	}
 	return best, bestInv
 }
@@ -232,15 +223,10 @@ func sellBaubleToMerchant(seller Actor, item items.Item, room *rooms.Room,
 	sellValue := offer.Price
 
 	// Gold-model gate, exactly as for every other item: only players are
-	// constrained by, and draw down, the merchant's gold. A fence who keeps
-	// no shop (a go-between: stashFence) pays from a stash kept elsewhere,
-	// so their own purse is neither needed nor drawn down, and killing one
-	// never pays out what a fence is worth.
-	if seller.IsPlayer() && !stashFence(mob) {
-		merchantGold := mob.Character.Gold
-		if shopInv != nil {
-			merchantGold = shopInv.Gold
-		}
+	// constrained by, and draw down, the merchant's gold. A fence is a
+	// shopkeeper like any other and pays from its shop's gold.
+	if seller.IsPlayer() {
+		merchantGold := baubleMerchantGold(mob, shopInv)
 		if merchantGold < sellValue {
 			merchantSay(room, mob, baubleSayCantAfford)
 			return 0, SellStopMerchantBroke

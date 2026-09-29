@@ -357,11 +357,17 @@ plain carrier ("Curious Trinket").
   in front are dropped; hyphens split words; `dol` or `sm doll` match too;
   `doll small` (wrong order) is none. A bauble is a FULL match only for its
   exact name or the generic keywords, like any item, so it never outranks a
-  real item named in full. And `FindMatchIn`, with no `N.` given, prefers a
-  real item to a bauble among full, partial and contains matches: with a
-  "Round Shield" and a bauble "Shield-Maiden's Brooch", `get shield` takes
-  the shield, and a real "Brass Lantern" beats a bauble of the same name.
-  `N.name` above 1 keeps plain list order. `AuthoredKeyword(word)` (in
+  real item named in full. `FindMatchIn`, with no `N.` given, prefers a real
+  item to a bauble among full matches (a real "Brass Lantern" beats a bauble
+  of the same name). Short of a full match, when a bauble is among the
+  matches the strongest match wins (`matchStrength`: 4 exact, 3 whole
+  words, 2 the start of words, 1 merely contained) and a real item wins
+  only on an equal or stronger match (`strongestWithBauble`): with a "Round
+  Shield" and a bauble "Shield-Maiden's Brooch", `get shield` takes the
+  shield (a whole word in both), but with a "Buttoned Leather Vest" and a
+  bauble "Tarnished Copper Button", `sell button` sells the button (a whole
+  word beats the start of one). A list with no bauble among its matches is
+  chosen exactly as before; `N.name` above 1 keeps plain list order. `AuthoredKeyword(word)` (in
   itemspec.go) is whether a loaded item answers to a word, as its keyword or
   any word of its name: `internal/baubles` keeps bauble keywords off those. It reads
   a snapshot (`authoredWords`, an atomic pointer) that every writer of the

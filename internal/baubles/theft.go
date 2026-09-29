@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // The catalog's side of a bauble's life after it is found: taken from a
@@ -38,11 +39,25 @@ func MarkStolen(id string, t Theft, at time.Time) bool {
 		r.StolenFaction = t.Faction
 		r.StolenAt = at.UTC()
 		r.StolenZone = t.Zone
+		r.GivenToMob = 0
 	})
 	if ok {
 		mudlog.Info(`baubles`, `action`, `stolen`, `id`, id, `byUserId`, t.ByUserId, `roomId`, t.RoomId, `fromMob`, t.FromMob)
 	}
 	return ok
+}
+
+// MarkGiven records that a player gave the bauble to a mob (by mob id)
+// that does not own it. It returns false when there is no such record.
+func MarkGiven(id string, mobId int) bool {
+	_, ok := Update(id, func(r *Record) { r.GivenToMob = mobId })
+	return ok
+}
+
+// GivenTo reports whether the bauble was given to the mob mobId by a
+// player and not stolen since: it is not that mob's own.
+func (r Record) GivenTo(mobId int) bool {
+	return mobId > 0 && r.GivenToMob == mobId
 }
 
 // MarkHousehold records that a find was left in the room because it belongs
@@ -155,6 +170,7 @@ func MarkReturned(id string, byUserId int, credited []string, at time.Time) bool
 			r.ReturnCreditUserId = byUserId
 			r.ReturnCreditFactions = append([]string(nil), credited...)
 			r.ReturnCreditAt = at.UTC()
+			r.ReturnCreditRound = util.GetRoundCount()
 		}
 	})
 	if ok {
@@ -164,15 +180,23 @@ func MarkReturned(id string, byUserId int, credited []string, at time.Time) bool
 }
 
 // ReturnCredits counts the returns that have earned userId reputation with
-// faction. The count sets the next return's share of a catch
-// (actions.returnShare), so that every BaubleReturnsPerCatch returns earn
-// back exactly one catch, and caps it at what catches have cost.
-func ReturnCredits(userId int, faction string) int {
+// faction since game round sinceRound (the round of the oldest catch the
+// faction still holds against them, so returns and catches are counted over
+// the same stretch: a sentence served clears both). The count sets the next
+// return's share of a catch (actions.returnShare), so that every
+// BaubleReturnsPerCatch returns earn back exactly one catch, and caps it at
+// what open catches have cost. It reads only that thief's credited records,
+// through the catalog's index.
+func ReturnCredits(userId int, faction string, sinceRound uint64) int {
 	cat.mu.RLock()
 	defer cat.mu.RUnlock()
 	count := 0
-	for _, r := range cat.records {
-		if r.ReturnCreditUserId == userId && !r.ReturnCreditAt.IsZero() && slices.Contains(r.ReturnCreditFactions, faction) {
+	for id := range cat.credits[userId] {
+		r, ok := cat.records[id]
+		if !ok || r.ReturnCreditAt.IsZero() || r.ReturnCreditRound < sinceRound {
+			continue
+		}
+		if slices.Contains(r.ReturnCreditFactions, faction) {
 			count++
 		}
 	}

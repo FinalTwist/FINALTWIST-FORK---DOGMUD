@@ -18,12 +18,6 @@ import (
 func Appraise(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	merchantMobs := room.GetMobs(rooms.FindMerchant)
-	if rest != `` {
-		// A fence who keeps no shop looks a bauble over too.
-		if item, found := user.Character.FindInBackpack(rest); found && item.IsBauble() {
-			merchantMobs = actions.BaubleBuyersInRoom(room)
-		}
-	}
 	if len(merchantMobs) == 0 {
 		user.SendText(messaging.CategorySystem, `You need to be at a merchant to appraise items.`)
 		return true, nil

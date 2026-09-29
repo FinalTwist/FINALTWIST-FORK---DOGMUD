@@ -3,7 +3,6 @@ package actions
 import (
 	"context"
 	"fmt"
-	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -475,25 +475,21 @@ func householdFind(room *rooms.Room) bool {
 }
 
 // BaubleSkillFactor is how much a searcher's search skill raises their
-// bauble chance, from 0 (untrained) to 1 (at SkillSoftCap). It follows the
-// same curve as combat.SkillMultiplier, the square root of rank over the soft
-// cap, so early ranks count for the most. See baubles.ChanceFor.
+// bauble chance, from 0 (untrained) to 1 (at SkillSoftCap). It is
+// combat.SkillMultiplier's curve (the square root of rank over the soft cap,
+// so early ranks count for the most, with its own fallbacks), read as a
+// fraction of the way from SkillMultiplierBase to SkillMultiplierMax. See
+// baubles.ChanceFor.
 func BaubleSkillFactor(char *characters.Character) float64 {
 	if char == nil {
 		return 0
 	}
-	rank := float64(char.GetSkillLevel(skills.Search))
-	if rank <= 0 {
-		return 0
+	bal := configs.GetBalanceConfig()
+	base, top := float64(bal.SkillMultiplierBase), float64(bal.SkillMultiplierMax)
+	if top <= base {
+		return 0 // a flat curve: skill raises nothing
 	}
-	softCap := float64(configs.GetBalanceConfig().SkillSoftCap)
-	if softCap <= 0 {
-		softCap = 50
-	}
-	if rank > softCap {
-		rank = softCap
-	}
-	return math.Sqrt(rank / softCap)
+	return (combat.SkillMultiplier(char.GetSkillLevel(skills.Search)) - base) / (top - base)
 }
 
 // baubleRoomAllowed rules out the rooms that never offer baubles whatever

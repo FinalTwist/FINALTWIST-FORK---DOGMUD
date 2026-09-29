@@ -40,11 +40,7 @@ func Offer(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 	}
 
-	buyers := room.GetMobs(rooms.FindMerchant)
-	if item.IsBauble() {
-		buyers = actions.BaubleBuyersInRoom(room) // fences who keep no shop buy baubles too
-	}
-	for _, mobId := range buyers {
+	for _, mobId := range room.GetMobs(rooms.FindMerchant) {
 
 		mob := mobs.GetInstance(mobId)
 		if mob == nil {

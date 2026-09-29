@@ -1503,6 +1503,10 @@ Balance:
   BaubleFenceBuyPct: 60
   BaubleFenceGroups: [fence]
   BaubleReturnsPerCatch: 3
+  # A catalog record whose bauble was sold, or vanished untaken, is pruned
+  # this many REAL days later (at least 7; sales stats read the last week).
+  # Records that earned a thief return credit are always kept.
+  BaubleCatalogKeepDays: 30
   # The value ladder, in gold. Tiers must climb without touching; a broken
   # ladder resets all six numbers to these defaults.
   BaubleCheapMinValue: 1

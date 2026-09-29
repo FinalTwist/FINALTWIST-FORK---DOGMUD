@@ -354,7 +354,7 @@ Pickpockets a target mob or player, or robs an item from a room container.
      for up to BaublePickpocketGraceSecs, then given up (a generic
      trinket). It is minted pocket-sized (`baubles.MaxWeightFor`), marked
      stolen (`markPocketStolen`; so is a bauble the random item happens to
-     be), and named in the one success line with the rest. A bauble
+     be, unless a player gave it to this mob: `baubles.Record.GivenTo`), and named in the one success line with the rest. A bauble
      named for a lost chance goes into the mark's pocket (`intoPocket`),
      for the next attempt.
    - Failure (`caughtByMob`): "X catches you in the act!", the room sees it,
@@ -649,7 +649,10 @@ Selling is `sell_bauble.go`'s (above); storage (`usercommands/storage.go`,
   (`StolenFromMob`; so any instance of that template), or for a household's
   bauble taken unwatched a `householdMember` whose `HomeRoomId` is that
   house, at home. The owner must be awake, alive and nobody's companion
-  (`canRecognize`) and still in the room. Only the thief
+  (`canRecognize`) and still in the room, and must make out shapes
+  (`messaging.CanSeeShapes`: not blind, not in the dark); seeing only
+  shapes, it recognises the bauble but names nobody ("a figure", the
+  witnessing tiers). Only the thief
   (`StolenByUserId`) is ever accused, so nobody can be framed and the
   recognition cannot be spent on a friend.
   `stolenRecognitionRoll` pits `stealVictimScore` (the owner's own sight
@@ -670,7 +673,11 @@ Selling is `sell_bauble.go`'s (above); storage (`usercommands/storage.go`,
   (`identifiedTheftCatches`, the crimes log, unresolved only: a sentence
   served resolves them and restores reputation, and stale ones are
   forgotten), so a thief never caught gains nothing and stealing to return
-  cannot farm reputation. A bauble earns credit once ever.
+  cannot farm reputation. Only returns credited since the oldest open catch
+  count against that cap (`ReturnCredits(..., since)`, rounds compared), so
+  returns made before a catch are not charged to it. A bauble earns credit
+  once ever. Any other bauble a player gives a mob is marked a gift
+  (`baubles.MarkGiven`).
 - Seams: `stolenNow`, `recognitionRoll`, `stolenCarriers`, `stolenCaught`,
   `returnRepBump`, `ownerFactions`, `theftCatches`.
 
@@ -977,13 +984,11 @@ above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
 - Stolen goods (Phase 6c): `IsFence(mob)` is a mob in one of
   `Balance.BaubleFenceGroups` (default `fence`; the roster is in the plan,
   Phase 6c, and `TestEveryTownHasAFenceNearby` checks every town has one in
-  or near it). A fence who keeps no shop (`stashFence`: a go-between) buys
-  baubles and nothing else, pays from a stash (their own purse is neither
-  needed nor drawn down, so killing one never pays out a fence's worth),
-  and is found by `BaubleBuyersInRoom` (every merchant, plus every such
-  fence alive, awake and nobody's companion), which bauble sales,
-  `sell all`, and the `offer` and `appraise` commands use for baubles.
-  A fence buys every bauble, paying `FencePrice` (value ×
+  or near it, and that every fence is a shopkeeper, non-combatant unless a
+  quest has players fight it: `fightableFences`). A
+  fence is a merchant like any other and pays from its shop's gold
+  (`baubleMerchantGold`: the living-economy shop's, or a legacy merchant's
+  purse). A fence buys every bauble, paying `FencePrice` (value ×
   `BaubleFenceBuyPct`, 60%, rounded up) for any stolen one not given back
   since (`Record.StolenGoods`), hot or cold, and the honest `BaublePrice`
   for the rest. An honest merchant refuses one hot WHERE IT TRADES
@@ -992,8 +997,10 @@ above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
   through the `baubleNowForSale` clock; a shop that buys no trinkets says so
   first) and buys it anywhere else, or once cooled, at the honest price.
   `baubleOfferFor(item, shopInv, fence, zone)`: the sale room's zone, or
-  `merchantZone(mob)` for `offer`/`appraise`; `resolveMerchant` sends a
-  bauble to the best offer in the room (`bestBaubleMerchant`).
+  `merchantZone(mob)` for `offer`/`appraise`; `resolveMerchant(room, probe,
+  playerSale)` sends a bauble to the best offer in the room that the
+  merchant can pay (`bestBaubleMerchant`; a merchant's gold constrains only
+  a player's sale), and `sellNamed` picks the buyer again for each bauble.
 - Never stocked, never resold: the item leaves the world, the record is
   marked sold (`baubles.MarkSold`), a living-economy shop is saved.
 - `BaubleOfferFrom(item, mob)` is the same offer for the `offer` and
