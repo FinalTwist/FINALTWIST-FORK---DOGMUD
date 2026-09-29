@@ -46,10 +46,11 @@ const (
 // tooTiredLine is what a companion remembers when it stops to rest mid-trip.
 const tooTiredLine = `You are too tired to go on, and stop to catch your breath.`
 
-// stepAffordable reports whether the companion can pay for a step through
-// exitName right now (movement parity 4b). A variable so tests can pin it.
-var stepAffordable = func(mob *mobs.Mob, exitName string) bool {
-	return actions.QuoteMobStep(mob, exitName).OK()
+// stepQuote prices a step through exitName for the companion right now
+// (movement parity 4b): OK when she can pay, Never when she could not pay it
+// even fully rested. A variable so tests can pin it.
+var stepQuote = func(mob *mobs.Mob, exitName string) actions.MoveCharge {
+	return actions.QuoteMobStep(mob, exitName)
 }
 
 // startTravel plans a route and begins a trip. It returns a reason when the
@@ -107,6 +108,14 @@ func (m *AICompanionModule) endTravel(c *controller, why string, tellModel bool)
 	}
 }
 
+// endTooWeak ends a trip whose next step the companion could not pay for even
+// fully rested (the quote's Never), the way any failed trip ends. Nothing is
+// charged to the map: the exit is not at fault.
+func (m *AICompanionModule) endTooWeak(c *controller) {
+	p := c.travel
+	m.endTravel(c, `You are too weak to go on toward `+p.DestName+`, however long you rest.`, p.Purpose != `return`)
+}
+
 // advanceTravel moves a trip on by at most one step. Called every round.
 func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *users.UserRecord, round uint64) {
 	p := c.travel
@@ -141,7 +150,11 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 			// Movement parity 4b: a step that did not move because she
 			// could not pay for it is a rest, not a bad exit. Re-quote next
 			// round; never charge exhaustion to the map.
-			if !stepAffordable(mob, p.Steps[p.Next].Exit) {
+			if q := stepQuote(mob, p.Steps[p.Next].Exit); !q.OK() {
+				if q.Never {
+					m.endTooWeak(c)
+					return
+				}
 				p.Expect = 0
 				return
 			}
@@ -209,8 +222,13 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 		return
 	}
 	// Movement parity 4b: quote before issuing. Tired, she waits without
-	// starting the step clock and tells her mind once.
-	if !stepAffordable(mob, st.Exit) {
+	// starting the step clock and tells her mind once. A step she could not
+	// pay for even fully rested ends the trip instead of waiting forever.
+	if q := stepQuote(mob, st.Exit); !q.OK() {
+		if q.Never {
+			m.endTooWeak(c)
+			return
+		}
 		if !p.Resting {
 			p.Resting = true
 			c.mind.addLine(Line{Kind: `event`, Text: tooTiredLine}, m.cfg.WorkingMemoryLines)
