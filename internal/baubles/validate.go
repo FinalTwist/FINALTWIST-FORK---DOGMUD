@@ -170,8 +170,10 @@ func usableKeyword(w string) bool {
 // authoredKeyword is items.AuthoredKeyword. A variable for tests.
 var authoredKeyword = items.AuthoredKeyword
 
-// PlainText is text with markup, colour codes and control characters removed
-// and whitespace collapsed: room text as it is sent to the model.
+// PlainText is cleanLine: room text sent in a prompt gets the same NFKC,
+// typography fold and invisible/format character drops as model output,
+// with markup, colour codes and control characters removed and whitespace
+// collapsed.
 func PlainText(s string) string {
 	return cleanLine(s)
 }
