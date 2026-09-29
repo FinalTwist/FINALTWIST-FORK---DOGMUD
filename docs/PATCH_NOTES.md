@@ -1,5 +1,15 @@
 # DOGMud Patch Notes
 
+## 2026-09-29: Trinkets that come back
+
+If the server ever has to roll your character back to an earlier save, a
+trinket you had already sold can turn up in your pack again. It now keeps
+its name and still sells, instead of turning into a nameless Curious
+Trinket nobody will buy.
+
+Behind the scenes, the game also tidies away its records of trinkets that
+no longer exist anywhere in the world.
+
 ## 2026-09-28: Healing and shields, whoever casts them
 
 Creatures now heal and shield you and each other by the same rules you

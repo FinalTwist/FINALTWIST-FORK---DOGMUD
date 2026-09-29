@@ -147,7 +147,12 @@ func GetLockSequence(lockIdentifier string, difficulty int, seed string, rotatio
 
 `SafeSave` writes via a temporary file and renames, so an interrupted save
 cannot truncate a player's character. Prefer it for anything that would hurt to
-lose.
+lose. On Windows only, the final rename retries for up to 150ms
+(`renameReplacing`): Go opens files there without `FILE_SHARE_DELETE`, so a
+rename onto a file another process has open for reading (the bauble catalog
+sweep reading save files, say) can fail for a moment. Linux, where
+production runs, renames over an open file freely, so there it is one plain
+`os.Rename`.
 
 **`ValidateWorldFiles` hard-errors at boot when the live world is missing any
 subfolder present in the example world.** This is why folders whose *contents*
