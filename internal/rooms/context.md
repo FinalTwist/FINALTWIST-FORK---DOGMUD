@@ -544,3 +544,16 @@ Comprehensive test coverage in `*_test.go` files covering:
 - **Data persistence**: Room changes are automatically saved to maintain world state
 
 This package serves as the foundation for the entire game world, providing a rich and dynamic environment system that supports complex gameplay mechanics while maintaining optimal performance through intelligent memory management.
+
+## WalkItems, LoadedRooms, and untaken finds on load
+
+`(*Room).WalkItems` (walk_items.go) walks the floor, the stash, every
+container, every corpse (the dead character's gear and its loot) and the
+sealed crate. `LoadedRooms()` returns every room in memory, ephemeral ones
+included; the caller holds the mud lock. `LoadRoomInstance` removes finds
+left untaken past `baubles.UntakenLimit()` from the floor as soon as a room
+is loaded from its instance file, because the bauble sweep no longer counts
+floor finds that old and may prune their records. At boot,
+`factions.ValidateHoldingCells` loads some rooms before `baubles.Load`; a
+find removed then is not marked vanished (no record is loaded yet) and the
+sweep prunes its record later as lost.

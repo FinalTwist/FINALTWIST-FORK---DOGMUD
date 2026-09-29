@@ -89,6 +89,10 @@ func triggerCopyover() error {
 	// here too — otherwise a copyover silently rewinds it. Keeps the reboot seamless.
 	shops.SaveAllShops()
 	warehouse.SaveAll()
+	// The bauble sweeper is not stopped here: copyover holds the mud lock a
+	// sweep may be waiting on, so waiting for it would deadlock. Its catalog
+	// writes are atomic (util.Save), so the re-exec cutting a sweep off loses
+	// nothing; the next boot sweeps again.
 	baubles.SaveAll()
 	apiframework.SaveBudget()
 	forager.SaveAllThroughputs()

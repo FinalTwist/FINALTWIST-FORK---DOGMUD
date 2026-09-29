@@ -853,3 +853,10 @@ not an autosave concern.
 with `rooms`, and that sharing is load bearing: rooms and users must land in one
 pending set prepared in one lock hold, or the two halves of an item transfer can
 tear.
+
+## WalkItems and GetAllLoadedUsers (walk_items.go)
+
+`(*UserRecord).WalkItems` walks the active character, the bank (slots and
+the legacy list) and inbox attachments. Alts are not in memory; the bauble
+sweep reads `<userid>.alts.yaml` from disk. `GetAllLoadedUsers` returns
+every user in memory, zombies included (`GetAllActiveUsers` skips them).

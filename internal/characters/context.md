@@ -2027,3 +2027,15 @@ compares against, and the dashboard's dead-stat alarm asks the same question
 through it rather than hard-coding the resolution. The denominator itself stays
 unexported on purpose: a caller that knows the arithmetic cannot drift from
 production if the resolution moves again.
+
+## WalkItems (walk_items.go)
+
+`(*Worn).WalkItems` and `(*Character).WalkItems` call fn with a live pointer
+to every item a character holds: backpack, component bag, potion
+bandolier, every equipment slot, the pet's pack, and each companion's saved
+pack and gear. The bauble catalog sweep reads characters through them, and
+`MigrateDetunedRangedWeapons` walks with them (it used to miss companions'
+gear; owner 2026-09-29: no pre-detune bows are carried by companions on
+prod, so that closed a coverage gap with no live behaviour change). A new item field on Character, Worn, Pet or CompanionInfo must be
+walked here: `TestItemWalkersVisitEveryItemField` (repo root) fails naming
+it otherwise.

@@ -1530,10 +1530,17 @@ Balance:
   BaubleFenceBuyPct: 60
   BaubleFenceGroups: [fence]
   BaubleReturnsPerCatch: 3
-  # A catalog record whose bauble was sold, or vanished untaken, is pruned
-  # this many REAL days later (at least 7; sales stats read the last week).
-  # Records that earned a thief return credit are always kept.
+  # A catalog record nothing in the world points at any more (the bauble
+  # was sold, vanished, junked, or lost with whoever held it) is pruned once
+  # this many REAL days have passed since the last sign of it (at least 7;
+  # sales stats read the last week). Records that earned a thief return
+  # credit are always kept.
   BaubleCatalogKeepDays: 30
+  # The catalog sweep runs at boot and then every this many REAL hours: it
+  # looks for every item still pointing at a record, in the live world and
+  # in every save file, and prunes the records nothing has pointed at for
+  # two sweeps and BaubleCatalogKeepDays (at least 1).
+  BaubleSweepHours: 6
   # The value ladder, in gold. Tiers must climb without touching; a broken
   # ladder resets all six numbers to these defaults.
   BaubleCheapMinValue: 1

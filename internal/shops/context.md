@@ -348,3 +348,8 @@ type ShopInventory struct {
   **effective_max_stock_test.go**: Unit coverage for each sub-system.
 - `TickOverstockDecayWith` injects `isComponent`, `decayRounds`, and
   `decayQty` so tests don't need loaded item specs or a live config stack.
+
+## WalkItems (walk_items.go)
+
+`(*ShopInventory).WalkItems` walks `AffixedStock`, the only per-instance
+items a shop holds; stock entries are counts of an item id.

@@ -2,6 +2,7 @@ package actions
 
 import (
 	"testing"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -223,4 +224,30 @@ func TestSell_Bauble_LegacyGetSellPriceNeverPricesIt(t *testing.T) {
 
 	offer := BaubleOfferFrom(b, merchantInstance())
 	assert.Equal(t, 6, offer.Price, "the bauble offer is the one to use")
+}
+
+// A crash can roll a seller's save back past a sale: the bauble is in the
+// pack again while its record says sold. It sells again like any bauble, and
+// the new sale is recorded (the catalog sweep keeps the record while it is
+// held: internal/baubles/sweep.go).
+func TestSell_Bauble_ASoldRecordSellsAgain(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 1000)()
+
+	seller := newSellerActor(t, true)
+	char := seller.GetCharacter()
+	b := newBauble(t, "Painted Wooden Horse", "horse", 12, baubles.StatusFallback)
+	longAgo := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	baubles.Update(b.Bauble, func(r *baubles.Record) {
+		r.Status, r.SoldAt, r.SoldValue = baubles.StatusSold, longAgo, 6
+	})
+	require.True(t, char.StoreItem(b))
+
+	res := Sell(seller, SellOptions{ItemName: "horse", Quantity: 1})
+
+	require.Equal(t, SellStopSoldAll, res.Reason, "res=%+v", res)
+	assert.Equal(t, 6, char.Gold, "paid from the catalog, as for any bauble")
+	rec, _ := baubles.Get(b.Bauble)
+	assert.True(t, rec.SoldAt.After(longAgo), "the new sale is recorded")
 }

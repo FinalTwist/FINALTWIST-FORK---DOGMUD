@@ -937,7 +937,8 @@ type Balance struct {
 	BaubleFenceBuyPct     ConfigInt           `yaml:"BaubleFenceBuyPct"`     // Percent of a stolen bauble's value a fence pays (default 60)
 	BaubleFenceGroups     ConfigSliceString   `yaml:"BaubleFenceGroups"`     // Mob groups that make a merchant a fence (default fence)
 	BaubleReturnsPerCatch ConfigInt           `yaml:"BaubleReturnsPerCatch"` // Returned stolen baubles that earn back the reputation of one catch (default 3, at least 2)
-	BaubleCatalogKeepDays ConfigInt           `yaml:"BaubleCatalogKeepDays"` // Real days a record whose bauble was sold or vanished is kept before it is pruned (default 30, at least 7)
+	BaubleCatalogKeepDays ConfigInt           `yaml:"BaubleCatalogKeepDays"` // Real days a record no item points at any more is kept before the catalog sweep prunes it, counted from the last sign of the bauble (default 30, at least 7)
+	BaubleSweepHours      ConfigInt           `yaml:"BaubleSweepHours"`      // Real hours between catalog sweeps, which look for every item still pointing at a record; one also runs at boot (default 6, at least 1)
 
 	// ── WAREHOUSES (Stage 3 ferry system) ────────────────────────────────────
 	WarehouseItemCap      ConfigInt `yaml:"WarehouseItemCap,omitempty"`      // Per-item stock cap in city warehouses (default 4,000,000 — effectively unbounded)

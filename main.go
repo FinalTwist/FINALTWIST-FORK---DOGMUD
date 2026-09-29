@@ -563,6 +563,11 @@ func main() {
 		}
 	}()
 
+	// Bauble catalog sweep: once now, then every Balance.BaubleSweepHours,
+	// prune the records no item points at any more (internal/baubles/sweep.go).
+	registerBaubleSweepSources()
+	baubles.StartSweeper()
+
 	mudlog.Info("Server Ready", "Time Taken", time.Since(serverStartTime))
 
 	// block until a signal comes in
@@ -589,6 +594,12 @@ func main() {
 		"LifetimeDisconnects", totalDisconnections,
 		"ActiveConnections", totalConnections-totalDisconnections,
 	)
+
+	// Stop the bauble sweeper before anything below tears the world down or
+	// rewrites save files: a sweep in progress finishes its writes first,
+	// and none can start against a half-closed world. Not under the mud lock
+	// (a sweep in progress may be waiting on it).
+	baubles.StopSweeper()
 
 	// cleanup all connections
 	connections.Cleanup()

@@ -121,3 +121,8 @@ func SetDataDirForTest(dir string) func()
 
 `internal/usercommands` (the `guild` command family), the guild chat channel,
 and `internal/web` for the guild roster view.
+
+## WalkItems (walk_items.go)
+
+`(*Guild).WalkItems` walks the vault. The bauble catalog sweep registers
+it as the `guilds` live source (`bauble_sweep.go`).

@@ -111,6 +111,16 @@ type Record struct {
 
 	SoldAt    time.Time `yaml:"sold_at,omitempty"`
 	SoldValue int       `yaml:"sold_value,omitempty"`
+
+	// Set by the catalog sweep (sweep.go). LastSeenAt is when a sweep last
+	// found an item pointing at this record, or, for a record no sweep has
+	// ever seen (one from before the sweep existed), the time of the first
+	// sweep that counted it unseen: that deploy grace starts its keep window
+	// there. It never moves backwards. UnseenSweeps counts the complete
+	// sweeps since then that found none (it stops at minUnseenSweeps). Both
+	// can only keep a record longer.
+	LastSeenAt   time.Time `yaml:"last_seen_at,omitempty"`
+	UnseenSweeps int       `yaml:"unseen_sweeps,omitempty"`
 }
 
 // Text shown for a bauble whose text an admin has withdrawn.
