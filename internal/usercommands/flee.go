@@ -1,120 +1,43 @@
 package usercommands
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
-	"github.com/GoMudEngine/GoMud/internal/costs"
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
-	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/state"
-	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
 const fleeShortageText = "You break away on instinct rather than technique, too spent to use your training."
 
+// fleeRefusalText is what the player is told for each refusal. Every line is
+// unchanged from before slice 4a moved the rules into actions.BeginFlee.
+var fleeRefusalText = map[actions.FleeRefusal]string{
+	// A no-go root (a Jailed holding cell, 5.1c) pins the player; flee must
+	// honour it or it becomes a jail-escape hole (smoke BUG-02).
+	actions.FleeRefuseRooted: `You're locked in — there's nowhere to flee to.`,
+	// Blood Frenzy, hamstrung, winded, tackled: you can fight, not retreat.
+	actions.FleeRefuseNoFlee: `You can't break off to flee right now — you can only fight.`,
+	// A second flee while the first resolves used to print nothing at all.
+	actions.FleeRefuseAlready: `You're already trying to break away. Give it a moment.`,
+	// Also rejects a stale queued flee after a lethal round respawned you.
+	actions.FleeRefuseNotInCombat: `You're not in combat; there's nothing to flee from.`,
+	actions.FleeRefuseGrappled:    `<ansi fg="red">You can't flee while grappled!</ansi>`,
+	// Knockdown is common and is exactly when a player wants to run, so say
+	// that standing up is what unblocks it.
+	actions.FleeRefuseProne:    `<ansi fg="red">You can't flee from the ground. Stand up first!</ansi>`,
+	actions.FleeRefuseNotReady: `You can't break away just yet.`,
+}
+
 func Flee(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-	// Any command that is not the already-active attempt owns no pending
-	// admission yet, so retract an orphan before any rejection path returns.
-	// Do not clear the handoff for a genuine attempt still awaiting its round.
-	if !user.Character.IsDisengaging() {
-		user.Character.CancelFleeAdmission()
-	}
-
-	// A no-go root (e.g. a Jailed holding-cell condition — 5.1c) pins the player in
-	// place; flee must honor it too, or it becomes a jail-escape hole (the
-	// directional `go` block alone is bypassable via flee — smoke BUG-02).
-	if user.Character.HasConditionFlag(conditions.NoMovement) {
-		user.SendText(messaging.CategorySystem, `You're locked in — there's nowhere to flee to.`)
+	begin := actions.BeginFlee(actions.NewUserActorInRoom(user, room), "")
+	if !begin.Accepted {
+		user.SendText(messaging.CategorySystem, fleeRefusalText[begin.Refusal])
 		return true, nil
 	}
-
-	// A no-flee state (Blood Frenzy, hamstrung, winded, tackled, …) forbids
-	// retreat: you can still move and fight, but you can't break off to flee.
-	if user.Character.HasConditionFlag(conditions.NoFlee) {
-		user.SendText(messaging.CategorySystem, `You can't break off to flee right now — you can only fight.`)
-		return true, nil
-	}
-
-	// A second flee while the first is still resolving used to print nothing at
-	// all: the whole block below is skipped, so the player saw "You attempt to
-	// flee..." once and then silence, and read the silence as the command being
-	// swallowed. Say so instead.
-	if user.Character.IsDisengaging() {
-		user.SendText(messaging.CategorySystem, `You're already trying to break away. Give it a moment.`)
-		return true, nil
-	}
-	// Input is accepted before command events are drained. A lethal combat
-	// round can therefore kill, respawn, and force CombatPhase to Idle before a
-	// queued flee reaches this handler. Reject that stale command before it
-	// spends the revived character's stamina or publishes an attempt that no
-	// round resolver can finish. This also gives ordinary out-of-combat use a
-	// definitive response instead of a paid, outcome-less attempt.
-	if !user.Character.IsInCombat() {
-		user.SendText(messaging.CategorySystem, `You're not in combat; there's nothing to flee from.`)
-		return true, nil
-	}
-	// Publish a pending handoff before the state transition. Cost and player-
-	// facing attempt text belong only to an accepted Disengaging transition;
-	// charging first lets a target-death or position veto create a paid attempt
-	// that no round resolver can finish.
-	user.Character.PublishFleeAdmission(characters.FleeAdmission{})
-	if user.Character.CombatPhase == nil {
-		user.Character.CancelFleeAdmission()
-		user.SendText(messaging.CategorySystem, `You can't break away just yet.`)
-		return true, nil
-	}
-	if err := user.Character.CombatPhase.TransitionToDisengaging(state.TransitionReason{
-		Trigger: combatphase.TriggerFleeCommand,
-		Actor:   state.ActorRef{UserId: user.UserId},
-	}); err != nil {
-		user.Character.CancelFleeAdmission()
-		if !user.Character.IsInCombat() {
-			user.SendText(messaging.CategorySystem, `You're not in combat; there's nothing to flee from.`)
-		} else if user.Character.IsStandingGrapple() || user.Character.IsGroundGrapple() {
-			user.SendText(messaging.CategorySystem, `<ansi fg="red">You can't flee while grappled!</ansi>`)
-		} else if !user.Character.IsStanding() {
-			// The flee veto is IsStanding(), NOT grapple. Being knocked down
-			// refuses a flee exactly as a grapple does, and until now it fell
-			// through to the generic line below, which reads like a timing
-			// problem. Knockdown is common (trips, bashes, sweeps, kicks and
-			// double fumbles all cause it) and it is precisely when a player
-			// most wants to run, so the one thing they need to know is that
-			// standing up is what unblocks it.
-			user.SendText(messaging.CategorySystem, `<ansi fg="red">You can't flee from the ground. Stand up first!</ansi>`)
-		} else {
-			user.SendText(messaging.CategorySystem, `You can't break away just yet.`)
-		}
-		return true, nil
-	}
-
-	// Quote and partially commit once. Flee remains life-preserving: shortage
-	// never refuses the attempt, but its blocker contests lose Skullduggery.
-	bal := configs.GetBalanceConfig()
-	modifier := 1.0
-	if mutations.IsFlying(user.Character.Mutations) {
-		modifier = float64(bal.FlightFleeStaminaMult)
-	}
-	quote := user.Character.QuoteActionCost(characters.ActionCostRequest{
-		Action:   costs.ActionFlee,
-		Pool:     characters.PoolStamina,
-		Base:     float64(bal.FleeStaminaCost),
-		Modifier: modifier,
-		Units:    1,
-	})
-	costResult := user.Character.CommitCost(quote, characters.CostPartial)
-	user.Character.PublishFleeAdmission(characters.FleeAdmission{
-		IncludeSkill: !costResult.Short(),
-		Ready:        true,
-	})
-	if costResult.Short() {
+	if begin.Short {
 		user.SendText(messaging.CategorySystem, fleeShortageText)
 	}
-
 	user.SendText(messaging.CategorySystem, `You attempt to flee...`)
-
 	return true, nil
 }
