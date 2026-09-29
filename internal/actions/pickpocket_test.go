@@ -404,9 +404,8 @@ func TestFlushRevealsAPickpocketInItsPause(t *testing.T) {
 var origPocketThief = pocketThief
 
 // Training comes with the reveal, never before it (a skill-up line then
-// would give the roll away), and never for a chance lost (walking off to
-// dodge being caught trains nothing). A failed attempt is caught at the
-// reveal, not before.
+// would give the roll away). A failed attempt is caught at the reveal, not
+// before, and walking off does not dodge it (owner ruling 2026-09-29).
 func TestPickpocketAwardsAndCatchesAtTheReveal(t *testing.T) {
 	h := setupPocket(t, 9610, 7610)
 	paused(100*time.Millisecond, 0)
@@ -424,14 +423,76 @@ func TestPickpocketAwardsAndCatchesAtTheReveal(t *testing.T) {
 	}
 
 	h2 := setupPocket(t, 9611, 7611)
+	seedPocketRooms(t, h2.room)
+	crimes := stubPocketCrime(t)
 	paused(100*time.Millisecond, 0)
 	util.LockMud()
 	startPocketAttempt(h2.thief, h2.mark, false)
 	h2.thief.room = newSearchTestRoom(9698) // walks off
 	util.UnlockMud()
 	waitSettled(t)
-	if len(h2.thief.awards) != 0 || said(h2.thief, "catches you in the act") != 0 || said(h2.thief, "lose your chance") != 1 {
-		t.Fatalf("a chance lost trains nothing and is caught by nobody: %+v %q", h2.thief.awards, h2.thief.sent)
+	if len(h2.thief.awards) != 1 || h2.thief.awards[0].won || said(h2.thief, "felt your hand") != 1 ||
+		said(h2.thief, "lose your chance") != 0 || len(*crimes) != 1 {
+		t.Fatalf("walked off, still caught, trained on the loss: %+v %q crimes=%v", h2.thief.awards, h2.thief.sent, *crimes)
+	}
+}
+
+// stubPocketCrime records the crimes a pickpocket caught away from the mark
+// raises (pocketCrime), instead of reaching the faction books.
+func stubPocketCrime(t *testing.T) *[]int {
+	t.Helper()
+	got := &[]int{}
+	orig := pocketCrime
+	pocketCrime = func(userId int, m *mobs.Mob, room *rooms.Room) { *got = append(*got, userId) }
+	t.Cleanup(func() { pocketCrime = orig })
+	return got
+}
+
+// seedPocketRooms makes rooms loadable, as real ones are: the reveal loads
+// the theft room and the mark's room by ID (rooms.LoadRoom).
+func seedPocketRooms(t *testing.T, rs ...*rooms.Room) {
+	t.Helper()
+	m := map[int]*rooms.Room{}
+	for _, r := range rs {
+		m[r.RoomId] = r
+	}
+	t.Cleanup(rooms.SeedRoomsForTest(m, nil))
+}
+
+// A failed roll is caught however the pause ends (owner ruling 2026-09-29).
+// A thief who walked off or logged out, or whose mark moved, is caught away
+// from the mark: the mark cries thief in its own room and the crime is
+// recorded, and nobody is attacked. One still beside it is caught in the
+// act. A mark that has gone catches nobody.
+func TestPickpocketFailedRollIsCaughtHoweverThePauseEnds(t *testing.T) {
+	cases := map[string]struct {
+		before func(h *pocketHarness, p *pocketAttempt)
+		caught bool
+		crimes int    // raised away from the mark (pocketCrime)
+		told   string // a line the thief is told exactly once
+	}{
+		`walked off`: {func(h *pocketHarness, p *pocketAttempt) { h.thief.room = newSearchTestRoom(9696) }, true, 1, "felt your hand"},
+		`logged out`: {func(h *pocketHarness, p *pocketAttempt) { p.actor = nil }, true, 1, "You attempt to pick"},
+		`mark moved`: {func(h *pocketHarness, p *pocketAttempt) { h.mark.Character.RoomId = 9695 }, true, 1, "felt your hand"},
+		`still here`: {func(h *pocketHarness, p *pocketAttempt) {}, true, 0, "catches you in the act"},
+		`mark gone`:  {func(h *pocketHarness, p *pocketAttempt) { mobs.SetInstanceForTest(h.mark.InstanceId, nil) }, false, 0, "lose your chance"},
+	}
+	for name, c := range cases {
+		c := c
+		h := setupPocket(t, 9617, 7617)
+		seedPocketRooms(t, h.room, newSearchTestRoom(9695))
+		crimes := stubPocketCrime(t)
+		runPocketAttempt = func(p *pocketAttempt) StealResult {
+			c.before(h, p)
+			return resolvePocketInLine(p)
+		}
+		res := startPocketAttempt(h.thief, h.mark, false)
+		if res.Detected != c.caught || len(*crimes) != c.crimes || said(h.thief, c.told) != 1 {
+			t.Errorf("%v: detected %v (want %v), crimes %v (want %d), told %q", name, res.Detected, c.caught, *crimes, c.crimes, h.thief.sent)
+		}
+		if name == `logged out` && (len(h.thief.sent) != 1 || len(h.thief.awards) != 0) {
+			t.Errorf("logged out: told and trained nothing after the attempt line: %q %+v", h.thief.sent, h.thief.awards)
+		}
 	}
 }
 

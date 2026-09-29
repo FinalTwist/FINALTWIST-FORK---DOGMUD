@@ -39,9 +39,12 @@ import (
 //     lock: the loot, the bauble among it, with the ordinary success line
 //     (takeFromMob); or being caught (caughtByMob).
 //
-// A thief who has left the room, logged off or started fighting by then, or
-// a mark who has gone, loses the chance: nothing is taken, nothing is
-// caught. A bauble already named for it stays in the mark's pocket, to be
+// A failed roll is caught however the pause ends (owner ruling
+// 2026-09-29): beside the mark, in the act; away from it or offline, the
+// mark cries thief in its room and the crime is recorded, with no attack
+// (caught). A successful roll whose thief has left the room, logged off or
+// started fighting by then, or whose mark has gone, loses the chance:
+// nothing is taken. A bauble already named for it stays in the mark's pocket, to be
 // found by the next attempt. Pickpocketed baubles are pocket-sized: the
 // prompt says so (modules/baubles, size_rule) and the catalog clamps their
 // weight (baubles.MaxWeightFor).
@@ -277,12 +280,19 @@ func (p *pocketAttempt) resolve() StealResult {
 	if online {
 		room = thief.GetRoom()
 	}
+	// A failed roll is caught however the pause ends (owner ruling
+	// 2026-09-29): walking off, logging out, starting a fight or a
+	// copyover's flush does not undo what the mark already felt. Only a
+	// mark that has gone or died catches nobody.
+	if !p.success && m != nil && !m.Character.IsDead() {
+		return p.caught(thief, online, m)
+	}
 	if !online || room == nil || room.RoomId != p.roomId || thief.GetCharacter().IsInCombat() ||
 		room.AreMobsAttacking(p.userId) ||
 		m == nil || m.Character.IsDead() || m.Character.RoomId != p.roomId {
-		// The chance is gone: nothing taken, nothing caught, nothing
-		// trained. A bauble named for it stays in the mark's pocket, to be
-		// found by whoever tries next.
+		// A successful roll's chance is gone (a failed one was caught
+		// above): nothing taken, nothing trained. A bauble named for it
+		// stays in the mark's pocket, to be found by whoever tries next.
 		if online {
 			thief.SendText(messaging.CategorySystem, fmt.Sprintf(
 				`You lose your chance at <ansi fg="mobname">%s</ansi>'s pocket.`, p.mobName))
@@ -299,9 +309,6 @@ func (p *pocketAttempt) resolve() StealResult {
 
 	// Awarded here, with the outcome it reveals (see stealFromMob).
 	thief.AwardResolved(p.success, thief.GetCharacter().CandidateFor(string(skills.Skullduggery)))
-	if !p.success {
-		return caughtByMob(thief, m, room)
-	}
 
 	var extra []items.Item
 	if p.takeBauble != `` {
@@ -327,6 +334,46 @@ func (p *pocketAttempt) resolve() StealResult {
 		markPocketStolen(it, p.userId, room, m)
 	}
 	return takeFromMob(thief, m, extra)
+}
+
+// pocketCrime is the mark's side of a catch away from it: theftCrime in
+// the room the theft happened in, in away mode (the mark the only witness,
+// no meeting recorded). A variable so tests can see it raised without the
+// faction books.
+var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room) {
+	theftCrime(userId, m, theftRoom, true)
+}
+
+// caught is a failed roll's reveal, wherever the thief is by now (owner
+// ruling 2026-09-29). Beside the mark it is the ordinary catch in the act
+// (caughtByMob: the room sees it, the crime, the attack). Anywhere else,
+// or offline, the mark felt the hand all the same: it cries thief in its
+// own room, and the theft is recorded against the thief in the room it
+// happened in (pocketCrime), but it attacks nobody, since the thief is not
+// there. An online thief is told and trained on the loss. An online thief
+// with no room (GetRoom nil) is away.
+func (p *pocketAttempt) caught(thief Actor, online bool, m *mobs.Mob) StealResult {
+	if online {
+		thief.AwardResolved(false, thief.GetCharacter().CandidateFor(string(skills.Skullduggery)))
+		if here := thief.GetRoom(); here != nil && here.RoomId == m.Character.RoomId {
+			return caughtByMob(thief, m, here)
+		}
+		thief.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi> felt your hand in their pocket. A cry of "Thief!" follows you.`, p.mobName))
+	}
+	markRoom := rooms.LoadRoom(m.Character.RoomId)
+	if markRoom != nil {
+		markRoom.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi> pats a pocket and cries, "Thief!"`, m.Character.Name), p.userId)
+	}
+	theftRoom := rooms.LoadRoom(p.roomId)
+	if theftRoom == nil {
+		theftRoom = markRoom // the theft's room is gone: the crime is recorded where the mark is
+	}
+	if theftRoom != nil {
+		pocketCrime(p.userId, m, theftRoom)
+	}
+	return StealResult{Detected: true, DefenderName: p.mobName, Reason: `detected`}
 }
 
 // mint makes the attempt's new bauble, from res.

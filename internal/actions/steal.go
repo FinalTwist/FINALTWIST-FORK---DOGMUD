@@ -636,52 +636,7 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 		Trigger: awareness.TriggerSkullduggeryFailed,
 	})
 
-	// Chunk 3.3: failed theft wakes a sleeping victim.
-	if m.Character.HasConditionFlag(conditions.Sleeping) {
-		m.Character.CancelConditionsWithFlag(conditions.Sleeping)
-		mobs.OnSleeperWoken(&m.Character)
-	}
-
-	// chunk 1.3: record theft crime on faction-aligned victim.
-	if factionIds := factions.FactionsForMob(m); len(factionIds) > 0 {
-		// All witnesses including the victim (excludeInstanceId=0).
-		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
-		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
-		// External witnesses (excluding victim) for HadExternalWitness.
-		externalWitnesses := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
-		// HadExternalWitness asks whether the theft was identified by
-		// someone other than the victim, not merely noticed, so it reads
-		// Identifying.
-		hadExternal := len(externalWitnesses.Identifying) > 0
-		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
-		for _, fid := range factionIds {
-			crimeIds := crimes.Record([]string{fid}, crimes.KindTheft, perp,
-				m, m.InstanceId, room.RoomId, m.Character.Zone, hadExternal)
-			if perp.Type == crimes.PerpPlayer {
-				factions.BumpRep(fid, actor.GetUserId(), delta)
-				justice.MaybeDeclareBounty(fid, actor.GetUserId(), crimes.KindTheft)
-				// Knowledge: each witness records the player as the perp of
-				// these crimes. Range Identifying only. perp is computed
-				// once for the whole room, so a single clear-sighted
-				// witness makes perp.Type PerpPlayer for everyone present;
-				// writing this player-subject knowledge for a shapes-only
-				// witness would record that mob knowing exactly who it was
-				// when all it saw was a figure.
-				subject := knowledge.PlayerSubject(actor.GetUserId())
-				for _, witnessInstId := range witnesses.Identifying {
-					w := mobs.GetInstance(witnessInstId)
-					if w == nil {
-						continue
-					}
-					for _, crimeId := range crimeIds {
-						knowledge.RecordCrimeWitnessed(int(w.MobId), subject, crimeId)
-					}
-					knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
-						knowledge.SourceWitnessed)
-				}
-			}
-		}
-	}
+	theftCrime(actor.GetUserId(), m, room, false)
 
 	// A victim that cannot be fought (a non-combatant shopkeeper, a
 	// player-attack-immune NPC) does not attack; it has already raised the
@@ -690,6 +645,87 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 	if !m.IsNonCombatant() && !m.PlayerAttackImmune {
 		m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
 	}
+}
+
+// theftWitnesses is who witnessed userId's theft from m in room, and
+// whether anyone but m identified the thief. In the act: every faction mob
+// in room that saw it, m included, by its sight (crimes.WitnessesInRoom).
+// Away (a pickpocket's failed roll revealed after the thief had gone; slice
+// H review finding b): m alone, by its own sight of room, the room the
+// theft happened in, which felt the hand; bystanders saw nothing, so
+// hadExternal is false.
+func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away bool) (crimes.Witnesses, bool) {
+	if !away {
+		// All witnesses including the victim (excludeInstanceId=0), and the
+		// external ones (excluding the victim) for HadExternalWitness, which
+		// asks whether the theft was identified by someone other than the
+		// victim, not merely noticed, so it reads Identifying.
+		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
+		external := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
+		return witnesses, len(external.Identifying) > 0
+	}
+	var w crimes.Witnesses
+	switch {
+	case messaging.CanSeeClearly(&m.Character, room):
+		w.Identifying = []int{m.InstanceId}
+	case messaging.CanSeeShapes(&m.Character, room):
+		w.ShapesOnly = []int{m.InstanceId}
+	}
+	return w, false
+}
+
+// theftCrime is the mark's side of a caught theft by userId in room (the
+// room the theft happened in): a sleeping m wakes, and the theft is
+// recorded as a crime against m's factions (reputation, bounty, witnesses'
+// knowledge). Every part of it goes by user id, so it holds for a thief
+// who has left or logged out. away is a pickpocket's failed roll revealed
+// after the thief walked away (steal_pocket.go, pocketCrime): the mark is
+// the only witness (theftWitnesses) and nobody records meeting the thief.
+// thiefCaught runs it in the act.
+func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool) {
+	// Chunk 3.3: failed theft wakes a sleeping victim.
+	if m.Character.HasConditionFlag(conditions.Sleeping) {
+		m.Character.CancelConditionsWithFlag(conditions.Sleeping)
+		mobs.OnSleeperWoken(&m.Character)
+	}
+
+	// chunk 1.3: record theft crime on faction-aligned victim.
+	if factionIds := factions.FactionsForMob(m); len(factionIds) > 0 {
+		witnesses, hadExternal := theftWitnesses(factionIds, m, room, away)
+		perp := crimes.IdentifiedPerp(userId, witnesses)
+		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
+		for _, fid := range factionIds {
+			crimeIds := crimes.Record([]string{fid}, crimes.KindTheft, perp,
+				m, m.InstanceId, room.RoomId, m.Character.Zone, hadExternal)
+			if perp.Type == crimes.PerpPlayer {
+				factions.BumpRep(fid, userId, delta)
+				justice.MaybeDeclareBounty(fid, userId, crimes.KindTheft)
+				// Knowledge: each witness records the player as the perp of
+				// these crimes. Range Identifying only. perp is computed
+				// once for the whole room, so a single clear-sighted
+				// witness makes perp.Type PerpPlayer for everyone present;
+				// writing this player-subject knowledge for a shapes-only
+				// witness would record that mob knowing exactly who it was
+				// when all it saw was a figure.
+				subject := knowledge.PlayerSubject(userId)
+				for _, witnessInstId := range witnesses.Identifying {
+					w := mobs.GetInstance(witnessInstId)
+					if w == nil {
+						continue
+					}
+					for _, crimeId := range crimeIds {
+						knowledge.RecordCrimeWitnessed(int(w.MobId), subject, crimeId)
+					}
+					// Away, the mark felt a hand; it met nobody.
+					if !away {
+						knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
+							knowledge.SourceWitnessed)
+					}
+				}
+			}
+		}
+	}
+
 }
 
 // stealObserverPass is the theft observer contest: the thief's
