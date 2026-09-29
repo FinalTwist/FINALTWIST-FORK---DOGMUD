@@ -249,6 +249,17 @@ func (m *AICompanionModule) onGiftAccepted(e events.Event) events.ListenerReturn
 		return events.Continue
 	}
 
+	// items.GetItemSpec(evt.ItemId) reads only the carrier's own catalog
+	// spec (its base item type, e.g. "Curious Trinket"): a bauble's own
+	// name lives on the *items.Item instance (its Bauble record id,
+	// resolved through items.Item.ModelName/Name), and events.GiftAccepted
+	// carries no instance, only the ItemId, so a bauble given to the
+	// companion is always named by its generic carrier here, never by its
+	// catalog text (model-safe by construction, if more generic than it
+	// need be for a server-moderated bauble). If this event ever grows to
+	// carry the item instance, name it with item.ModelName() instead
+	// (internal/items/bauble_model.go), never Name(), so a player-key
+	// bauble's own text still cannot reach the model.
 	itemName := `something`
 	if spec := items.GetItemSpec(evt.ItemId); spec != nil && spec.Name != `` {
 		itemName = spec.Name

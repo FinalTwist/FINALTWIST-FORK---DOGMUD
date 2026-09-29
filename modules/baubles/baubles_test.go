@@ -371,6 +371,39 @@ func TestModerationOutageRefusesAPlayerKeyFind(t *testing.T) {
 	}
 }
 
+// The moderation breaker is read exactly once per find (H2 Task 10 review):
+// moderationPossible's own read and moderate's later, separate read used to
+// be two live reads of the same breaker a few statements apart. A breaker
+// that tripped open in that gap (another find's failed check, on another
+// goroutine) made the SECOND read see it open when the FIRST, which gated
+// whether a player-key find is even attempted, had already decided it was
+// closed: the find was then refused outright (errBreakerOpen) rather than
+// honouring the decision moderationPossible had already made for it. moderate
+// now takes one read (blocked) and never re-reads apiframework.Blocked, so a
+// later change to the breaker cannot reach a decision already taken.
+func TestModerationBreakerIsReadOnceNotReRead(t *testing.T) {
+	f := newFakeOpenAI(t)
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
+	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: f}
+	apiframework.SetRelay(relay)
+
+	t.Cleanup(func() { moderateReadForTest = func() {} })
+	// Lands right where the old code's second, redundant read ran: the
+	// breaker was closed for moderate's one true read (moderationPossible
+	// said the find could be attempted) and only opens here.
+	moderateReadForTest = func() {
+		apiframework.Shared().SetConsumerBreakerForTest(moderationBreaker, 5, time.Now().Add(time.Minute))
+	}
+
+	res, err := m.generate(context.Background(), request())
+	if errors.Is(err, errBreakerOpen) {
+		t.Fatalf("the breaker opening after the one read must not refuse a find that read already allowed: %+v %v", res, err)
+	}
+	if err != nil || !res.PlayerKey || !res.Moderated || res.FinderOnly {
+		t.Fatalf("the read at decision time was closed, so the find is named and moderated as usual: %+v %v", res, err)
+	}
+}
+
 // A find that runs out of time is the provider not answering: it counts
 // (analysis: a timeout released unjudged would never open a breaker). A
 // find given up on (a copyover's flush) is nobody's failure.

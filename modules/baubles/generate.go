@@ -107,13 +107,24 @@ const moderationBreaker = `baubles-moderation`
 
 // moderationPossible reports whether the server can moderate a reply now:
 // ModerateOutput on, a server key, and neither the provider breaker nor
-// the moderation breaker open (apiframework.Blocked reads both). s and now
-// are read once by the caller and passed in. Player-key text named while
-// it is not is kept to its finder (FinderOnly; owner ruling 2026-09-29),
-// never shown to anyone else unmoderated.
-func moderationPossible(cfg Config, s apiframework.ServerSettings, now time.Time) bool {
-	return cfg.ModerateOutput && s.HasKey() && !apiframework.Blocked(moderationBreaker, now)
+// the moderation breaker open. s and blocked (apiframework.Blocked read
+// once by the caller, moderate, against a single now) are passed in, so
+// the breakers are consulted exactly once per find: a moderate that
+// re-read them after this call could see the breaker open between the two
+// reads and refuse a player-key find that this decision already allowed,
+// rather than keeping it to its finder (finderOnly). Player-key text named
+// while moderation is not possible is kept to its finder (owner ruling
+// 2026-09-29), never shown to anyone else unmoderated.
+func moderationPossible(cfg Config, s apiframework.ServerSettings, blocked bool) bool {
+	return cfg.ModerateOutput && s.HasKey() && !blocked
 }
+
+// moderateReadForTest runs, when set, immediately after moderate takes its
+// one breaker read for a find, before that read is used. Nil outside
+// tests; it is how a test lands a breaker state change inside the window a
+// second, redundant read once raced with (fixed by this commit: the
+// breaker is now read exactly once per find, into blocked, in moderate).
+var moderateReadForTest = func() {}
 
 // refusedByAllowlist reports whether content, from a finder's own key, is
 // a usable answer (it parses and passes CleanReply) whose cleaned text
@@ -305,11 +316,17 @@ func transient(ex apiframework.Exchange) bool {
 //     and never the naming breaker. A flag is the check working.
 //
 // The check is free and is not a model call, so it reserves nothing. The
-// server settings and the clock are read once here and passed on.
+// server settings, the clock and the breakers are read once here (blocked)
+// and passed on; nothing below re-reads apiframework.Blocked, so a breaker
+// that opens mid-decision cannot turn an already-decided player-key find
+// into a refusal instead of finderOnly.
 func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool) (moderated bool, finderOnly bool, err error) {
 	now := time.Now()
 	s := apiframework.Server()
-	if playerKey && !moderationPossible(cfg, s, now) {
+	blocked := apiframework.Blocked(moderationBreaker, now)
+	moderateReadForTest()
+	possible := moderationPossible(cfg, s, blocked)
+	if playerKey && !possible {
 		return false, true, nil
 	}
 	if !cfg.ModerateOutput {
@@ -318,7 +335,7 @@ func (m *BaublesModule) moderate(cfg Config, reply baubles.Reply, playerKey bool
 	if !s.HasKey() {
 		return false, false, errNoRoute
 	}
-	if apiframework.Blocked(moderationBreaker, now) {
+	if blocked {
 		return false, false, errBreakerOpen
 	}
 	// Every field a player reads or types. CleanReply always leaves a

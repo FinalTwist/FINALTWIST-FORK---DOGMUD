@@ -171,8 +171,12 @@ func (m *BaublesModule) info() baubles.GeneratorInfo {
 		`Server key tokens: ` + itoa(u.Tokens) + ` of ` + limitWords(u.Limit) + ` (baubles ` + itoa(mine) + `; one budget for every feature).`
 	if !s.HasKey() {
 		detail += ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find is a generic trinket.`
-	} else if cfg.UsePlayerKeys && !cfg.ModerateOutput {
-		detail += ` ModerateOutput is off: finds named on finders' own keys are shown to those finders alone.`
+	} else if !cfg.ModerateOutput {
+		detail += ` ModerateOutput is off: server-key finds are shown to everyone with no check (the operator's choice)`
+		if cfg.UsePlayerKeys {
+			detail += `, and finds named on finders' own keys are shown to those finders alone`
+		}
+		detail += `.`
 	}
 	if now := time.Now(); cfg.ModerateOutput && apiframework.Blocked(moderationBreaker, now) && !apiframework.BreakerOpen(now) {
 		detail += ` The moderation breaker is open (the moderation endpoint keeps failing): server-key finds are generic and finders' own keys' finds are shown to those finders alone until ` +
