@@ -28,7 +28,7 @@ import (
 //
 //	bauble status                         what names baubles (model or generic) and the search settings
 //	bauble stats                          counts by status, tier, namer and region; sales; tokens
-//	bauble list [n]                       sales totals and the newest records (default 10)
+//	bauble list [n] [playerkey|unmoderated|finderonly]  sales totals and the newest records (default 10), filtered
 //	bauble show <bauble>                  one record in full
 //	bauble spawn [cheap|average|rare]     find one here, as a search would; it arrives in your pack
 //	bauble edit <bauble> <field> <text>   change name, keyword, desc, material, value, weight or tier
@@ -85,7 +85,7 @@ func baubleUsage(user *users.UserRecord) {
 		"Usage:\r\n"+
 			"  bauble status\r\n"+
 			"  bauble stats\r\n"+
-			"  bauble list [n]\r\n"+
+			"  bauble list [n] [playerkey|unmoderated|finderonly]\r\n"+
 			"  bauble show <bauble>\r\n"+
 			"  bauble spawn [cheap|average|rare]\r\n"+
 			"  bauble edit <bauble> <field> <text>\r\n"+
@@ -190,6 +190,10 @@ func baubleShow(args []string, user *users.UserRecord, room *rooms.Room) (bool, 
 		fmt.Fprintf(&b, "  vanished:    %s (left untaken)\r\n", rec.VanishedAt.Format(`2006-01-02 15:04 MST`))
 	}
 	fmt.Fprintf(&b, "  generator:   %s %s (prompt v%d, %d tokens)\r\n", rec.Generator, rec.Model, rec.PromptVersion, rec.Tokens)
+	fmt.Fprintf(&b, "  player key: %s, moderated: %s\r\n", yesNo(rec.PlayerKey), yesNo(rec.Moderated))
+	if rec.KeptToFinder() {
+		fmt.Fprintf(&b, "  finder only: yes (user %d); everyone else sees a plain Trinket\r\n", rec.FoundByUserId)
+	}
 	if rec.EditedBy != `` {
 		fmt.Fprintf(&b, "  edited by:   %s\r\n", rec.EditedBy)
 	}
@@ -203,12 +207,34 @@ func baubleShow(args []string, user *users.UserRecord, room *rooms.Room) (bool, 
 
 func baubleList(args []string, user *users.UserRecord) (bool, error) {
 	n := 10
-	if len(args) > 0 {
-		if v, err := strconv.Atoi(args[0]); err == nil && v > 0 {
+	filter := ``
+	for _, a := range args {
+		if v, err := strconv.Atoi(a); err == nil && v > 0 {
 			n = v
+			continue
+		}
+		filter = strings.ToLower(a)
+	}
+	keep := func(r baubles.Record) bool {
+		switch filter {
+		case `playerkey`:
+			return r.PlayerKey
+		case `unmoderated`:
+			return !r.Moderated && r.Generator == baubles.GeneratorOpenAI
+		case `finderonly`:
+			return r.KeptToFinder()
+		}
+		return true
+	}
+	recent := make([]baubles.Record, 0, n)
+	for _, r := range baubles.Recent(baubles.Count()) {
+		if len(recent) >= n {
+			break
+		}
+		if keep(r) {
+			recent = append(recent, r)
 		}
 	}
-	recent := baubles.Recent(n)
 	if len(recent) == 0 {
 		user.SendText(messaging.CategorySystem, `The bauble catalog is empty.`)
 		return true, nil
@@ -443,4 +469,12 @@ func baublePrompt(args []string, user *users.UserRecord, room *rooms.Room) (bool
 	}
 	user.SendText(messaging.CategorySystem, b.String())
 	return true, nil
+}
+
+// yesNo is a flag for the admin bauble views.
+func yesNo(v bool) string {
+	if v {
+		return `yes`
+	}
+	return `no`
 }

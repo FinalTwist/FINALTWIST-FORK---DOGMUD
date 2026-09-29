@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,5 +94,38 @@ func TestAdminBauble_ResolveEditRetire(t *testing.T) {
 	for _, sub := range []string{"stats", "status", "list", "show whistle", "prompt " + whistle.Id, "window", "regen " + whistle.Id} {
 		_, err := Bauble(sub, admin, room, 0)
 		assert.NoError(t, err, sub)
+	}
+}
+
+// An admin sees whose text a bauble carries (review finding e), and can
+// list only the player-key, the unmoderated or the finder-only ones.
+func TestAdminBauble_ShowsAndFiltersPlayerKeyText(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+	admin, room := getTestUserAndRoom(t)
+
+	mine, err := baubles.Create(baubles.Record{Name: "Painted Wooden Horse", NameSimple: "horse", Tier: baubles.TierCheap,
+		Value: 3, WeightLbs: 0.5, Description: "A toy horse.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI, PlayerKey: true, FoundByUserId: 7})
+	require.NoError(t, err)
+	_, err = baubles.Create(baubles.Record{Name: "Tin Soldier", NameSimple: "soldier", Tier: baubles.TierCheap,
+		Value: 3, WeightLbs: 0.5, Description: "A tin soldier.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI, Moderated: true})
+	require.NoError(t, err)
+
+	events.DrainQueuedMessagesForTest(admin.UserId)
+	_, _ = Bauble("show "+mine.Id, admin, room, 0)
+	out := strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), "\n")
+	assert.Contains(t, out, "player key: yes")
+	assert.Contains(t, out, "moderated: no")
+	assert.Contains(t, out, "finder only: yes (user 7)")
+
+	for filter, wantHorse := range map[string]bool{"playerkey": true, "unmoderated": true, "finderonly": true, "": true} {
+		_, _ = Bauble(strings.TrimSpace("list 10 "+filter), admin, room, 0)
+		out = strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), "\n")
+		assert.Equal(t, wantHorse, strings.Contains(out, "Painted Wooden Horse"), filter)
+		assert.Equal(t, filter == "", strings.Contains(out, "Tin Soldier"), filter)
 	}
 }
