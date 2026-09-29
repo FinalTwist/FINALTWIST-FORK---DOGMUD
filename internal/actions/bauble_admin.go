@@ -83,7 +83,7 @@ func RegenerateBauble(id string, adminUserId int, adminName string) error {
 			util.LockMud()
 			defer util.UnlockMud()
 		}
-		updated, err := baubles.ApplyRegenerated(id, res, adminName)
+		updated, err := baubles.ApplyRegenerated(id, res, adminName, util.Rand)
 		if err != nil {
 			tellBaubleAdmin(adminUserId, fmt.Sprintf(`Bauble %s was not regenerated: %s.`, id, err))
 			return
