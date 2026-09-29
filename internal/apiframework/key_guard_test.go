@@ -1,6 +1,7 @@
 package apiframework
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
 )
 
 // A test must never print a key: not a developer's real OPENAI_API_KEY, and
@@ -123,6 +126,27 @@ func TestKeyGuardCatchesTheOriginalLeak(t *testing.T) {
 	good := []byte("package x\nfunc T(t *testing.T) {\n\tt.Fatal(\"the configured key, trimmed\")\n\tt.Fatalf(\"legacy key (has=%t legacy=%t)\", a, b)\n\tt.Fatalf(\"result: %+v\", res)\n}\n")
 	if found, _ := keyPrints(`good_test.go`, good, true); len(found) != 0 {
 		t.Fatalf("clean messages pass, got %v", found)
+	}
+}
+
+// Neither place a server key can be configured shows through the one
+// redacted view of the config (slice M's DisplayConfigData, which the boot
+// log, both server listings and /viewconfig render): the typed
+// APIFramework.APIKey (a ConfigSecret) and the companion's old module-map
+// key (a plain map value, redacted by its leaf name).
+func TestNoServerKeyReachesTheConfigDisplay(t *testing.T) {
+	var c configs.Config
+	c.APIFramework.APIKey = `sk-sentinel-typed-0001`
+	c.Modules = configs.Modules{`aicompanion`: map[string]any{`APIKey`: `sk-sentinel-module-0002`}}
+	shown := 0
+	for path, v := range c.DisplayConfigData() {
+		shown++
+		if strings.Contains(fmt.Sprint(v), `sk-sentinel`) {
+			t.Errorf("the config display leaks the sentinel at %v", path)
+		}
+	}
+	if shown < 10 {
+		t.Fatalf("the display walked only %d entries: this test could not have found a leak", shown)
 	}
 }
 

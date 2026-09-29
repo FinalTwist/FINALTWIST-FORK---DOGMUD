@@ -21,8 +21,9 @@ type APIFramework struct {
 	APIKeyEnv ConfigString `yaml:"APIKeyEnv"`
 	// APIKey is the key itself, for a private server (empty: the companion's
 	// old Modules.aicompanion.APIKey). The environment variable wins when
-	// both are set. Never logged.
-	APIKey ConfigString `yaml:"APIKey"`
+	// both are set. A ConfigSecret: every config listing prints it redacted.
+	// Never logged.
+	APIKey ConfigSecret `yaml:"APIKey"`
 	// BaseURL is the provider's API root. Empty: the companion's old
 	// Modules.aicompanion.BaseURL if set, else https://api.openai.com/v1.
 	BaseURL ConfigString `yaml:"BaseURL"`
@@ -51,7 +52,7 @@ type APIFramework struct {
 // companion's old settings rather than being silently given new ones.
 func (a *APIFramework) Validate() {
 	a.APIKeyEnv = ConfigString(strings.TrimSpace(string(a.APIKeyEnv)))
-	a.APIKey = ConfigString(strings.TrimSpace(string(a.APIKey)))
+	a.APIKey = ConfigSecret(strings.TrimSpace(string(a.APIKey)))
 	a.BaseURL = ConfigString(strings.TrimRight(strings.TrimSpace(string(a.BaseURL)), `/`))
 	if v := strings.TrimSpace(string(a.AllowCustomEndpoint)); v != `` {
 		if b, err := strconv.ParseBool(v); err == nil && b {
