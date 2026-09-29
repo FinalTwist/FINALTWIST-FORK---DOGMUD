@@ -228,8 +228,9 @@ token needs a live number.
 `ChargeMove` and `EntryDetection` where it now computes them inline.
 `mobcommands.Go` calls `ChargeMove` on the adjacent-exit path (silent on
 refusal, R2), relocates through `actions.RelocateMob`, then calls
-`EntryDetection`. The non-adjacent numeric teleport (M12) charges one step
-priced at the destination (open question 3).
+`EntryDetection`. The non-adjacent numeric teleport (M12) is left untouched
+(owner ruling 3): it is a workaround for not pathing to a call for help, and
+its replacement is a filed follow-up.
 
 **When a mob cannot afford a step.** Refusal stays silent and no caller
 retries faster than it does today (R3), so there is no hot loop. The risk is
@@ -256,10 +257,10 @@ handling, caller by caller:
    go on, and stop to catch your breath.") so its next decision knows why.
    Under ruling 2 the companion's walking pays like anyone's, `goTo` and
    `explore` included.
-5. **Behaviour-tree single steps** (`move`, `go_to_caller_room`,
-   `keep_distance`, scout): quote first and return `Failure` when
-   unaffordable, so a selector falls through (an archer that cannot kite
-   fires instead).
+5. **Behaviour-tree single steps** (`move`, `go_to_caller_room`, scout):
+   quote first and return `Failure` when unaffordable, so a selector falls
+   through. `keep_distance` is a flee after 4a (owner ruling 4), priced by
+   the flee cost, so an archer that cannot afford to flee fires instead.
 
 **Per-actor narration that stays different.** Refusal and "winded" text is
 player-only. Unlock lines, bumping into walls and the locked-exit emote stay
@@ -301,7 +302,16 @@ round to block it. A tripped or bashed mob cannot flee until it stands, which
 makes knockdown a real answer to a fleeing boss. Fleeing costs a mob stamina,
 and a spent mob flees without its Skullduggery. A cornered mob stays in the
 fight instead of silently dropping it. Jailing-style roots now hold mobs too.
-The risk is `PackFlee` (open question 1).
+When a packmate dies, only packmates already fighting flee; idle ones stay
+put (owner ruling 1). A kiting archer pinned in melee must now flee to
+break away (owner ruling 4): it can be blocked, it pays the flee cost, and it
+spends a round disengaging before it gets clear.
+
+**4a also converts `keep_distance`** (owner ruling 4): `actKeepDistance`
+issues the flee instead of a walk, passing its preferred exit (toward home)
+to `BeginFlee` so the flee resolves through that exit rather than a random
+one when it succeeds. The CombatMemory refresh stays, so the archer still
+fires back through the reverse exit after escaping.
 
 **4b.** Mobs now tire. Arithmetic from shipped knobs, not a measurement: a
 stat-100 mob regains about 2.7 stamina a round and an unloaded forest step
@@ -357,26 +367,32 @@ or falls back home unexpectedly.
 
 ## Out of scope
 
-- Walking while in combat for mobs (`keep_distance`) beyond paying for it.
+- Mob walking in combat other than `keep_distance`, which becomes a flee in
+  4a (owner ruling 4).
+- The mob numeric teleport `go <roomId>` (owner ruling 3; follow-up: path to
+  the call for help instead).
 - The player flee's missing arrival line at the destination.
 - Shadow following (audit slice 6) and every other audit row.
 - Pursuit behaviour, which stays authored per U10b-1.
 - Retuning any movement or flee knob; the hardcoded 10 and 50 stay as they
   are.
 
-## Open questions for the owner
+## Owner rulings on the open questions (2026-09-28)
 
-1. **`PackFlee` scatters bystanders that are not fighting** (F19). Under
-   ruling 1 an out-of-combat flee is refused (F6), so those packmates would
-   stop scattering and only fighting packmates would flee, a round later.
-   Proposed: `PackFlee` issues `flee` to fighting packmates and a paid random
-   step to idle ones. Or keep only the fighters.
-2. **Charging after the lock and requeue** (M6) changes a player cost: a
-   locked door stops costing a step. Proposed: fix it, as designed.
-3. **The mob numeric teleport** (`go <roomId>` to a non-adjacent room, used
-   by `callforhelp` responders) has no player equivalent. Proposed: charge
-   one step priced at the destination. Or exempt it as a scripted move.
-4. **Mobs walk in combat; players cannot** (M1). `keep_distance` kiting is a
-   walk out of melee, which for a player would have to be a flee. Ruling 2
-   covers costs only, so this spec leaves the gate alone. Should kiting
-   become a flee in a later slice?
+1. **`PackFlee` bystanders stay put.** A packmate that is not in combat does
+   not flee and does not step away; only fighting packmates flee (through
+   `flee`, a round later). Drop the proposed paid random step for idle ones.
+2. **A locked door stops costing a step.** Fix the charge order (M6) as
+   designed; list it as a player-facing change.
+3. **The mob numeric teleport is out of scope.** Owner: "a hacky workaround
+   for tracking to a call for help rather than pathing there." Leave
+   `go <roomId>` untouched in 4b and file a follow-up to replace it with
+   pathing to the call for help.
+4. **Kiting out of melee requires a flee (in 4a).** Verified 2026-09-28:
+   `actKeepDistance` (`internal/behaviortree/actions_archer.go:225`) fires
+   only when the archer is pinned in melee in the SAME room as its target,
+   and today walks out through an exit with no blocker contest, no cost and
+   no delay. It becomes a flee: the shared blocker contest, the flee cost and
+   the one-round Disengaging delay, keeping only its own exit choice (toward
+   home). Firing from an adjacent room is unchanged; that archer is not in
+   melee.
