@@ -389,7 +389,8 @@ func EntryDetection(mover Actor, dest *rooms.Room, sneaking bool) EntryDetection
 `EntryDetectionResult`.) Symmetric for a player or a mob mover (owner ruling
 3): a sneaking mover rolls against every player observer first (the one who
 spots it is told) then every mob observer (silent), skipping the mover's
-allies (`alliesOf`). For a player that is its player party, as on master; for
+allies (`alliesOf`). For a player that is its player party, as on master,
+plus its own charmed mobs and companions (`GetCharmIds`); for
 a mob it is its NPC party and, when charmed, its owner, the owner's party and
 the owner's other charmed mobs and companions. Once the mover is not
 sneaking, whether it never was or was just spotted, it rolls against every
@@ -511,7 +512,9 @@ Computes a power-ratio assessment of `target` from `actor`'s perspective.
 
 Attempts to transition the actor from Visible through Concealing to Hidden
 after an opposed roll against every eligible observer in the room. A player
-actor excludes themself and party members; a mob excludes itself.
+actor excludes themself and its `alliesOf` side (party members and its own
+charmed mobs and companions, so your own pet never notices you); a mob excludes
+itself.
 
 - **Readiness and admission:** Already-Hidden, combat, activity, awareness,
   and room checks are read-only and run before cost admission. A valid attempt

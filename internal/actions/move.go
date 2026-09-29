@@ -254,9 +254,10 @@ func (a moverAllies) addParty(p *parties.Party) {
 	}
 }
 
-// alliesOf is a player mover's party (players only, as on master), or a mob
-// mover's side: its NPC party, and when charmed its owner, the owner's party
-// and the owner's other charmed mobs and companions.
+// alliesOf is a player mover's side: its party's players (as on master) and
+// its own charmed mobs and companions (every companion path tracks its mob in
+// the charm ids). For a mob mover it is its NPC party, and when charmed its
+// owner, the owner's party and the owner's other charmed mobs and companions.
 func alliesOf(mover Actor) moverAllies {
 	a := moverAllies{users: map[int]bool{}, mobs: map[int]bool{}}
 	if mover.IsPlayer() {
@@ -264,6 +265,9 @@ func alliesOf(mover Actor) moverAllies {
 			for _, uid := range p.GetMembers() {
 				a.users[uid] = true
 			}
+		}
+		for _, id := range mover.GetCharacter().GetCharmIds() {
+			a.mobs[id] = true
 		}
 		return a
 	}
