@@ -56,6 +56,30 @@ func TestAuthoredKeyword(t *testing.T) {
 	}
 }
 
+// A loaded item's whole name, compared after NFKC, lower case and collapsed
+// spaces, so a model cannot pass a real item's name off by case, spacing or
+// fullwidth letters (spec S3). The bauble carrier does not count.
+func TestAuthoredName(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		10:           {ItemId: 10, Name: `Hooded Lantern`, NameSimple: `lamp`},
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`},
+	})
+	defer restore()
+	for name, want := range map[string]bool{
+		`Hooded Lantern`:                   true,
+		`hooded lantern`:                   true,
+		"  Hooded\U000000A0\t Lantern ":    true,
+		"\U0000FF28ooded \U0000FF2Cantern": true, // fullwidth H and L
+		`Hooded Lanterns`:                  false,
+		`Lantern`:                          false,
+		`Curious Trinket`:                  false,
+	} {
+		if AuthoredName(name) != want {
+			t.Errorf("AuthoredName(%q) = %v, want %v", name, !want, want)
+		}
+	}
+}
+
 // A real item beats a bauble that the name matches in full too, wherever
 // each is in the list; an explicit N. above 1 keeps list order.
 func TestRealItemsBeatBaublesOnFullMatches(t *testing.T) {
@@ -93,13 +117,14 @@ func TestAuthoredKeywordIsSafeWhileItemsAreWritten(t *testing.T) {
 		defer close(done)
 		for i := 0; i < 2000; i++ {
 			_ = AuthoredKeyword(`lantern`)
+			_ = AuthoredName(`Hooded Lantern`)
 		}
 	}()
 	for i := 0; i < 200; i++ {
 		RegisterTestItemSpec(&ItemSpec{ItemId: 1000 + i, Name: `Test Candle`, NameSimple: `candle`})
 	}
 	<-done
-	if !AuthoredKeyword(`candle`) || !AuthoredKeyword(`lantern`) {
+	if !AuthoredKeyword(`candle`) || !AuthoredKeyword(`lantern`) || !AuthoredName(`test candle`) {
 		t.Fatal("the snapshot follows every write")
 	}
 }
