@@ -97,8 +97,8 @@ func SetGenerator(fn GeneratorFunc, info func() GeneratorInfo) {
 	generator.Store(&installedGenerator{fn: fn, info: info})
 }
 
-// CurrentGenerator reports what names baubles now: false means generic
-// trinkets.
+// CurrentGenerator reports what names baubles now: false means the fallback
+// corpus, or a generic trinket where nothing in it fits.
 func CurrentGenerator() (GeneratorInfo, bool) {
 	g := generator.Load()
 	if g == nil {
@@ -123,8 +123,9 @@ var refusalLog struct {
 // most once a minute, the companion's pattern (aicompanion's
 // logBudgetRefusal): a finder over their allowance who keeps searching is
 // one line a minute, not one a find. Every other failure is logged each
-// time.
-func noteRefusal(refusedBy string, err error) {
+// time. fb is the fallback actually used, named in the log line as the
+// pickpocket log names its generator (steal_pocket.go).
+func noteRefusal(refusedBy string, err error, fb GenResult) {
 	refusalLog.mu.Lock()
 	now := time.Now()
 	if refusalLog.now != nil {
@@ -136,7 +137,7 @@ func noteRefusal(refusedBy string, err error) {
 	}
 	refusalLog.last = now
 	refusalLog.mu.Unlock()
-	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `refusedBy`, refusedBy, `error`, err)
+	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `refusedBy`, refusedBy, `error`, err)
 }
 
 // MaxGenerateTime is the hard ceiling on one Generate call, whatever the
@@ -173,12 +174,13 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 
 	res, err := g.fn(ctx, req)
 	if err != nil {
+		fb := generic()
 		if refusedBy := apiframework.RefusedBy(err); refusedBy != `` {
-			noteRefusal(refusedBy, err)
+			noteRefusal(refusedBy, err, fb)
 		} else {
-			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `error`, err)
+			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `error`, err)
 		}
-		return generic()
+		return fb
 	}
 	cleaned, err := CleanReply(res.Reply)
 	if err == nil && (res.PlayerKey || res.FinderOnly) {
@@ -199,15 +201,17 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 		}
 	}
 	if err != nil {
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `error`, err)
-		return generic()
+		fb := generic()
+		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `error`, err)
+		return fb
 	}
 	if TooBigFor(cleaned, req.Source) {
 		// The model's own weight, or the thing its name names, says it
 		// described something no pocket holds, whatever its weight would be
 		// clamped to. A fallback instead (the corpus's pocket pool, or a small trinket).
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `error`, `too big for a pocket`, `weight`, cleaned.WeightLbs)
-		return generic()
+		fb := generic()
+		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `error`, `too big for a pocket`, `weight`, cleaned.WeightLbs)
+		return fb
 	}
 	res.Reply = cleaned
 	if res.Generator == `` {

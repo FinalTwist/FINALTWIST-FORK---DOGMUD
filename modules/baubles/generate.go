@@ -33,8 +33,8 @@ func finderCharges(cfg Config, finderId int) []apiframework.Charge {
 
 // generate is the baubles.GeneratorFunc this module installs. It runs on a
 // delivery goroutine WITHOUT the mud lock (see actions/search_bauble.go), so
-// it touches no game state. Any error sends the find down the
-// generic-trinket path, and the player never sees it.
+// it touches no game state. Any error sends the find down the fallback path
+// (the corpus, or a generic trinket), and the player never sees it.
 //
 // The route: the finder's own key first, when they allowed it on the key
 // page (apiframework.PurposeFinds); then the server's key, reserved against

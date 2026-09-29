@@ -16,8 +16,8 @@ import (
 
 // Text validation for a model reply. The strict JSON schema fixes the SHAPE
 // of the answer; everything the schema cannot say is checked here, and any
-// failure sends the find down the generic-trinket path instead of into the
-// world.
+// failure sends the find down the fallback path (the corpus, or a generic
+// trinket) instead of into the world.
 
 const (
 	maxNameLen        = 40

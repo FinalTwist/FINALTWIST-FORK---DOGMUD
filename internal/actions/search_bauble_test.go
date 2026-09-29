@@ -380,9 +380,9 @@ func TestSearchResult_FoundByContestExcludesBaubles(t *testing.T) {
 }
 
 // Copyover or shutdown while a find is still being named (the player was
-// told "Something glints..."): the flush delivers it now, as the generic
-// trinket it would have been, and the delivery goroutine stands down, so
-// the find arrives exactly once.
+// told "Something glints..."): the flush delivers it now, as the fallback
+// it would have been (the corpus, or a generic trinket), and the delivery
+// goroutine stands down, so the find arrives exactly once.
 func TestFlush_FinishesAFindStillBeingNamed(t *testing.T) {
 	pinConfigForTest(t)
 	actor := newSearchFakeActor("Hasty", newSearchTestRoom(9520), true, 7140)

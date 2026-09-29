@@ -141,6 +141,9 @@ func TestRefusedFindsAreLoggedOnceAMinute(t *testing.T) {
 	if n := tee.count(`action="generate"`); n != 1 {
 		t.Fatalf("ten refused finds inside one minute are one log line, got %d", n)
 	}
+	if tee.count(`generator="local"`) == 0 {
+		t.Fatalf("the throttled refusal log must still name the generator the fallback used: %v", tee.lines)
+	}
 	clock = clock.Add(time.Minute)
 	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
 	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
@@ -168,6 +171,49 @@ func TestGenerateCapsTheWait(t *testing.T) {
 	res := Generate(ctx, GenRequest{Tier: TierCheap}, nil)
 	if time.Since(start) > 2*time.Second || res.Generator != GeneratorLocal {
 		t.Fatalf("a cancelled call returns promptly with a generic trinket: %+v", res)
+	}
+}
+
+// Each of Generate's fallback logs (an error, an unusable or player-key
+// reply, and too big for a pocket) names the generator the fallback
+// actually used (corpus or local), as the pickpocket log does
+// (steal_pocket.go).
+func TestFallbackLogsNameTheGeneratorUsed(t *testing.T) {
+	tee := &logTee{}
+	mudlog.SetupLogger(tee, "", "", false)
+	t.Cleanup(func() { mudlog.SetupLogger(nil, "", "", false) })
+
+	// No corpus loaded: the fallback is a generic trinket, generator local.
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{}, errors.New(`boom`)
+	})
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
+	if tee.count(`generator="local"`) == 0 {
+		t.Fatalf("the error-path fallback must name its generator: %v", tee.lines)
+	}
+
+	// A corpus loaded and matching: the fallback draws from it, and the log
+	// names it, for the unusable-reply path and the too-big-for-a-pocket one.
+	withCorpus(t, testSeed, ``)
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		r := goodReply()
+		r.Name = `Horse 3000` // digits: unusable
+		return GenResult{Reply: r}, nil
+	})
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap, Place: Place{Biome: `interior`}}, first)
+	if tee.count(`generator="corpus"`) == 0 {
+		t.Fatalf("the unusable-reply fallback must name the corpus: %v", tee.lines)
+	}
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{Reply: Reply{Name: `Bronze Funeral Urn`, NameSimple: `urn`,
+			Description: `A small bronze urn with a chipped lid, heavier than it looks.`,
+			WeightLbs:   0.3, Value: 3}, Model: `m`}, nil
+	})
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap, Source: SourcePickpocket, Place: Place{Biome: `interior`}}, first)
+	if tee.count(`generator="corpus"`) < 2 {
+		t.Fatalf("the too-big-for-a-pocket fallback must name the corpus too: %v", tee.lines)
 	}
 }
 
@@ -446,6 +492,29 @@ func TestGenerateHoldsPlayerKeyTextToItsRules(t *testing.T) {
 		if got.Generator != GeneratorOpenAI || !got.PlayerKey || got.FinderOnly != c.wantFinderOnly {
 			t.Errorf("%v: used as it came: %+v", name, got)
 		}
+	}
+}
+
+// A player-key call whose text fails validation falls back cleanly: the
+// fallback is nobody's key, unmoderated, and a record minted from it is
+// never kept to its finder.
+func TestFailedPlayerKeyCallFallsBackCleanly(t *testing.T) {
+	withCatalog(t)
+	odd := goodReply()
+	odd.Name = "P\U00000430inted Wooden Horse" // not plain: fails CheckPlayerKeyText
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{Reply: odd, PlayerKey: true, Moderated: true}, nil
+	})
+	res := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: 7}, nil)
+	if res.PlayerKey || res.Moderated {
+		t.Fatalf("the fallback is nobody's key: %+v", res)
+	}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), FinderUserId: 7, Tier: TierAverage, Result: &res})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.PlayerKey || rec.Moderated || rec.KeptToFinder() {
+		t.Fatalf("the record is never kept to a finder: %+v", rec)
 	}
 }
 
