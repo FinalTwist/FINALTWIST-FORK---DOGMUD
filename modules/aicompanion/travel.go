@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -33,6 +34,7 @@ type travelPlan struct {
 	TriedKey   bool   // a locked way on this step has already had the key tried
 	Authorized bool   // the owner asked for this errand
 	Errand     string // what she set out to do there, in her own words
+	Resting    bool   // already told her mind she stopped to rest on this step
 }
 
 const (
@@ -40,6 +42,15 @@ const (
 	maxReplans        = 2
 	returnMaxSteps    = 60
 )
+
+// tooTiredLine is what a companion remembers when it stops to rest mid-trip.
+const tooTiredLine = `You are too tired to go on, and stop to catch your breath.`
+
+// stepAffordable reports whether the companion can pay for a step through
+// exitName right now (movement parity 4b). A variable so tests can pin it.
+var stepAffordable = func(mob *mobs.Mob, exitName string) bool {
+	return actions.QuoteMobStep(mob, exitName).OK()
+}
 
 // startTravel plans a route and begins a trip. It returns a reason when the
 // trip cannot start.
@@ -127,6 +138,13 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 			}
 
 		case round >= p.Issued+stepTimeoutRounds:
+			// Movement parity 4b: a step that did not move because she
+			// could not pay for it is a rest, not a bad exit. Re-quote next
+			// round; never charge exhaustion to the map.
+			if !stepAffordable(mob, p.Steps[p.Next].Exit) {
+				p.Expect = 0
+				return
+			}
 			// Did not move. A locked door she has the key for is worth one
 			// try before the way is written off.
 			if !p.TriedKey && m.tryUnlock(c, mob, p.Steps[p.Next].Exit) {
@@ -190,6 +208,17 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 		m.endTravel(c, `You could not find the way on.`, false)
 		return
 	}
+	// Movement parity 4b: quote before issuing. Tired, she waits without
+	// starting the step clock and tells her mind once.
+	if !stepAffordable(mob, st.Exit) {
+		if !p.Resting {
+			p.Resting = true
+			c.mind.addLine(Line{Kind: `event`, Text: tooTiredLine}, m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
+		return
+	}
+	p.Resting = false
 	mob.Command(`go ` + util.EscapeAnsiTags(st.Exit))
 	p.FromRoom = cur
 	p.Issued = round
