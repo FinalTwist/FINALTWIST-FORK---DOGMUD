@@ -253,7 +253,13 @@ func handleAlphaDeathWithScatter(deadMob *Mob, roomMobIds []int, scatterRounds i
 // MovePackFollowers moves all followers of the given alpha mob through
 // the specified exit. Called after the alpha successfully moves.
 // Caller must check PackRoamingEnabled() before calling.
-func MovePackFollowers(alphaMob *Mob, exitName string, oldRoomMobIds []int) {
+//
+// canStep reports whether a follower can pay for the step (movement parity
+// 4b). It is a parameter because this package cannot import internal/actions,
+// which prices steps. nil means every follower can. A follower that cannot
+// stays behind and leaves the pack, exactly as one over its wander budget
+// does.
+func MovePackFollowers(alphaMob *Mob, exitName string, oldRoomMobIds []int, canStep func(*Mob) bool) {
 	if alphaMob == nil {
 		return
 	}
@@ -285,6 +291,11 @@ func MovePackFollowers(alphaMob *Mob, exitName string, oldRoomMobIds []int) {
 
 		// Check MaxWander limit
 		if mob.MaxWander > -1 && mob.WanderCount > mob.MaxWander {
+			mob.PackAlphaId = 0
+			continue
+		}
+
+		if canStep != nil && !canStep(mob) {
 			mob.PackAlphaId = 0
 			continue
 		}

@@ -320,7 +320,7 @@ func TestTickPackRoaming_RespectsMaxSize(t *testing.T) {
 // ─── MovePackFollowers ─────────────────────────────────────────────────────
 
 func TestMovePackFollowers_NilAlpha(t *testing.T) {
-	MovePackFollowers(nil, "north", []int{100})
+	MovePackFollowers(nil, "north", []int{100}, nil)
 }
 
 func TestMovePackFollowers_MaxWanderBreaksOff(t *testing.T) {
@@ -341,7 +341,7 @@ func TestMovePackFollowers_MaxWanderBreaksOff(t *testing.T) {
 	mobInstances[200] = alpha
 	mobInstances[201] = follower
 
-	MovePackFollowers(alpha, "north", []int{200, 201})
+	MovePackFollowers(alpha, "north", []int{200, 201}, nil)
 
 	assert.Equal(t, 0, follower.PackAlphaId, "should break off due to MaxWander")
 }
@@ -388,7 +388,7 @@ func TestMovePackFollowers_MaxWanderZeroNeverFollows(t *testing.T) {
 	mobInstances[200] = alpha
 	mobInstances[201] = follower
 
-	MovePackFollowers(alpha, "north", []int{200, 201})
+	MovePackFollowers(alpha, "north", []int{200, 201}, nil)
 
 	assert.Equal(t, 0, follower.WanderCount,
 		"MaxWander:0 follower must not be dragged along by its alpha")
@@ -417,8 +417,34 @@ func TestMovePackFollowers_WithBudgetStillFollows(t *testing.T) {
 	mobInstances[200] = alpha
 	mobInstances[201] = follower
 
-	MovePackFollowers(alpha, "north", []int{200, 201})
+	MovePackFollowers(alpha, "north", []int{200, 201}, nil)
 
 	assert.Equal(t, 1, follower.WanderCount, "follower with budget should have moved")
 	assert.Equal(t, 200, follower.PackAlphaId, "and should still be in the pack")
+}
+
+// Movement parity 4b: each follower pays its own step. One that cannot stays
+// behind and leaves the pack, rather than counting a wander it never walked.
+func TestMovePackFollowers_TiredFollowerStaysBehind(t *testing.T) {
+	cleanup := seedRegistry()
+	defer cleanup()
+
+	alpha := &Mob{
+		MobId: 1, InstanceId: 200, IsPackAlpha: true,
+		Groups:    []string{"canine"},
+		Character: characters.Character{Name: "Alpha Wolf", RoomId: 10},
+	}
+	follower := &Mob{
+		MobId: 1, InstanceId: 201, PackAlphaId: 200,
+		MaxWander: -1, WanderCount: 0,
+		Groups:    []string{"canine"},
+		Character: characters.Character{Name: "Tired Wolf", RoomId: 10},
+	}
+	mobInstances[200] = alpha
+	mobInstances[201] = follower
+
+	MovePackFollowers(alpha, "north", []int{200, 201}, func(*Mob) bool { return false })
+
+	assert.Equal(t, 0, follower.PackAlphaId, "a follower that cannot step leaves the pack")
+	assert.Equal(t, 0, follower.WanderCount, "a step never taken is not counted")
 }
