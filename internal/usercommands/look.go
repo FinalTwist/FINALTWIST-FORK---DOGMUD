@@ -332,7 +332,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.SendText(messaging.CategoryRoomDescription, ``)
 
 		user.SendText(messaging.CategoryRoomDescription,
-			fmt.Sprintf(`You look at the <ansi fg="item">%s</ansi> %s:`, lookItem.DisplayName(), lookDestination),
+			fmt.Sprintf(`You look at the <ansi fg="item">%s</ansi> %s:`, lookItem.DisplayNameFor(user.UserId), lookDestination),
 		)
 
 		user.SendText(messaging.CategoryRoomDescription, ``)
@@ -347,7 +347,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		// Highlight the item's nouns, then wrap, the same order the room-noun
 		// branch below uses, so a multi-word noun is never split by a wrap
 		// before it can be matched.
-		itemDesc := lookItem.GetLongDescription()
+		itemDesc := lookItem.LongDescriptionFor(user.UserId)
 		for noun := range lookItem.GetSpec().Nouns {
 			itemDesc = strings.Replace(itemDesc, noun, `<ansi fg="noun">`+noun+`</ansi>`, 1)
 		}
@@ -531,7 +531,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		user.SendText(messaging.CategoryRoomDescription, ``)
 		user.SendText(messaging.CategoryRoomDescription,
-			fmt.Sprintf(`You look at the <ansi fg="item">%s</ansi> %s:`, floorItem.DisplayName(), where),
+			fmt.Sprintf(`You look at the <ansi fg="item">%s</ansi> %s:`, floorItem.DisplayNameFor(user.UserId), where),
 		)
 		user.SendText(messaging.CategoryRoomDescription, ``)
 
@@ -543,7 +543,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		}
 
 		user.SendText(messaging.CategoryRoomDescription,
-			util.SplitStringNL(floorItem.GetLongDescription(), 80),
+			util.SplitStringNL(floorItem.LongDescriptionFor(user.UserId), 80),
 		)
 		if floorItem.BaubleBelongsTo(room.RoomId) {
 			user.SendText(messaging.CategoryRoomDescription,
@@ -765,7 +765,7 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 			entry.count++
 		} else {
 			// A found bauble left lying shows where: "(on the bookshelf)".
-			groundStacks[key] = &groundStack{name: item.DisplayName() + item.BaubleSpotSuffix(), count: 1}
+			groundStacks[key] = &groundStack{name: item.DisplayNameFor(user.UserId) + item.BaubleSpotSuffix(), count: 1}
 			groundStackOrder = append(groundStackOrder, key)
 		}
 	}
@@ -786,7 +786,7 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 		if item.StashedBy != user.UserId {
 			continue
 		}
-		name := item.DisplayName() + ` <ansi fg="item-stashed">(stashed)</ansi>`
+		name := item.DisplayNameFor(user.UserId) + ` <ansi fg="item-stashed">(stashed)</ansi>`
 		groundStuff = append(groundStuff, name)
 	}
 
