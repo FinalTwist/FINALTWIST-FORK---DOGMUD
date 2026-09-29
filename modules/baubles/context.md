@@ -49,7 +49,10 @@ from the room it was found in.
    (`GenRequest.FinderUserId`) whose Companion key page has "Also name things
    I find while searching" ticked, `apiframework.PlayerRelay().Model(userId,
    PurposeFinds)` answers and `viaPlayer` sends the request through that
-   player's browser relay, on their key. It costs the server nothing. A
+   player's browser relay, on their key. It costs the server nothing but is
+   held against the finder's own `baubles.finder` allowance
+   (`finderCharges`); a refusal is no call and feeds no breaker, and the
+   find goes on to the server's key, where the same allowance refuses it. A
    pickpocket's find (`SourcePickpocket`) takes the same route on the
    thief's key; its naming starts the moment the roll succeeds, so a thief
    reading their browser's network traffic can see a success before the
@@ -67,9 +70,11 @@ from the room it was found in.
    a queue; it covers the model call only); the server key
    (`apiframework.Server`); leave from the breakers (`apiframework.Allow` for
    `ConsumerBaubles`: baubles' own and the provider's; a half-open breaker
-   lets one probe through); a hold on the one daily budget; `apiframework.Post`
-   with the strict `baubles.ReplySchema()`, retried once when
-   `RetryTransient`; `Charged` and `Settle`. Each route returns `report`,
+   lets one probe through); a hold on the one daily budget, the baubles
+   share and the finder's allowance (none for an admin's regeneration,
+   which has no finder); `apiframework.Post` with the strict
+   `baubles.ReplySchema()`, retried once when `RetryTransient`; `Charged`
+   and `Settle`. Each route returns `report`,
    and `generate` gives it ONE outcome for the whole find, retries included,
    once the answer has been parsed and checked (`ParseReply`, `CleanReply`),
    so a model that keeps ignoring the schema pauses baubles' own breaker.
@@ -102,12 +107,15 @@ from the room it was found in.
 `ReasoningEffort` (minimal; not sent on a player's key, whose model the
 player chose), `Temperature` (0, not sent), `TimeoutSeconds` (15, 3 to 30),
 `MaxCompletionTokens` (800), `RetryTransient` (false), `MaxConcurrent` (4,
-server-key calls only), `ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
+server-key calls only), `DailyTokensPerUser` (20000; each finder's
+`baubles.finder` allowance, on either key; 0 is no cap; not hard-locked),
+`ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
 `LogRequests` (false). `Model`, `MaxCompletionTokens`, `MaxConcurrent`,
 `UsePlayerKeys`, `ModerateOutput` and `ModerationModel` are hard-locked
 (`configs.hardLocked`): only config.yaml sets them.
 
-The key, endpoint, daily budget and breaker are not here: they are the
+The key, endpoint, daily budget, the baubles share
+(`APIFramework.BaublesSharePercent`) and breaker are not here: they are the
 `APIFramework` section's, shared with the companion.
 
 ## Gotchas
@@ -142,6 +150,14 @@ The key, endpoint, daily budget and breaker are not here: they are the
   this package's tests).
 - **No game state is touched here.** Everything the goroutines share is
   behind `mu`; `configure` runs on the game loop at load.
+- **A refused reservation is not a failure.** A spent day, share or finder
+  allowance (`apiframework.RefusedBy`) makes no call, feeds no breaker and
+  is not counted in `bauble status`; `baubles.Generate` logs it with the
+  counter's name.
+- **`bauble status` counts roll on the ledger's clock.** `count` and `info`
+  read `apiframework.Shared().Day()`, not a clock of their own; a stats day
+  that does not match it is stale and shown as zero, so the figures reset
+  at the ledger's midnight, not at boot or at the module's own rollover.
 - Markup is stripped from everything sent (`baubles.PlainText`).
 - The package is named `baubles`, like the engine package it imports. The
   tests import that one as `eng`.

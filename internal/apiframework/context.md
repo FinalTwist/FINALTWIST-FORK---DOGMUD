@@ -31,9 +31,14 @@ keep its own key, budget or breaker.
   `EndpointAllowed`, `ResolveKey`, `ServerSettings` (`HasKey`, `Legacy`),
   `Server`, `RefreshServer`, `SetServerForTest`.
 - **budget.go**: the shared daily ledger. `ConsumerCompanion`,
-  `ConsumerBaubles`, `Hold`, `Reserve`, `Settle`, `HasRoom`, `Usage`,
-  `ConsumerUsage`, `Today`, `SeedTokens`, `SaveBudget`, `ErrOverBudget`, and
-  the test helpers `ResetBudgetForTest`, `SetSpentForTest`, `SetClockForTest`.
+  `ConsumerBaubles`, `Charge`, the dimension constants (`DimCompanionOwner`,
+  `DimCompanionStranger`, `DimCompanionStrangersFor`, `DimBaublesFinder`),
+  `Hold`, `Reserve`, `Settle`, `HasRoom`, `Allowance`, `Allowances`, `Day`,
+  `Usage`, `ConsumerUsage`, `Today`, `SeedTokens`, `SeedAllowances`,
+  `SaveBudget`, `ErrOverBudget`, `ErrOverAllowance`, `ErrOverShare`,
+  `RefusalError`, `RefusedBy` (`RefusedGlobal`, `RefusedShare`, or a
+  `Charge`'s `Dim`), and the test helpers `ResetBudgetForTest`,
+  `SetSpentForTest`, `SetAllowanceForTest`, `SetClockForTest`.
 - **breaker.go**: the server key's breakers. `Allow`, `Record`, `Release`,
   `RecordConsumer` (one outcome against a consumer's own breaker alone, no
   ticket and so never the half-open probe: for a feature's check that is
@@ -61,7 +66,12 @@ defaults on purpose. Without it `EndpointAllowed` accepts exactly
 hosts (`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) and every
 other host need `AllowCustomEndpoint`, which, like the other three, is
 hard-locked (`configs.hardLocked`), so only config.yaml sets it. `APIKey` is
-a `configs.ConfigSecret`.
+a `configs.ConfigSecret`. `CompanionSharePercent` (0: the default, 100, no
+cap) and `BaublesSharePercent` (0: the default, 25) cap each feature's part
+of `DailyTokenBudget`; -1 or 100 is no share cap, and so is no budget. A
+share is worked out by `shareOf` without multiplying the budget (so a huge
+`DailyTokenBudget` cannot overflow it), rounded down but never below one
+token, so even a small share of a small budget still admits a call.
 
 `Server()` returns a snapshot, safe from any goroutine; `RefreshServer()`
 reads the config into it (`resolveServer`) and must only run on the game
@@ -91,11 +101,22 @@ case.
    taking anything (for deciding whether to try at all).
 2. `Allow(consumer, now)` immediately before the first send: a `Ticket`, or
    no (a breaker open, or half-open with its one probe already out).
-3. `Reserve(consumer, worstCase)` holds tokens against the one budget.
+3. `Reserve(consumer, worstCase, spendServer, charges...)` holds tokens, all
+   or nothing, against the one budget, the consumer's share (`SharePercent`)
+   and each per-user `Charge` (`DimCompanionOwner`, `DimCompanionStranger`,
+   `DimCompanionStrangersFor`, `DimBaublesFinder`, each with its `Limit`).
+   `spendServer` false is a player's own key: allowances only. Two charges
+   on the same dimension and user in one call are summed and checked
+   together, not each against the limit alone. A refusal is a
+   `*RefusalError`; `RefusedBy` names the counter (`global`, `share`, or
+   the dimension).
 4. `Post(ctx, ep, path, body, carries, admit)` sends it off the mud lock
    (retries of the same logical call reuse the ticket).
 5. `Charged` turns the reply into what it cost; `Settle` releases the hold
-   and books the real use under the consumer.
+   and books the real use under the consumer, on every counter the hold
+   touched. It clamps a relayed count to its hold, keeps a server-key
+   overage, floors every counter at 0, and refunds no allowance from an
+   earlier day's hold.
 6. ONE `Record(consumer, ticket, err, now)` for the logical call, retries
    included; or `Release(consumer, ticket)` when it was given up on or never
    left (nobody's failure).
@@ -140,18 +161,27 @@ counters and consent, and a breaker per purpose: another feature's results
   given, then the configured value; `Server` gives it OPENAI_API_KEY when no
   config names one. Tests in the three packages clear OPENAI_API_KEY in
   `TestMain` and fix `Server()` with `SetServerForTest`.
-- **One budget.** `Reserve` checks the whole day against
-  `DailyTokenBudget`; the per-consumer figures in `Today().ByConsumer` are for
-  display only, not separate caps. The companion keeps its own per-player
-  caps on top.
+- **One budget, with shares.** `Reserve` checks the whole day against
+  `DailyTokenBudget` and each consumer's `ByConsumer` figure against its
+  share (`SharePercent`). Per-user allowances are the ledger's too
+  (`Allowance`, `Allowances`, `by_user` in budget.yaml), each call's limit
+  riding on its `Charge`; `Books.Day()` is the only day.
 - **Midnight.** Holds still in flight at the UTC rollover carry into the new
   day, and are settled there.
 - **Living state.** The ledger is saved to
   `<DataFiles>/apiframework/budget.yaml` (`SaveBudget`, called from the
   modules' save hooks, `main.go` and `copyover.go`) and loaded lazily. A
   corrupt file is quarantined and the day starts fresh. `SeedTokens` migrates
-  the companion's old saved total once, on a fresh day only. The directory is
-  git- and Docker-ignored; keep it on the server like `shops/`.
+  the companion's old saved total once, on a fresh day only.
+  `SeedAllowances` takes a feature's own copy of one dimension once per day
+  (one `seeded` mark per dimension, saved with the day): the companion
+  writes its allowances to its own file as a backup (`Allowances`), so a
+  normal restart seeds nothing and a quarantine, which loses the marks with
+  the counts, re-seeds from that backup. It also refuses to seed a
+  dimension that already has spending today, marked or not, the same guard
+  `SeedTokens` applies to a consumer: a day that began with a rollover, or a
+  boot that seeded nothing, already holds what the backup would add. The
+  directory is git- and Docker-ignored; keep it on the server like `shops/`.
 - **Relays are lent per purpose.** `Relay.Model(userId, PurposeFinds)` only
   answers when the player ticked "Also name things I find while searching" on
   the key page; the companion enforces this, and the browser relay only

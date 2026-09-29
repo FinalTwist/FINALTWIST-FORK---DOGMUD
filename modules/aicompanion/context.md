@@ -159,10 +159,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   consumer breaker counts every failure of hers, exactly as her breaker
   always did; the provider breaker, shared with baubles, counts only
   provider-wide failures, so a bauble model the provider refuses never
-  pauses her. Per-companion budgets (`reserveFor` checks the owner and
-  passer-by caps, then `apiframework.Reserve(ConsumerCompanion)`, and keeps
-  the ledger's own hold for `settleHeld`), per-tier metrics, decision
-  traces.
+  pauses her. `ownerBudgetLeft` peeks at the ledger's own allowance
+  (`DimCompanionOwner`, no reservation); the budget-state file is the
+  companion's backup of its allowances (`loadBudget`, `restoreBudget`,
+  `saveBudget`, `budgetStateToSave`); per-tier metrics, decision traces.
 - **tiers.go**: who pays for a call. `route` picks the owner's own key
   through their browser (`routeRelay`, tier 2, only when
   `playerKeysOffered`: `PlayerKeys` on and `validRelayOrigin`), else the
@@ -173,10 +173,13 @@ Roadmap and phase plan: `docs/aicompanion/`.
   its outcome reaches the breaker of whoever paid (`relayTable` keeps a
   per-owner breaker; the global one is the server key's alone, kept by
   `apiframework`).
-  `reserveRoute` returns a `hold` (route, payer, amount and the budget
-  day it was made on) that `settleRoute` takes back; a hold from an
-  earlier day gives nothing back to the owner's or passer-by's counts,
-  which started the new day at nothing (`settleForDay`).
+  `reserveRoute` builds each call's per-user allowances
+  (`allowanceCharges`) and holds them with the server budget in one
+  `apiframework.Reserve`; it returns a `hold` (route, the ledger's own
+  `Hold` when it reserved anything, and, on a refusal, the ledger's
+  error) that `settleRoute` takes back through `apiframework.Settle`. A
+  hold from an earlier day gives nothing back to the owner's or
+  passer-by's allowances; the ledger floors every counter at 0 itself.
   `validRelayOrigin` reads `WebDomain` through `gameHostname`, the same
   reading `gameOrigin` gives the relay page.
 - **conversation.go**: talk gathered into one conversation per exchange
@@ -380,8 +383,13 @@ One mind file per owner and companion, through the plugin store
 (`WriteStruct`, durable and autosave-queued): identifier
 `mind-<ownerUserId>-<mobId>`. The server key's day total is in
 `apiframework`'s ledger (`<DataFiles>/apiframework/budget.yaml`); the
-module's own budget file keeps the per-owner and passer-by counts, and an
-old file's server total seeds the ledger once (`SeedTokens`). A corrupt file is quarantined by
+per-owner and passer-by allowances are the ledger's too (`companion.owner`,
+`companion.stranger`, `companion.strangersfor`). The module's own budget
+file keeps its calls and notices and a backup of those allowances
+(`budgetStateToSave`, from `Allowances`); every boot hands it to
+`restoreBudget`, which seeds the ledger (`SeedTokens`, `SeedAllowances`)
+only on the first boot after the move or after a quarantined budget.yaml.
+A corrupt file is quarantined by
 `ReadIntoStruct` and a fresh mind is used. Mechanical state (items, gold,
 skills, health) is never in the mind file; it lives on the owner's
 `CompanionInfo` and on the live mob.
@@ -447,11 +455,11 @@ skills, health) is never in the mind file; it lives on the owner's
   `applyResult` drop everything if it has changed.
 - `controller.cancelInFlight` cancels the HTTP call on logout, pause, reset
   and death. Budgets are reserved at dispatch in one check-and-hold step
-  (`reserveRoute`, which is `reserveFor` on the server's key; `hold.fw` is
-  the ledger's own hold) and settled on return against the same payer and
-  route (`settleRoute`, `settleHeld`), exactly once. On the server's key a
-  logical call takes one breaker ticket (`callModel`: `apiframework.Allow`
-  just before its first send) and keeps it across its retry and tool rounds
+  (`reserveRoute`; `hold.fw` is the ledger's own hold) and settled on
+  return against the same payer and route (`settleRoute`), exactly once.
+  On the server's key a logical call takes one breaker ticket
+  (`callModel`: `apiframework.Allow` just before its first send) and keeps
+  it across its retry and tool rounds
   (`modelCall.ticket`, `modelResult.Ticket`); `routeResult` hands it back.
   Each of the four model goroutines also releases it last (`ticketOut`), a
   no-op once recorded, so a panic cannot hold a half-open breaker's probe.
@@ -459,8 +467,8 @@ skills, health) is never in the mind file; it lives on the owner's
   set lines and is no error: not counted in the tier stats, `errorsToday`
   or `lastErr`. A call a passer-by prompted (`strangerBehind`) is held
   against their `StrangerDailyTokens`, what passers-by together may spend
-  of that owner's companion (`StrangerTokensPerOwner`, `strangersFor`,
-  kept in the budget file; `strangerFits`, `chargeStrangerFor`) and, on
+  of that owner's companion (`StrangerTokensPerOwner`; `allowanceCharges`,
+  reserved on the ledger by `reserveRoute`) and, on
   the server's key, the server budget, never the owner's allowance, and
   runs with no tool rounds so its worst case fits. On the owner's own key
   (tier 2) nothing of the server's is held: only the passer-by caps. `modelReadyFor(owner, asker)`
