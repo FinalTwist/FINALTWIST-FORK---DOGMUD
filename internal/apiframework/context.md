@@ -17,7 +17,9 @@ keep its own key, budget or breaker.
 
 - **wire.go**: `Message`, `ToolCall`, `ToolFunction`, `ToolSpec`, `ToolDef`;
   `Chat` and `Chat.Body()` (the chat-completions body, with an optional strict
-  JSON schema and reasoning effort); `Reply` and `DecodeChat`;
+  JSON schema and reasoning effort); `Reply` and `DecodeChat` (a non-200's
+  kept text has key-shaped strings scrubbed by `keyTextRE` before the
+  300-byte cut);
   `MaxToolCallsPerReply`; `EstimateTokens`; `Charged` (what a call costs the
   budget).
 - **transport.go**: `HTTPClient`, `Endpoint` (redacts its key in `String`
@@ -51,7 +53,12 @@ false overrides an old true; anything unreadable is false),
 `DailyTokenBudget` (a negative value is no cap), `BreakerErrors`,
 `BreakerSeconds`. Declared in
 `internal/configs/config.apiframework.go`, whose `Validate` sets no numeric
-defaults on purpose.
+defaults on purpose. Without it `EndpointAllowed` accepts exactly
+`api.openai.com` and `*.openai.azure.com` over https; Azure's AI Services
+hosts (`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) and every
+other host need `AllowCustomEndpoint`, which, like the other three, is
+hard-locked (`configs.hardLocked`), so only config.yaml sets it. `APIKey` is
+a `configs.ConfigSecret`.
 
 `Server()` returns a snapshot, safe from any goroutine; `RefreshServer()`
 reads the config into it (`resolveServer`) and must only run on the game

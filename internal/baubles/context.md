@@ -43,8 +43,12 @@ was stolen, and how its text was generated.
   within the tier.
 - **generate.go**: the generator seam (`SetGenerator`, `CurrentGenerator`),
   `GenRequest`, `GenResult`, `Generate`, `RecentNames`.
-- **validate.go**: `CleanReply` (the text checks the schema cannot make) and
-  `PlainText`.
+- **validate.go**: `CleanReply` (the text checks the schema cannot make:
+  NFKC, curly quotes, en and em dashes and the ellipsis folded to ASCII
+  (`typographyFold`), invisible and format characters dropped (`cleanRune`),
+  rune lengths, link-shaped text refused (`linkRE`), errors quoting at most
+  60 runes (`quoteShort`)) and `PlainText`, which is `cleanLine`, so the room
+  text in a prompt is folded the same way.
 - **mint.go**: `Place`, `NewPlace`, `MintOpts`, `Mint`.
 - **sales.go**: `MarkSold`, `SalesSince`.
 - **theft.go**: `Theft`, `MarkStolen` (a household's bauble taken),
@@ -296,6 +300,12 @@ func ResetWindow(roomId int)
   a closed window, an excluded zone and a failed roll indistinguishable.
 - `ParseReply` refuses unknown fields and fractional values. That is what
   sends a malformed reply down the fallback path instead of into the world.
+- **`linkRE` is a heuristic.** It misses a top-level domain longer than six
+  letters and a domain written with U+3002 (NFKC keeps it); server-key text
+  is moderated, and player-key text is held to the ASCII allowlist, which
+  refuses both. It also refuses a missing-space typo such as `horse.Its` on
+  every route; that find falls back like any unusable reply. Accepted by the
+  owner, 2026-09-28.
 
 ## Dependencies
 

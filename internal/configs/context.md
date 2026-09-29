@@ -278,8 +278,10 @@ command may change whatever `Server.Locked` says: `APIFramework.APIKey`,
 master; the entries cost nothing), `Modules.aicompanion.APIKey`, `.APIKeyEnv`,
 `.BaseURL`, `.AllowCustomEndpoint`, `.RelayOrigin`, `.PlayerKeys`, `.Model`,
 `.FastModel`, `.DeepModel`, `.ModerateOutput`, `.ModerationModel`,
+`Modules.baubles.Model`, `.MaxCompletionTokens`, `.MaxConcurrent`,
+`.UsePlayerKeys`, `.ModerateOutput`, `.ModerationModel`,
 `FilePaths.WebDomain`, `Server.Locked`, and `Integrations.Discord.WebhookUrl`
-(where server data is sent).
+(where server data is sent). `APIFramework.APIKey` is a `ConfigSecret`.
 
 - `SetVal` is the OPERATOR write (`server set`, the `server config` menu,
   `setmotd`, `plugins.PluginConfig.Set`). It resolves the key with
