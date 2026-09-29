@@ -1,5 +1,17 @@
 # DOGMud Patch Notes
 
+## 2026-09-29: Monsters flee by your rules now
+
+- Monsters now flee by the same rules you do. A monster that turns to run
+  takes a moment to break away, and you get that moment to block it. A
+  monster knocked off its feet cannot flee until it stands, running tires it
+  out, and a cornered one keeps fighting instead of giving up the fight.
+- When a pack animal falls, only its packmates already in the fight, and
+  able to run, scatter.
+- A monster that runs in the middle of a spell loses the spell, as you do.
+- Archers pinned in melee now have to flee to get clear, so they can be
+  blocked while they try.
+
 ## 2026-09-29: Trinkets that come back
 
 If the server ever has to roll your character back to an earlier save, a

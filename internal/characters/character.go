@@ -176,6 +176,10 @@ type Character struct {
 	// template and hand every instance spawned afterwards the SAME shared carry.
 	// Re-make it alongside PlayerDamage before doing that.
 	costCarry map[Pool]float64
+	// fleeHandoff is the flee command's admission for the round resolver
+	// (flee_admission.go). Runtime only; see costCarry for why there is no
+	// yaml tag.
+	fleeHandoff fleeHandoff
 	// CombatPhase is the canonical state machine for "am I in combat?" and
 	// "who am I targeting?". It runs alongside the Aggro field; both are
 	// kept in sync by SetAggro/EndAggro. Direct .Aggro reads remain valid.

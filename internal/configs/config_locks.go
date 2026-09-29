@@ -29,6 +29,16 @@ var hardLocked = []string{
 	// ruling 13
 	`Modules.aicompanion.ModerateOutput`,
 	`Modules.aicompanion.ModerationModel`,
+	// Bauble naming spends the server's key: its model, how much one find
+	// may spend and run at once, and whether and how its text is moderated
+	// are the owner's call, not an admin's (spec S2, ruling 13). The daily
+	// budget knobs stay tunable in game.
+	`Modules.baubles.Model`,
+	`Modules.baubles.MaxCompletionTokens`,
+	`Modules.baubles.MaxConcurrent`,
+	`Modules.baubles.UsePlayerKeys`,
+	`Modules.baubles.ModerateOutput`,
+	`Modules.baubles.ModerationModel`,
 	`FilePaths.WebDomain`,
 	`Server.Locked`,
 	// Names where server data is sent.

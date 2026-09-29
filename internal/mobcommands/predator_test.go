@@ -21,6 +21,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/species"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/activity"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -172,11 +174,19 @@ func TestFlee_ClearsAggro(t *testing.T) {
 	mob.Character.SetAggro(1, 0, characters.DefaultAttack)
 	require.True(t, mob.Character.IsInCombat())
 
+	// Slice 4a: Flee only BEGINS the flee (Disengaging), same as a player's
+	// flee command; the escape (and the aggro clear) resolves a round later
+	// in actions.ResolveFlee / hooks.handleMobFlee, not inside the command.
 	handled, err := Flee("", mob, room)
 	assert.True(t, handled)
 	assert.NoError(t, err)
+	assert.True(t, mob.Character.IsDisengaging())
+	assert.True(t, mob.Character.IsInCombat(), "Disengaging is still in combat")
 
-	// Aggro should be cleared
+	out := actions.ResolveFlee(actions.NewMobActorInRoom(mob, room), room)
+	assert.True(t, out.Escaped())
+
+	// Aggro should be cleared once the flee resolves
 	assert.False(t, mob.Character.IsInCombat())
 
 	// Reset mob position for other tests
@@ -201,12 +211,69 @@ func TestFlee_NoExits(t *testing.T) {
 	// Move mob to dead end room (just test the function directly)
 	mob.Character.SetAggro(1, 0, characters.DefaultAttack)
 
+	// Slice 4a: the command never inspects exits; cornering can only be
+	// discovered at resolution, and (parity with a player's flee) a cornered
+	// mob stays in its fight rather than having its aggro silently dropped.
 	handled, err := Flee("", mob, deadEnd)
 	assert.True(t, handled)
 	assert.NoError(t, err)
+	assert.True(t, mob.Character.IsDisengaging())
 
-	// Aggro still cleared even if cornered
-	assert.False(t, mob.Character.IsInCombat())
+	out := actions.ResolveFlee(actions.NewMobActorInRoom(mob, deadEnd), deadEnd)
+	assert.True(t, out.NoExit)
+
+	// A cornered mob stays in the fight.
+	assert.True(t, mob.Character.IsInCombat())
+}
+
+// startTestCast puts the mob mid fold-cast.
+func startTestCast(t *testing.T, mob *mobs.Mob) {
+	t.Helper()
+	mob.Character.Activity = activity.NewMachine()
+	require.NoError(t, mob.Character.Activity.TransitionToCasting(
+		activity.CastingData{SpellId: "fireball", FoldsNeeded: 3, TotalConvictionCost: 10},
+		state.TransitionReason{Trigger: activity.TriggerCastBegin},
+	))
+	require.True(t, mob.Character.Activity.IsCasting())
+}
+
+// A player fleeing mid fold-cast drops the cast before the flee runs
+// (usercommands.go's fold-casting intercept); a mob used to keep casting and
+// finish the spell first, because handleMobFoldCasting runs before
+// handleMobFlee. The mob wrapper now drops the cast the same way.
+func TestFlee_CastingMobDropsItsCastAndFlees(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+
+	mob, room := getTestMobAndRoom(t)
+	mob.Character.SetAggro(1, 0, characters.DefaultAttack)
+	require.True(t, mob.Character.IsInCombat())
+	startTestCast(t, mob)
+
+	captured, mu, done := captureAnnounces(t)
+	defer done()
+
+	handled, err := Flee("", mob, room)
+	assert.True(t, handled)
+	assert.NoError(t, err)
+	assert.True(t, mob.Character.IsDisengaging(), "the casting mob did not begin its flee")
+	assert.False(t, mob.Character.Activity.IsCasting(), "the fleeing mob kept its cast")
+	assert.Equal(t, 1, countPerRecipient(t, captured, mu, "breaks their concentration."),
+		"the room did not see the mob break its concentration")
+}
+
+// Parity with the player: an out-of-combat flee is refused and must not
+// destroy an otherwise valid cast.
+func TestFlee_CastingMobOutOfCombatKeepsItsCast(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+
+	mob, room := getTestMobAndRoom(t)
+	mob.Character.EndAggro()
+	startTestCast(t, mob)
+
+	_, _ = Flee("", mob, room)
+	assert.True(t, mob.Character.Activity.IsCasting(), "a refused flee cost the mob its cast")
 }
 
 func TestFlee_OutOfCombat(t *testing.T) {

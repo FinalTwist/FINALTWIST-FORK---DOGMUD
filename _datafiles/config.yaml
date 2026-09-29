@@ -2683,6 +2683,8 @@ Modules:
   # things I find while searching" on the Companion key page (UsePlayerKeys),
   # else through the server's key (APIFramework: its one daily budget and
   # breaker, shared with the AI companion), else it is a generic "Trinket".
+  # Model, MaxCompletionTokens, MaxConcurrent, UsePlayerKeys, ModerateOutput
+  # and ModerationModel are hard-locked: only this file changes them.
   baubles:
     Enabled: false
     UsePlayerKeys: true

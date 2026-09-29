@@ -5,6 +5,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
@@ -833,77 +834,27 @@ func handleMobFoldCasting(mob *mobs.Mob, mobRoom *rooms.Room) bool {
 	return true
 }
 
-// handlePlayerFlee processes a player's flee attempt.
-// Returns true if the player is fleeing and should skip combat.
+// handlePlayerFlee resolves a player's flee on its round through the shared
+// actions.ResolveFlee and renders the player's lines. Returns true when the
+// player is fleeing and should skip combat this round.
 func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) bool {
-	// U12c-2: this closes the standing `TODO Task 18`. The legacy
-	// `Aggro.Type == Flee` sentinel is gone, and IsDisengaging() -- which reads
-	// CombatPhase.State() == Disengaging, set by TransitionToDisengaging in
-	// flee.go -- is now the only way a flee is expressed.
-	//
-	// BEHAVIOUR CHANGE, and the intended one: the legacy branch granted
-	// includeSkill = true WITHOUT consuming admission. Nothing can reach it any
-	// more, because becoming Disengaging requires TransitionToDisengaging and
-	// that only happens through the flee command, which always leaves a
-	// handoff. So the admission consume is now unconditional.
-	if !user.Character.IsDisengaging() {
-		// A terminal transition can cancel Disengaging before this asynchronous
-		// round runs. Atomically retract that orphan; an absent handoff is a
-		// harmless no-op for ordinary non-flee combat rounds.
-		usercommands.TakeFleeAdmission(user)
+	out := actions.ResolveFlee(actions.NewUserActorInRoom(user, uRoom), uRoom)
+	if !out.Fleeing {
 		return false
 	}
-	// Consume admission before any resolution branch. A flee can only come from
-	// the command now, so missing admission means another/reentrant resolver
-	// already owns it.
-	includeSkill, admitted := usercommands.TakeFleeAdmission(user)
-	if !admitted {
+	if !out.Resolved {
 		return true
 	}
 
-	// The legacy "revert to Default combat" re-Commit that stood here is gone
-	// with the sentinel it undid. ResolveFlee(false) handles the revert.
-
-	// Can't flee while in any grapple state. CombatPhase position veto
-	// also blocks TransitionToDisengaging, but the message still needs
-	// to fire here for UX. Chunk 4b R3: FSM-driven — IsStandingGrapple
-	// || IsGroundGrapple covers all 11 grapple states.
-	if user.Character.IsStandingGrapple() || user.Character.IsGroundGrapple() {
+	switch {
+	case out.Grappled:
 		user.SendText(messaging.CategorySystem, `<ansi fg="red">You can't flee while grappled!</ansi>`)
-		if user.Character.CombatPhase != nil {
-			user.Character.CombatPhase.ResolveFlee(false)
-		}
 		return true
-	}
-
-	// Shared opposed-roll blocker resolution (combat.ResolveFleeBlockers).
-	// Replaces two duplicated loops; also corrects the prior
-	// variable-shadowing in the player-blockers loop (the inner
-	// `for _, userId := range` shadowed the outer fleer's id, so PvP
-	// players never blocked each other from fleeing). Perspective-
-	// specific messaging stays here.
-	blocker, contested := combat.ResolveFleeBlockers(user.Character, uRoom, includeSkill)
-	// Skullduggery practice is awarded HERE, by the wrapper, and only when an
-	// opposed roll actually happened. Two conditions, both load-bearing:
-	// includeSkill is false when the fleer was too spent to pay in full and
-	// therefore never brought the skill to the contest (practising a skill you
-	// did not use is not practice), and contested is false when nothing in the
-	// room was targeting the fleer, so there was no contest to learn from.
-	// U10b-1 Task 18: won is "got away". blocker != nil means the flee was
-	// intercepted. Both existing gates are unchanged and neither is the firing
-	// rule -- includeSkill false means the fleer never brought the skill to the
-	// contest, and contested false means there was no contest at all, so in
-	// both cases nothing resolved and nothing is awarded.
-	if contested && includeSkill {
-		user.Character.AwardResolved(user.UserId, blocker == nil,
-			user.Character.CandidateFor(string(skills.Skullduggery)))
-	}
-	if blocker != nil {
-		var targetTag string
+	case out.Blocker != nil:
+		blocker := out.Blocker
+		targetTag := "mobname"
 		if blocker.IsPlayer() {
 			targetTag = "username"
-		} else {
-			targetTag = "mobname"
 		}
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red-bold"><ansi fg="%s">%s</ansi> blocks you from fleeing!</ansi>`, targetTag, blocker.Name))
 		excludes := []int{user.UserId}
@@ -914,48 +865,28 @@ func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) boo
 		// witness a blocked escape at all, and one who makes out shapes reads
 		// neither name.
 		uRoom.SendTextVisualHidingNames(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> is blocked from fleeing by <ansi fg="%s">%s</ansi>!`, user.Character.Name, targetTag, blocker.Name), []string{user.Character.Name, blocker.Name}, excludes...)
-		// Task 15: flee failure — restore Engaged state in CombatPhase.
-		if user.Character.CombatPhase != nil {
-			user.Character.CombatPhase.ResolveFlee(false)
-		}
 		return true
-	}
-
-	// Success!
-	exitName, exitRoomId := uRoom.GetRandomExit()
-
-	if exitName == `` {
+	case out.NoExit:
 		user.SendText(messaging.CategorySystem, `You can't find an exit!`)
-		// No exit found — treat as blocked (flee failure).
-		if user.Character.CombatPhase != nil {
-			user.Character.CombatPhase.ResolveFlee(false)
-		}
 		return true
 	}
 
-	user.SendText(messaging.CategoryRoomExit, fmt.Sprintf(`You flee to the <ansi fg="exit">%s</ansi> exit!`, exitName))
+	user.SendText(messaging.CategoryRoomExit, fmt.Sprintf(`You flee to the <ansi fg="exit">%s</ansi> exit!`, out.ExitName))
 	// Visual (owner ruling 2026-09-21): seeing someone break away and which
 	// way they went is sight, so a reader who cannot see learns nothing.
-	uRoom.SendTextVisualHidingNames(messaging.CategoryRoomExit, fmt.Sprintf(`<ansi fg="username">%s</ansi> flees to the <ansi fg="exit">%s</ansi> exit!`, user.Character.Name, exitName), []string{user.Character.Name}, user.UserId)
+	uRoom.SendTextVisualHidingNames(messaging.CategoryRoomExit, fmt.Sprintf(`<ansi fg="username">%s</ansi> flees to the <ansi fg="exit">%s</ansi> exit!`, user.Character.Name, out.ExitName), []string{user.Character.Name}, user.UserId)
 
-	// Task 15: flee success — EndAggro clears legacy Aggro; ResolveFlee
-	// transitions CombatPhase Disengaging → Idle.
-	targeting.Release(user.Character, targeting.ReasonDisengage)
-	if user.Character.CombatPhase != nil {
-		user.Character.CombatPhase.ResolveFlee(true)
-	}
-
-	if err := rooms.MoveToRoom(user.UserId, exitRoomId); err == nil {
+	if err := rooms.MoveToRoom(user.UserId, out.ExitRoomId); err == nil {
 
 		for _, instId := range uRoom.GetMobs(rooms.FindCharmed) {
 			if mob := mobs.GetInstance(instId); mob != nil {
 				if mob.Character.IsCharmed(userId) {
-					mob.Command(exitName)
+					mob.Command(out.ExitName)
 				}
 			}
 		}
 
-		newRoom := rooms.LoadRoom(exitRoomId)
+		newRoom := rooms.LoadRoom(out.ExitRoomId)
 		usercommands.Look(``, user, newRoom, events.CmdSecretly)
 
 		// Fire the room behavior tree's room_enter event for the destination,
@@ -965,13 +896,60 @@ func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) boo
 		// guide's "talk to me" instruction, stranding the player (2026-07-17
 		// playtest). Correct in general: entering a room by any means should
 		// trigger its entry hooks.
-		behaviortree.TryRoomBehavior(exitRoomId, behaviortree.EventContext{
+		behaviortree.TryRoomBehavior(out.ExitRoomId, behaviortree.EventContext{
 			EventType: "room_enter",
 			UserId:    user.UserId,
-			RoomId:    exitRoomId,
+			RoomId:    out.ExitRoomId,
 		})
 	}
 
+	return true
+}
+
+// handleMobFlee is the mob twin of handlePlayerFlee: the same
+// actions.ResolveFlee, the mob's own room lines, and on success an uncharged
+// actions.RelocateMob (a player's flee pays no movement cost either) and the
+// mob_flee behaviour event. Returns true when the mob is fleeing and should
+// skip combat this round.
+func handleMobFlee(mob *mobs.Mob, room *rooms.Room) bool {
+	out := actions.ResolveFlee(actions.NewMobActorInRoom(mob, room), room)
+	if !out.Fleeing {
+		return false
+	}
+	if !out.Resolved {
+		return true
+	}
+
+	name := mob.Character.Name
+	switch {
+	case out.Grappled:
+		// The grappler sees the hold working, as at command time.
+		room.SendTextVisual(messaging.CategoryGrappleFlow,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to break free but you've got them locked down!`, name))
+		return true
+	case out.Blocker != nil:
+		// Passing the NAME matters: SendTextVisual alone falls back to the
+		// tag-based "a figure", uncapitalised at a sentence start.
+		room.SendTextVisualHidingNames(messaging.CategoryRoomExit,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to flee but is blocked!`, name),
+			[]string{name})
+		return true
+	case out.NoExit:
+		// Cornered: the mob stays in the fight, and the room sees it try.
+		room.SendTextVisual(messaging.CategoryMobEmote,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> looks around frantically for an escape but finds none!`, name))
+		return true
+	}
+
+	room.SendTextVisual(messaging.CategoryRoomExit,
+		fmt.Sprintf(`<ansi fg="mobname">%s</ansi> flees!`, name))
+	if dest := rooms.LoadRoom(out.ExitRoomId); dest != nil {
+		actions.RelocateMob(mob, room, out.ExitName, dest)
+	}
+	behaviortree.TryMobBehavior(mob.InstanceId, behaviortree.EventContext{
+		EventType: "mob_flee",
+		RoomId:    mob.Character.RoomId,
+	})
 	return true
 }
 

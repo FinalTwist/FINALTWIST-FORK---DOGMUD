@@ -84,3 +84,24 @@ func TestFlee_FailureFromTheWindUpReturnsToEngaged(t *testing.T) {
 		"a failed flee must be able to put the actor back into the fight")
 	assert.Equal(t, Engaged, m.State())
 }
+
+// A failed flee started during the wind-up must return the actor to the fight
+// against the target it was winding up on. TransitionToEngaging clears the
+// Engaged data, so Disengaging used to record a zero LastTarget, ResolveFlee
+// restored Engaged on nobody, and the next round's aggro check dropped the
+// actor out of the fight it had just failed to leave.
+func TestFlee_FailureFromTheWindUpKeepsTheWindUpTarget(t *testing.T) {
+	m := engagedActor(t)
+	windUpTarget := state.ActorRef{MobInstanceId: 800}
+	require.NoError(t, m.TransitionToEngaging(
+		EngagingData{Target: windUpTarget, RoundsUntil: 2},
+		state.TransitionReason{Trigger: TriggerAttackCommand}))
+	require.NoError(t, fleeFrom(m))
+	assert.Equal(t, windUpTarget, m.CurrentTarget(), "Disengaging lost the wind-up target")
+
+	m.ResolveFlee(false)
+
+	require.Equal(t, Engaged, m.State())
+	assert.Equal(t, windUpTarget, m.CurrentTarget(),
+		"a failed flee from the wind-up restored Engaged on a zero target")
+}

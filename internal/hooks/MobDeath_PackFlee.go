@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -78,6 +79,16 @@ func PackFlee(e events.Event) events.ListenerReturn {
 
 		// Mobs with pack_flee_immune hold their ground
 		if mob.PackFleeImmune {
+			continue
+		}
+
+		// Owner ruling (2026-09-28): only packmates already fighting flee. An
+		// idle one stays put; a flee out of combat is refused anyway (slice
+		// 4a), so counting it would print a scatter nobody performs.
+		// FleeGate refuses an idle mob (FleeRefuseNotInCombat), and by the
+		// same reasoning also skips a fighting packmate that cannot begin a
+		// flee (knocked down, grappled, rooted, frenzied, already fleeing).
+		if actions.FleeGate(&mob.Character) != actions.FleeOK {
 			continue
 		}
 

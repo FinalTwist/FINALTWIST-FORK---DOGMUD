@@ -1,13 +1,14 @@
 ---
 name: dogmud-end-of-day
-description: Use at the end of a working day or session, when the owner signs off, says EOD, or asks to wrap up. Covers the daily archive sweep of docs/superpowers/specs and plans (shipped work to completed/, dropped work to abandoned/, every reference repointed), the repo-root tidy that archives old screenshots without touching binaries, and the session handoff memory.
+description: Use at the end of a working day or session, when the owner signs off, says EOD, or asks to wrap up. Covers the daily archive sweep of docs/superpowers/specs and plans (shipped work to completed/, dropped work to abandoned/, every reference repointed), the repo-root tidy that archives old screenshots without touching binaries, the scratch sweep of C:\tmp and C:\gotmp (merged worktrees, stale cargo targets and scratch dirs), and the session handoff memory.
 ---
 
 This skill is the owner's end-of-day SOP (ruled 2026-09-25). It keeps
 `docs/superpowers/specs` and `docs/superpowers/plans` holding only live work,
-keeps the repo root free of stale screenshots, and leaves a handoff the next
-session can start from. Run all three parts every EOD, even when a part turns
-out to have nothing to do.
+keeps the repo root free of stale screenshots, keeps the shared scratch
+directories from filling C:, and leaves a handoff the next session can start
+from. Run all four parts every EOD, even when a part turns out to have nothing
+to do.
 
 ## 1. Archive sweep: specs and plans
 
@@ -77,7 +78,58 @@ Afterwards run the guard tests whose constants name spec paths
 - **Never touch `novel/`**, `.mcp.json` or `.claude/settings.local.json`.
 - Anything untracked and unrecognised: report it, do not move it.
 
-## 3. Handoff
+## 3. Scratch sweep: C:\tmp and C:\gotmp
+
+Owner, 2026-09-29: `C:\tmp` fills rapidly across projects (DOGMud worktrees,
+boot checks, review scratch, and Ballistic's cargo `*-target` dirs, which
+alone reached 12 GB in four days). What fills C: and what does not is measured
+in the `reference-go-build-cache-fills-c-drive` memory; the Go caches are NOT
+the problem, so do not `go clean -cache`.
+
+Several sessions share these directories, some of them live. **Age and git
+state decide, never the name.** Record `C:` free space first
+(`Get-PSDrive C`).
+
+1. **DOGMud worktrees under `C:\tmp`.** From the main checkout, `git fetch
+   origin`, then for each `C:/tmp/...` row of `git worktree list`:
+   - remove it (`git worktree remove <path>`, then delete the branch with
+     `git branch -d`) only when `git -C <path> status --porcelain` prints
+     nothing AND its HEAD is merged (`git merge-base --is-ancestor HEAD
+     origin/master`, run in the worktree). A detached-HEAD worktree follows
+     the same rule.
+   - otherwise leave it and list it in the handoff with its branch: an
+     unmerged or dirty worktree is someone's live work, this session's or
+     another's.
+   - Windows can hold a lock on a removed worktree's folder; if `git worktree
+     remove` fails, `Remove-Item -Recurse -Force` the folder in PowerShell,
+     then `git worktree prune`. A folder that still will not go is left for
+     the next EOD.
+2. **Any other directory with a `.git` inside** (another repo's worktree or
+   clone, e.g. Ballistic's): leave it and report it. Only that repo's own
+   session can judge it.
+3. **Cargo target dirs** (a `CACHEDIR.TAG` at the top, no `.git`): delete when
+   the folder was not written in the last 24 hours. A newer one may be a
+   build in progress in another session.
+4. **Everything else in `C:\tmp`** (scratch dirs and loose files with no
+   `.git`): delete when last written more than two days ago. Newer ones stay:
+   another session may be using them today.
+5. **`C:\gotmp`**: delete `go-build*` dirs older than one day (Go failed to
+   auto-clean them).
+
+Mechanics, from the traps already hit:
+- Files locked by running processes fail to delete; skip them and carry on.
+  **Never stop or kill a process to free a lock** (the owner runs their own
+  server on this machine).
+- Keep the deletion and the size report in separate calls: a `Remove-Item`
+  script that also formats sizes (`/1GB,2`) trips a path-safety scanner and
+  the whole call is blocked.
+- Never delete under `C:\Users\<user>\workspace\`, and never delete the
+  current session's own scratchpad or worktree.
+
+Report in the handoff: C: free before and after, how many worktrees were
+removed, and every item left with its reason.
+
+## 4. Handoff
 
 Write or update the day's `project-session-handoff-YYYY-MM-DD` memory:
 what merged, what is open and on which branch, what is waiting on someone

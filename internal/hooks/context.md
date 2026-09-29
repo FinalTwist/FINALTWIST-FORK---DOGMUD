@@ -137,7 +137,8 @@ parity slice 3b made the same pair serve a mob casting on itself.
 The retarget notice ("You turn your attention to X!") is built once, by
 `actions.RetargetNotice` (`internal/actions/retarget_notice.go`), for
 `DoCombat`'s validate-aggro pass, `emitRetargetMessage`, and the mob-departure
-retarget in `mobcommands.clearRoomAggroOnDeparture`; it hides X by the
+retarget in `actions.ClearRoomAggroOnDeparture` (moved from `mobcommands` by
+flee parity slice 4a, so `RelocateMob` and a walking `Go` share it); it hides X by the
 reader's sight and is not suppressed in the dark, because each caller picks
 the new target from whoever is already attacking the reader. The ordinary
 melee swing lines used to be rewritten here too, by `replaceDarknessMessages`
@@ -762,7 +763,12 @@ whenever a mob's Combat Phase state changes. Player characters also have
 Events fired (once per state transition, not per round):
 - `mob_engaging` — `Idle → Engaging`
 - `mob_engaged` — `Engaging → Engaged` (after `RoundsUntil` countdown)
-- `mob_disengaging` — `Engaged → Disengaging` (flee initiated)
+- `mob_disengaging` — `Engaged → Disengaging` (flee initiated). Before flee
+  parity slice 4a a mob's flee never went through `CombatPhase` at all (it
+  resolved instantly in the old `mobcommands.Flee`), so this event never
+  actually fired for a mob; `actions.BeginFlee` now drives every mob flee
+  through the same `TransitionToDisengaging` a player uses, so it fires for
+  real.
 - `mob_combat_ended` — any → `Idle` (target died, flee succeeded, etc.)
 
 Tick events (`mob_combat_round`, `mob_idle`) fire from the round driver
@@ -775,12 +781,18 @@ change (not per round).
 
 ### CombatPhase_FleeCancellation.go
 
-Registers an `AfterTransition` callback on every character. When an admitted
-player flee moves from `Disengaging` to `Idle` for a terminal reason other than
-flee success or the player's own death, the callback retracts the one-use flee
-admission and sends exactly one terminal explanation. This covers target-death
-and combat-cleanup paths that remove the player from the next combat round
-before `handlePlayerFlee` can resolve the attempt.
+Registers an `AfterTransition` callback (`wireFleeCancellationMessage`, hook
+label `flee_terminal_cancellation`) on every character, player or mob. When an
+admitted flee moves from `Disengaging` to `Idle` for a terminal reason other
+than flee success or the character's own death, the callback retracts the
+one-use flee admission via `Character.CancelFleeAdmission`. It then looks up a
+player by the character (`users.GetByUserId` and a pointer-identity check) and
+sends the terminal line only when one is found, so a mob's cancellation is
+silent. This covers target-death and combat-cleanup paths that remove the
+character from the next combat round before `handlePlayerFlee` /
+`handleMobFlee` can resolve the attempt. Before slice 4a this only ever
+touched players (the label was `player_flee_terminal_cancellation`); a mob's
+flee did not use the admission handoff at all.
 
 ### CombatPhase_CompanionAssist.go
 
@@ -831,6 +843,24 @@ The round driver reads Combat Phase state instead of legacy `Aggro`:
   `RoundsUntil` hits zero.
 - `c.CombatPhase.DispatchTickEvent()` fires `mob_combat_round` or
   `mob_idle` btree events per character per round.
+- **`handleMobFlee(mob *mobs.Mob, room *rooms.Room) bool`**
+  (`NewRound_DoCombat_helpers.go`, flee parity slice 4a) is the mob twin of
+  `handlePlayerFlee`: both call the shared `actions.ResolveFlee` and only
+  render their own room lines. It runs in the mob in-combat block, after
+  `handleMobFoldCasting` and the aggro-validate/retarget pass, at the same
+  point `handlePlayerFlee` runs in the player pass; returning true skips
+  combat for the mob this round. On an escape it calls the uncharged
+  `actions.RelocateMob` (a player's flee pays no movement cost either) and
+  fires the `mob_flee` behaviour event. Before this slice a mob's `Flee`
+  resolved instantly in `mobcommands.Flee` with no round-later step at all.
+  A mob still casting never reaches it, but `mobcommands.Flee` drops the
+  cast when it begins the flee, as the player's command does.
+- **`PackFlee`** (`MobDeath_PackFlee.go`) queues `flee` only on packmates for
+  which `actions.FleeGate` returns `FleeOK`, and counts only those toward the
+  scatter line. That covers the owner ruling that idle packmates stay put
+  (`FleeRefuseNotInCombat`) and also skips a fighting packmate that cannot
+  begin a flee (knocked down, grappled, rooted, frenzied), which would
+  otherwise be announced scattering while it stayed.
 
 ### Verbosity gating (combat_verbosity.go)
 

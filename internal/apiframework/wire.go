@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -157,12 +158,19 @@ type Reply struct {
 	Err       error
 }
 
+// keyTextRE matches an OpenAI key in provider text: sk-..., sk-proj-...,
+// and the masked sk-proj-****abcd form, from the key's start to the next
+// space. \b keeps it off words that merely end in "sk" (task-, risk-).
+var keyTextRE = regexp.MustCompile(`\bsk-\S*`)
+
 // DecodeChat reads a provider's chat completions reply, whichever way it
 // came back: over HTTP or through a player's browser.
 func DecodeChat(status int, raw []byte) Reply {
 	res := Reply{}
 	if status != http.StatusOK {
-		snippet := strings.TrimSpace(string(raw))
+		// Scrub any key BEFORE the cut, so a key the cut would split
+		// leaves no fragment behind.
+		snippet := strings.TrimSpace(keyTextRE.ReplaceAllString(string(raw), `sk-[redacted]`))
 		if len(snippet) > 300 {
 			snippet = snippet[:300]
 		}

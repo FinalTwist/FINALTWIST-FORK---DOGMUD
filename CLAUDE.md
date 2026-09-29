@@ -24,7 +24,8 @@
 - The owner runs all deploys; Claude prepares and merges but never deploys.
 - Fable outranks Opus in capability and cost.
 - Every EOD runs `dogmud-end-of-day`: archive shipped specs and plans, tidy
-  the repo root, write the handoff.
+  the repo root, sweep merged worktrees and stale scratch from `C:\tmp`,
+  write the handoff.
 
 ## Tripwires
 
