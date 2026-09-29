@@ -14,56 +14,14 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-const (
-	fleeIncludeSkillTempKey = "flee-include-skill"
-	fleeShortageText        = "You break away on instinct rather than technique, too spent to use your training."
-)
-
-type fleeAdmission struct {
-	includeSkill bool
-	ready        bool
-}
-
-// TakeFleeAdmission atomically consumes the pending command's admission.
-// The second result distinguishes a real command handoff from missing or
-// already-consumed state; the round hook uses that to reject reentrant phase
-// resolution while preserving true legacy fallback behavior.
-func TakeFleeAdmission(user *users.UserRecord) (includeSkill bool, ok bool) {
-	if user == nil {
-		return false, false
-	}
-	// The command publishes a pending marker before asking CombatPhase to
-	// transition. A round that observes Disengaging in that tiny handoff window
-	// must leave the marker for the command to finish instead of consuming an
-	// attempt whose cost decision is not ready yet.
-	peek, ok := user.GetTempData(fleeIncludeSkillTempKey).(fleeAdmission)
-	if !ok || !peek.ready {
-		return false, false
-	}
-	admission, ok := user.TakeTempData(fleeIncludeSkillTempKey).(fleeAdmission)
-	if !ok || !admission.ready {
-		return false, false
-	}
-	return admission.includeSkill, true
-}
-
-// CancelFleeAdmission retracts either a pending or ready handoff. CombatPhase
-// terminal-transition hooks use it when combat ends after the command was
-// admitted but before the flee round can resolve.
-func CancelFleeAdmission(user *users.UserRecord) bool {
-	if user == nil {
-		return false
-	}
-	_, ok := user.TakeTempData(fleeIncludeSkillTempKey).(fleeAdmission)
-	return ok
-}
+const fleeShortageText = "You break away on instinct rather than technique, too spent to use your training."
 
 func Flee(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	// Any command that is not the already-active attempt owns no pending
 	// admission yet, so retract an orphan before any rejection path returns.
 	// Do not clear the handoff for a genuine attempt still awaiting its round.
 	if !user.Character.IsDisengaging() {
-		user.SetTempData(fleeIncludeSkillTempKey, nil)
+		user.Character.CancelFleeAdmission()
 	}
 
 	// A no-go root (e.g. a Jailed holding-cell condition — 5.1c) pins the player in
@@ -103,9 +61,9 @@ func Flee(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// facing attempt text belong only to an accepted Disengaging transition;
 	// charging first lets a target-death or position veto create a paid attempt
 	// that no round resolver can finish.
-	user.SetTempData(fleeIncludeSkillTempKey, fleeAdmission{})
+	user.Character.PublishFleeAdmission(characters.FleeAdmission{})
 	if user.Character.CombatPhase == nil {
-		CancelFleeAdmission(user)
+		user.Character.CancelFleeAdmission()
 		user.SendText(messaging.CategorySystem, `You can't break away just yet.`)
 		return true, nil
 	}
@@ -113,7 +71,7 @@ func Flee(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Trigger: combatphase.TriggerFleeCommand,
 		Actor:   state.ActorRef{UserId: user.UserId},
 	}); err != nil {
-		CancelFleeAdmission(user)
+		user.Character.CancelFleeAdmission()
 		if !user.Character.IsInCombat() {
 			user.SendText(messaging.CategorySystem, `You're not in combat; there's nothing to flee from.`)
 		} else if user.Character.IsStandingGrapple() || user.Character.IsGroundGrapple() {
@@ -148,9 +106,9 @@ func Flee(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Units:    1,
 	})
 	costResult := user.Character.CommitCost(quote, characters.CostPartial)
-	user.SetTempData(fleeIncludeSkillTempKey, fleeAdmission{
-		includeSkill: !costResult.Short(),
-		ready:        true,
+	user.Character.PublishFleeAdmission(characters.FleeAdmission{
+		IncludeSkill: !costResult.Short(),
+		Ready:        true,
 	})
 	if costResult.Short() {
 		user.SendText(messaging.CategorySystem, fleeShortageText)

@@ -850,16 +850,17 @@ func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) boo
 		// A terminal transition can cancel Disengaging before this asynchronous
 		// round runs. Atomically retract that orphan; an absent handoff is a
 		// harmless no-op for ordinary non-flee combat rounds.
-		usercommands.TakeFleeAdmission(user)
+		user.Character.TakeFleeAdmission()
 		return false
 	}
 	// Consume admission before any resolution branch. A flee can only come from
 	// the command now, so missing admission means another/reentrant resolver
 	// already owns it.
-	includeSkill, admitted := usercommands.TakeFleeAdmission(user)
+	admission, admitted := user.Character.TakeFleeAdmission()
 	if !admitted {
 		return true
 	}
+	includeSkill := admission.IncludeSkill
 
 	// The legacy "revert to Default combat" re-Commit that stood here is gone
 	// with the sentinel it undid. ResolveFlee(false) handles the revert.
