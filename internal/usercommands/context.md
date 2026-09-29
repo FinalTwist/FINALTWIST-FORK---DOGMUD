@@ -160,6 +160,12 @@ The `internal/usercommands` package implements the complete command system for p
   once, because items read their text from the catalog.
 - `regen` and `spawn` run in the background through `internal/actions`
   (`RegenerateBauble`, `StartBaubleFind`); the admin is told when they finish.
+- `bauble status` ends with a `Sweep:` line (`baubleSweepLine`) from
+  `baubles.LastSweep()`: not run yet, failed with its error (nothing
+  pruned), catalog empty, or records, still held, pruned, files read and
+  parsed, disk time, mud-lock hold time, and the interval
+  (`Balance.BaubleSweepHours`); a shard write that failed adds how many and
+  that shard's records are unpruned (`SweepStatus.ShardErrors`).
 
 #### **Looking at the floor** (`look.go`)
 - `look <item>` falls back to items on the floor as its LAST branch, after

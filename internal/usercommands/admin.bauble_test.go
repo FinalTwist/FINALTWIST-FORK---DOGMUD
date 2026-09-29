@@ -3,6 +3,7 @@ package usercommands
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -127,5 +128,32 @@ func TestAdminBauble_ShowsAndFiltersPlayerKeyText(t *testing.T) {
 		out = strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), "\n")
 		assert.Equal(t, wantHorse, strings.Contains(out, "Painted Wooden Horse"), filter)
 		assert.Equal(t, filter == "", strings.Contains(out, "Tin Soldier"), filter)
+	}
+}
+
+// `bauble status` says when the catalog sweep last ran and what it did, or
+// why it pruned nothing.
+func TestBaubleSweepLine(t *testing.T) {
+	every := 6 * time.Hour
+	at := time.Date(2026, 9, 29, 14, 2, 0, 0, time.UTC)
+	for name, tc := range map[string]struct {
+		st   baubles.SweepStatus
+		want []string
+	}{
+		`never`:  {baubles.SweepStatus{}, []string{`not run yet`, `every 6 hours`}},
+		`failed`: {baubles.SweepStatus{At: at, Err: `parse users/5.yaml: bad`}, []string{`failed`, `2026-09-29 14:02 UTC`, `nothing was pruned`, `parse users/5.yaml: bad`}},
+		`empty`:  {baubles.SweepStatus{At: at, OK: true, Skipped: true}, []string{`catalog was empty`}},
+		`ran`: {baubles.SweepStatus{At: at, OK: true, Records: 40, Referenced: 31, Pruned: 3, Files: 412, Parsed: 17,
+			Disk: 180 * time.Millisecond, Live: 4 * time.Millisecond}, []string{`40 records`, `31 still held`, `3 pruned`, `412 files`, `17 name a bauble`, `180ms`, `4ms`, `Every 6 hours`}},
+		// A shard write can fail while the rest of the sweep succeeds
+		// (applySweep used to drop that error): the count must be visible on
+		// the line rather than folded into a silent OK.
+		`shardErrors`: {baubles.SweepStatus{At: at, OK: true, Records: 40, Referenced: 31, Pruned: 3, Files: 412, Parsed: 17,
+			Disk: 180 * time.Millisecond, Live: 4 * time.Millisecond, ShardErrors: 2}, []string{`2 shard write`, `failed`, `unpruned`}},
+	} {
+		line := baubleSweepLine(tc.st, every)
+		for _, w := range tc.want {
+			assert.Contains(t, line, w, name)
+		}
 	}
 }

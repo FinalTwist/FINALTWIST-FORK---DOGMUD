@@ -40,13 +40,49 @@ was stolen, and how its text was generated.
   resolver installed into `internal/items`. Disk writes (`persistShard`,
   `persistMeta`) snapshot under the read lock and write outside it, ordered
   by a separate write mutex, so `Get` never waits on the disk. A per-user
-  index of return credits backs `ReturnCredits`. `Prune(now)` drops records
-  gone (sold or vanished: `Record.goneAt`) longer than `KeepDuration()`
-  (`Balance.BaubleCatalogKeepDays`, 30, at least 7 because the sales stats
-  read a week), except any with a return credit; a retired record goes only once it too is
-  sold or vanished, since until then the bauble can still be in a pack. It runs at `Load` and at
-  every `SaveAll` and rewrites only the `catalog-*` shards, so
-  `corpus.promoted.yaml` survives.
+  index of return credits backs `ReturnCredits`. `persistShardPruning`
+  writes a shard without the records a predicate marks and only then takes
+  them out of memory (persist before publish); a shard write that fails
+  leaves the shard dirty and prunes nothing from it that sweep, and the
+  count of such failures is what `SweepStatus.ShardErrors` reports.
+  `Record.prunableAt(now, keep)`:
+  at least `minUnseenSweeps` (2) complete sweeps in a row found nothing
+  pointing at the record AND `KeepDuration()` (`Balance.BaubleCatalogKeepDays`,
+  30, at least 7 because the sales stats read a week) has passed since
+  `Record.lastEvidence` (found, stolen, recognised, returned, sold, vanished,
+  or last seen by a sweep); a record with a return credit is never pruned.
+  `Load` and `SaveAll` do not prune: only a successful sweep does.
+- **sweep.go**: the catalog sweep. `RegisterLiveSource(name, LiveWalk)`
+  (the main package registers `users`, `rooms`, `mobs`, `shops`, `guilds` in
+  `bauble_sweep.go`; `modules/auctions` registers `auctions`).
+  `ExpectLiveSources(names...)` declares every store a sweep must see;
+  a sweep run with no expectation declared, or with a declared name not
+  registered (a module not built in, or the sweeper started before the main
+  package's sources), fails closed before it walks anything, so a store the
+  sweep cannot see is never read as empty (`ExpectedLiveSourceNames` lists
+  what is declared). `runSweep`
+  walks every live source under `util.LockMud`, then `scanDisk` off the lock,
+  then `applySweep`: a referenced record gets `LastSeenAt=now` (moved forward
+  only: a clock stepped back between sweeps cannot shorten the keep window),
+  `UnseenSweeps=0`, any other one more unseen sweep, and each
+  changed shard is written without its prunable records. Any error (no live
+  source registered, an expected source missing, a source that panics, an
+  unreadable file, a file that names a bauble and does not parse) fails
+  closed: nothing is applied. `StartSweeper` runs it at boot and
+  every `SweepInterval()` (`Balance.BaubleSweepHours`, 6); `StopSweeper` at
+  shutdown. `LastSweep()` feeds `bauble status`, including any shard write
+  failures (`ShardErrors`).
+- **sweep_disk.go**: `DiskRefs(root, now)`: every `.yaml` and `.plugin.dat`
+  under DataFiles except `baubles/` and `economy/snapshots/`; a file is
+  parsed (`yaml.Node`) only if it has a `bauble` key. A symlinked file is
+  followed to what it points at; a symlinked directory is not followed and
+  fails the sweep closed instead (it could loop back on itself, or hide a
+  save the scan would otherwise miss), and so does a dangling symlink and a
+  `bauble` key whose value is not a scalar (a map or a list, a shape no
+  writer produces). On a room file's floor
+  (the top-level `items` list in `rooms.instances/`) a find untaken past
+  `UntakenLimit()` is not a reference; `rooms.LoadRoomInstance` removes such
+  finds on load. Stash and container finds always count.
 - **fallback.go**: `GenericTrinket`, what every find is when the model does
   not name it: "Trinket", a simple description, value and weight at random
   within the tier.
@@ -147,7 +183,19 @@ func Update(id string, change func(r *Record)) (Record, bool)
 func Count() int
 func Recent(n int) []Record
 func KeepDuration() time.Duration
-func Prune(now time.Time) int
+
+type LiveWalk func(visit func(*items.Item))
+func ExpectLiveSources(names ...string)
+func ExpectedLiveSourceNames() []string
+func RegisterLiveSource(name string, walk LiveWalk)
+func LiveSourceNames() []string
+type SweepStatus struct { /* At, OK, Err, Skipped, Records, Referenced, Pruned, ShardErrors, Files, Parsed, Live, Disk */ }
+func RunSweep(now time.Time) SweepStatus // takes the mud lock: never call holding it
+func LastSweep() SweepStatus
+func SweepInterval() time.Duration
+func StartSweeper()
+func StopSweeper()
+func DiskRefs(root string, now time.Time) (refs map[string]bool, files int, parsed int, err error)
 
 type Place struct{ RoomId int; Zone, Region, Biome string }
 func NewPlace(roomId int, zone string, region string, biome string) Place
@@ -265,6 +313,14 @@ func ResetWindow(roomId int)
   error; `Mint` hands out no item, and the find "crumbles away"), so no item
   can ever point at a record a crash would lose. A failed write of an
   existing record is logged, kept in memory, and retried by `SaveAll`.
+- A record lives as long as something points at it. The sweep is the only
+  pruner and it fails closed. A sold record held again (a crash rolled the
+  seller back) is seen and kept, and its sale is left as it was: every
+  record is sellable, and a save on disk can lag a real sale by one
+  autosave. `TestItemWalkersVisitEveryItemField` and
+  `TestEveryItemHolderIsASweepRootOrTransient` (repo root) fail when a store
+  of items is not walked; a new store needs a `WalkItems`, a live source in
+  `bauble_sweep.go` and a root in `item_walker_guard_test.go`.
 
 ## Gotchas
 
@@ -341,11 +397,15 @@ func ResetWindow(roomId int)
 
 ## Consumers
 
-- `main.go` (`Load` at boot, `SaveAll` at shutdown), `copyover.go`
-  (`SaveAll`).
-- `internal/usercommands/admin.bauble.go` (`bauble spawn|show|list`),
+- `main.go` (`Load` at boot, `StartSweeper` before Server Ready,
+  `StopSweeper` then `SaveAll` at shutdown), `bauble_sweep.go`
+  (`RegisterLiveSource`), `copyover.go` (`SaveAll`; the sweeper is not
+  stopped there, see the comment).
+- `modules/auctions` (`RegisterLiveSource` for the auction house).
+- `internal/usercommands/admin.bauble.go` (`bauble spawn|show|list`;
+  `bauble status` reads `LastSweep`, `SweepInterval`),
   `appraise.go` (free bauble appraisal).
-- `internal/actions/sell_bauble.go` (`Get`, `Sellable`, `MarkSold`).
+- `internal/actions/sell_bauble.go` (`Get`, `MarkSold`).
 - `internal/actions/search_bauble.go` (`RollFind`, `Generate`, `Mint`,
   `RevealDelay`, `RecentNames`).
 - `modules/baubles` (`SetGenerator`, `ReplySchema`, `ParseReply`,

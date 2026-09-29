@@ -71,6 +71,12 @@ func init() {
 
 	events.RegisterListener(events.NewRound{}, a.newRoundHandler)
 	events.RegisterListener(events.StorageItemSeized{}, a.storageSeizedHandler)
+
+	// The bauble catalog sweep reads the lot on the block and the seized lots
+	// through this (internal/baubles/sweep.go).
+	baubles.RegisterLiveSource(`auctions`, func(visit func(*items.Item)) {
+		a.auctionMgr.WalkItems(visit)
+	})
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -80,6 +80,9 @@ func (p *Pet) StoreItem(i items.Item) bool {
 		return false
 	}
 	i.Validate()
+	// A found bauble someone carries is no longer lying anywhere, exactly as
+	// in Character.StoreItem (items/bauble_placement.go).
+	i.ClearBaublePlacement()
 	p.Items = append(p.Items, i)
 	return true
 }

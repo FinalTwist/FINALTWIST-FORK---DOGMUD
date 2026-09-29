@@ -235,3 +235,9 @@ if pet.Food.NeedsFeeding() {
 - **Incremental Updates**: Save only changed pet data
 - **Compression**: Compressed storage for large pet datasets
 - **Caching**: In-memory caching of frequently accessed pet data
+
+## StoreItem clears a find's placement
+
+`(*Pet).StoreItem` clears a bauble's spot, household and untaken time
+(`Item.ClearBaublePlacement`), as `Character.StoreItem` does: a find put
+straight into a pack pet has been taken.

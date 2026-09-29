@@ -86,3 +86,14 @@ func TestCrate_SetItemsForLoad(t *testing.T) {
 		t.Errorf("DrainAll after SetItemsForLoad mismatch: %+v", drained)
 	}
 }
+
+func TestCrateWalkItems(t *testing.T) {
+	c := New(1, 5)
+	c.Add(items.Item{ItemId: 900, Bauble: `B0000001`})
+	c.Add(items.Item{ItemId: 12})
+	seen := []int{}
+	c.WalkItems(func(it *items.Item) { seen = append(seen, it.ItemId) })
+	if len(seen) != 2 || seen[0] != 900 || seen[1] != 12 {
+		t.Fatalf("walked %v, want [900 12]", seen)
+	}
+}
