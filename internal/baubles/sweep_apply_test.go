@@ -76,11 +76,11 @@ func TestApplySweepPrunesOnlyWhatNothingHolds(t *testing.T) {
 	refs := map[string]bool{held: true, soldHeld: true}
 	keep := KeepDuration()
 
-	if ref, n := applySweep(now, refs, keep); ref != 2 || n != 0 {
+	if ref, n, _ := applySweep(now, refs, keep); ref != 2 || n != 0 {
 		t.Fatalf("first sweep: %d referenced, %d pruned; want 2 and 0 (one unseen sweep is not enough)", ref, n)
 	}
 	later := now.Add(time.Hour)
-	if _, n := applySweep(later, refs, keep); n != 4 {
+	if _, n, _ := applySweep(later, refs, keep); n != 4 {
 		t.Fatalf("second sweep pruned %d, want 4 (lost, sold, vanished, retired: all long unseen)", n)
 	}
 	check := func(when string) {
@@ -132,13 +132,13 @@ func TestApplySweepGivesOldRecordsAFullWindowFromTheFirstSweep(t *testing.T) {
 	if r, _ := Get(id); !r.LastSeenAt.Equal(now) {
 		t.Fatalf("the first sweep starts the keep window: %+v", r)
 	}
-	if _, n := applySweep(now.Add(time.Hour), nil, keep); n != 0 {
+	if _, n, _ := applySweep(now.Add(time.Hour), nil, keep); n != 0 {
 		t.Fatal("hours after the deploy, nothing found long ago is pruned")
 	}
-	if _, n := applySweep(now.Add(keep-time.Second), nil, keep); n != 0 {
+	if _, n, _ := applySweep(now.Add(keep-time.Second), nil, keep); n != 0 {
 		t.Fatal("inside the window it stays")
 	}
-	if _, n := applySweep(now.Add(keep), nil, keep); n != 1 {
+	if _, n, _ := applySweep(now.Add(keep), nil, keep); n != 1 {
 		t.Fatal("a full keep window after the first sweep it goes")
 	}
 }
@@ -154,22 +154,24 @@ func TestApplySweepKeepWindowBoundary(t *testing.T) {
 	keep := KeepDuration()
 
 	applySweep(base, map[string]bool{id: true}, keep) // last seen at base
-	if _, n := applySweep(base.Add(time.Hour), nil, keep); n != 0 {
+	if _, n, _ := applySweep(base.Add(time.Hour), nil, keep); n != 0 {
 		t.Fatalf("pruned %d after one unseen sweep", n)
 	}
-	if _, n := applySweep(base.Add(keep-time.Second), nil, keep); n != 0 {
+	if _, n, _ := applySweep(base.Add(keep-time.Second), nil, keep); n != 0 {
 		t.Fatal("one second inside the keep window it stays")
 	}
 	if _, ok := Get(id); !ok {
 		t.Fatal("still there inside the window")
 	}
-	if _, n := applySweep(base.Add(keep), nil, keep); n != 1 {
+	if _, n, _ := applySweep(base.Add(keep), nil, keep); n != 1 {
 		t.Fatal("at exactly the keep window it goes")
 	}
 }
 
 // Persist before publish: a shard write that fails takes nothing out of
-// memory, and the next sweep prunes it.
+// memory, and the next sweep prunes it. The failure is counted rather than
+// swallowed, so a sweep whose shard write failed cannot report a clean
+// success (bauble_sweep_extra: applySweep used to discard this error).
 func TestApplySweepWriteFailurePrunesNothing(t *testing.T) {
 	SetDirForTest(t.TempDir())
 	t.Cleanup(func() { items.SetBaubleResolver(nil) })
@@ -181,15 +183,15 @@ func TestApplySweepWriteFailurePrunesNothing(t *testing.T) {
 	orig := shardWriter
 	shardWriter = func(string, int, []*Record) error { return errors.New(`disk full`) }
 	t.Cleanup(func() { shardWriter = orig })
-	if _, n := applySweep(now, nil, KeepDuration()); n != 0 {
-		t.Fatalf("pruned %d with every write failing", n)
+	if _, n, shardErrs := applySweep(now, nil, KeepDuration()); n != 0 || shardErrs != 1 {
+		t.Fatalf("pruned %d, shard errors %d, with every write failing; want 0 and 1", n, shardErrs)
 	}
 	if _, ok := Get(id); !ok {
 		t.Fatal("a failed write takes nothing out of memory")
 	}
 	shardWriter = orig
-	if _, n := applySweep(now, nil, KeepDuration()); n != 1 {
-		t.Fatalf("pruned %d once writes work again, want 1", n)
+	if _, n, shardErrs := applySweep(now, nil, KeepDuration()); n != 1 || shardErrs != 0 {
+		t.Fatalf("pruned %d, shard errors %d, once writes work again; want 1 and 0", n, shardErrs)
 	}
 }
 
@@ -205,7 +207,7 @@ func TestApplySweepNeverMovesLastSeenBackwards(t *testing.T) {
 	})
 	stored, _ := Get(id)
 
-	if ref, _ := applySweep(now.Add(-time.Hour), map[string]bool{id: true}, KeepDuration()); ref != 1 {
+	if ref, _, _ := applySweep(now.Add(-time.Hour), map[string]bool{id: true}, KeepDuration()); ref != 1 {
 		t.Fatalf("referenced %d, want 1", ref)
 	}
 	r, _ := Get(id)

@@ -148,6 +148,34 @@ func TestRunSweepSeesLiveAndDisk(t *testing.T) {
 	}
 }
 
+// A shard write that fails is counted rather than swallowed: applySweep
+// used to drop persistShardPruning's error, so a sweep whose shard write
+// failed reported a clean OK. That shard prunes nothing and stays dirty
+// (TestApplySweepWriteFailurePrunesNothing), and the failure now shows in
+// the status.
+func TestRunSweepCountsShardErrors(t *testing.T) {
+	SetDirForTest(t.TempDir())
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+	setBaubleConfig(t, func(b *configs.Balance) { b.BaubleCatalogKeepDays = 30 })
+	now := time.Now().UTC()
+	old := now.Add(-60 * 24 * time.Hour)
+	sweepRecord(t, `Stuck Marble`, func(r *Record) { r.FoundAt, r.LastSeenAt = old, old })
+	withLiveSources(t, map[string]LiveWalk{`users`: holding()})
+	root := t.TempDir()
+
+	orig := shardWriter
+	shardWriter = func(string, int, []*Record) error { return errors.New(`disk full`) }
+	t.Cleanup(func() { shardWriter = orig })
+
+	st := runSweep(now, root)
+	if st.ShardErrors != 1 {
+		t.Fatalf("status %+v, want 1 shard error", st)
+	}
+	if got := LastSweep(); got.ShardErrors != 1 {
+		t.Fatalf("LastSweep %+v, want 1 shard error", got)
+	}
+}
+
 // A crash rolled the seller's save back past the sale: the bauble is in the
 // pack again. Its record stays, still marked sold, for as long as it is
 // held; once it is gone for good it goes like any other.

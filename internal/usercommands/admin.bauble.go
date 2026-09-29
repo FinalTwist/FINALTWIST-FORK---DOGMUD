@@ -174,9 +174,13 @@ func baubleSweepLine(st baubles.SweepStatus, every time.Duration) string {
 	case st.Skipped:
 		return fmt.Sprintf("Sweep: %s, the catalog was empty. Every %d hours.\r\n", when, hours)
 	default:
-		return fmt.Sprintf("Sweep: %s, %d records, %d still held somewhere, %d pruned. Read %d files (%d name a bauble) in %s; held the world %s. Every %d hours.\r\n",
+		line := fmt.Sprintf("Sweep: %s, %d records, %d still held somewhere, %d pruned. Read %d files (%d name a bauble) in %s; held the world %s. Every %d hours.",
 			when, st.Records, st.Referenced, st.Pruned, st.Files, st.Parsed,
 			st.Disk.Round(time.Millisecond), st.Live.Round(time.Millisecond), hours)
+		if st.ShardErrors > 0 {
+			line += fmt.Sprintf(" <ansi fg=\"red\">%d shard write(s) failed</ansi>; that shard is unpruned and will retry.", st.ShardErrors)
+		}
+		return line + "\r\n"
 	}
 }
 

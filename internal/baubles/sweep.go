@@ -51,15 +51,18 @@ import (
 
 // applySweep folds one complete collection (refs: every record id some item
 // points at) into the catalog at now, and returns how many records were
-// referenced and how many it pruned. Records found after now are left
-// alone.
-func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (referenced int, pruned int) {
+// referenced, how many it pruned, and how many shard writes failed. A
+// failed shard write prunes nothing for that shard and leaves it dirty
+// (persistShardPruning); the count is returned rather than dropped, so a
+// sweep whose write failed cannot be mistaken for one that fully succeeded.
+// Records found after now are left alone.
+func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (referenced int, pruned int, shardErrors int) {
 	shards := map[int]bool{}
 
 	cat.mu.Lock()
 	if cat.dir == `` {
 		cat.mu.Unlock()
-		return 0, 0
+		return 0, 0, 0
 	}
 	for id, r := range cat.records {
 		seq, ok := seqOf(id)
@@ -98,10 +101,13 @@ func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (refere
 
 	prune := func(r *Record) bool { return r.prunableAt(now, keep) }
 	for shard := range shards {
-		n, _ := cat.persistShardPruning(shard, prune)
+		n, err := cat.persistShardPruning(shard, prune)
 		pruned += n
+		if err != nil {
+			shardErrors++
+		}
 	}
-	return referenced, pruned
+	return referenced, pruned, shardErrors
 }
 
 // LiveWalk visits every item one live store holds. It runs under the mud
@@ -242,17 +248,18 @@ func walkLiveSource(s namedWalk, add func(id string)) (err error) {
 
 // SweepStatus is what the last sweep did, for `bauble status` and the log.
 type SweepStatus struct {
-	At         time.Time     // when it ran; zero if no sweep has run yet
-	OK         bool          // false: it failed closed and applied nothing
-	Err        string        // why it failed
-	Skipped    bool          // the catalog was empty: nothing to look for
-	Records    int           // records in the catalog afterwards
-	Referenced int           // records something still points at
-	Pruned     int           // records it removed
-	Files      int           // data files it read
-	Parsed     int           // of them, files that name a bauble
-	Live       time.Duration // time holding the mud lock (not waiting for it)
-	Disk       time.Duration // time reading data files
+	At          time.Time     // when it ran; zero if no sweep has run yet
+	OK          bool          // false: it failed closed and applied nothing
+	Err         string        // why it failed
+	Skipped     bool          // the catalog was empty: nothing to look for
+	Records     int           // records in the catalog afterwards
+	Referenced  int           // records something still points at
+	Pruned      int           // records it removed
+	ShardErrors int           // shard writes that failed; that shard pruned nothing and stayed dirty
+	Files       int           // data files it read
+	Parsed      int           // of them, files that name a bauble
+	Live        time.Duration // time holding the mud lock (not waiting for it)
+	Disk        time.Duration // time reading data files
 }
 
 var (
@@ -321,7 +328,7 @@ func runSweep(now time.Time, root string) (st SweepStatus) {
 		st.Err = err.Error()
 		return st
 	}
-	st.Referenced, st.Pruned = applySweep(now, refs, KeepDuration())
+	st.Referenced, st.Pruned, st.ShardErrors = applySweep(now, refs, KeepDuration())
 	st.Records = Count()
 	st.OK = true
 	return st
@@ -335,7 +342,7 @@ func logSweep(st SweepStatus) {
 		mudlog.Info(`baubles`, `action`, `sweep`, `result`, `catalog empty`)
 	default:
 		mudlog.Info(`baubles`, `action`, `sweep`, `records`, st.Records, `referenced`, st.Referenced, `pruned`, st.Pruned,
-			`files`, st.Files, `parsed`, st.Parsed, `live`, st.Live.String(), `disk`, st.Disk.String())
+			`shard_errors`, st.ShardErrors, `files`, st.Files, `parsed`, st.Parsed, `live`, st.Live.String(), `disk`, st.Disk.String())
 	}
 }
 

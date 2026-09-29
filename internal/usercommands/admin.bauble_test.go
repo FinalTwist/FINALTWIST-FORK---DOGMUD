@@ -111,6 +111,11 @@ func TestBaubleSweepLine(t *testing.T) {
 		`empty`:  {baubles.SweepStatus{At: at, OK: true, Skipped: true}, []string{`catalog was empty`}},
 		`ran`: {baubles.SweepStatus{At: at, OK: true, Records: 40, Referenced: 31, Pruned: 3, Files: 412, Parsed: 17,
 			Disk: 180 * time.Millisecond, Live: 4 * time.Millisecond}, []string{`40 records`, `31 still held`, `3 pruned`, `412 files`, `17 name a bauble`, `180ms`, `4ms`, `Every 6 hours`}},
+		// A shard write can fail while the rest of the sweep succeeds
+		// (applySweep used to drop that error): the count must be visible on
+		// the line rather than folded into a silent OK.
+		`shardErrors`: {baubles.SweepStatus{At: at, OK: true, Records: 40, Referenced: 31, Pruned: 3, Files: 412, Parsed: 17,
+			Disk: 180 * time.Millisecond, Live: 4 * time.Millisecond, ShardErrors: 2}, []string{`2 shard write`, `failed`, `unpruned`}},
 	} {
 		line := baubleSweepLine(tc.st, every)
 		for _, w := range tc.want {
