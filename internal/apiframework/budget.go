@@ -219,7 +219,7 @@ func Reserve(consumer string, tokens int, spendServer bool, charges ...Charge) (
 // Reserve on these books.
 func (k *Books) Reserve(consumer string, tokens int, spendServer bool, charges ...Charge) (Hold, error) {
 	s := Server()
-	return k.l.reserve(consumer, tokens, s.DailyTokenBudget, 0, spendServer, charges)
+	return k.l.reserve(consumer, tokens, s.DailyTokenBudget, s.SharePercent(consumer), spendServer, charges)
 }
 
 // reserve checks everything before it adds anything, so a refusal holds
@@ -235,6 +235,10 @@ func (l *ledger) reserve(consumer string, tokens int, limit int, sharePct int, s
 	}
 	if spendServer && limit > 0 && l.st.Tokens+tokens > limit {
 		return Hold{}, refused(RefusedGlobal, ErrOverBudget)
+	}
+	if spendServer && limit > 0 && sharePct > 0 && sharePct < 100 &&
+		l.st.ByConsumer[consumer]+tokens > limit*sharePct/100 {
+		return Hold{}, refused(RefusedShare, ErrOverShare)
 	}
 	for _, c := range charges {
 		if c.Limit > 0 && l.st.ByUser[c.key()]+tokens > c.Limit {

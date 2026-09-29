@@ -73,6 +73,11 @@ type ServerSettings struct {
 	DailyTokenBudget int    // 0 is no cap
 	BreakerErrors    int
 	BreakerSeconds   int
+	// CompanionSharePercent and BaublesSharePercent cap what each feature
+	// may hold of DailyTokenBudget in a day, as a percentage (1 to 99). 0
+	// is no share cap, and so is no DailyTokenBudget.
+	CompanionSharePercent int
+	BaublesSharePercent   int
 	// Legacy names the settings read from the old place,
 	// Modules.aicompanion, because APIFramework does not set them. A server
 	// whose config.yaml predates the section keeps working exactly as
@@ -82,6 +87,17 @@ type ServerSettings struct {
 
 // HasKey reports whether the server has a key at all.
 func (s ServerSettings) HasKey() bool { return s.Endpoint.APIKey != `` }
+
+// SharePercent is consumer's share of the day's budget (0: no share cap).
+func (s ServerSettings) SharePercent(consumer string) int {
+	switch consumer {
+	case ConsumerCompanion:
+		return s.CompanionSharePercent
+	case ConsumerBaubles:
+		return s.BaublesSharePercent
+	}
+	return 0
+}
 
 // settingsOverride replaces Server() in tests.
 var settingsOverride atomic.Pointer[ServerSettings]

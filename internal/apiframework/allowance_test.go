@@ -176,3 +176,45 @@ func TestAHoldFromYesterdayRefundsNoAllowance(t *testing.T) {
 		t.Fatalf("the server settles as before: %+v", u)
 	}
 }
+
+// A consumer holds at most its share of the day's budget; with no global
+// cap there is no share cap; a player's own key is never held to one.
+func TestAConsumerIsHeldToItsShare(t *testing.T) {
+	ResetBudgetForTest(``)
+	restore := SetServerForTest(ServerSettings{Endpoint: Endpoint{BaseURL: DefaultBaseURL},
+		DailyTokenBudget: 1000, BaublesSharePercent: 25, BreakerErrors: 2, BreakerSeconds: 60})
+	t.Cleanup(func() { restore(); ResetBudgetForTest(``) })
+
+	h, err := Reserve(ConsumerBaubles, 200, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Reserve(ConsumerBaubles, 100, true); !errors.Is(err, ErrOverShare) || RefusedBy(err) != RefusedShare {
+		t.Fatalf("over a 250-token share, and it says so: %v (%q)", err, RefusedBy(err))
+	}
+	if _, err := Reserve(ConsumerCompanion, 700, true); err != nil {
+		t.Fatal("a consumer with no share cap spends the rest")
+	}
+	Settle(h, 50, false)
+	if _, err := Reserve(ConsumerBaubles, 200, true); err != nil {
+		t.Fatal("settling frees share")
+	}
+	if _, err := Reserve(ConsumerBaubles, 5000, false); err != nil {
+		t.Fatal("a player's own key is held to no share")
+	}
+
+	ResetBudgetForTest(``)
+	noCap := SetServerForTest(ServerSettings{Endpoint: Endpoint{BaseURL: DefaultBaseURL},
+		DailyTokenBudget: 0, BaublesSharePercent: 25, BreakerErrors: 2, BreakerSeconds: 60})
+	defer noCap()
+	if _, err := Reserve(ConsumerBaubles, 100000, true); err != nil {
+		t.Fatal("no global cap is no share cap")
+	}
+}
+
+func TestSharePercentByConsumer(t *testing.T) {
+	s := ServerSettings{CompanionSharePercent: 60, BaublesSharePercent: 25}
+	if s.SharePercent(ConsumerCompanion) != 60 || s.SharePercent(ConsumerBaubles) != 25 || s.SharePercent(`other`) != 0 {
+		t.Fatal("each consumer's own share; an unknown one has none")
+	}
+}
