@@ -12,7 +12,8 @@ Every row below was read at `7d6d4ac38` in a fresh worktree. The Equip (E)
 and Emote (M) rows and the disarm row (D1) were added later the same day at the
 spec branch's `c9c2e0ec7`, whose only changes since `7d6d4ac38` are this
 spec and its README row, so the code read is the same. Rows E11 to E13 were
-read at the spec branch's `2855e0222`, likewise docs-only since `7d6d4ac38`. Negative rows ("no
+read at the spec branch's `2855e0222`, and rows E14 to E17 at `f11a3ab07`,
+both likewise docs-only since `7d6d4ac38`. Negative rows ("no
 callers", "zero") name the search and a positive hit that proves the same
 search could match.
 
@@ -74,6 +75,10 @@ search could match.
 | E11 | Ring and wrist choice today. Ring: refuse when both `Ring` and `Ring2` are disabled; else fill `Ring` if enabled and empty, else `Ring2` if enabled and empty, else displace `Ring` unconditionally (even a disabled `Ring` when only `Ring2` is enabled). Wrist: the same over `Wrist1`, `Wrist2`, then `ExtraWrist1` to `ExtraWrist4` each gated by `c.ExtraArms >= n`, else displace `Wrist1` unconditionally. `ExtraArms` is the extra-arms mutation level capped at 4, the level `itemvalue`'s `extraArmsLevel` also reads. Disabled is `ItemId < 0` | `worn.go:504-535`; `characters/validate.go:516-521`; `itemvalue/delta.go:40-46`; `items/items.go:205-207` |
 | E12 | `itemvalue` does not share that choice. `compatibleSlotsFor` offers every ring slot (`Ring`, `Ring2`) and every wrist slot, `displacedItemsForSlot` reports each slot's own occupant, and `ItemValueDelta` keeps the best-scoring slot (rank breaks ties). So with both rings full it weighs the swap against the WEAKER ring, while `Wear` displaces `Ring`: the scorer can call an upgrade a swap that removes the better ring. Callers of the score: `IsUpgrade` (mob `gearup` `:34,:79`, `mobs/crafter.go:445`), the floor-equip hook `:45`, `planners/shop_upgrade.go:58` | `itemvalue/delta.go:57-112,231-259,287-340`; `score.go:47-49`; grep `ItemValueDelta(\|IsUpgrade(` |
 | E13 | The arm-slot branch, `equip X armN` (`equip.go:122-273`). Parsing (`:65-86`) takes a last word `arm#N`, `N.arm` or legacy `armN`, N in 1 to 6, and strips it. Shape refusals, in order: not a weapon or offhand ("You can only wield weapons or shields in arm slots."), shield in arm 1 ("You can't put a shield in your primary weapon hand (arm 1)."), arm missing from `GetHandPairs` or the absent second slot of a half pair ("You don't have arm %d."), a 2H weapon in an even arm ("A two-handed weapon needs a pair of arms. Try arm 1, 3, or 5.") or in a half pair ("That arm doesn't have a partner for a two-handed weapon."). Then the four cursed checks (`:172-196`), displacement of a 2H partner in arm 1 when targeting arm 2 (`:191-199`), of the target slot (`:201-205`) and of the second slot for a 2H (`:206-209`); `CancelConditionsWithFlag(Hidden)`, `RemoveItem`, placement (`:212-214`). Per displaced item it prints "You remove your X and return it to your backpack." plus the room line and calls `StoreItem(old)` ignoring its result, so a full pack loses the item (`:217-230`); then "You equip your X in your <label>." (shield) or "You wield your X in your <label>." with room line "X equips their Y." (`:232-246`), `Validate(true)`, the reservation disclosure, `EquipmentChange`, onStart triggers and the quest notify (`:247-271`). It never calls `Wear` or `EquipItem`: no type-level MinStrength, no hands-over-2, no reservation snapshot | `internal/usercommands/equip.go:65-273` |
+| E14 | Arm count. `validateMutationSlots` sets `ExtraArms` to `Mutations["extra-arms"]` capped at 4, so a character has 2 + `ExtraArms` arms, at most 6 (the field comment "(0-2)" is stale). `anatomy.go` holds only `HasBodyPart` (species body-part tags), no count. The mutation declares `max_rank: 1`, which natural deepening honours through `effectiveMax`, but Bloom's `BloomAdvanceMutation` deepens against the global `MutationMaxLevel`, shipped at 4, so a Bloom drinker reaches 4 to 6 arms. Species intrinsics clamp at `MutationMaxRank` 4, and no dogmud species grants extra arms (`extra-arms` under `species/`: 0; `intrinsic_mutations` there hits 10+ files) | `characters/validate.go:514-521`; `character.go:310`; `anatomy.go:9-20`; `mutations/extra-arms.yaml:5`; `mutations/mutations.go:364-392`; `bloom_mutation.go:35-60`; `actions/drink.go:420`; `_datafiles/config.yaml:1807`; `intrinsic.go:11,28-33` |
+| E15 | Hand slots. `GetHandPairs`: pair 0 `Weapon`/`Offhand`; pair 1 `ExtraArm1`, plus `ExtraArm2` at `ExtraArms >= 2`; pair 2 `ExtraArm3`, plus `ExtraArm4` at 4. An odd count leaves a half pair (`Second.ItemPtr` nil), which takes no 2H. Arm N is pair `(N-1)/2`, slot `(N-1)%2`, so arms 1 to 6 are `Weapon`, `Offhand`, `ExtraArm1` to `ExtraArm4`. A 2H sits in a pair's First and clears Second; `Is2H` reads `HandsRequired`, which is 1 for a Large species and `Hands+1` for a Small one. `IsEmpty` counts a nil or disabled slot as empty. `ExtraArm` n and `ExtraWrist` n are enabled and disabled together, so extra wrist n exists exactly when arm n+2 does; no wrist is otherwise tied to what an arm holds | `hand_slots.go:21-71`; `usercommands/equip.go:134-136`; `worn.go:53-57,278-302`; `validate.go:524-565` |
+| E16 | Weapon and offhand choice today (`wearWeaponOrShield`). 2H (`:377-403`): `FindFirstFreePair`, else `FindCheapestPairToDisplace` (fewest occupants over full pairs, the earlier on a tie); refuses if THAT pair holds a cursed item (First checked first) and tries no other pair. Shield (`:405-422`): `FindFirstEmptySlot(pairs, true)` (`Offhand` if empty and `Weapon` is not 2H, then arms 3 to 6, skipping a pair whose First is 2H); else "Your two-handed weapon leaves no room for a shield." when `Weapon` is 2H; else displaces `Offhand`, refusing if cursed. 1H (`:424-464`): the first empty slot in arm order, skipping 2H pairs, where `Offhand` counts only with `CanDualWield()` (WeaponCombat > 0) or claws over claws in `Weapon`; else displaces `Weapon` (and a stray occupant behind a 2H there), refusing if cursed. No path ever displaces an extra arm, and the 1H path never displaces `Offhand` | `worn.go:373-465`; `hand_slots.go:94-149`; `validate.go:305-308` |
+| E17 | The scorer's weapon slots. `compatibleSlotsFor` offers a 1H `Weapon` and `Offhand`, a 2H `Weapon` only, an offhand item `Offhand` only; never an `ExtraArm` slot, though `SlotExtraArm1` to `4` exist and `slotOf` maps them. It reads `spec.Hands`, not `HandsRequired`, and ignores `CanDualWield`. `displacedItemsForSlot` models pair 0 only. So with any extra arm empty `Wear` fills it while the scorer weighs a `Weapon` or `Offhand` swap, and a non-dual-wielder's `Offhand` can win the score though `Wear` never puts a weapon there | `itemvalue/delta.go:24,57-65,179-193,231-259` |
 
 ### Craft
 
@@ -183,6 +188,14 @@ search could match.
     reservation gates and meets the cursed check once, in `Wear`; its own
     cursed checks are deleted. The player's arm wording stays where it still
     applies.
+12. **Weapons and offhands skip a cursed slot too, across every arm**
+    (owner, 2026-09-29). One-handed weapons and shields follow ruling 10's
+    rule, and a two-handed weapon skips any pair holding a cursed item. The
+    rule is written over the arms and wrists the character actually has (up
+    to 6 arms, E14), never a hardcoded two. `Wear`, `WearInArm` and the
+    scorer make the choice through the one helper, so they agree for any arm
+    count. An explicitly named arm whose slot is cursed refuses; it never
+    silently picks another arm.
 
 ## 5a: Object and action gates
 
@@ -302,36 +315,86 @@ settles the arm-slot branch: it goes through `Wear`, and its checks go.
   builder curses a template's worn item, `Wear` refuses and the existing
   `mudlog.Warn` names it.
 
-**Ring and wrist choice (ruling 10).** One exported helper in `worn.go`,
-`(*Character).PairedArmorSlot(t items.ItemType) (slot WornSlot, refusal
-string)`, for `items.Ring` and `items.Wrist`, returns the `AllSlots` entry
-(key `ring`, `ring2`, `wrist1` and so on) that `Wear` will fill:
+**Slot choice (rulings 10 and 12).** One exported helper in `worn.go`,
+`(*Character).ChooseWornSlot(i items.Item, arm int) (choice SlotChoice,
+refusal string)`, for `Ring`, `Wrist`, `Weapon` and `Offhand` items
+(earlier drafts called it `PairedArmorSlot`; it is renamed because it now
+covers hands). `SlotChoice{Slots []WornSlot; Displaced []items.Item}` names
+the `AllSlots` entries `Wear` writes (one; for a 2H the pair's two, the
+second cleared) and every item that comes off. `arm` is 0 for `Wear` and the
+scorer, N for `WearInArm`. The helper builds an ordered candidate list from
+the slots the character actually has, hands from `GetHandPairs` (2 to 6
+arms, half pairs included, E14, E15) and wrists from the enabled ones, and
+applies one rule to it:
 
-1. The candidate slots in today's order (E11): `Ring`, `Ring2`; or `Wrist1`,
-   `Wrist2`, then `ExtraWrist1` to `ExtraWrist4` gated by `ExtraArms`.
-   Disabled slots are skipped; none enabled refuses with today's line ("You
-   can't wear rings." / "You can't wear things on your wrists.").
-2. The first empty one, as today.
-3. Else the first whose occupant `CursedRefusal` passes. Today's fallback is
-   always `Ring` or `Wrist1`; the new fallback differs only when that one is
-   cursed, and it never lands on a disabled slot (E11's disabled-`Ring` case).
-4. Else, every candidate cursed, `refusal` is `CursedRefusal` of the first,
-   so the line names the item that would have come off first.
+1. **Fill** the first empty candidate, in today's order.
+2. Else **swap** the first candidate none of whose displaced items
+   `CursedRefusal` refuses.
+3. Else **refuse** with `CursedRefusal` of the first candidate's first
+   cursed item: today's line, naming the item today's code names.
 
-`wearArmorSlot`'s `Ring` and `Wrist` cases become one call each: refuse on
-`refusal`, else displace and assign through `slot.Item`. `Wear`'s post-placement
-`CursedRefusal` pass then never fires for a ring or wrist, and stays as the
-guarantee for every other slot. The scorer uses the same helper:
-`compatibleSlotsFor` returns, for a ring or wrist, only the `SlotName` whose
-key matches the helper's slot (`Ring2` for `ring2` and so on), and nothing
-when it refuses, so `ItemValueDelta` scores `SwapDelta{}` and `IsUpgrade` is
-false. This also closes E12's mismatch between cursed-free rings: the scorer
-now weighs the ring `Wear` will actually take off, not the weaker one.
+The first candidate in every list is today's fallback, so with nothing
+cursed the choice is today's, exactly (E11, E16). The candidates:
 
-**Other slots in the scorer.** `ItemValueDelta` skips a slot whose
-`displacedItemsForSlot` holds an item `CursedRefusal` refuses, so
-`IsUpgrade` stops calling that swap an upgrade (E8). `gearup`, the crafter
-and the floor-equip hook then never try it.
+- **Ring**: `Ring`, `Ring2`. **Wrist**: `Wrist1`, `Wrist2`, then
+  `ExtraWrist1` to `ExtraWrist4` as `ExtraArms` enables them (on a 6-armed
+  character all six). Disabled slots are skipped, so the swap never lands on
+  a disabled slot (E11's disabled-`Ring` case); none enabled refuses with
+  today's line ("You can't wear rings." / "You can't wear things on your
+  wrists.").
+- **1H weapon**: the arm slots in arm order, 1 to 6 as the character has them
+  (E15): `Weapon`, `Offhand` only with `CanDualWield()` or claws over claws,
+  then `ExtraArm1` to `ExtraArm4`, skipping the Second of any pair whose
+  First holds a 2H (that slot is consumed). Fill is today's
+  `FindFirstEmptySlot` with its dual-wield detour (E16, `:424-450`). A
+  candidate's displaced items are its occupant, plus anything left behind a
+  2H it holds (today's `:457-460`). So a cursed `Weapon` sends the one-hander
+  to the first uncursed hand after it; a cursed 2H in `Weapon` rules out
+  `Offhand` too and the swap looks at arms 3 to 6.
+- **Shield**: `Offhand` unless `Weapon` holds a 2H, then `ExtraArm1` to
+  `ExtraArm4` on the same skip. Fill is today's `FindFirstEmptySlot(pairs,
+  true)`. Today's only swap is `Offhand`, so a cursed offhand item now sends
+  the shield to the first uncursed extra arm. When `Weapon` holds a 2H and no
+  slot is empty, today's "Your two-handed weapon leaves no room for a
+  shield." stands: today has no swap there, and the ruling adds none.
+- **2H weapon**: whole pairs only, half pairs never (E15), ordered as today
+  chooses: a free pair first, then by fewest occupants, the earlier pair on a
+  tie (`FindFirstFreePair`, then `FindCheapestPairToDisplace`; a stable sort
+  by occupant count). A pair holding any cursed item is skipped, and the
+  next pair is tried; with 2 arms there is one pair, so a cursed item there
+  refuses as today.
+- **Arm N** (`WearInArm`, `arm > 0`): E13's five shape refusals run in the
+  helper with the player's wording, then the one slot the arm names is the
+  whole list, displacing what E13 displaces (the occupant, a 2H partner in the
+  pair's First for an even arm, a 2H's second slot). A cursed item among them
+  refuses with the shared line; the helper never falls through to another
+  arm (ruling 12).
+
+`wearWeaponOrShield` and `wearArmorSlot`'s `Ring` and `Wrist` cases each
+become one call: refuse on `refusal`, else return `Displaced`, clear
+`Slots`, write the item into `Slots[0]`, and (hands) reapply permanent
+conditions as today. `FindFirstEmptySlot`, `FindFirstFreePair` and
+`FindCheapestPairToDisplace` have no other callers (grep; the same search
+finds `GetHandPairs` at `equip.go:135`) and become the helper's internals.
+`Wear`'s post-placement `CursedRefusal` pass then never fires for a hand,
+ring or wrist, and stays as the guarantee for every single-slot armour type.
+
+**The scorer uses the same helper.** For those four types
+`compatibleSlotsFor` returns only the `SlotName` of `choice.Slots[0]`
+(`extraarm3` is `SlotExtraArm3`, `ring2` is `SlotRing2` and so on) and
+nothing on a refusal, so `ItemValueDelta` scores `SwapDelta{}` and
+`IsUpgrade` is false; `displacedItemsForSlot` returns `choice.Displaced`.
+The scorer then weighs exactly the swap `Wear` makes, for any arm count:
+extra arms appear, `HandsRequired` and dual wield count, and it no longer
+picks a weaker ring or an `Offhand` a non-dual-wielder cannot use (E12,
+E17). Those are score changes with nothing cursed, the point of ruling 10.
+`placementBonus` is untouched, so a weapon in an extra arm earns no
+`DualWieldBonus` (tuning, not parity).
+
+**Other slots in the scorer.** For the single-slot types `ItemValueDelta`
+skips a slot whose `displacedItemsForSlot` holds an item `CursedRefusal`
+refuses, so `IsUpgrade` stops calling that swap an upgrade (E8). `gearup`,
+the crafter and the floor-equip hook then never try it.
 
 **The arm-slot branch (ruling 11).** `Wear`'s body becomes a private
 `wear(i, place)` taking the placement step as a function: type gate,
@@ -339,12 +402,13 @@ MinStrength, hands over 2, reservation snapshot, `place`, the cursed pass,
 the reservation check and revert, then the success tail, all unchanged.
 `Wear(i)` is `wear(i, <today's weapon-or-armour choice>)`, so its callers
 (E6, E7) see no change. A new `(*Character).WearInArm(i items.Item, arm int)`
-is `wear(i, c.wearInArm(arm))`, where `wearInArm` is E13's placement moved
-verbatim out of `equip.go`: its five shape refusals with the player's
-wording, and the displacement of the target slot, a 2H partner and a 2H's
-second slot. It has no cursed check (the shared pass sees every item it
-displaced) and calls `reapplyPermanentConditions` as `wearWeaponOrShield`
-does. In `actions`, `EquipItem`'s body becomes `equipItem(actor, name,
+is `wear(i, c.wearInArm(arm))`, where `wearInArm` places through
+`ChooseWornSlot(i, arm)`: E13's placement moved out of `equip.go`, its five
+shape refusals with the player's wording and its displacement of the target
+slot, a 2H partner and a 2H's second slot, now inside the helper's arm-N
+case. Its cursed check is the helper's, on that one arm only: `equip X arm5`
+over a cursed arm-5 item refuses and never tries another arm (ruling 12). It
+calls `reapplyPermanentConditions` as `wearWeaponOrShield` does. In `actions`, `EquipItem`'s body becomes `equipItem(actor, name,
 wear)` and a sibling `EquipItemInArm(actor, itemName string, arm int)`
 passes `WearInArm`; `EquipItemResult` gains `ArmLabel string` (the pair
 slot's label, set only by the arm path).
@@ -384,18 +448,13 @@ No mob issues an arm suffix (mob `equip` has no arm parsing; its issuers send
 companion considers it (the give line), `gearup` finds no upgrade, and the
 item stays in its pack: silent, one attempt, no retry (unless a behaviour
 tree takes `player_give` first, as today). With a cursed first ring and a
-plain second ring it now wears the new ring in place of the second. The old
-ring exception, where `itemvalue` weighed `Ring2` while `Wear` displaced a
-cursed `Ring`, is gone: both use `PairedArmorSlot`. One mismatch of the same
-kind remains, outside rings and wrists: for a 1H weapon the scorer offers
-`Offhand` while `Wear`, with no empty hand it may use, displaces `Weapon`
-(`hand_slots.go:97-120`, `worn.go:453-464`), so over a cursed main-hand
-weapon the scorer can call an offhand swap an upgrade that `Wear` refuses.
-There the companion says "turns the X over, then sets it aside.", the
-attempt is recorded as "nothing changed" (R8), and it recurs at most at
-autonomy's hourly `gearup` cadence, with its `equip` verb dropping a thing
-after two failures in a day (E9). No loop. Weapon placement is not in the
-owner's ruling 10, so it stays as it is (see Out of scope).
+plain second ring it now wears the new ring in place of the second; with a
+cursed main-hand weapon it wields a better one-hander in the first uncursed
+hand it may use. The scorer/`Wear` mismatches of E12 and E17 (the weaker
+ring, the `Offhand` over a cursed `Weapon`, the extra arms the scorer never
+saw) are gone: both use `ChooseWornSlot`, so a scored upgrade is a swap
+`Wear` makes, for any arm count, and no companion attempt fails on a curse
+the scorer missed.
 
 ### Craft
 
@@ -423,7 +482,7 @@ shape, fails if any of these files matches its forbidden set:
 | `usercommands/get.go`, `mobcommands/get.go` | `ParticipantSight`, `CanSeeShapes`, `CanSeeClearly`, `` `exploding` `` |
 | `usercommands/look.go`, `mobcommands/look.go` | `ParticipantSight`, `SeesThroughExit`, `CanSeeClearly`, `ResolveTargetActor` |
 | `usercommands/remove.go`, `mobcommands/remove.go` | `IsCursed`, `IsActing`, `refuseWhileBusy`, `Spellcasting` |
-| `usercommands/equip.go`, `mobcommands/equip.go`, `usercommands/gearup.go`, `mobcommands/gearup.go` | `IsCursed`, `Spellcasting`, `CursedRefusal`, `PairedArmorSlot`, `\.Wear\(` |
+| `usercommands/equip.go`, `mobcommands/equip.go`, `usercommands/gearup.go`, `mobcommands/gearup.go` | `IsCursed`, `Spellcasting`, `CursedRefusal`, `ChooseWornSlot`, `\.Wear\(` |
 | `usercommands/equip.go` (arm-slot placement, ruling 11) | `GetHandPairs`, `HandsRequired`, `ItemPtr` |
 | `usercommands/craft.go`, `mobcommands/craft.go` | `CanSeeClearly`, `ParticipantSight` |
 
@@ -435,7 +494,7 @@ none of them in code (grep: `ParticipantSight` at `look.go:33` only,
 appears today only in code, at `usercommands/equip.go:173,180,185,193` (the
 arm-slot checks, deleted); the two `gearup.go` files and
 `mobcommands/equip.go` have none, and none of the four has `Spellcasting`,
-`\.Wear\(`, `CursedRefusal` or `PairedArmorSlot` (the same search finds
+`\.Wear\(`, `CursedRefusal` or `ChooseWornSlot` (the same search finds
 `IsCursed` at those four lines). `GetHandPairs` (`:135`), `HandsRequired`
 (`:151`) and `ItemPtr` appear in `usercommands/equip.go` only inside the
 arm-slot branch that moves to `wearInArm`.
@@ -460,11 +519,16 @@ Proven able to fail by a temporary violation in each row.
 | Spellcasting 4 removes a cursed item | yes | n/a | yes |
 | `remove all` skips cursed, removes the rest | no (strips all) | no | yes |
 | `PermaGear` refuses | n/a | yes | unchanged (mob only) |
-| Equip refused over a cursed weapon or shield | yes (`Wear`, arm-slot branch's own copy) | yes (`Wear`) | yes, one `CursedRefusal` in `Wear` |
+| Equip refused over a cursed weapon or shield | yes (`Wear`, arm-slot branch's own copy) | yes (`Wear`) | yes when no eligible hand is free of curses, one `CursedRefusal` through `ChooseWornSlot` |
 | Equip refused over cursed armour, light | no | no | yes |
-| Rings or wrists full: swap the first uncursed one | no (always `Ring` / `Wrist1`) | no | yes (`PairedArmorSlot`, ruling 10) |
+| Rings or wrists full: swap the first uncursed one | no (always `Ring` / `Wrist1`) | no | yes (`ChooseWornSlot`, ruling 10), all six wrists on 6 arms |
 | Rings or wrists full and all cursed: refused | no | no | yes |
-| Upgrade scoring picks the ring or wrist `Wear` will take off | no (best-scoring slot) | no | yes (same helper) |
+| Hands full, main hand cursed: 1H goes to the first uncursed hand it may use (2 to 6 arms) | no (refused) | no (refused) | yes (ruling 12) |
+| Hands full, offhand item cursed: shield goes to the first uncursed extra arm | no (refused) | no (refused) | yes (ruling 12) |
+| 2H skips a pair holding a cursed item, tries the next pair | no (refused on today's pair) | no | yes (ruling 12) |
+| `equip X armN` over a cursed item in arm N refuses, never another arm | yes (own copy) | n/a | yes (helper's arm-N case) |
+| Nothing cursed: `Wear`'s slot choice | today's | today's | today's, for every arm count |
+| Upgrade scoring picks the slot `Wear` will use, extra arms included | no (best of `Weapon`/`Offhand` or of the rings; no extra arms) | no | yes (same helper) |
 | `equip X armN` meets MinStrength | no | n/a (no arm suffix) | yes (`WearInArm`, ruling 11) |
 | `equip X armN` meets the reservation ceiling | no | n/a | yes |
 | `equip X armN` displaced item kept on a full pack (floor) | no (lost) | n/a | yes (`EquipItem` overflow) |
@@ -606,11 +670,18 @@ fails with "Your X is cursed and prevents you from removing it." (it
 silently swapped the cursed piece out before, E4). With every ring or wrist
 slot full, a new ring or wrist piece replaces the first uncursed one instead
 of always the first; only when all are cursed does it fail with that line.
-`equip X armN` now behaves like `equip X` apart from where the item goes: a
+Hands work the same way on every arm a character has: with a cursed weapon
+stuck in the main hand, a new one-hander goes into the first uncursed hand
+it may use (the offhand only for a dual wielder, then extra arms 3 to 6);
+a shield skips a cursed offhand item for the first uncursed extra arm; a
+two-hander skips a pair holding anything cursed for the next pair. Only when
+every eligible hand or pair is cursed does it fail with that line, and with
+nothing cursed every equip lands exactly where it does today. `equip X armN` now behaves like `equip X` apart from where the item goes: a
 player too weak for the item is refused ("You aren't strong enough to handle
 X."), even before the arm's own refusals; an arm equip that would worsen a
 reservation overage is refused and undone; the cursed line takes the shared
-wording; and an item it knocks off a full pack lands on the floor instead
+wording, and a cursed item in the named arm still refuses rather than moving
+the item elsewhere; and an item it knocks off a full pack lands on the floor instead
 of vanishing. `remove all` no longer strips cursed gear: each cursed item stays on with
 the cursed line, unless the player has Spellcasting 4. `get all <name>`
 behaves exactly as before. With no cursed items in the live world (E10), the
@@ -634,8 +705,12 @@ against `remove` (Spellcasting 4 aside) and against any equip (no
 exception): no mob swaps out a cursed piece, and upgrade scoring stops
 offering that swap, so a companion handed better gear for a cursed slot keeps
 it in its pack without trying. With a cursed first ring and a plain second,
-a mob now wears a better ring over the second, and the scorer judges every
-full ring or wrist swap against the piece that actually comes off. Crafters stop in the dark: a planner crafter
+a mob now wears a better ring over the second, and likewise a better
+one-hander past a cursed main-hand weapon. The scorer judges every ring,
+wrist, weapon and shield swap against the piece that actually comes off, in
+the slot `Wear` will actually use, extra arms included, so a multi-armed mob
+also stops scoring a main-hand swap when `Wear` would fill an empty extra
+arm. Crafters stop in the dark: a planner crafter
 at a station after the lamps fail waits for light, and the AI companion
 neither offers nor starts a recipe it cannot see to make.
 
@@ -656,7 +731,8 @@ mention of the mob's own name in its emote text is hidden at shapes too.
   mob path. The companion's `craftableHere` returns nothing in the dark and
   its `remove` refuses a cursed item.
 - 5a equip: `Wear` tests in `internal/characters` put a cursed item in each
-  slot family (2H pair, shield over arm 2, 1H over `Weapon`, arm 2 behind a
+  slot family on a 2-armed character with no uncursed alternative (2H pair,
+  shield over arm 2, 1H over `Weapon` with no dual wield, arm 2 behind a
   2H, every armour type, both rings full, all wrists full, light) and assert
   the refusal text, that `Equipment` is unchanged and that the candidate is
   not worn; an uncursed (`Uncursed`) item swaps as today; a cursed refusal
@@ -664,7 +740,7 @@ mention of the mob's own name in its emote text is hidden at shapes too.
   `MobActor` returns the same reason and leaves the item in the pack.
   `ItemValueDelta` scores no upgrade for a slot a curse holds, so mob
   `gearup !<id>` after a `give` wears nothing and speaks nothing.
-- 5a ring and wrist choice (`PairedArmorSlot`): an empty slot is filled
+- 5a ring and wrist choice (`ChooseWornSlot`): an empty slot is filled
   first in E11's order; a cursed `Ring` with a plain `Ring2` swaps `Ring2`
   and leaves `Ring` on; both cursed refuses with the shared line naming the
   `Ring` item and leaves `Equipment` unchanged; the same three for
@@ -675,6 +751,33 @@ mention of the mob's own name in its emote text is hidden at shapes too.
   holds the weaker ring) and `SwapDelta{}` when both are cursed; a mob
   `gearup` with a cursed `Ring` and a plain `Ring2` wears the new ring in
   `Ring2`.
+- 5a hands across arm counts (`ChooseWornSlot`, ruling 12): one table,
+  every row run at 2, 3, 4 and 6 arms (`ExtraArms` 0, 1, 2, 4; 3 is the
+  natural mutation's reach and the half-pair case, E14), and every row
+  asserts that `Wear` fills or swaps exactly the slot `ItemValueDelta`
+  reports and displaces exactly its `Displaced`, or that both refuse:
+  - nothing cursed: every fill and swap lands where today's code puts it
+    (a golden run of today's `wearWeaponOrShield` over the same loadouts,
+    captured before the change);
+  - cursed main hand, plain or empty other hand, dual wielder: the
+    one-hander goes to `Offhand`; without dual wield, to `ExtraArm1` from 3
+    arms up and refused at 2;
+  - every hand the one-hander may use cursed: refused with the shared line
+    naming the `Weapon` item, `Equipment` unchanged;
+  - cursed 2H in `Weapon`: a one-hander skips `Offhand` and swaps the first
+    uncursed extra arm, refused at 2 arms;
+  - shield with a cursed offhand item, hands full: refused at 2 arms; from
+    3 arms up the first uncursed extra arm, refused when every extra arm is
+    cursed too; with a 2H in `Weapon` and no empty slot,
+    today's "no room for a shield" line at every count;
+  - two-hander with a cursed item in the cheapest pair: the next whole pair
+    at 4 and 6 arms (never the half pair at 3), refused at 2 and 3;
+  - wrists: `Wrist1` cursed, every wrist full, extra wrists present: the
+    first uncursed of `Wrist2`, `ExtraWrist1` onward; all six cursed at 6
+    arms refuses;
+  - `equip X arm5` at 6 arms with a cursed arm-5 (`ExtraArm3`) item:
+    refused with the shared line though arms 1 to 4 and 6 are plain, and
+    nothing moves; at 4 arms, today's "You don't have arm 5.".
 - 5a arm slot (`WearInArm`, `EquipItemInArm`): `equip X arm2` is refused with
   the strength line when too weak, and with `ReservationRefusal` (equipment
   restored) when it worsens a reservation overage; a cursed item in the
@@ -725,12 +828,15 @@ mention of the mob's own name in its emote text is hidden at shapes too.
   sight gate (S18). A finding, filed, not fixed here.
 - Player `ask` room lines, and player taunt's visual channel. (Emotes moved
   into 5b, ruling 7.)
-- 1H weapon placement over a cursed main hand: `Wear` displaces `Weapon`
-  when no hand it may use is empty, and the scorer can still offer `Offhand`
-  (the one remaining scorer/`Wear` mismatch, see the 5a companion note).
-  Rulings 10 and 11 cover rings, wrists and the arm suffix, not this.
-  (The arm-slot branch and the ring and wrist choice, out in earlier drafts,
-  are now in 5a by rulings 10 and 11.)
+- (The arm-slot branch, the ring and wrist choice and weapon and offhand
+  placement over a cursed hand, out in earlier drafts, are now in 5a by
+  rulings 10 to 12.)
+- `placementBonus` for extra arms: a weapon or shield there earns no
+  `DualWieldBonus` or `ShieldBonus` in the score. Tuning, not parity.
+- Bloom deepens `extra-arms` past its `max_rank: 1` because
+  `BloomAdvanceMutation` reads the global `MutationMaxLevel` instead of
+  `effectiveMax` (E14). A finding, filed, not fixed here; the slot choice
+  handles every count up to the cap of 4 extra arms either way.
 - Disarm and forced unequips (`combat/criteffects.go:61`,
   `hooks/combat_shared_helpers.go:243`), which bypass `RemoveEquipment` and
   so strip a cursed weapon or break a cursed shield. Out because they leak no
