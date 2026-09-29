@@ -22,7 +22,7 @@ import (
 )
 
 // Spell effect unification (parity slices 3a and 3b,
-// docs/superpowers/specs/2026-09-28-spell-effect-unification-design.md).
+// docs/superpowers/specs/completed/2026-09-28-spell-effect-unification-design.md).
 //
 // Every spell effect on one target is applied through one spellEffectCtx and
 // one dispatcher, whoever casts it and whoever it hits. The four contested
