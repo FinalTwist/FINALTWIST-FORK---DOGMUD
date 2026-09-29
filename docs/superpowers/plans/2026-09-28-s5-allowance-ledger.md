@@ -10,11 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-28-baubles-hardening-and-corpus-design.md`, section "S5. Allowances in `apiframework`, with the companion migrated", and owner rulings 11 and 12. Owner ruling 4 (full migration) and ruling 12 (the S5 defaults) are settled; this plan does not re-argue them.
 
-**Where and when (ruling 11):** PR #175 merges first; then slices M, H, S5 and C each reach master as their own PR. S5 branches FRESH from master after slice H's PR has merged: worktree `C:/tmp/dogmud-baubles-s5`, branch `fix/baubles-allowance-ledger`, created from the main checkout in Task 1. S5 never rebases or pushes onto FinalTwist's branch. Task 1 records the base commit as `BASE`; every diff, format check and size check below runs from `$BASE`. Every file:line below was read at `5b1b0221a` in `C:/tmp/pr175-ours` (its Go files under `internal/apiframework`, `modules/aicompanion`, `modules/baubles` and `internal/configs/config.apiframework.go` are byte-identical to `cfb531437`, where the tables were first built). Slice H edits `internal/apiframework/settings.go`, `internal/configs/config.apiframework.go`, `modules/baubles/generate.go` (FinalTwist's moderation reorder also lands there, in `viaServer`, `name` and `viaPlayer`) and the docs, so Task 1 re-verifies every row and every quoted anchor against merged master before any code moves.
+**Where and when (ruling 11):** PR #175 merges first; then slices M, H, S5 and C each reach master as their own PR. S5 branches FRESH from master after slice H's PR has merged: worktree `C:/tmp/dogmud-baubles-s5`, branch `fix/baubles-allowance-ledger`, created from the main checkout in Task 1. S5 never rebases or pushes onto FinalTwist's branch. Task 1 records the base commit as `BASE`; every diff, format check and size check below runs from `$BASE`. Every file:line below was read at `5b1b0221a` in `C:/tmp/pr175-ours` (its Go files under `internal/apiframework`, `modules/aicompanion`, `modules/baubles` and `internal/configs/config.apiframework.go` are byte-identical to `cfb531437`, where the tables were first built). Slice H edits `internal/apiframework/settings.go`, `internal/configs/config.apiframework.go`, `modules/baubles/generate.go` (FinalTwist's moderation reorder also lands there, in `viaServer`, `name` and `viaPlayer`) and the docs, so Task 1 re-verifies every row and every quoted anchor against merged master before any code moves. Task 1 ran at `09964d50f` (origin/master after slice H: H1 #187, the sweep #188, H2 #190, H3 #191): every file:line in the facts table, the rule table and tables T1 and T2, and every task's line references and quoted anchors, now read at `09964d50f`. The local `master` in the main checkout is stale; wherever this plan says `master` for a base or a merge-base, it means `origin/master`.
 
 ---
 
-## Facts verified against source (read at `5b1b0221a`)
+## Facts verified against source (read at `5b1b0221a`; re-verified at `09964d50f`)
+
+Rows whose file slice H touched carry their `09964d50f` line numbers. Files slice H did not touch (`budget.go`, `books.go`, `relay.go`, `aicompanion.go`, `models.go`, `tiers.go`, `runtime.go`, `commands.go`, `autonomy.go`, `conversation.go`, `corememory.go`, `reflect.go`, `money_test.go`, `tiers_test.go`, `relayfor_test.go`, `frameworktest_helpers_test.go`, `modules/baubles/config.go`) are byte-identical to `5b1b0221a`, so their rows stand as read.
 
 | Fact | Where |
 |---|---|
@@ -27,34 +29,34 @@
 | `SaveBudget` copies `ByConsumer` and `CallsBy` under the lock, saves outside it, re-dirties on failure; it saves only the shared ledger `budget` | `budget.go:286-319` |
 | `Books{l *ledger; b *breaker; ...}`, `Shared()`, `NewBooksForTest()` (loaded, no disk) | `internal/apiframework/books.go:15-41` |
 | `internal/apiframework/relay.go` is 57 lines and holds only the `Relay` interface | `relay.go:1-57` |
-| `ServerSettings{Endpoint, RejectedBaseURL, DailyTokenBudget, BreakerErrors, BreakerSeconds, Legacy}` | `internal/apiframework/settings.go:61-73` |
-| `resolveServer` maps `DailyTokenBudget` > 0 as cap, < 0 as no cap, 0 as legacy or default | `settings.go:250-262` |
-| `configs.APIFramework` has no share fields; `Validate` sets no numeric defaults | `internal/configs/config.apiframework.go:17-63` |
-| Non-test `Reserve` callers: the companion (`models.go:567`) and baubles (`generate.go:188`); test callers `apiframework_test.go:182,186,189,206,219,237,644,655`, `baubles_test.go:243` | grep `\.Reserve(\|budget\.reserve` |
+| `ServerSettings{Endpoint, RejectedBaseURL, DailyTokenBudget, BreakerErrors, BreakerSeconds, Legacy}` | `internal/apiframework/settings.go:68-80` (re-verified at `09964d50f`) |
+| `resolveServer` maps `DailyTokenBudget` > 0 as cap, < 0 as no cap, 0 as legacy or default | `settings.go:257-269` (re-verified at `09964d50f`) |
+| `configs.APIFramework` has no share fields; `Validate` sets no numeric defaults (slice H made `APIKey` a `ConfigSecret`) | `internal/configs/config.apiframework.go:17-64` (re-verified at `09964d50f`) |
+| Non-test `Reserve` callers: the companion (`models.go:567`) and baubles (`generate.go:258`); test callers `apiframework_test.go:182,186,189,206,219,237,654,665`, `baubles_test.go:259` (re-verified at `09964d50f`) | grep `\.Reserve(\|budget\.reserve` |
 | Companion per-user state: `budgetDay` (`aicompanion.go:161`), `ownerTokens`, `strangerTokens`, `strangersFor`, `noticesToday` (`aicompanion.go:172-175`); `callsToday`, `errorsToday` (`:162-163`) | `modules/aicompanion/aicompanion.go` |
 | `rollDay` resets calls, errors, the three allowance maps and notices on `time.Now()` UTC | `aicompanion.go:403-414` |
-| 15 production `rollDay()` call sites | `aicompanion.go:445`, `autonomy.go:181`, `commands.go:93`, `conversation.go:348`, `corememory.go:206`, `listeners.go:558,566`, `models.go:559,598,614`, `reflect.go:276`, `runtime.go:725`, `tiers.go:252,298` |
+| 15 production `rollDay()` call sites | `aicompanion.go:445`, `autonomy.go:181`, `commands.go:93`, `conversation.go:348`, `corememory.go:206`, `listeners.go:569,577` (re-verified at `09964d50f`), `models.go:559,598,614`, `reflect.go:276`, `runtime.go:725`, `tiers.go:252,298` |
 | `tryReserveTokens`, `tryReserveFor`, `settleTokens`, `settleFor`, `settleForDay` have NO production caller; only tests call them | grep, `models.go:537-604` |
 | Production reservations go only through `reserveRoute` (4 sites) and settle only through `settleRoute` (8 sites) | `conversation.go:302,328,347`, `corememory.go:162,187,205`, `reflect.go:233,257,275`, `runtime.go:620,674,709` |
-| Tests build the module with no plugin (`m.plug` nil); `loadBudget` would nil-deref | `aicompanion_test.go:2047-2063`, `models.go:658` |
+| Tests build the module with no plugin (`m.plug` nil); `loadBudget` would nil-deref | `aicompanion_test.go:2051-2067` (re-verified at `09964d50f`), `models.go:658` |
 | `m.fw()` gives each test module its own isolated `Books` (`isolateBooks`) | `aicompanion.go:367-381`, `frameworktest_helpers_test.go:20-31` |
 | `listeners.go` does not import `apiframework` today | `listeners.go` imports |
 | Map and `budgetDay` test references: **64 lines** (25 in `aicompanion_test.go`, 24 in `tiers_test.go`, 15 in `money_test.go`), not 61 | grep `ownerTokens\|strangerTokens\|strangersFor\|budgetDay` |
 | Calls to the helpers this plan deletes or renames: 49 test lines | grep, table T2 below |
-| `viaServer(ctx, cfg, chat)` has no finder id; `viaPlayer(ctx, r, userId, model, chat)` reserves nothing | `modules/baubles/generate.go:134, 169, 188` |
+| `viaServer(ctx, cfg, chat)` has no finder id; `viaPlayer(ctx, r, userId, model, chat)` reserves nothing | `modules/baubles/generate.go:200, 239, 258` (re-verified at `09964d50f`) |
 | `schemaOverhead = 300` | `generate.go:17` |
-| Slice H (its plan, Task 11 step 4) moves `viaPlayer`'s returned count through `Charged(..., relayed=true)`, wraps both routes in `takeFinderSlot` / `takeServerSlot`, and opens the relay route only when `playerRouteOpen` (moderation on, a server key, breaker closed) | `docs/superpowers/plans/2026-09-28-slice-h-baubles-hardening.md` |
-| Admin regen builds its request with no `FinderUserId` | `internal/actions/bauble_admin.go:46-63` |
+| Slice H as merged: `viaPlayer` passes the relayed count through `Charged(..., relayed=true)` (`generate.go:226-227`); `name` takes the finder's own slot (`takeFinderSlot`, `:161`) around `viaPlayer` and a server slot (`takeServerSlot`, `:183-187`) around `viaServer`, and none free is `errSlotsBusy`, which `generate` returns before `m.count` (`:48-52`). There is NO `playerRouteOpen`: the relay route opens whenever `UsePlayerKeys`, a finder, the relay's `Model(finder, PurposeFinds)` and a free finder slot allow it (`:156-161`); moderation is decided after the naming (`moderate`, `moderationPossible`, `:118-120, 323-363`), and player-key text it cannot moderate is `FinderOnly`, not refused. A usable relay answer that fails the plain-words allowlist (`refusedByAllowlist`, `:135-144`) tells the relay breaker nothing and goes on to the server's key (`:165-168`) | `modules/baubles/generate.go` at `09964d50f` |
+| Admin regen builds its request with no `FinderUserId` | `internal/actions/bauble_admin.go:45-66` (re-verified at `09964d50f`) |
 | Baubles `Config` has no per-user knob; `buildConfig` bounds via `clampInt` | `modules/baubles/config.go:14-35, 113-149` |
-| `APIFramework:` block and `Modules.baubles:` block in the shipped config | `_datafiles/config.yaml:2111-2133`, `:2648-2663` (HEAD blob at `5b1b0221a`; the main checkout carries `S`, a fresh worktree `H`); Task 1 re-greps |
+| `APIFramework:` block and `Modules.baubles:` block in the shipped config | `_datafiles/config.yaml:2149-2171`, `:2688-2708` (HEAD blob at `09964d50f`, re-verified; the main checkout carries `S`, the S5 worktree `H` and equal to HEAD) |
 | `strangerFits` checks `StrangerTokensPerOwner` even when `ownerId` is 0 (`strangersFor[0]` is never charged, so the check is `tokens <= StrangerTokensPerOwner`) | `models.go:245`, `:256-258` |
 | The ledger's settle floors the server total at 0 | `budget.go:186-188` |
 | A corrupt `budget.yaml` is quarantined and the day starts from nothing (`loadLocked`, `quarantine`) | `budget.go:102-129` |
 | Today a `budget.yaml` quarantine loses no companion allowance: they live in the companion's own `budget-state` file | `models.go:638-708` |
-| `generate` counts every error from `name` as a failure in the display stats (`m.count(playerKey, err != nil)`, line 59); the breakers are fed only through `report`, which is the no-op `none` when `viaServer`'s `Reserve` refuses (the ticket is released) | `modules/baubles/generate.go:59-64, 186-190`, `baubles.go:101-115` |
-| `baubles.Generate` logs every error from the module's generator at Warn, with the error text, before it falls back to a generic trinket | `internal/baubles/generate.go:131-134` |
+| `generate` counts every error from `name` but `errSlotsBusy` as a failure in the display stats (`m.count(playerKey, err != nil)`, line 53, after the `errSlotsBusy` early return at 48-52); the breakers are fed only through `report`, which is the no-op `none` when `viaServer`'s `Reserve` refuses (the ticket is released) | `modules/baubles/generate.go:47-61, 254-262`, `baubles.go:138-154` (re-verified at `09964d50f`) |
+| `baubles.Generate` logs every error from the module's generator at Warn, with the error text, before it falls back to a generic trinket | `internal/baubles/generate.go:138-141` (re-verified at `09964d50f`) |
 | `logBudgetRefusal(ownerId, askerId, wanted)` logs one payer's spend and cap, not which counter refused; its one caller is the dispatch refusal | `runtime.go:1549-1565`, `:630` |
-| Shipped-config tests read `_datafiles/config.yaml` by repo path and decode with `gopkg.in/yaml.v2` (the loader's library) | `internal/configs/config.balance.baubles_test.go:155-163`, `internal/configs/configs.go:13` |
+| Shipped-config tests read `_datafiles/config.yaml` by repo path and decode with `gopkg.in/yaml.v2` (the loader's library) | `internal/configs/config.balance.baubles_test.go:175-183` (re-verified at `09964d50f`), `internal/configs/configs.go:13` |
 | `m.books` is an `atomic.Pointer[apiframework.Books]`; `m.fw()` reads it, so a test can replace it | `aicompanion.go:188, 367-381` |
 | This machine: `CGO_ENABLED=0`, no `gcc`; `-race` cannot run locally | `go env CGO_ENABLED`, `which gcc` |
 | CI runs `go test -timeout 900s -race ./...`; the Docker test image sets `CGO_ENABLED=1` | `.github/actions/codegen-and-test/action.yml:69`, `provisioning/Dockerfile:17-27`, `compose.test.yml` |
@@ -101,19 +103,21 @@
 
 Every charge, check, settle, clamp, floor and day rule of the current allowances. "Test" is what pins it today; "After" is how the ledger expresses it and what test pins it after S5. A rule with "none" in Test had no pin before; the plan adds one where marked NEW.
 
+Re-verified at `09964d50f`: slice H added four import lines to `aicompanion_test.go` (every line below them moved down 4; its new tests sit after `TestGoneMindStillRefundsItsOwner`), eleven lines to `listeners.go` before `strangerMayAsk` (+11), and reshaped `modules/baubles/generate.go` and `baubles_test.go`. The line numbers in these tables and in T1 and T2 are the `09964d50f` ones; `money_test.go`, `tiers_test.go`, `relayfor_test.go`, `apiframework_test.go` below its line 471, and every companion source file but `listeners.go` did not move.
+
 ### Checks and charges at reservation
 
 | # | Rule | Source | Test today | After (and its test) |
 |---|---|---|---|---|
-| R1 | An owner's call on the server key is refused when `ownerTokens[o] + t > DailyTokensPerCompanion` (cap > 0; 0 is no cap) | `models.go:564-566` | `TestTokenReservationSettles` (`aicompanion_test.go:1242`) | `Charge{DimCompanionOwner, o, DailyTokensPerCompanion}`; same test rewritten; `TestReserveChargesEveryAllowanceOrNone` |
+| R1 | An owner's call on the server key is refused when `ownerTokens[o] + t > DailyTokensPerCompanion` (cap > 0; 0 is no cap) | `models.go:564-566` | `TestTokenReservationSettles` (`aicompanion_test.go:1246`) | `Charge{DimCompanionOwner, o, DailyTokensPerCompanion}`; same test rewritten; `TestReserveChargesEveryAllowanceOrNone` |
 | R2 | That call is charged to the owner's counter, key 0 included | `models.go:573-575, 215-220` | `TestTokenReservationSettles` | ledger charges the owner charge; same test |
-| R3 | A passer-by's call is refused when `strangerTokens[a] + t > StrangerDailyTokens` (cap > 0), on both routes | `models.go:241-244`, called `:561`, `tiers.go:263` | `TestStrangerCallsAreReservedAgainstTheStranger` (`aicompanion_test.go:2392`), `TestStrangerRelayCallsStopAtTheStrangerCap` (`tiers_test.go:251`) | `Charge{DimCompanionStranger, a, StrangerDailyTokens}`; both tests rewritten |
+| R3 | A passer-by's call is refused when `strangerTokens[a] + t > StrangerDailyTokens` (cap > 0), on both routes | `models.go:241-244`, called `:561`, `tiers.go:263` | `TestStrangerCallsAreReservedAgainstTheStranger` (`aicompanion_test.go:2396`), `TestStrangerRelayCallsStopAtTheStrangerCap` (`tiers_test.go:251`) | `Charge{DimCompanionStranger, a, StrangerDailyTokens}`; both tests rewritten |
 | R4 | A passer-by's call is refused when `strangersFor[o] + t > StrangerTokensPerOwner` (cap > 0), on both routes | `models.go:245` | `TestStrangerTokensPerOwnerCapsThemTogether` (`money_test.go:491`) | `Charge{DimCompanionStrangersFor, o, StrangerTokensPerOwner}`; test rewritten |
 | R5 | `strangersFor` is charged only when `ownerId > 0`; the stranger counter never for `askerId <= 0` | `models.go:256-258, 226-228` | none | `allowanceCharges` omits the charge; `TestAllowanceChargesMapOneToOne` NEW |
-| R6 | A server-key passer-by call never charges the owner's allowance, and the owner's spent allowance does not refuse it | `models.go:560-575` | `TestStrangerCallsAreReservedAgainstTheStranger` (2399-2407), `TestStrangerTalkSummaryIsTheStrangersToPayFor` (2572, part 3) | no owner charge on a stranger call; both rewritten; `TestAllowanceChargesMapOneToOne` |
-| R7 | The server budget refuses when `Tokens + t > DailyTokenBudget` (limit > 0); the hold counts per consumer and as a call | `budget.go:147-159`, `models.go:567` | `TestBudgetReserveSettleAndShares` (`apiframework_test.go:180`), `TestTheBudgetIsShared` (`baubles_test.go:238`) | unchanged in `reserve`; tests kept |
+| R6 | A server-key passer-by call never charges the owner's allowance, and the owner's spent allowance does not refuse it | `models.go:560-575` | `TestStrangerCallsAreReservedAgainstTheStranger` (2403-2411), `TestStrangerTalkSummaryIsTheStrangersToPayFor` (2576, part 3) | no owner charge on a stranger call; both rewritten; `TestAllowanceChargesMapOneToOne` |
+| R7 | The server budget refuses when `Tokens + t > DailyTokenBudget` (limit > 0); the hold counts per consumer and as a call | `budget.go:147-159`, `models.go:567` | `TestBudgetReserveSettleAndShares` (`apiframework_test.go:180`), `TestTheBudgetIsShared` (`baubles_test.go:254`) | unchanged in `reserve`; tests kept |
 | R8 | All or nothing: an allowance refusal holds nothing of the server's; a server refusal charges no allowance | `models.go:559-576` | first half: `TestStrangerTalkSummaryIsTheStrangersToPayFor` part 2; second half: none | checked under one lock before any add; `TestReserveChargesEveryAllowanceOrNone` NEW |
-| R9 | Check and hold are one step: concurrent reservations never slip past a cap together | `models.go:537-548`, `budget.go:142-160` | `TestStrangerReservationsCannotSlipPastTheCapTogether` (`aicompanion_test.go:2435`), `TestStrangerRelayReservationsCannotSlipPastTheCapTogether` (`tiers_test.go:278`) | ledger lock; both rewritten |
+| R9 | Check and hold are one step: concurrent reservations never slip past a cap together | `models.go:537-548`, `budget.go:142-160` | `TestStrangerReservationsCannotSlipPastTheCapTogether` (`aicompanion_test.go:2439`), `TestStrangerRelayReservationsCannotSlipPastTheCapTogether` (`tiers_test.go:278`) | ledger lock; both rewritten |
 | R10 | Owner's own key, owner's call: nothing checked, nothing held | `tiers.go:260-262` | `TestRelayCallsReserveNothingOfTheServers` (`tiers_test.go:229`), `TestRelayReflectionAndCoreMemorySpendNothingOfTheServers` (`:359`) | `reserveRoute` returns before the ledger; both rewritten |
 | R11 | Owner's own key, passer-by: R3 and R4 checked and charged; the server ledger untouched | `tiers.go:259-268` | `TestStrangerRelayCallsStopAtTheStrangerCap`, `TestRelaySummaryChargesOnlyThePasserBy` (`tiers_test.go:305`) | `Reserve(..., spendServer=false, stranger, strangersfor)`; rewritten; `TestARelayReserveLeavesTheServerAlone` NEW |
 | R12 | No route: refused, nothing held | `tiers.go:269` | `TestRelayCallsReserveNothingOfTheServers` (246-248) | unchanged |
@@ -125,27 +129,27 @@ Every charge, check, settle, clamp, floor and day rule of the current allowances
 
 | # | Rule | Source | Test today | After |
 |---|---|---|---|---|
-| R13 | Same-day settle: each payer counter moves by `used - reserved` | `models.go:622-635` | `TestTokenReservationSettles` (1254-1261), `TestStrangerCallsAreReservedAgainstTheStranger` (2415-2424), `TestStrangerTokensPerOwnerCapsThemTogether` (508-514), `TestAHoldAcrossMidnightRefundsNothing` control (912-917) | `settle` loops `h.Charges`; all rewritten |
-| R14 | No counter goes below 0 | owner `models.go:632-634`, stranger `:253-255`, per-owner `:263-265`, server `budget.go:181-188, 195-197` | `TestTokenReservationSettles` (1262-1265), `TestStrangerCallsAreReservedAgainstTheStranger` (2429-2432) | floors in `settle`; rewritten; `TestSettleClampsAndFloors` NEW |
+| R13 | Same-day settle: each payer counter moves by `used - reserved` | `models.go:622-635` | `TestTokenReservationSettles` (1258-1265), `TestStrangerCallsAreReservedAgainstTheStranger` (2419-2428), `TestStrangerTokensPerOwnerCapsThemTogether` (508-514), `TestAHoldAcrossMidnightRefundsNothing` control (912-917) | `settle` loops `h.Charges`; all rewritten |
+| R14 | No counter goes below 0 | owner `models.go:632-634`, stranger `:253-255`, per-owner `:263-265`, server `budget.go:181-188, 195-197` | `TestTokenReservationSettles` (1266-1269), `TestStrangerCallsAreReservedAgainstTheStranger` (2433-2436) | floors in `settle`; rewritten; `TestSettleClampsAndFloors` NEW |
 | R15 | Server key: usage past the reservation is charged to the total, the consumer and the payer | `models.go:594-596, 623`, `budget.go:184-188` | none | kept (see correction 3); `TestSettleClampsAndFloors` NEW |
 | R16 | Owner-less server call: charged to key 0 on reserve, never refunded | `models.go:573-575, 630` | none | CHANGES (owner ruling 12): key 0 settles like any key (correction 6); `TestAnOwnerlessHoldIsRefunded` NEW (Task 7) |
 | R17 | Server-key hold from an earlier day: payer counter gets no refund; overage still charged | `models.go:590-596, 624-626` | `TestAHoldAcrossMidnightRefundsNothing` (`money_test.go:881`) | ledger `earlier` rule for charges; rewritten on the ledger clock; `TestAHoldFromYesterdayRefundsNoAllowance` NEW |
-| R18 | Ledger across midnight: the new day starts at what is still held; the hold settles against today; the consumer share gets no refund from an earlier day's hold | `budget.go:77-81, 175-197` | `TestBudgetRollsOverWithCallsInFlight` (`apiframework_test.go:214`), `TestBudgetCountsTheWholeRequest` (`aicompanion_test.go:1762`) | unchanged; both kept (the second rewritten on the ledger clock) |
+| R18 | Ledger across midnight: the new day starts at what is still held; the hold settles against today; the consumer share gets no refund from an earlier day's hold | `budget.go:77-81, 175-197` | `TestBudgetRollsOverWithCallsInFlight` (`apiframework_test.go:214`), `TestBudgetCountsTheWholeRequest` (`aicompanion_test.go:1766`) | unchanged; both kept (the second rewritten on the ledger clock) |
 | R19 | The server hold settled is the ledger's own, not one rebuilt from the module's day | `models.go:606-621`, `tiers.go:289` | `TestSettlementReturnsTheLedgersOwnHold` (`relayfor_test.go:138`) | `hold.fw` is the only hold; rewritten |
 | R20 | A relayed count is held between 0 and the reservation | `tiers.go:293-296` (and `wire.go` `Charged` with `relayed`) | `TestRelayUsageIsNeverTrusted` (`money_test.go:284`, 309-322) | `settle` clamps when `!SpendServer`; rewritten; `TestSettleClampsAndFloors` |
 | R21 | Owner's key: a passer-by's hold from an earlier day gives nothing back | `tiers.go:298-301` | `TestAHoldAcrossMidnightRefundsNothing` (887, 901, 905) | ledger `earlier` rule; rewritten |
 | R22 | Owner's key, owner's hold: settling does nothing | `tiers.go:291-293` | `TestRelayCallsReserveNothingOfTheServers` (242-245) | empty `hold.fw` is a no-op; rewritten |
-| R23 | Each reservation settles exactly once, even when the mind is gone or the goroutine panics | `conversation.go:320-330, 347`, `corememory.go:180-189, 205`, `reflect.go:250-259, 275`, `runtime.go:667-709` | `TestGoneMindStillRefundsItsOwner` (`aicompanion_test.go:2632`), `TestPanickedBackgroundCallsSettle` (`money_test.go:334`) | call sites untouched; both rewritten |
+| R23 | Each reservation settles exactly once, even when the mind is gone or the goroutine panics | `conversation.go:320-330, 347`, `corememory.go:180-189, 205`, `reflect.go:250-259, 275`, `runtime.go:667-709` | `TestGoneMindStillRefundsItsOwner` (`aicompanion_test.go:2636`), `TestPanickedBackgroundCallsSettle` (`money_test.go:334`) | call sites untouched; both rewritten |
 
 ### Read-only checks and display
 
 | # | Rule | Source | Test today | After |
 |---|---|---|---|---|
-| R24 | `ownerBudgetLeft`: cap <= 0 is true, else `spent < cap` (strict) | `models.go:208-213` | `TestBreakerAndBudgets` (`aicompanion_test.go:939`, 955-962) | reads `Allowance`; rewritten |
+| R24 | `ownerBudgetLeft`: cap <= 0 is true, else `spent < cap` (strict) | `models.go:208-213` | `TestBreakerAndBudgets` (`aicompanion_test.go:943`, 959-966) | reads `Allowance`; rewritten |
 | R25 | `modelReadyFor`: relay true; none false; server needs the breaker closed, `HasRoom`, and for an owner call with an owner, `ownerBudgetLeft` | `aicompanion.go:435-452` | `TestModelReadyFollowsTheRoute` (`tiers_test.go:184`) | unchanged logic; rewritten |
-| R26 | `strangerMayAsk` refuses when the asker's spend `>= StrangerDailyTokens` (cap > 0, strangers not off) | `listeners.go:557-562` | `TestStrangerDailyCapStopsTheirPrompts` (`aicompanion_test.go:2368`) | reads `Allowance`; rewritten |
-| R27 | `strangerMayAsk` refuses when passers-by's spend of this owner `>= StrangerTokensPerOwner` | `listeners.go:565-570` | `TestStrangerTokensPerOwnerCapsThemTogether` (517-527) | reads `Allowance`; rewritten |
-| R28 | An allowance refusal does not spend the stranger cooldown | `listeners.go:550-578` (order) | `TestStrangerDailyCapStopsTheirPrompts` (2382-2389) | order unchanged; rewritten |
+| R26 | `strangerMayAsk` refuses when the asker's spend `>= StrangerDailyTokens` (cap > 0, strangers not off) | `listeners.go:568-573` | `TestStrangerDailyCapStopsTheirPrompts` (`aicompanion_test.go:2372`) | reads `Allowance`; rewritten |
+| R27 | `strangerMayAsk` refuses when passers-by's spend of this owner `>= StrangerTokensPerOwner` | `listeners.go:576-581` | `TestStrangerTokensPerOwnerCapsThemTogether` (517-527) | reads `Allowance`; rewritten |
+| R28 | An allowance refusal does not spend the stranger cooldown | `listeners.go:561-589` (order) | `TestStrangerDailyCapStopsTheirPrompts` (2386-2393) | order unchanged; rewritten |
 | R29 | A dispatch refusal marks `budgetSpent` for an owner call, not a passer-by's; success clears it | `runtime.go:621-637` | none | untouched code |
 | R30 | `logBudgetRefusal`, once a minute, logs the payer's spend and cap | `runtime.go:1549-1565` | none | reads `Allowance`, and logs `refusedBy` (R43) |
 | R31 | `aicompanion status` shows `spentToday` per owner and the cap line | `commands.go:116-119, 157` | none | reads `Allowance` |
@@ -172,7 +176,7 @@ Every charge, check, settle, clamp, floor and day rule of the current allowances
 
 | # | Rule | Source | Test today | After |
 |---|---|---|---|---|
-| R40 | A server-key naming reserves prompt + max (doubled with `RetryTransient`) against the server budget and settles `Charged`; a finder's own key reserves nothing | `generate.go:169-212, 134-159` | `TestGenerateOnTheServersKey` (`baubles_test.go:152`), `TestTheBudgetIsShared` (238), `TestFindersOwnKeyNamesTheirFind` (485) | server route adds the finder charge; own key reserves with `spendServer` false and the finder charge; `TestAFindIsChargedToItsFinder`, `TestAFinderOverTheirAllowanceGetsNoName`, `TestBaublesOverTheirShareFallBack`, `TestAdminRegenChargesNoFinder` NEW; a refused reservation feeds no breaker (as today) and is no longer counted as a failure in `bauble status` (R43) |
+| R40 | A server-key naming reserves prompt + max (doubled with `RetryTransient`) against the server budget and settles `Charged`; a finder's own key reserves nothing | `generate.go:239-294, 200-229` (and `name`, `:151-190`) | `TestGenerateOnTheServersKey` (`baubles_test.go:168`), `TestTheBudgetIsShared` (254), `TestFindersOwnKeyNamesTheirFind` (545) | server route adds the finder charge; own key reserves with `spendServer` false and the finder charge; `TestAFindIsChargedToItsFinder`, `TestAFinderOverTheirAllowanceGetsNoName`, `TestBaublesOverTheirShareFallBack`, `TestAdminRegenChargesNoFinder` NEW; a refused reservation feeds no breaker (as today) and is no longer counted as a failure in `bauble status` (R43) |
 
 **43 rules** (R1 to R43; R42 is dropped on purpose, R43 is new). Every "Test today" test is rewritten, not deleted, except `TestStrangersForIsKeptWithTheBudget`, whose one assertion (the `strangers_for` yaml tag still reads) moves into `TestFirstBootSeedsTheOldAllowancesOnce`.
 
@@ -182,16 +186,16 @@ Helpers (Task 6): `ownerSpent(m, id)`, `strangerSpent(m, id)`, `strangersForSpen
 
 | Line | Test | Kind | Becomes |
 |---|---|---|---|
-| `aicompanion_test.go:1259, 1260, 1263` | TestTokenReservationSettles | read owner[3] | `ownerSpent(m, 3)` (whole test in Task 7 step 6) |
-| `aicompanion_test.go:1779` | TestBudgetCountsTheWholeRequest | write `budgetDay` | ledger clock to tomorrow (Task 7 step 6) |
-| `aicompanion_test.go:2372` | TestStrangerDailyCapStopsTheirPrompts | write stranger[2] = cap | `setStrangerSpent(m, 2, m.cfg.StrangerDailyTokens)` |
-| `aicompanion_test.go:2385` | same | write stranger[2] = 0 | `setStrangerSpent(m, 2, 0)` |
-| `aicompanion_test.go:2399, 2400, 2417, 2418, 2422, 2423, 2430` | TestStrangerCallsAreReservedAgainstTheStranger | read owner[1], stranger[2], stranger[3] | `ownerSpent`/`strangerSpent` (whole test in Task 7 step 6) |
-| `aicompanion_test.go:2454, 2455` | TestStrangerReservationsCannotSlipPastTheCapTogether | read stranger[2] | `strangerSpent(m, 2)` |
-| `aicompanion_test.go:2583, 2584, 2596, 2597, 2624, 2625` | TestStrangerTalkSummaryIsTheStrangersToPayFor | read owner[1], stranger[2] | `ownerSpent(m, 1)`, `strangerSpent(m, 2)` |
-| `aicompanion_test.go:2592` | same | write stranger[2] = cap | `setStrangerSpent(m, 2, m.cfg.StrangerDailyTokens)` |
-| `aicompanion_test.go:2607` | same | write owner[1] = cap | `setOwnerSpent(m, 1, m.cfg.DailyTokensPerCompanion)` |
-| `aicompanion_test.go:2648, 2649` | TestGoneMindStillRefundsItsOwner | read owner[1] | `ownerSpent(m, 1)` |
+| `aicompanion_test.go:1263, 1264, 1267` | TestTokenReservationSettles | read owner[3] | `ownerSpent(m, 3)` (whole test in Task 7 step 6) |
+| `aicompanion_test.go:1783` | TestBudgetCountsTheWholeRequest | write `budgetDay` | ledger clock to tomorrow (Task 7 step 6) |
+| `aicompanion_test.go:2376` | TestStrangerDailyCapStopsTheirPrompts | write stranger[2] = cap | `setStrangerSpent(m, 2, m.cfg.StrangerDailyTokens)` |
+| `aicompanion_test.go:2389` | same | write stranger[2] = 0 | `setStrangerSpent(m, 2, 0)` |
+| `aicompanion_test.go:2403, 2404, 2421, 2422, 2426, 2427, 2434` | TestStrangerCallsAreReservedAgainstTheStranger | read owner[1], stranger[2], stranger[3] | `ownerSpent`/`strangerSpent` (whole test in Task 7 step 6) |
+| `aicompanion_test.go:2458, 2459` | TestStrangerReservationsCannotSlipPastTheCapTogether | read stranger[2] | `strangerSpent(m, 2)` |
+| `aicompanion_test.go:2587, 2588, 2600, 2601, 2628, 2629` | TestStrangerTalkSummaryIsTheStrangersToPayFor | read owner[1], stranger[2] | `ownerSpent(m, 1)`, `strangerSpent(m, 2)` |
+| `aicompanion_test.go:2596` | same | write stranger[2] = cap | `setStrangerSpent(m, 2, m.cfg.StrangerDailyTokens)` |
+| `aicompanion_test.go:2611` | same | write owner[1] = cap | `setOwnerSpent(m, 1, m.cfg.DailyTokensPerCompanion)` |
+| `aicompanion_test.go:2652, 2653` | TestGoneMindStillRefundsItsOwner | read owner[1] | `ownerSpent(m, 1)` |
 | `tiers_test.go:188` | TestModelReadyFollowsTheRoute | write owner[5] = cap | `setOwnerSpent(m, 5, m.cfg.DailyTokensPerCompanion)` |
 | `tiers_test.go:208` | same | write owner[6] = cap | `setOwnerSpent(m, 6, m.cfg.DailyTokensPerCompanion)` |
 | `tiers_test.go:234` | TestRelayCallsReserveNothingOfTheServers | write owner[5] = cap | `setOwnerSpent(m, 5, m.cfg.DailyTokensPerCompanion)` |
@@ -216,18 +220,18 @@ Count: 25 + 24 + 15 = 64.
 
 | Line(s) | Test | Call | Becomes |
 |---|---|---|---|
-| `aicompanion_test.go:955, 959` | TestBreakerAndBudgets | `m.chargeOwner(7, n)` | `setOwnerSpent(m, 7, 90)` then `setOwnerSpent(m, 7, 110)` |
-| `aicompanion_test.go:956, 960` | same | `m.ownerBudgetLeft` | unchanged (kept, reads the ledger) |
-| `aicompanion_test.go:1245, 1248, 1251, 1255` | TestTokenReservationSettles | `m.tryReserveTokens` | `tryRoute(m, server, ...)` |
-| `aicompanion_test.go:1254, 1258, 1262` | same | `m.settleTokens` | `settleToday(m, server, ...)` |
-| `aicompanion_test.go:1778, 1784` | TestBudgetCountsTheWholeRequest | `tryReserveTokens`, `settleTokens` | `reserveRoute` and `settleRoute` with the real hold |
-| `aicompanion_test.go:1780` | same | `m.rollDay()` | deleted (ledger clock) |
-| `aicompanion_test.go:2371, 2591, 2606` | stranger tests | `m.rollDay()` | deleted |
-| `aicompanion_test.go:2396, 2402, 2408, 2444` | stranger reservation tests | `m.tryReserveFor` | `tryRoute(m, server, ...)` |
-| `aicompanion_test.go:2405` | same | `m.tryReserveTokens` | `tryRoute(m, server, 1, 0, 900)` |
-| `aicompanion_test.go:2416, 2421, 2429` | same | `m.settleFor` | `settleToday(m, server, ...)` |
-| `aicompanion_test.go:2425` | same | `m.settleTokens` | `settleToday(m, server, 1, 0, 900, 900)` |
-| `aicompanion_test.go:2643` | TestGoneMindStillRefundsItsOwner | `m.reserveRoute` | unchanged |
+| `aicompanion_test.go:959, 963` | TestBreakerAndBudgets | `m.chargeOwner(7, n)` | `setOwnerSpent(m, 7, 90)` then `setOwnerSpent(m, 7, 110)` |
+| `aicompanion_test.go:960, 964` | same | `m.ownerBudgetLeft` | unchanged (kept, reads the ledger) |
+| `aicompanion_test.go:1249, 1252, 1255, 1259` | TestTokenReservationSettles | `m.tryReserveTokens` | `tryRoute(m, server, ...)` |
+| `aicompanion_test.go:1258, 1262, 1266` | same | `m.settleTokens` | `settleToday(m, server, ...)` |
+| `aicompanion_test.go:1782, 1788` | TestBudgetCountsTheWholeRequest | `tryReserveTokens`, `settleTokens` | `reserveRoute` and `settleRoute` with the real hold |
+| `aicompanion_test.go:1784` | same | `m.rollDay()` | deleted (ledger clock) |
+| `aicompanion_test.go:2375, 2595, 2610` | stranger tests | `m.rollDay()` | deleted |
+| `aicompanion_test.go:2400, 2406, 2412, 2448` | stranger reservation tests | `m.tryReserveFor` | `tryRoute(m, server, ...)` |
+| `aicompanion_test.go:2409` | same | `m.tryReserveTokens` | `tryRoute(m, server, 1, 0, 900)` |
+| `aicompanion_test.go:2420, 2425, 2433` | same | `m.settleFor` | `settleToday(m, server, ...)` |
+| `aicompanion_test.go:2429` | same | `m.settleTokens` | `settleToday(m, server, 1, 0, 900, 900)` |
+| `aicompanion_test.go:2647` | TestGoneMindStillRefundsItsOwner | `m.reserveRoute` | unchanged |
 | `money_test.go:521` | TestStrangerTokensPerOwnerCapsThemTogether | `m.rollDay()` | deleted |
 | `money_test.go:532, 537` | TestStrangersForIsKeptWithTheBudget | `budgetState` | test replaced by `TestFirstBootSeedsTheOldAllowancesOnce` (Task 9) |
 | `money_test.go:745` | TestNoticedIsCappedAndSparesTheOwnersKey | `m.noticesToday = nil` | unchanged |
@@ -260,24 +264,28 @@ git grep -n 'hardLocked' origin/master -- internal/configs/ | head -3
 ```
 Expected: both `git grep`s print hits (slice H's `playerRouteOpen` and `takeFinderSlot`, slice M's `hardLocked`). No hit means slice H (or M) has not merged: stop and report; S5 does not start. If `master` is behind `origin/master`, fast-forward it with `git fetch origin master:master` (it refuses when master is checked out in some worktree; then run `git pull --ff-only` in that worktree instead) and re-run the two log lines until they print the same commit.
 
+Result at `09964d50f`: slice H merged (H1 #187, the sweep #188, H2 #190, H3 #191), and `takeFinderSlot` and `hardLocked` hit. `playerRouteOpen` did NOT land under that or any name (the relay route's shape is in the facts table's slice H row); the `takeFinderSlot` hit is the evidence. The main checkout's local `master` was stale, so the worktree was cut from `origin/master` directly.
+
 - [ ] **Step 2: Create the S5 worktree and record the base**
 
 Run (Bash), from the main checkout:
 ```bash
 cd "/c/Users/Calabe Davis/workspace/DOGMud"
-git worktree add -b fix/baubles-allowance-ledger C:/tmp/dogmud-baubles-s5 master
+git worktree add -b fix/baubles-allowance-ledger C:/tmp/dogmud-baubles-s5 origin/master
 cd /c/tmp/dogmud-baubles-s5
 BASE=$(git rev-parse HEAD); echo "BASE=$BASE"
 git ls-files -v _datafiles/config.yaml
 git status --short
 ```
-Expected: the worktree is created, `BASE=<sha>` prints (write the SHA into the task list you are tracking; shell variables do not survive between tool calls), `config.yaml` shows `H` (a fresh worktree carries no skip-worktree bit), and the tree is clean. Every later command that names `$BASE` sets it first with `BASE=$(git merge-base HEAD master)`, which prints this same SHA for as long as the branch is never rebased; if it ever prints a different SHA, stop and report. Every later command runs in `/c/tmp/dogmud-baubles-s5`.
+Expected: the worktree is created, `BASE=<sha>` prints (write the SHA into the task list you are tracking; shell variables do not survive between tool calls), `config.yaml` shows `H` (a fresh worktree carries no skip-worktree bit), and the tree is clean. Every later command that names `$BASE` sets it first with `BASE=$(git merge-base HEAD origin/master)` (never the main checkout's local `master`, which can be stale), which prints this same SHA for as long as the branch is never rebased; if it ever prints a different SHA, stop and report. Every later command runs in `/c/tmp/dogmud-baubles-s5`.
 
 Then confirm the base is green:
 ```bash
 cd /c/tmp/dogmud-baubles-s5 && go build ./... && go test ./internal/apiframework/ ./modules/aicompanion/ ./modules/baubles/ ./internal/baubles/ 2>&1 | tail -5
 ```
 Expected: four `ok` lines. Stop and report if any fails: S5 starts from green.
+
+Result: `BASE=09964d50f91d3e86f91ad58dd72e908ef36b7f64`, `config.yaml` `H` and equal to the HEAD blob, tree clean; build clean and four `ok` (`internal/apiframework`, `modules/aicompanion`, `modules/baubles`, `internal/baubles`).
 
 - [ ] **Step 3: Re-grep every row whose file slice H may have touched**
 
@@ -296,10 +304,12 @@ grep -n 'ownerTokens\|strangerTokens\|strangersFor\|budgetDay' modules/aicompani
 ```
 Expected: `64`. If not 64, update table T1 to the real lines before going on.
 
-Then re-find the config blocks (the facts table has `APIFramework:` at 2111 and `baubles:` at 2648 on the pre-H blob):
+Then re-find the config blocks (the pre-H blob had `APIFramework:` at 2111 and `baubles:` at 2648):
 ```bash
 grep -n '^APIFramework:\|^  baubles:\|  BreakerSeconds: 0\|MaxConcurrent: 4\|fresh allowance' _datafiles/config.yaml
 ```
+
+Result at `09964d50f`: every function exists. `budget.go`, `models.go`, `tiers.go`, `runtime.go`, `commands.go`, `aicompanion.go` and the other companion sources but `listeners.go` did not move. Shifted and corrected in this file: `settings.go` (+7: `ServerSettings` 68-80, `resolveServer`'s switch 257-269), `config.apiframework.go` (+1 after line 24), `listeners.go` (+11 after line 251: `strangerMayAsk` at 561, `rollDay()` at 569 and 577), `aicompanion_test.go` (+4 throughout the lines T1 and T2 name), `apiframework_test.go` (`Reserve` callers 654 and 665), `baubles_test.go` (`Reserve` caller 259, tests at 168, 254, 545), `modules/baubles/generate.go` (reshaped: `name` 151, `viaPlayer` 200, `viaServer` 239, `Reserve` 258, `Settle` 282, `m.count` 53). The count is `64`. Config: `APIFramework:` 2149 (`BreakerSeconds: 0` at 2171), `fresh allowance` 2595, `baubles:` 2688 (`MaxConcurrent: 4` at 2698, block ends 2708).
 
 - [ ] **Step 4: Confirm every quoted anchor this plan edits against exists in the merged code**
 
@@ -334,17 +344,22 @@ internal/apiframework/context.md|3. `Reserve(consumer, worstCase)` holds tokens 
 internal/apiframework/context.md|   and books the real use under the consumer.
 internal/apiframework/context.md|  display only, not separate caps. The companion keeps its own per-player
 internal/apiframework/context.md|  the companion's old saved total once, on a fresh day only. The directory is
-internal/apiframework/context.md|defaults on purpose.
+internal/apiframework/context.md|a `configs.ConfigSecret`.
 modules/aicompanion/context.md|module's own budget file keeps the per-owner and passer-by counts, and an
 modules/aicompanion/context.md|  of that owner's companion (`StrangerTokensPerOwner`, `strangersFor`,
 modules/aicompanion/context.md|  kept in the budget file; `strangerFits`, `chargeStrangerFor`) and, on
-modules/baubles/context.md|`MaxConcurrent` (4, server-key calls only)
+modules/baubles/context.md|`MaxCompletionTokens` (800), `RetryTransient` (false), `MaxConcurrent` (4,
+modules/baubles/context.md|server-key calls only), `ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
+modules/baubles/context.md|   player's browser relay, on their key. It costs the server nothing. A
+modules/baubles/context.md|   lets one probe through); a hold on the one daily budget; `apiframework.Post`
 modules/baubles/context.md|The key, endpoint, daily budget and breaker are not here: they are the
 docs/aicompanion/settings.md|server-key total, the limit and the companion's share of it. The spend is
 docs/aicompanion/settings.md|kept in `_datafiles/apiframework/budget.yaml` across restarts.
 EOF
 ```
 Expected: every line `ok`. For each `MISS`, find the string's new form (`grep -n` a distinctive part of it), and correct the step that quotes it in this plan with the Edit tool before going on. A `MISS` in `generate.go` means FinalTwist's reorder or slice H reshaped the route; Task 10 Step 4 says how to apply its three pieces to the shape that landed.
+
+Result at `09964d50f`: two anchors had drifted, and the list above now quotes their current form. `internal/apiframework/context.md`'s `defaults on purpose.` is no longer a line of its own (slice H continued the paragraph with the endpoint allowlist and `ConfigSecret`), so Task 14 now appends the share sentence after `a \`configs.ConfigSecret\`.`. `modules/baubles/context.md`'s Config list re-wrapped `` `MaxConcurrent` (4, `` / `` server-key calls only), `` across two lines, so Task 14 now quotes both lines; the two route-step anchors in that file are new (Task 14 also says the finder allowance in the route description slice H wrote). Every `generate.go` anchor still matched, but the code around them was reshaped: Task 10 was rewritten against the merged `name`, `viaPlayer`, `viaServer` and `generate`.
 
 - [ ] **Step 5: Commit any drift corrections**
 
@@ -367,8 +382,8 @@ No `docs/README.md` change: the plan's row reached master with the docs-only PR.
 **Files:**
 - Modify: `internal/apiframework/budget.go:36-60, 76-88, 131-160`
 - Create: `internal/apiframework/allowance_test.go`
-- Modify: `internal/apiframework/apiframework_test.go:182,186,189,206,219,237,644,655`
-- Modify: `modules/aicompanion/models.go:567`, `modules/baubles/generate.go:188`, `modules/baubles/baubles_test.go:243`
+- Modify: `internal/apiframework/apiframework_test.go:182,186,189,206,219,237,654,665`
+- Modify: `modules/aicompanion/models.go:567`, `modules/baubles/generate.go:258`, `modules/baubles/baubles_test.go:259`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -674,8 +689,8 @@ func (k *Books) SetAllowanceForTest(dim string, userId int, tokens int) {
 With the Edit tool, exactly:
 - `internal/apiframework/apiframework_test.go`: `budget.reserve(ConsumerCompanion, 600, 1000)` becomes `budget.reserve(ConsumerCompanion, 600, 1000, 0, true, nil)`; likewise `(ConsumerBaubles, 500, 1000)`, `(ConsumerBaubles, 300, 1000)`, `(ConsumerBaubles, 1000, 0)`, `(ConsumerBaubles, 1000, 5000)`, `(ConsumerCompanion, 500, 0)` each gain `, 0, true, nil` before the closing parenthesis; `own.Reserve(ConsumerCompanion, 300)` becomes `own.Reserve(ConsumerCompanion, 300, true)`; `Reserve(ConsumerBaubles, 50)` becomes `Reserve(ConsumerBaubles, 50, true)`.
 - `modules/aicompanion/models.go:567`: `m.fw().Reserve(apiframework.ConsumerCompanion, tokens)` becomes `m.fw().Reserve(apiframework.ConsumerCompanion, tokens, true)`.
-- `modules/baubles/generate.go:188`: `apiframework.Reserve(apiframework.ConsumerBaubles, reserve)` becomes `apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true)`.
-- `modules/baubles/baubles_test.go:243`: `apiframework.Reserve(apiframework.ConsumerCompanion, 2500)` becomes `apiframework.Reserve(apiframework.ConsumerCompanion, 2500, true)`.
+- `modules/baubles/generate.go:258` (in `viaServer`): `apiframework.Reserve(apiframework.ConsumerBaubles, reserve)` becomes `apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true)`.
+- `modules/baubles/baubles_test.go:259`: `apiframework.Reserve(apiframework.ConsumerCompanion, 2500)` becomes `apiframework.Reserve(apiframework.ConsumerCompanion, 2500, true)`.
 
 Then confirm nothing was missed: `go build ./... && go vet ./internal/apiframework/ ./modules/aicompanion/ ./modules/baubles/`
 Expected: no output. Then confirm no caller compares a refusal by identity (a `*RefusalError` is never `==` the sentinel); run standalone, zero matches (exit 1) is the pass:
@@ -900,7 +915,7 @@ EOF
 ## Task 4: Consumer shares of the server budget
 
 **Files:**
-- Modify: `internal/apiframework/settings.go:61-76`
+- Modify: `internal/apiframework/settings.go:68-83` (`ServerSettings` and `HasKey`, at `09964d50f`)
 - Modify: `internal/apiframework/budget.go` (`Books.Reserve`, `ledger.reserve`)
 - Modify: `internal/apiframework/allowance_test.go`
 
@@ -1363,7 +1378,7 @@ One commit: the writes and the reads move together, with the tests that pin them
 **Files:**
 - Modify: `modules/aicompanion/tiers.go:241-304`
 - Modify: `modules/aicompanion/models.go:205-265, 537-636`
-- Modify: `modules/aicompanion/listeners.go:550-578` (and imports)
+- Modify: `modules/aicompanion/listeners.go:561-589` (and imports)
 - Modify: `modules/aicompanion/commands.go:157`, `runtime.go:630, 1546-1565`
 - Modify: `modules/aicompanion/aicompanion_test.go`, `tiers_test.go`, `money_test.go`, `relayfor_test.go`, `allowance_test.go`
 
@@ -1441,7 +1456,7 @@ func (m *AICompanionModule) ownerBudgetLeft(ownerId int) bool {
 
 - [ ] **Step 3: Read checks and display**
 
-In `listeners.go`, add `"github.com/GoMudEngine/GoMud/internal/apiframework"` to the imports and replace the two allowance blocks in `strangerMayAsk` (lines 557-570) with:
+In `listeners.go`, add `"github.com/GoMudEngine/GoMud/internal/apiframework"` to the imports and replace the two allowance blocks in `strangerMayAsk` (lines 568-581) with:
 ```go
 	if m.cfg.StrangerDailyTokens > 0 && !m.strangersOff(c.ownerUserId) &&
 		m.fw().Allowance(apiframework.DimCompanionStranger, u.UserId) >= m.cfg.StrangerDailyTokens {
@@ -1511,7 +1526,7 @@ func settleToday(m *AICompanionModule, r route, ownerId int, askerId int, reserv
 
 - [ ] **Step 6: Rewrite the tests whose shape changes**
 
-`aicompanion_test.go`, `TestBreakerAndBudgets` lines 955-962 become:
+`aicompanion_test.go`, `TestBreakerAndBudgets` lines 959-966 become:
 ```go
 	setOwnerSpent(m, 7, 90)
 	if !m.ownerBudgetLeft(7) {
@@ -1522,7 +1537,7 @@ func settleToday(m *AICompanionModule, r route, ownerId int, askerId int, reserv
 		t.Fatal("per-companion budget")
 	}
 ```
-`TestTokenReservationSettles` lines 1242-1265 become:
+`TestTokenReservationSettles` lines 1246-1269 become:
 ```go
 func TestTokenReservationSettles(t *testing.T) {
 	freshServer(t, 5000, 5, 60)
@@ -1557,7 +1572,7 @@ func TestTokenReservationSettles(t *testing.T) {
 ```
 (the rest of the function, from the `// The whole worst case is held` comment on, is unchanged).
 
-`TestBudgetCountsTheWholeRequest`, lines 1774-1787 become:
+`TestBudgetCountsTheWholeRequest`, lines 1778-1791 become:
 ```go
 	// A reservation outstanding over the day boundary is not credited back
 	// against the new day.
@@ -1578,7 +1593,7 @@ func TestTokenReservationSettles(t *testing.T) {
 	}
 }
 ```
-`TestStrangerCallsAreReservedAgainstTheStranger` (2392-2433) becomes:
+`TestStrangerCallsAreReservedAgainstTheStranger` (2396-2437) becomes:
 ```go
 func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
 	freshServer(t, 5000, 5, 60)
@@ -1627,11 +1642,11 @@ func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
 	}
 }
 ```
-`TestStrangerReservationsCannotSlipPastTheCapTogether` line 2444: `m.tryReserveFor(1, 2, 400)` becomes `tryRoute(m, route{kind: routeServer}, 1, 2, 400)`; lines 2454-2455 per T1.
+`TestStrangerReservationsCannotSlipPastTheCapTogether` line 2448: `m.tryReserveFor(1, 2, 400)` becomes `tryRoute(m, route{kind: routeServer}, 1, 2, 400)`; lines 2458-2459 per T1.
 
-`TestStrangerDailyCapStopsTheirPrompts`: delete line 2371 (`m.rollDay()`); lines 2372 and 2385 per T1.
-`TestStrangerTalkSummaryIsTheStrangersToPayFor`: delete lines 2591 and 2606 (`m.rollDay()`); every other line per T1.
-`TestGoneMindStillRefundsItsOwner`: lines 2648-2649 per T1.
+`TestStrangerDailyCapStopsTheirPrompts`: delete line 2375 (`m.rollDay()`); lines 2376 and 2389 per T1.
+`TestStrangerTalkSummaryIsTheStrangersToPayFor`: delete lines 2595 and 2610 (`m.rollDay()`); every other line per T1.
+`TestGoneMindStillRefundsItsOwner`: lines 2652-2653 per T1.
 
 `money_test.go`, `TestAHoldAcrossMidnightRefundsNothing` (881-918) becomes:
 ```go
@@ -2114,7 +2129,7 @@ EOF
 
 **Files:**
 - Modify: `modules/baubles/config.go` (`Config`, `buildConfig`)
-- Modify: `modules/baubles/generate.go:59, 103-212`
+- Modify: `modules/baubles/generate.go:53, 151-294` (at `09964d50f`: `m.count` 53, `name` 151-190, `viaPlayer` 196-229, `viaServer` 231-294)
 - Modify: `modules/baubles/baubles_test.go`
 
 - [ ] **Step 1: Write the failing tests**
@@ -2123,14 +2138,12 @@ Append to `modules/baubles/baubles_test.go`:
 ```go
 func finderSpent(id int) int { return apiframework.Allowance(apiframework.DimBaublesFinder, id) }
 
-// moderated is testModule with moderation on: after slice H a finder's own
-// key is used only when its text can be moderated (playerRouteOpen).
-func moderated(c *Config) { c.ModerateOutput = true }
-
 // A find is charged to its finder, on the server's key and on their own.
+// Moderation is on, as in slice H's player-key tests, so the finder's find
+// is moderated and everyone's (it is charged the same either way).
 func TestAFindIsChargedToItsFinder(t *testing.T) {
 	f := newFakeOpenAI(t)
-	m := testModule(t, f, moderated)
+	m := testModule(t, f, func(c *Config) { c.ModerateOutput = true })
 	if _, err := m.generate(context.Background(), request()); err != nil {
 		t.Fatal(err)
 	}
@@ -2153,7 +2166,11 @@ func TestAFindIsChargedToItsFinder(t *testing.T) {
 // either key, and the relay's breaker is not fed.
 func TestAFinderOverTheirAllowanceGetsNoName(t *testing.T) {
 	f := newFakeOpenAI(t)
-	m := testModule(t, f, moderated) // the relay route is open: only the allowance stops it
+	// The relay route opens with or without moderation (slice H keeps text
+	// it cannot moderate to its finder): only the allowance stops it. Its
+	// refusal falls through to the server's key, which the same allowance
+	// refuses too.
+	m := testModule(t, f, nil)
 	relay := &fakeRelay{allowed: map[int]bool{7: true}, model: `player-model`, provider: newFakeOpenAI(t)}
 	apiframework.SetRelay(relay)
 	apiframework.Shared().SetAllowanceForTest(apiframework.DimBaublesFinder, 7, m.snapshot().DailyTokensPerUser)
@@ -2232,7 +2249,7 @@ In `TestBuildConfigDefaultsAndBounds`, add after the first `if`:
 	}
 ```
 
-If slice H named its moderation-on helper differently (grep `ModerateOutput = true` in `baubles_test.go`), use that helper instead of adding `moderated`. The fake's `/moderations` answer is whatever slice H left (one result per input).
+Slice H has no named moderation-on helper: its tests pass `func(c *Config) { c.ModerateOutput = true }` to `testModule` inline (`baubles_test.go:222` and on), and the tests above do the same. The fake's `/moderations` answer is slice H's (one result per input, `baubles_test.go:92`). `fakeRelay` (`:504-543`) has the `allowed`, `model`, `sends`, `results` and `provider` fields these tests use; `m.stats` has `server`, `player` and `failures` (`baubles.go:42-47`).
 
 - [ ] **Step 2: Run to confirm they fail**
 
@@ -2264,11 +2281,14 @@ func finderCharges(cfg Config, finderId int) []apiframework.Charge {
 	return []apiframework.Charge{{Dim: apiframework.DimBaublesFinder, UserId: finderId, Limit: cfg.DailyTokensPerUser}}
 }
 ```
-In `name` (slice H wrapped these calls in `takeFinderSlot` / `takeServerSlot`; only the calls change), `viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)` becomes `viaPlayer(ctx, cfg, r, req.FinderUserId, relayModel, chat)` and `viaServer(ctx, cfg, chat)` becomes `viaServer(ctx, cfg, chat, req.FinderUserId)`.
-`viaPlayer` as slice H leaves it (its Task 11 step 4d) already computes `prompt` and a clamped `tokens` through `Charged(..., relayed=true)` after `DecodeChat`, and returns `tokens`. Keep all of that; add the reservation around the send. First read the function as it stands (`grep -n 'func viaPlayer' -A40 modules/baubles/generate.go`) and confirm it matches the shape below apart from the lines marked NEW; if slice H landed differently, apply the same three NEW pieces to what is there. The result:
+In `name` (slice H wrapped these calls in `takeFinderSlot` / `takeServerSlot`; only the calls change), `viaPlayer(ctx, r, req.FinderUserId, relayModel, chat)` (`generate.go:162`) becomes `viaPlayer(ctx, cfg, r, req.FinderUserId, relayModel, chat)` and `viaServer(ctx, cfg, chat)` (`:188`) becomes `viaServer(ctx, cfg, chat, req.FinderUserId)`. Nothing else in `name` changes: a refused `viaPlayer` returns the no-op report, so its `default:` branch (`:171-175`) feeds the relay's breaker nothing and, the context being alive, goes on to the server's key, whose reservation carries the same finder charge.
+`viaPlayer` as merged at `09964d50f` (`generate.go:200-229`) computes `prompt` and a clamped `tokens` through `Charged(..., relayed=true)` after `DecodeChat` (`:226-227`), and returns `tokens`. Keep all of that; add the reservation around the send. The block below is the merged function with the NEW pieces marked (read against `09964d50f`; the merged body error return is `func(error) {}`, spelled `none` here):
 ```go
 func viaPlayer(ctx context.Context, cfg Config, r apiframework.Relay, userId int, model string, chat apiframework.Chat) (string, int, func(error), error) {
-	none := func(error) {}
+	none := func(error) {} // NEW
+	// The outcome is held against the finder's key for finds only (the
+	// relay keeps a breaker per purpose, and their companion's is never
+	// touched), so a provider that cannot serve finds stops being asked.
 	report := func(err error) {
 		if !canceled(ctx) {
 			r.Result(userId, err)
@@ -2286,7 +2306,7 @@ func viaPlayer(ctx context.Context, cfg Config, r apiframework.Relay, userId int
 	if err != nil {
 		return ``, 0, none, err
 	}
-	status, raw, sent, err := r.Send(ctx, userId, body, apiframework.CarriesNoPlayerData)
+	status, raw, sent, err := r.Send(ctx, userId, body, apiframework.CarriesNoPlayerData) // NEW: sent named (merged: _)
 	if err == nil && status != http.StatusOK {
 		// The body is the provider's own text about the player's own
 		// account: neither kept nor logged. The status says enough.
@@ -2307,10 +2327,10 @@ func viaPlayer(ctx context.Context, cfg Config, r apiframework.Relay, userId int
 	return reply.Content, tokens, report, reply.Err
 }
 ```
-Its doc comment's last sentence becomes "Nothing of the server's is reserved; the finder's own allowance is, and the player's finds breaker is fed."
-In `viaServer`, the signature becomes `func viaServer(ctx context.Context, cfg Config, chat apiframework.Chat, finderId int) (string, int, func(error), error)` and the reserve line becomes `hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true, finderCharges(cfg, finderId)...)`.
+Its doc comment's last sentence, "Nothing is reserved against the server's budget; the player's finds breaker is fed." (`generate.go:198-199`), becomes "Nothing of the server's is reserved; the finder's own allowance is, and the player's finds breaker is fed."
+In `viaServer`, the signature (`generate.go:239`) becomes `func viaServer(ctx context.Context, cfg Config, chat apiframework.Chat, finderId int) (string, int, func(error), error)` and the reserve line becomes `hold, err := apiframework.Reserve(apiframework.ConsumerBaubles, reserve, true, finderCharges(cfg, finderId)...)`.
 
-A refusal and the breakers, as the code stands (read at `generate.go:59-64` and `:186-190` before slice H): a refused `Reserve` in `viaServer` releases its breaker ticket and returns the no-op `none` as `report`, and `viaPlayer` above returns `none` too, so `report(err)` in `generate` feeds no breaker, the provider's, baubles' or the relay's. That stays. What does count it is line 59, `m.count(playerKey, err != nil)`: a refusal shows in `bauble status` as a find "named on the server's key" that "failed". A refusal is neither a naming nor a failure; the reason is logged at Warn by `baubles.Generate` (`internal/baubles/generate.go:133`) with the error text, which names the counter (`RefusalError.Error()`, e.g. "consumer's share of the daily token budget spent (share)"). Replace
+A refusal and the breakers, as the code stands at `09964d50f` (`generate.go:47-61` and `:254-262`): a refused `Reserve` in `viaServer` releases its breaker ticket and returns the no-op `none` as `report`, and `viaPlayer` above returns `none` too, so `report(err)` in `generate` (`:59`) and in `name`'s relay `default:` branch (`:172`) feeds no breaker, the provider's, baubles' or the relay's. That stays. What does count it is line 53, `m.count(playerKey, err != nil)`: a refusal shows in `bauble status` as a find "named on the server's key" that "failed". Slice H already keeps one kind of refusal out of the stats: `errSlotsBusy` returns before `m.count` (`:48-52`, "Refused at the door, not a call that failed"). A refused reservation is the same kind of thing, neither a naming nor a failure; the reason is logged at Warn by `baubles.Generate` (`internal/baubles/generate.go:140`) with the error text, which names the counter (`RefusalError.Error()`, e.g. "consumer's share of the daily token budget spent (share)"). It is not folded into the `errSlotsBusy` early return because that return also skips the `LogRequests` line and `report`, and a refusal still logs its `model call` line when `LogRequests` is on. Replace (line 53, after the `errSlotsBusy` block)
 ```go
 	m.count(playerKey, err != nil)
 ```
@@ -2324,7 +2344,7 @@ with
 		m.count(playerKey, err != nil)
 	}
 ```
-If slice H or FinalTwist's reorder moved or reshaped the line, apply the same guard to the `m.count` call that follows `m.name`.
+This is the one `m.count` call in `generate.go` at `09964d50f` (it follows `m.name` and the `errSlotsBusy` return).
 
 - [ ] **Step 5: Run**
 
@@ -2356,7 +2376,7 @@ EOF
 ## Task 11: The knobs: shares and the finder allowance in config
 
 **Files:**
-- Modify: `internal/configs/config.apiframework.go:36-46`
+- Modify: `internal/configs/config.apiframework.go:37-47`
 - Modify: `internal/apiframework/settings.go` (`resolveServer`, consts)
 - Modify: `internal/apiframework/allowance_test.go`
 - Modify: `modules/baubles/baubles_test.go` (the shipped `DailyTokensPerUser`)
@@ -2442,7 +2462,7 @@ func TestTheShippedFinderAllowance(t *testing.T) {
 	}
 }
 ```
-At `5b1b0221a`, `baubles_test.go` imports `os` and neither `path/filepath` nor a yaml package; if slice H added either, do not add it twice. `configs.APIFramework`'s field types (`ConfigInt`, `ConfigString`, `ConfigSecret`) are plain named types with no `UnmarshalYAML` (`internal/configs/config_types.go:8-11`), so a direct decode matches the loader's.
+At `09964d50f` (re-verified), `baubles_test.go` still imports `os` and neither `path/filepath` nor a yaml package, so both are added. `configs.APIFramework`'s field types (`ConfigInt`, `ConfigString`, `ConfigSecret`) are plain named types with no `UnmarshalYAML` (`internal/configs/config_types.go:8-11`), so a direct decode matches the loader's.
 
 - [ ] **Step 2: Run to confirm they fail**
 
@@ -2461,12 +2481,14 @@ In `config.apiframework.go`, after `BreakerSeconds ConfigInt ...` add:
 	CompanionSharePercent ConfigInt `yaml:"CompanionSharePercent"`
 	BaublesSharePercent   ConfigInt `yaml:"BaublesSharePercent"`
 ```
-In `settings.go`, add to the defaults `const` block:
+None of the three new knobs goes on slice M's hard-lock list (`internal/configs/config_locks.go:15-46`): its own comment keeps the daily budget knobs tunable in game (`:32-35`, "The daily budget knobs stay tunable in game"), and `DailyTokenBudget` itself is not on it. The `Modules.baubles` comment in config.yaml that names the hard-locked keys (`config.yaml:2686-2687`) therefore stays as it is.
+
+In `settings.go`, add to the defaults `const` block (`settings.go:49-53` at `09964d50f`):
 ```go
 	DefaultCompanionSharePercent = 100
 	DefaultBaublesSharePercent   = 25
 ```
-In `resolveServer`, before `return s`:
+In `resolveServer` (`settings.go:212`), before its `return s` (`:275`; the `return s` at `:207` belongs to the function before it):
 ```go
 	s.CompanionSharePercent = sharePercent(int(c.CompanionSharePercent), DefaultCompanionSharePercent)
 	s.BaublesSharePercent = sharePercent(int(c.BaublesSharePercent), DefaultBaublesSharePercent)
@@ -2601,7 +2623,7 @@ S5's own review, before the gate. The owner's rulings on corrections 3, 6, 7, 8 
 Use `superpowers:requesting-code-review` with a fresh subagent (sonnet or better). Give it: the S5 spec section and owner rulings 11 and 12, this plan's rule table and corrections, and the diff from Task 1's base:
 ```bash
 cd /c/tmp/dogmud-baubles-s5
-BASE=$(git merge-base HEAD master); echo "BASE=$BASE"
+BASE=$(git merge-base HEAD origin/master); echo "BASE=$BASE"
 git diff $BASE..HEAD -- internal/apiframework modules/aicompanion modules/baubles internal/configs _datafiles/config.yaml
 ```
 (`BASE` must print the SHA Task 1 Step 2 recorded.) Ask it to confirm, row by row, that each of R1 to R43 is pinned by a test in the new tree (name the test and line; R42 is pinned by its dropped-on-purpose shape), that no rule lost a test, and to check specifically: all-or-nothing under one lock; the relay clamp versus the kept server overage (correction 3, ruling 12); key 0 refunded (correction 6); the finder charge on the own-key route (correction 7); share 0 as the default and -1 or 100 as no cap (correction 8); a refusal naming its counter in the companion log and in the bauble error, and never feeding a breaker or the bauble failure count (R43); `SaveBudget` copying every map; the seed marks one per dimension per day, a same-day restart not seeding twice, and a quarantine re-seeding from the companion's backup (correction 9).
@@ -2619,7 +2641,7 @@ Fix every reviewer finding in delivered work (do not revert it), each fix with i
 
 - [ ] **Step 1: Docs**
 
-Every anchor below is quoted exactly as it stands at `5b1b0221a`, line breaks included (the Edit tool's `old_string` spans them). Task 1 Step 4 confirmed each one against merged master; if a paragraph was re-wrapped since, re-grep a distinctive phrase (`grep -n`) and quote the lines as they now stand. Symbols named here exist by Task 12 (verify with `grep -n 'func Allowances\|func SeedAllowances\|func RefusedBy\|func (m \*AICompanionModule) restoreBudget\|func (m \*AICompanionModule) allowanceCharges' -r internal/apiframework modules/aicompanion`, expecting five hits).
+Every anchor below is quoted exactly as it stands at `09964d50f`, line breaks included (the Edit tool's `old_string` spans them). Task 1 Step 4 confirmed each one against merged master (two had drifted with slice H and are corrected here); if a paragraph was re-wrapped since, re-grep a distinctive phrase (`grep -n`) and quote the lines as they now stand. Symbols named here exist by Task 12 (verify with `grep -n 'func Allowances\|func SeedAllowances\|func RefusedBy\|func (m \*AICompanionModule) restoreBudget\|func (m \*AICompanionModule) allowanceCharges' -r internal/apiframework modules/aicompanion`, expecting five hits).
 
 `internal/apiframework/context.md`, with the Edit tool:
 - "How a server-key call goes" step 3: replace the one line
@@ -2647,11 +2669,11 @@ Every anchor below is quoted exactly as it stands at `5b1b0221a`, line breaks in
      overage, floors every counter at 0, and refunds no allowance from an
      earlier day's hold.
   ```
-- "Config": replace the line `defaults on purpose.` with
+- "Config": slice H continued the paragraph that ended `defaults on purpose.` with the endpoint allowlist; it now ends with the line `` a `configs.ConfigSecret`. `` (`context.md:64` at `09964d50f`, the only match). Replace that line with
   ```
-  defaults on purpose. `CompanionSharePercent` (0: the default, 100, no cap)
-  and `BaublesSharePercent` (0: the default, 25) cap each feature's part of
-  `DailyTokenBudget`; -1 or 100 is no share cap, and so is no budget.
+  a `configs.ConfigSecret`. `CompanionSharePercent` (0: the default, 100, no
+  cap) and `BaublesSharePercent` (0: the default, 25) cap each feature's part
+  of `DailyTokenBudget`; -1 or 100 is no share cap, and so is no budget.
   ```
 - "Gotchas", the "One budget" bullet: replace
   ```
@@ -2713,8 +2735,21 @@ Every anchor below is quoted exactly as it stands at `5b1b0221a`, line breaks in
   ```
 - Fix every other match Task 12 Step 2 listed the same way.
 
-`modules/baubles/context.md`, with the Edit tool (after slice H the Config list reads `` `MaxConcurrent` (4, server-key calls only), ``):
-- Replace `` `MaxConcurrent` (4, server-key calls only), `` with `` `MaxConcurrent` (4, server-key calls only), `DailyTokensPerUser` (20000; each finder's `baubles.finder` allowance, on either key; 0 is no cap), ``.
+`modules/baubles/context.md`, with the Edit tool (at `09964d50f` the Config list wraps `MaxConcurrent`'s entry across two lines, `context.md:104-105`):
+- Replace the two lines
+  ```
+  `MaxCompletionTokens` (800), `RetryTransient` (false), `MaxConcurrent` (4,
+  server-key calls only), `ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
+  ```
+  with
+  ```
+  `MaxCompletionTokens` (800), `RetryTransient` (false), `MaxConcurrent` (4,
+  server-key calls only), `DailyTokensPerUser` (20000; each finder's
+  `baubles.finder` allowance, on either key; 0 is no cap; not hard-locked),
+  `ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
+  ```
+- "How a call goes" step 3 (the relay route slice H described): replace `` It costs the server nothing. A `` (in the line `   player's browser relay, on their key. It costs the server nothing. A`) with `` It costs the server nothing but is held against the finder's own `baubles.finder` allowance (`finderCharges`); a refusal is no call and feeds no breaker, and the find goes on to the server's key, where the same allowance refuses it. A ``, then re-wrap that paragraph to 80 columns.
+- "How a call goes" step 4 (`viaServer`): replace `` a hold on the one daily budget; `` (in the line ``   lets one probe through); a hold on the one daily budget; `apiframework.Post` ``) with `` a hold on the one daily budget, the baubles share and the finder's allowance (none for an admin's regeneration, which has no finder); ``, then re-wrap that paragraph to 80 columns.
 - Replace the line `The key, endpoint, daily budget and breaker are not here: they are the` with `The key, endpoint, daily budget, the baubles share (`APIFramework.BaublesSharePercent`) and breaker are not here: they are the`.
 - Add to "Gotchas": `` - **A refused reservation is not a failure.** A spent day, share or finder allowance (`apiframework.RefusedBy`) makes no call, feeds no breaker and is not counted in `bauble status`; `baubles.Generate` logs it with the counter's name. ``
 
@@ -2738,7 +2773,7 @@ companion's own budget file, and the companion's share of the day
 `gofmt -l` on this checkout can report false positives (CRLF working copy, LF blob). Check the committed blobs instead (Bash):
 ```bash
 cd /c/tmp/dogmud-baubles-s5
-BASE=$(git merge-base HEAD master); echo "BASE=$BASE"
+BASE=$(git merge-base HEAD origin/master); echo "BASE=$BASE"
 for f in $(git diff --name-only $BASE..HEAD -- '*.go'); do out=$(git show HEAD:"$f" | gofmt -l); [ -n "$out" ] && echo "UNFORMATTED $f"; done; echo done
 ```
 Expected: `BASE` is Task 1's SHA, then only `done`.
@@ -2747,7 +2782,7 @@ Expected: `BASE` is Task 1's SHA, then only `done`.
 
 ```bash
 cd /c/tmp/dogmud-baubles-s5
-BASE=$(git merge-base HEAD master)
+BASE=$(git merge-base HEAD origin/master)
 git diff --shortstat $BASE..HEAD
 ```
 Expected: under 20,000 changed lines and under 300 files (CI's lint gate inverts past either, ruling 11). S5 is about 25 files; a number near either limit means something unintended is in the branch: stop and report.
