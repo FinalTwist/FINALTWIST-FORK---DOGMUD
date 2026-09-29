@@ -15,8 +15,10 @@ import (
 // Corpus administration: promoting a model's name into the overlay,
 // removing one, and what Retire, Edit and ApplyRegenerated need. The admin
 // `bauble promote` and `bauble corpus` commands call these, and so will the
-// /build queue (web builder rework arc). Callers hold the mud lock;
-// corpusWriteMu serialises them as well.
+// /build queue (web builder rework arc). corpusWriteMu serialises every
+// writer, with or without the mud lock; the lock order is corpusWriteMu,
+// then the catalog's (Get, Update), so never call a writer while holding
+// the catalog's lock.
 
 var (
 	ErrNoCorpus           = errors.New(`the fallback corpus is not loaded`)
@@ -47,35 +49,35 @@ func (p *corpusPool) promotionKey(rec Record) (string, error) {
 	return corpusKey(b, rec.Tier), nil
 }
 
-// mergedKeys is key and every key Fallback merges with it into one pool: a
-// biome's key and its group's. A pocket or group key stands alone.
-func (p *corpusPool) mergedKeys(key string) []string {
-	keys := []string{key}
-	if prefix, tier, ok := parseCorpusKey(key); ok {
-		if g, ok := p.groups[prefix]; ok && g != prefix {
-			keys = append(keys, corpusKey(g, tier))
-		}
-	}
-	return keys
-}
-
 // nameInPool reports a seed or overlay entry (used or not) called name in
-// the pool key belongs to.
-func (p *corpusPool) nameInPool(key, name string) bool {
+// any key a find like rec draws from (drawKeys, as Fallback does), with
+// both names compared as cleaned text: name is cleaned already, as are
+// seed and usable overlay entries; an unusable overlay entry's raw name is
+// cleaned here.
+func (p *corpusPool) nameInPool(rec Record, name string) bool {
 	n := normKey(name)
-	for _, k := range p.mergedKeys(key) {
+	for _, k := range p.drawKeys(rec.Biome, rec.Tier, rec.Source) {
 		for _, e := range p.seed[k] {
 			if normKey(e.Name) == n {
 				return true
 			}
 		}
 		for _, s := range p.promoted[k] {
-			if normKey(s.raw.Name) == n {
+			have := s.use.Name
+			if !s.ok {
+				have = cleanLine(s.raw.Name)
+			}
+			if normKey(have) == n {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// cleanupError is ErrCorpusCleanup for record id, with why and the fix.
+func cleanupError(id string, why error) error {
+	return fmt.Errorf(`%w (%w). Any it had are no longer used; remove each with "bauble corpus remove <key> %s" once the promoted file can be written ("bauble corpus list" shows the keys)`, ErrCorpusCleanup, why, id)
 }
 
 // withPromoted is a copy of the pool with change applied to a copy of its
@@ -158,13 +160,13 @@ func Promote(id string) (string, error) {
 			}
 		}
 	}
-	if p.nameInPool(key, rec.Name) {
-		return ``, ErrPromoteNameTaken
-	}
 	entry := CorpusEntry{Name: rec.Name, NameSimple: rec.NameSimple, Description: rec.Description, Material: rec.Material, WeightLbs: rec.WeightLbs, Value: rec.Value}
 	cleaned, err := checkEntry(entry)
 	if err != nil {
 		return ``, err
+	}
+	if p.nameInPool(rec, cleaned.Name) {
+		return ``, ErrPromoteNameTaken
 	}
 	if rec.Source == SourcePickpocket && TooBigFor(cleaned.reply(), SourcePickpocket) {
 		return ``, ErrPromoteTooBig
@@ -231,15 +233,39 @@ func RemoveCorpusEntry(key, which string) (PromotedEntry, error) {
 	return removed, nil
 }
 
-// removePromotedFrom removes every overlay entry promoted from recordId
-// (Retire, Edit, ApplyRegenerated). It returns how many went. With the
-// overlay broken it cannot know what the file holds, so it refuses.
-func removePromotedFrom(recordId string) (int, error) {
+// withdrawRecord changes a record and removes every overlay entry promoted
+// from it (Retire, Edit, ApplyRegenerated) as one step under
+// corpusWriteMu, so no Promote lands between the two. change runs Update
+// (the catalog's lock, taken inside: the lock order is corpusWriteMu, then
+// the catalog). It returns change's result, and how many entries went. A
+// record change that did not happen (ok false) touches nothing. A failed
+// cleanup still leaves the record changed and returns cleanupError.
+func withdrawRecord(id string, change func() (Record, bool)) (Record, bool, int, error) {
 	corpusWriteMu.Lock()
 	defer corpusWriteMu.Unlock()
+	rec, ok := change()
+	if !ok {
+		return rec, false, 0, nil
+	}
+	removed, err := removePromotedFromLocked(id)
+	if err != nil {
+		return rec, true, 0, cleanupError(id, err)
+	}
+	return rec, true, removed, nil
+}
+
+// removePromotedFromLocked removes every overlay entry promoted from
+// recordId and returns how many went. The caller holds corpusWriteMu. With
+// no corpus loaded, or the overlay broken, it cannot know what the file
+// holds, so it refuses (ErrNoCorpus, ErrOverlayBroken); a later load does
+// not use such an entry (withdrawnWhy). When the save fails, the file
+// still holds the entries, so the pool keeps them too (persist before
+// publish) but no longer uses them, which is what a reload of that file
+// gives.
+func removePromotedFromLocked(recordId string) (int, error) {
 	p := corpus.Load()
 	if p == nil {
-		return 0, nil
+		return 0, ErrNoCorpus
 	}
 	if p.overlayBroken {
 		return 0, ErrOverlayBroken
@@ -262,6 +288,16 @@ func removePromotedFrom(recordId string) (int, error) {
 		return 0, nil
 	}
 	if err := saveOverlay(next.overlayPath, next.promoted); err != nil {
+		corpus.Store(p.withPromoted(func(m map[string][]promotedSlot) {
+			for _, slots := range m {
+				for i := range slots {
+					if slots[i].raw.FromRecord == recordId && slots[i].ok {
+						slots[i].ok = false
+						slots[i].why = fmt.Sprintf(`its record %s withdrew it, but the promoted file could not be saved without it`, recordId)
+					}
+				}
+			}
+		}))
 		return 0, err
 	}
 	corpus.Store(next)
@@ -330,15 +366,18 @@ func CorpusList(key string) CorpusListing {
 }
 
 // ExportPromoted renders the usable promoted entries in the seed's format
-// (no provenance), to copy into bauble-corpus.yaml.
+// (no provenance), to copy into bauble-corpus.yaml. With no corpus loaded
+// it cannot say what the overlay holds: ErrNoCorpus.
 func ExportPromoted() (string, error) {
+	p := corpus.Load()
+	if p == nil {
+		return ``, ErrNoCorpus
+	}
 	doc := seedDoc{Entries: map[string][]CorpusEntry{}}
-	if p := corpus.Load(); p != nil {
-		for k, slots := range p.promoted {
-			for _, s := range slots {
-				if s.ok {
-					doc.Entries[k] = append(doc.Entries[k], s.raw.CorpusEntry)
-				}
+	for k, slots := range p.promoted {
+		for _, s := range slots {
+			if s.ok {
+				doc.Entries[k] = append(doc.Entries[k], s.raw.CorpusEntry)
 			}
 		}
 	}

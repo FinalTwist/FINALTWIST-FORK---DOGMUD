@@ -62,8 +62,9 @@ func entryFrom(r Reply) CorpusEntry {
 // PromotedEntry is an overlay entry: the text, plus where it came from.
 type PromotedEntry struct {
 	CorpusEntry `yaml:",inline"`
-	// FromRecord is informational: it dangles once the catalog prunes the
-	// record. Retire removes the entries that name it.
+	// FromRecord dangles once the catalog prunes the record. Retire, Edit
+	// and regen remove the entries that name it; one they could not remove
+	// is loaded unused (withdrawnWhy).
 	FromRecord    string    `yaml:"from_record"`
 	Zone          string    `yaml:"zone,omitempty"`
 	Biome         string    `yaml:"biome,omitempty"`
@@ -168,8 +169,9 @@ type corpusPool struct {
 var (
 	corpus atomic.Pointer[corpusPool]
 	// corpusWriteMu serialises the writers (load, promote, remove, retire,
-	// edit, regen). They also run under the mud lock; this keeps tests and
-	// any future caller honest. Readers never take it.
+	// edit, regen), with or without the mud lock. It is taken before the
+	// catalog's lock, never after (load and Promote read records, and
+	// withdrawRecord updates one, while holding it). Readers never take it.
 	corpusWriteMu sync.Mutex
 	// quarantineOverlay moves a corrupt overlay aside. A variable so a test
 	// can make it fail.
@@ -206,7 +208,8 @@ type CorpusReport struct {
 
 // LoadCorpus reads the seed and the overlay of the configured world. Call
 // after items.LoadDataFiles (entries are checked against the authored item
-// names) and after Load (the overlay sits in the catalog's directory). It
+// names) and after Load (the overlay sits in the catalog's directory, and
+// an entry whose record has withdrawn its text is not used: withdrawnWhy). It
 // never fails: a broken seed is logged at ERROR and the corpus runs
 // without it (a reload keeps the seed already in use); a corrupt overlay is
 // quarantined and starts empty, or, when it cannot be moved aside, is left
@@ -347,6 +350,8 @@ func readCorpus(seedPath, overlayPath string, prev *corpusPool) (*corpusPool, Co
 				slot.why = `not a biome, group, pocket or tier key`
 			} else if cleaned, err := checkEntry(e.CorpusEntry); err != nil {
 				slot.why = err.Error()
+			} else if why := withdrawnWhy(e); why != `` {
+				slot.why = why
 			} else {
 				slot.use, slot.ok = cleaned, true
 				rep.Promoted++
@@ -358,6 +363,28 @@ func readCorpus(seedPath, overlayPath string, prev *corpusPool) (*corpusPool, Co
 		}
 	}
 	return pool, rep
+}
+
+// withdrawnWhy is why an overlay entry's own record withdrew its text, or
+// "" when it has not. Retire, Edit and regen remove the record's entries,
+// but cannot when the overlay is broken or its save fails; the entry then
+// stays on disk, and this keeps a reload from serving it again. A record
+// the catalog no longer holds (pruned) withdrew nothing. Reads the
+// catalog, so the catalog loads first (main.go: baubles.Load, then
+// LoadCorpus).
+func withdrawnWhy(e PromotedEntry) string {
+	rec, ok := Get(e.FromRecord)
+	switch {
+	case !ok:
+		return ``
+	case rec.Status == StatusRetired:
+		return fmt.Sprintf(`its record %s is retired`, rec.Id)
+	case rec.HandEdited:
+		return fmt.Sprintf(`its record %s was edited by hand`, rec.Id)
+	case rec.Name != e.Name || rec.Description != e.Description:
+		return fmt.Sprintf(`its record %s no longer says this`, rec.Id)
+	}
+	return ``
 }
 
 // GroupOf is the corpus group of a biome, if it has one.
@@ -401,10 +428,21 @@ type corpusCandidate struct {
 // to the bare <tier>. Every entry must pass TooBigFor for the source (a
 // no-op for anything but a pickpocket).
 func (p *corpusPool) candidates(biome string, tier ValueTier, source Source) []corpusCandidate {
-	var keys []string
+	if out := p.collect(p.drawKeys(biome, tier, source), source); len(out) > 0 {
+		return out
+	}
+	return p.collect([]string{corpusKey(``, tier)}, source)
+}
+
+// drawKeys is the keys one find draws from before the bare tier: pocket-
+// <tier> for a pickpocket, else <biome>-<tier> and <group>-<tier> for a
+// biome with a group, else none.
+func (p *corpusPool) drawKeys(biome string, tier ValueTier, source Source) []string {
 	if source == SourcePickpocket {
-		keys = []string{corpusKey(pocketPrefix, tier)}
-	} else if b := normKey(biome); b != `` {
+		return []string{corpusKey(pocketPrefix, tier)}
+	}
+	var keys []string
+	if b := normKey(biome); b != `` {
 		if g, ok := p.groups[b]; ok {
 			keys = append(keys, corpusKey(b, tier))
 			if g != b {
@@ -412,10 +450,7 @@ func (p *corpusPool) candidates(biome string, tier ValueTier, source Source) []c
 			}
 		}
 	}
-	if out := p.collect(keys, source); len(out) > 0 {
-		return out
-	}
-	return p.collect([]string{corpusKey(``, tier)}, source)
+	return keys
 }
 
 // collect gathers the entries at keys that pass TooBigFor. Each name (any

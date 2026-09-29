@@ -95,16 +95,16 @@ var ErrNoRecord = errors.New(`no such bauble record`)
 // For a name or description that should not be in the game, which is why
 // any corpus entry promoted from it goes too.
 func Retire(id string, admin string) error {
-	if _, ok := Update(id, func(r *Record) {
-		r.Status = StatusRetired
-		r.EditedBy = admin
-	}); !ok {
+	_, ok, _, err := withdrawRecord(id, func() (Record, bool) {
+		return Update(id, func(r *Record) {
+			r.Status = StatusRetired
+			r.EditedBy = admin
+		})
+	})
+	if !ok {
 		return ErrNoRecord
 	}
-	if _, err := removePromotedFrom(id); err != nil {
-		return fmt.Errorf(`%w: %w`, ErrCorpusCleanup, err)
-	}
-	return nil
+	return err
 }
 
 // Restore undoes Retire. A sold record stays sold.
@@ -190,30 +190,30 @@ func Edit(id string, field string, value string, admin string) (Record, int, err
 	}
 	limited := ApplyLimitsFor(cleaned, tier, rec.Source)
 
-	updated, ok := Update(id, func(r *Record) {
-		r.Name = limited.Reply.Name
-		r.NameSimple = limited.Reply.NameSimple
-		r.Description = limited.Reply.Description
-		r.Material = limited.Reply.Material
-		r.Tier = limited.Tier
-		r.Value = limited.Reply.Value
-		r.WeightLbs = limited.Reply.WeightLbs
-		r.EditedBy = admin
-		// Hand-written text is never promotable (Promote checks
-		// HandEdited). Moderated is left alone: KeptToFinder is PlayerKey
-		// and not Moderated, so clearing it would hide an admin's edit of
-		// a moderated player-key find from everyone but its finder.
-		r.HandEdited = true
+	// Text promoted from this record no longer matches it: withdrawRecord
+	// removes it in the same step.
+	updated, ok, removed, err := withdrawRecord(id, func() (Record, bool) {
+		return Update(id, func(r *Record) {
+			r.Name = limited.Reply.Name
+			r.NameSimple = limited.Reply.NameSimple
+			r.Description = limited.Reply.Description
+			r.Material = limited.Reply.Material
+			r.Tier = limited.Tier
+			r.Value = limited.Reply.Value
+			r.WeightLbs = limited.Reply.WeightLbs
+			r.EditedBy = admin
+			// Hand-written text is never promotable (Promote checks
+			// HandEdited). Moderated is left alone: KeptToFinder is
+			// PlayerKey and not Moderated, so clearing it would hide an
+			// admin's edit of a moderated player-key find from everyone
+			// but its finder.
+			r.HandEdited = true
+		})
 	})
 	if !ok {
 		return Record{}, 0, ErrNoRecord
 	}
-	// Text promoted from this record no longer matches it.
-	removed, err := removePromotedFrom(id)
-	if err != nil {
-		return updated, 0, fmt.Errorf(`%w: %w`, ErrCorpusCleanup, err)
-	}
-	return updated, removed, nil
+	return updated, removed, err
 }
 
 // ApplyRegenerated replaces a record's text and numbers with a fresh model
@@ -240,37 +240,37 @@ func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) 
 	if res.PlayerKey {
 		limited.Reply.Value = limited.Tier.RollValue(randn)
 	}
-	updated, ok := Update(id, func(r *Record) {
-		r.Name = limited.Reply.Name
-		r.NameSimple = limited.Reply.NameSimple
-		r.Description = limited.Reply.Description
-		r.Material = limited.Reply.Material
-		r.Value = limited.Reply.Value
-		r.ValueProposed = limited.ProposedValue
-		r.WeightLbs = limited.Reply.WeightLbs
-		r.WeightProposed = limited.ProposedWeight
-		r.Generator = GeneratorOpenAI
-		r.Model = res.Model
-		r.PromptVersion = res.PromptVersion
-		r.Tokens += res.Tokens
-		r.Moderated = res.Moderated
-		r.PlayerKey = res.PlayerKey
-		if r.Status == StatusFallback || r.Status == StatusRetired {
-			r.Status = StatusReady
-		}
-		r.EditedBy = admin + ` (regen)`
-		// The text is the model's again, as moderation passed it.
-		r.HandEdited = false
+	// Text promoted from this record no longer matches it: withdrawRecord
+	// removes it in the same step, so a Promote of the new text cannot land
+	// between the two and be deleted.
+	updated, ok, removed, err := withdrawRecord(id, func() (Record, bool) {
+		return Update(id, func(r *Record) {
+			r.Name = limited.Reply.Name
+			r.NameSimple = limited.Reply.NameSimple
+			r.Description = limited.Reply.Description
+			r.Material = limited.Reply.Material
+			r.Value = limited.Reply.Value
+			r.ValueProposed = limited.ProposedValue
+			r.WeightLbs = limited.Reply.WeightLbs
+			r.WeightProposed = limited.ProposedWeight
+			r.Generator = GeneratorOpenAI
+			r.Model = res.Model
+			r.PromptVersion = res.PromptVersion
+			r.Tokens += res.Tokens
+			r.Moderated = res.Moderated
+			r.PlayerKey = res.PlayerKey
+			if r.Status == StatusFallback || r.Status == StatusRetired {
+				r.Status = StatusReady
+			}
+			r.EditedBy = admin + ` (regen)`
+			// The text is the model's again, as moderation passed it.
+			r.HandEdited = false
+		})
 	})
 	if !ok {
 		return Record{}, 0, ErrNoRecord
 	}
-	// Text promoted from this record no longer matches it.
-	removed, err := removePromotedFrom(id)
-	if err != nil {
-		return updated, 0, fmt.Errorf(`%w: %w`, ErrCorpusCleanup, err)
-	}
-	return updated, removed, nil
+	return updated, removed, err
 }
 
 // PromptPreview renders the messages a request would send, one string per

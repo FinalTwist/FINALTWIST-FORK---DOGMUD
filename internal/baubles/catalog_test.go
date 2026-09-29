@@ -40,9 +40,13 @@ func withCatalog(t *testing.T) string {
 		},
 	})
 	SetDirForTest(dir)
+	// An empty corpus, as a world with no corpus files boots with: its
+	// writers refuse an unloaded corpus (ErrNoCorpus). withCorpus replaces it.
+	LoadCorpusFrom(filepath.Join(dir, `no-seed`, seedFileName), filepath.Join(dir, `no-overlay`, overlayFileName))
 	t.Cleanup(func() {
 		restore()
 		items.SetBaubleResolver(nil)
+		ClearCorpusForTest()
 	})
 	return dir
 }

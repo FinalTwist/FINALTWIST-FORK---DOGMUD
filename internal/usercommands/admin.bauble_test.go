@@ -299,6 +299,7 @@ func TestAdminBauble_EditAndRetireReportCorpusCleanup(t *testing.T) {
 	out = adminSaid(t, "edit "+stuck.Id+" material oak", admin, room)
 	assert.Contains(t, out, "Bauble "+stuck.Id+" is now")
 	assert.Contains(t, out, "the fallback corpus entries promoted from it could not be removed")
+	assert.Contains(t, out, `"bauble corpus remove <key> `+stuck.Id+`"`, "the admin is told the fix")
 	assert.NotContains(t, out, "promoted entries removed", "removed is 0 when cleanup itself failed")
 	got, _ := baubles.Get(stuck.Id)
 	assert.Equal(t, "oak", got.Material, "the record itself still changed")

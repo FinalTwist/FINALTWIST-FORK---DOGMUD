@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -26,6 +27,10 @@ func promotable() Record {
 func TestPromoteRefusals(t *testing.T) {
 	withCatalog(t)
 	withCorpus(t, testSeed, ``)
+	// An authored item's name (items.AuthoredName, through CleanReply) is
+	// never promoted: a bauble must not pass for the real item.
+	authoredName = func(name string) bool { return strings.EqualFold(name, `Hooded Lantern`) }
+	t.Cleanup(func() { authoredName = items.AuthoredName })
 	cases := []struct {
 		name   string
 		change func(r *Record)
@@ -50,6 +55,14 @@ func TestPromoteRefusals(t *testing.T) {
 		{`a name in its group's seed`, func(r *Record) {
 			r.Name, r.NameSimple = `chipped clay marble`, `marble`
 		}, ErrPromoteNameTaken},
+		// The same name as the seed's once both are cleaned: a no-break
+		// space is a plain space to CleanReply, not to a raw compare.
+		{`a seed name spelled differently`, func(r *Record) {
+			r.Name, r.NameSimple = "Bent Tin Thimble", `thimble`
+		}, ErrPromoteNameTaken},
+		{`an authored item's name`, func(r *Record) {
+			r.Name, r.NameSimple = `Hooded Lantern`, `lantern`
+		}, ErrUnusableReply},
 	}
 	for _, c := range cases {
 		r := promotable()
@@ -115,22 +128,229 @@ func TestPromoteASoldFindAndUseIt(t *testing.T) {
 	}
 }
 
+// blockOverlayDir moves the overlay's directory aside and puts a file in
+// its place, so a save cannot write there (on Windows and Linux alike: a
+// load that already happened is not affected). The returned func puts the
+// directory back.
+func blockOverlayDir(t *testing.T, overlayPath string) func() {
+	t.Helper()
+	dir := filepath.Dir(overlayPath)
+	aside := dir + `.aside`
+	if _, err := os.Stat(dir); err == nil {
+		if err := os.Rename(dir, aside); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeTestFile(t, dir, `a file where the overlay's directory should be`)
+	return func() {
+		t.Helper()
+		if err := os.Remove(dir); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(aside); err == nil {
+			if err := os.Rename(aside, dir); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}
+
 // Persist before publish: a promotion whose save fails changes nothing.
+// The directory breaks only after a clean load, so the refusal is the
+// save's own, not ErrOverlayBroken from a load that could not read.
 func TestPromoteChangesNothingWhenTheSaveFails(t *testing.T) {
 	withCatalog(t)
-	dir := t.TempDir()
-	seedPath := filepath.Join(dir, seedFileName)
-	writeTestFile(t, seedPath, testSeed)
-	blocker := filepath.Join(dir, `blocker`)
-	writeTestFile(t, blocker, `a file where the overlay's directory should be`)
-	LoadCorpusFrom(seedPath, filepath.Join(blocker, overlayFileName))
-	t.Cleanup(ClearCorpusForTest)
+	_, overlayPath, rep := withCorpus(t, testSeed, ``)
+	if rep.OverlayBroken || rep.Quarantined != `` {
+		t.Fatalf("fixture: the load must be clean: %+v", rep)
+	}
+	blockOverlayDir(t, overlayPath)
 
-	if _, err := Promote(seedRecord(t, promotable()).Id); err == nil {
-		t.Fatal("a save that cannot be written must fail the promotion")
+	_, err := Promote(seedRecord(t, promotable()).Id)
+	if err == nil || errors.Is(err, ErrOverlayBroken) {
+		t.Fatalf("a save that cannot be written must fail the promotion, as a save error: %v", err)
 	}
 	if _, promoted := CorpusCounts(); promoted != 0 {
 		t.Fatal("and nothing is published in memory either")
+	}
+}
+
+// withdrawals are the three changes that take a record's text out of the
+// fallback corpus.
+var withdrawals = []struct {
+	name string
+	do   func(id string) error
+}{
+	{`retire`, func(id string) error { return Retire(id, `Admin`) }},
+	{`edit`, func(id string) error {
+		_, _, err := Edit(id, `desc`, `A wooden spool with a band of blue paint, most of it worn away.`, `Admin`)
+		return err
+	}},
+	{`regen`, func(id string) error {
+		_, _, err := ApplyRegenerated(id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first)
+		return err
+	}},
+}
+
+// spoolOverlayFrom is the overlay promotable() makes, promoted from id.
+func spoolOverlayFrom(id string) string {
+	return strings.ReplaceAll(testSpoolOverlay, `B0000007`, id)
+}
+
+// servedNames is every name Fallback can draw for an interior cheap find.
+func servedNames() map[string]bool {
+	out := map[string]bool{}
+	for i := 0; i < 8; i++ {
+		n := i
+		out[Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, nil, func(int) int { return n }).Reply.Name] = true
+	}
+	return out
+}
+
+// With the overlay broken, a retire, edit or regen changes the record but
+// cannot remove its entry from disk. After the file is repaired and
+// reloaded, the entry is still never served (its record is retired, hand
+// edited, or no longer says what was promoted), and a save keeps it until
+// an admin removes it.
+func TestAWithdrawnRecordsEntryIsNotServedAfterARepair(t *testing.T) {
+	for _, w := range withdrawals {
+		t.Run(w.name, func(t *testing.T) {
+			withCatalog(t)
+			quarantineOverlay = func(string) (string, error) { return ``, errors.New(`disk says no`) }
+			t.Cleanup(func() { quarantineOverlay = util.QuarantineCorrupt })
+			seedPath, overlayPath, rep := withCorpus(t, testSeed, "entries: {this is: [not closed\n")
+			if !rep.OverlayBroken {
+				t.Fatalf("fixture: %+v", rep)
+			}
+			rec := seedRecord(t, promotable())
+
+			err := w.do(rec.Id)
+			if !errors.Is(err, ErrCorpusCleanup) || !errors.Is(err, ErrOverlayBroken) {
+				t.Fatalf("the cleanup is refused and reported: %v", err)
+			}
+			if !strings.Contains(err.Error(), `bauble corpus remove <key> `+rec.Id) {
+				t.Fatalf("the admin is told the fix: %v", err)
+			}
+			if got, _ := Get(rec.Id); got.EditedBy == `` {
+				t.Fatal("the record changed all the same")
+			}
+
+			// The admin repairs the file; it still holds the entry.
+			quarantineOverlay = util.QuarantineCorrupt
+			writeTestFile(t, overlayPath, spoolOverlayFrom(rec.Id))
+			rep = LoadCorpusFrom(seedPath, overlayPath)
+			if rep.OverlayBroken || rep.Promoted != 0 {
+				t.Fatalf("reloaded, with the entry not in use: %+v", rep)
+			}
+			if servedNames()[`Painted Wooden Spool`] {
+				t.Fatal("the withdrawn name is served again")
+			}
+			if l := CorpusList(`interior-cheap`); len(l.Promoted) != 1 || l.Unused[1] == `` {
+				t.Fatalf("listed as unused, with why: %+v", l)
+			}
+
+			p := promotable()
+			p.Name, p.NameSimple = `Carved Walnut Button`, `button`
+			if _, err := Promote(seedRecord(t, p).Id); err != nil {
+				t.Fatal(err)
+			}
+			if data, _ := os.ReadFile(overlayPath); !strings.Contains(string(data), rec.Id) {
+				t.Fatalf("a save keeps the unused entry for the admin to remove:\n%s", data)
+			}
+		})
+	}
+}
+
+// A cleanup whose save fails is persist before publish all the same: the
+// file still holds the entry, so memory keeps it too, but no longer serves
+// it (what a reload of that file would give).
+func TestACleanupWhoseSaveFailsStopsServingTheEntry(t *testing.T) {
+	for _, w := range withdrawals {
+		t.Run(w.name, func(t *testing.T) {
+			withCatalog(t)
+			seedPath, overlayPath, _ := withCorpus(t, testSeed, ``)
+			rec := seedRecord(t, promotable())
+			if _, err := Promote(rec.Id); err != nil {
+				t.Fatal(err)
+			}
+			unblock := blockOverlayDir(t, overlayPath)
+
+			err := w.do(rec.Id)
+			if !errors.Is(err, ErrCorpusCleanup) || errors.Is(err, ErrOverlayBroken) {
+				t.Fatalf("the failed save is reported: %v", err)
+			}
+			if !strings.Contains(err.Error(), `bauble corpus remove <key> `+rec.Id) {
+				t.Fatalf("the admin is told the fix: %v", err)
+			}
+			if servedNames()[`Painted Wooden Spool`] {
+				t.Fatal("the withdrawn name is still served from memory")
+			}
+			if l := CorpusList(`interior-cheap`); len(l.Promoted) != 1 || l.Unused[1] == `` {
+				t.Fatalf("kept in memory as unused, as on disk: %+v", l)
+			}
+
+			unblock()
+			LoadCorpusFrom(seedPath, overlayPath)
+			if servedNames()[`Painted Wooden Spool`] {
+				t.Fatal("nor after a reload of the file that still holds it")
+			}
+			if _, err := RemoveCorpusEntry(`interior-cheap`, rec.Id); err != nil {
+				t.Fatalf("the admin's fix works: %v", err)
+			}
+			if data, _ := os.ReadFile(overlayPath); strings.Contains(string(data), rec.Id) {
+				t.Fatal("and clears the file")
+			}
+		})
+	}
+}
+
+// A record changed and the corpus cleaned in one step: a Promote can never
+// land between the two (it would be deleted by the cleanup, or refused as
+// a duplicate of the entry about to go). The writer holds corpusWriteMu
+// across both, so while the test holds it the record must not change.
+func TestWithdrawalsHoldTheCorpusLockAcrossTheChange(t *testing.T) {
+	for _, w := range withdrawals {
+		t.Run(w.name, func(t *testing.T) {
+			withCatalog(t)
+			withCorpus(t, testSeed, ``)
+			rec := seedRecord(t, promotable())
+
+			corpusWriteMu.Lock()
+			done := make(chan error, 1)
+			go func() { done <- w.do(rec.Id) }()
+			deadline := time.Now().Add(300 * time.Millisecond)
+			for time.Now().Before(deadline) {
+				if got, _ := Get(rec.Id); got.EditedBy != `` {
+					corpusWriteMu.Unlock()
+					t.Fatal("the record changed before the corpus lock was taken")
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+			corpusWriteMu.Unlock()
+			if err := <-done; err != nil {
+				t.Fatal(err)
+			}
+			if got, _ := Get(rec.Id); got.EditedBy == `` {
+				t.Fatal("and changes once it is")
+			}
+		})
+	}
+}
+
+// With no corpus loaded, a withdrawal cannot see what the overlay holds, so
+// it reports that (the record still changes), as Export does.
+func TestAnUnloadedCorpusIsReported(t *testing.T) {
+	withCatalog(t)
+	ClearCorpusForTest()
+	rec := seedRecord(t, promotable())
+	if err := Retire(rec.Id, `Admin`); !errors.Is(err, ErrCorpusCleanup) || !errors.Is(err, ErrNoCorpus) {
+		t.Fatalf("retire: %v", err)
+	}
+	if got, _ := Get(rec.Id); got.Status != StatusRetired {
+		t.Fatal("retired all the same")
+	}
+	if _, err := ExportPromoted(); !errors.Is(err, ErrNoCorpus) {
+		t.Fatalf("export: %v", err)
 	}
 }
 
