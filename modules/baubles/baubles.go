@@ -132,13 +132,19 @@ func (m *BaublesModule) info() baubles.GeneratorInfo {
 	detail := `Today: ` + itoa(server) + ` named on the server's key, ` + itoa(player) + ` on finders' own keys, ` + itoa(failures) + ` failed. ` +
 		`Server key tokens: ` + itoa(u.Tokens) + ` of ` + limitWords(u.Limit) + ` (baubles ` + itoa(mine) + `; one budget for every feature).`
 	if !s.HasKey() {
-		detail += ` No server key: only finders who allowed their own key get named finds.`
+		detail += ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find is a generic trinket.`
+	} else if cfg.UsePlayerKeys && !cfg.ModerateOutput {
+		detail += ` ModerateOutput is off: finds named on finders' own keys are shown to those finders alone.`
+	}
+	if now := time.Now(); cfg.ModerateOutput && apiframework.Blocked(moderationBreaker, now) && !apiframework.BreakerOpen(now) {
+		detail += ` The moderation breaker is open (the moderation endpoint keeps failing): server-key finds are generic and finders' own keys' finds are shown to those finders alone until ` +
+			apiframework.BreakerUntil(moderationBreaker).Format(`15:04:05`) + `.`
 	}
 	if now := time.Now(); apiframework.Blocked(apiframework.ConsumerBaubles, now) {
 		if apiframework.BreakerOpen(now) {
 			detail += ` The provider breaker (every feature's) is open`
 		} else {
-			detail += ` Baubles' own breaker is open (the provider is fine; check Modules.baubles.Model)`
+			detail += ` Baubles' naming breaker is open (the provider is fine; check Modules.baubles.Model)`
 		}
 		if until := apiframework.BreakerUntil(apiframework.ConsumerBaubles); now.Before(until) {
 			detail += ` until ` + until.Format(`15:04:05`)
