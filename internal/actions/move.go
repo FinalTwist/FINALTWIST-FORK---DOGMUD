@@ -1,12 +1,21 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/awareness"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -165,5 +174,204 @@ func movementTrainsSearch() bool {
 func TrainSearchOnMove(actor Actor) {
 	if movementTrainsSearch() {
 		actor.AwardResolved(true, actor.GetCharacter().CandidateFor(string(skills.Search)))
+	}
+}
+
+// EntryDetectionResult reports what arrival detection left behind.
+type EntryDetectionResult struct {
+	// StillSneaking is false once a sneaking mover has been spotted.
+	StillSneaking bool
+}
+
+// EntryDetection runs the hidden-detection contests for a mover that has just
+// arrived in dest, the same for a player or a mob (movement parity 4b, owner
+// ruling 3: symmetric both ways).
+//
+// A sneaking mover is rolled against every observer in dest, players first
+// (the one who spots it is told) and then mobs (silent), skipping the mover's
+// own party. Once it is not sneaking, whether it never was or was just
+// spotted, the mover rolls to spot every hidden player and mob in dest and
+// earns a Search award on BOTH outcomes (U10b-2).
+//
+// Moved from usercommands.Go. The contests keep their shape exactly; lines to
+// players go through each player's own actor and room lines through
+// SendTextVisual, so a mob mover's lines differ only in its name colour.
+func EntryDetection(mover Actor, dest *rooms.Room, sneaking bool) EntryDetectionResult {
+	// The light is invariant across every occupant, so it is composed once.
+	light := messaging.FixedLight(dest.LightLevel())
+
+	if sneaking && sneakerSpotted(mover, dest, light) {
+		mc := mover.GetCharacter()
+		// Drive the Awareness FSM out of Hidden; the mirror cascade in
+		// Awareness_Cascades.go clears the Hidden condition. Calling
+		// CancelConditionsWithFlag directly would expire the condition but
+		// leave the FSM in Hidden. Silent to the mover: if the observer is
+		// itself hidden, naming it leaks what the mover cannot see; the
+		// Hidden condition's own end text is the signal.
+		_ = mc.Awareness.TransitionToRevealing(
+			state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
+		mc.SetMiscData(`sneaking`, nil)
+		sneaking = false
+	}
+
+	if !sneaking {
+		newcomerSpots(mover, dest, light)
+	}
+
+	return EntryDetectionResult{StillSneaking: sneaking}
+}
+
+// moverName is the mover's name in its identity colour.
+func moverName(mover Actor) string {
+	if mover.IsPlayer() {
+		return fmt.Sprintf(`<ansi fg="username">%s</ansi>`, mover.GetName())
+	}
+	return fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mover.GetName())
+}
+
+// moverAllies is the mover's party: allies do not expose a sneaker.
+type moverAllies struct {
+	users map[int]bool
+	mobs  map[int]bool
+}
+
+func alliesOf(mover Actor) moverAllies {
+	a := moverAllies{users: map[int]bool{}, mobs: map[int]bool{}}
+	if mover.IsPlayer() {
+		if p := parties.Get(mover.GetUserId()); p != nil {
+			for _, uid := range p.GetMembers() {
+				a.users[uid] = true
+			}
+		}
+		return a
+	}
+	if p := parties.GetByMobInstanceId(mover.GetMobInstanceId()); p != nil {
+		for _, member := range p.Members {
+			if id := member.GetMobInstanceId(); id != 0 {
+				a.mobs[id] = true
+			}
+		}
+	}
+	return a
+}
+
+// sneakerSpotted rolls a sneaking mover against dest's observers. The sneak
+// score is computed per observer so a nightvision observer applies the right
+// light modifier.
+func sneakerSpotted(mover Actor, dest *rooms.Room, light messaging.RoomVisibility) bool {
+	mc := mover.GetCharacter()
+	allies := alliesOf(mover)
+
+	for _, pId := range dest.GetPlayers() {
+		if pId == mover.GetUserId() || allies.users[pId] {
+			continue
+		}
+		p := users.GetByUserId(pId)
+		if p == nil {
+			continue
+		}
+		sneakScore := CalcSneakScoreVsObserver(mc, p.Character, light)
+		observerScore := CalcDetectionScore(p.Character, dest)
+		if !combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success {
+			NewUserActor(p).SendText(messaging.CategorySystem, fmt.Sprintf(
+				`%s slips into the room but you notice them.`, moverName(mover)))
+			return true
+		}
+	}
+
+	for _, mId := range dest.GetMobs() {
+		if mId == mover.GetMobInstanceId() || allies.mobs[mId] {
+			continue
+		}
+		m := mobs.GetInstance(mId)
+		if m == nil {
+			continue
+		}
+		sneakScore := CalcSneakScoreVsObserver(mc, &m.Character, light)
+		observerScore := CalcDetectionScore(&m.Character, dest)
+		if !combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success {
+			return true
+		}
+	}
+
+	return false
+}
+
+// newcomerSpots rolls the arriving mover to spot every hidden player and mob
+// in dest. Neither side learns a name it cannot see.
+func newcomerSpots(mover Actor, dest *rooms.Room, light messaging.RoomVisibility) {
+	mc := mover.GetCharacter()
+	// The newcomer now stands in dest: that is the light their eyes meet.
+	observerScore := CalcDetectionScore(mc, dest)
+
+	for _, pId := range dest.GetPlayers() {
+		if pId == mover.GetUserId() {
+			continue
+		}
+		hiddenP := users.GetByUserId(pId)
+		if hiddenP == nil || !hiddenP.Character.IsHidden() {
+			continue
+		}
+		hiddenScore := CalcSneakScoreVsObserver(hiddenP.Character, mc, light)
+		success := combat.RunContest(observerScore, []contest.Entry{{Score: hiddenScore}}).Success
+		if success {
+			_ = hiddenP.Character.Awareness.TransitionToRevealing(
+				state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
+			hiddenP.Character.SetMiscData(`sneaking`, nil)
+			hider := NewUserActor(hiddenP)
+			if messaging.CanSeeClearly(hiddenP.Character, dest) {
+				hider.SendText(messaging.CategorySystem, fmt.Sprintf(
+					`%s enters the room and notices you!`, moverName(mover)))
+			} else {
+				hider.SendText(messaging.CategorySystem,
+					`Someone enters the room and notices you!`)
+			}
+			if messaging.CanSeeClearly(mc, dest) {
+				mover.SendText(messaging.CategorySystem, fmt.Sprintf(
+					`You notice <ansi fg="username">%s</ansi> lurking in the shadows.`,
+					hiddenP.Character.Name))
+			} else {
+				mover.SendText(messaging.CategorySystem,
+					`You notice someone lurking in the shadows.`)
+			}
+		}
+		// U10b-2: the Search award fires on BOTH outcomes, full on a win and
+		// partial on a resolved loss. Outside the success branch on purpose:
+		// a win-only award is the defect the firing convention removes. Still
+		// opportunity-gated: no hidden occupant, no contest, no award.
+		mover.AwardResolved(success, mc.CandidateFor(string(skills.Search)))
+	}
+
+	for _, mId := range dest.GetMobs(rooms.FindAll) {
+		if mId == mover.GetMobInstanceId() {
+			continue
+		}
+		m := mobs.GetInstance(mId)
+		if m == nil || !m.Character.IsHidden() {
+			continue
+		}
+		hiddenScore := CalcSneakScoreVsObserver(&m.Character, mc, light)
+		success := combat.RunContest(observerScore, []contest.Entry{{Score: hiddenScore}}).Success
+		if success {
+			_ = m.Character.Awareness.TransitionToRevealing(
+				state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
+			// Spotting something is not the same as identifying it.
+			if messaging.CanSeeClearly(mc, dest) {
+				mover.SendText(messaging.CategorySystem, fmt.Sprintf(
+					`You notice <ansi fg="mobname">%s</ansi> lurking in the shadows!`,
+					m.Character.Name))
+			} else {
+				mover.SendText(messaging.CategorySystem,
+					`You notice something lurking in the shadows!`)
+			}
+			// SendTextVisual, not SendText: a sight event. The audio channel
+			// bypasses the sight gate and the anonymizer; Visual gets each
+			// bystander the version their eyes allow, or nothing.
+			dest.SendTextVisual(messaging.CategorySystem, fmt.Sprintf(
+				`%s spots <ansi fg="mobname">%s</ansi> hiding in the shadows!`,
+				moverName(mover), m.Character.Name),
+				mover.GetUserId())
+		}
+		mover.AwardResolved(success, mc.CandidateFor(string(skills.Search)))
 	}
 }
