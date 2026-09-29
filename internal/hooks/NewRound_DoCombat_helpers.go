@@ -906,6 +906,53 @@ func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) boo
 	return true
 }
 
+// handleMobFlee is the mob twin of handlePlayerFlee: the same
+// actions.ResolveFlee, the mob's own room lines, and on success an uncharged
+// actions.RelocateMob (a player's flee pays no movement cost either) and the
+// mob_flee behaviour event. Returns true when the mob is fleeing and should
+// skip combat this round.
+func handleMobFlee(mob *mobs.Mob, room *rooms.Room) bool {
+	out := actions.ResolveFlee(actions.NewMobActorInRoom(mob, room), room)
+	if !out.Fleeing {
+		return false
+	}
+	if !out.Resolved {
+		return true
+	}
+
+	name := mob.Character.Name
+	switch {
+	case out.Grappled:
+		// The grappler sees the hold working, as at command time.
+		room.SendTextVisual(messaging.CategoryGrappleFlow,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to break free but you've got them locked down!`, name))
+		return true
+	case out.Blocker != nil:
+		// Passing the NAME matters: SendTextVisual alone falls back to the
+		// tag-based "a figure", uncapitalised at a sentence start.
+		room.SendTextVisualHidingNames(messaging.CategoryRoomExit,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to flee but is blocked!`, name),
+			[]string{name})
+		return true
+	case out.NoExit:
+		// Cornered: the mob stays in the fight, and the room sees it try.
+		room.SendTextVisual(messaging.CategoryMobEmote,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> looks around frantically for an escape but finds none!`, name))
+		return true
+	}
+
+	room.SendTextVisual(messaging.CategoryRoomExit,
+		fmt.Sprintf(`<ansi fg="mobname">%s</ansi> flees!`, name))
+	if dest := rooms.LoadRoom(out.ExitRoomId); dest != nil {
+		actions.RelocateMob(mob, room, out.ExitName, dest)
+	}
+	behaviortree.TryMobBehavior(mob.InstanceId, behaviortree.EventContext{
+		EventType: "mob_flee",
+		RoomId:    mob.Character.RoomId,
+	})
+	return true
+}
+
 // handleCompanionOwnerAssist triggers a companion's owner (and the owner's other
 // companions) to fight back when the companion is attacked.
 // attackerDesc is the attack-command argument that identifies the attacker

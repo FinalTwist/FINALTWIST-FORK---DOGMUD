@@ -172,11 +172,19 @@ func TestFlee_ClearsAggro(t *testing.T) {
 	mob.Character.SetAggro(1, 0, characters.DefaultAttack)
 	require.True(t, mob.Character.IsInCombat())
 
+	// Slice 4a: Flee only BEGINS the flee (Disengaging), same as a player's
+	// flee command; the escape (and the aggro clear) resolves a round later
+	// in actions.ResolveFlee / hooks.handleMobFlee, not inside the command.
 	handled, err := Flee("", mob, room)
 	assert.True(t, handled)
 	assert.NoError(t, err)
+	assert.True(t, mob.Character.IsDisengaging())
+	assert.True(t, mob.Character.IsInCombat(), "Disengaging is still in combat")
 
-	// Aggro should be cleared
+	out := actions.ResolveFlee(actions.NewMobActorInRoom(mob, room), room)
+	assert.True(t, out.Escaped())
+
+	// Aggro should be cleared once the flee resolves
 	assert.False(t, mob.Character.IsInCombat())
 
 	// Reset mob position for other tests
@@ -201,12 +209,19 @@ func TestFlee_NoExits(t *testing.T) {
 	// Move mob to dead end room (just test the function directly)
 	mob.Character.SetAggro(1, 0, characters.DefaultAttack)
 
+	// Slice 4a: the command never inspects exits; cornering can only be
+	// discovered at resolution, and (parity with a player's flee) a cornered
+	// mob stays in its fight rather than having its aggro silently dropped.
 	handled, err := Flee("", mob, deadEnd)
 	assert.True(t, handled)
 	assert.NoError(t, err)
+	assert.True(t, mob.Character.IsDisengaging())
 
-	// Aggro still cleared even if cornered
-	assert.False(t, mob.Character.IsInCombat())
+	out := actions.ResolveFlee(actions.NewMobActorInRoom(mob, deadEnd), deadEnd)
+	assert.True(t, out.NoExit)
+
+	// A cornered mob stays in the fight.
+	assert.True(t, mob.Character.IsInCombat())
 }
 
 func TestFlee_OutOfCombat(t *testing.T) {
