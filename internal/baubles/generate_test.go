@@ -490,7 +490,7 @@ func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
 	if !rec.KeptToFinder() || rec.FoundByUserId != 7 || rec.View().Finder == nil {
 		t.Fatalf("finder-only, kept to user 7: %+v", rec)
 	}
-	got, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
+	got, _, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}

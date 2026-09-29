@@ -1,6 +1,7 @@
 package usercommands
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -423,10 +424,16 @@ func baubleEdit(args []string, user *users.UserRecord, room *rooms.Room) (bool, 
 	if !ok {
 		return true, nil
 	}
-	updated, err := baubles.Edit(rec.Id, args[fieldAt], strings.Join(args[fieldAt+1:], ` `), user.Character.Name)
-	if err != nil {
+	updated, removed, err := baubles.Edit(rec.Id, args[fieldAt], strings.Join(args[fieldAt+1:], ` `), user.Character.Name)
+	if err != nil && !errors.Is(err, baubles.ErrCorpusCleanup) {
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`Not changed: %s.`, err))
 		return true, nil
+	}
+	if removed > 0 {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`Its old text left the fallback corpus (promoted entries removed: %d).`, removed))
+	}
+	if err != nil {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s.</ansi>`, err))
 	}
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(`Bauble %s is now <ansi fg="itemname">%s</ansi> (keyword %s, %s, %d gold, %.1f lb). Every copy in the world shows the change.`,
 		updated.Id, updated.Name, updated.NameSimple, updated.Tier, updated.Value, updated.WeightLbs))
@@ -458,9 +465,11 @@ func baubleRetire(args []string, user *users.UserRecord, room *rooms.Room, retir
 		return true, nil
 	}
 	if retire {
-		if err := baubles.Retire(rec.Id, user.Character.Name); err != nil {
+		if err := baubles.Retire(rec.Id, user.Character.Name); err != nil && !errors.Is(err, baubles.ErrCorpusCleanup) {
 			user.SendText(messaging.CategorySystem, err.Error())
 			return true, nil
+		} else if err != nil {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s.</ansi>`, err))
 		}
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`Bauble %s (%s) is retired: it now shows as a plain Trinket everywhere. "bauble restore %s" undoes it.`, rec.Id, rec.Name, rec.Id))
 		return true, nil

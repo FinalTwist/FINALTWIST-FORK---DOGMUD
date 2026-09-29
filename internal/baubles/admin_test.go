@@ -61,28 +61,28 @@ func TestEdit(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierAverage, Value: 12, WeightLbs: 0.6, Status: StatusReady})
 
-	got, err := Edit(r.Id, `name`, `  Small <b>Child's</b> Doll `, `Admin`)
+	got, _, err := Edit(r.Id, `name`, `  Small <b>Child's</b> Doll `, `Admin`)
 	if err != nil || got.Name != `Small Child's Doll` || got.EditedBy != `Admin` {
 		t.Fatalf("name: %+v %v", got, err)
 	}
-	if got, _ := Edit(r.Id, `keyword`, `sword`, `Admin`); got.NameSimple != `doll` {
+	if got, _, _ := Edit(r.Id, `keyword`, `sword`, `Admin`); got.NameSimple != `doll` {
 		t.Fatalf("a real item's keyword is refused, as for the model: %q", got.NameSimple)
 	}
-	if got, _ := Edit(r.Id, `value`, `999`, `Admin`); got.Value != 15 {
+	if got, _, _ := Edit(r.Id, `value`, `999`, `Admin`); got.Value != 15 {
 		t.Fatal("value is clamped to the tier")
 	}
-	if got, _ := Edit(r.Id, `tier`, `rare`, `Admin`); got.Tier != TierRare || got.Value != 40 {
+	if got, _, _ := Edit(r.Id, `tier`, `rare`, `Admin`); got.Tier != TierRare || got.Value != 40 {
 		t.Fatalf("changing tier re-clamps the value: %+v", got)
 	}
-	if got, _ := Edit(r.Id, `weight`, `60`, `Admin`); got.WeightLbs != MaxWeightLbs {
+	if got, _, _ := Edit(r.Id, `weight`, `60`, `Admin`); got.WeightLbs != MaxWeightLbs {
 		t.Fatal("weight is clamped")
 	}
 	for field, value := range map[string]string{`value`: `lots`, `weight`: `heavy`, `tier`: `legendary`, `colour`: `red`, `name`: `Horse 3000`, `desc`: `short`} {
-		if _, err := Edit(r.Id, field, value, `Admin`); err == nil {
+		if _, _, err := Edit(r.Id, field, value, `Admin`); err == nil {
 			t.Fatalf("%s=%q must be refused", field, value)
 		}
 	}
-	if _, err := Edit(`B0009999`, `name`, `X`, `Admin`); err != ErrNoRecord {
+	if _, _, err := Edit(`B0009999`, `name`, `X`, `Admin`); err != ErrNoRecord {
 		t.Fatal("unknown id")
 	}
 }
@@ -91,10 +91,10 @@ func TestApplyRegenerated(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusFallback, Generator: GeneratorLocal, Stolen: true, Region: `Marches`})
 
-	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: GenericTrinket(TierAverage, nil), Generator: GeneratorLocal}, `Admin`, first); err == nil {
+	if _, _, err := ApplyRegenerated(r.Id, GenResult{Reply: GenericTrinket(TierAverage, nil), Generator: GeneratorLocal}, `Admin`, first); err == nil {
 		t.Fatal("a generic answer never replaces a record")
 	}
-	got, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Tokens: 90, PromptVersion: 1}, `Admin`, first)
+	got, _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Tokens: 90, PromptVersion: 1}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestPromptPreviewSeamAndIds(t *testing.T) {
 func TestApplyRegeneratedSetsPlayerKey(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusReady, Generator: GeneratorOpenAI, PlayerKey: true})
-	got, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
+	got, _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestApplyRegeneratedRollsPlayerKeyValue(t *testing.T) {
 
 	high := goodReply()
 	high.Value = 14 // inside average (10 to 15), so a clamp alone would keep it
-	got, err := ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI, PlayerKey: true}, `Admin`, first)
+	got, _, err := ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI, PlayerKey: true}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestApplyRegeneratedRollsPlayerKeyValue(t *testing.T) {
 		t.Fatalf("rolled by the server (first die: the tier's minimum), proposal kept: %+v", got)
 	}
 
-	got, err = ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI}, `Admin`, first)
+	got, _, err = ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestRestoreReturnsACorpusRecordToReady(t *testing.T) {
 func TestEditKeepsModeratedAndMarksHandEdited(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, Moderated: true, PlayerKey: true, FoundByUserId: 7})
-	got, err := Edit(r.Id, `name`, `Painted Wooden Pony`, `Admin`)
+	got, _, err := Edit(r.Id, `name`, `Painted Wooden Pony`, `Admin`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +214,7 @@ func TestOnlyEditMarksHandEdited(t *testing.T) {
 		t.Fatalf("retire and restore set EditedBy, never HandEdited: %+v", got)
 	}
 	h := seedRecord(t, Record{Name: `Painted Wooden Pony`, NameSimple: `pony`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, HandEdited: true})
-	got, err := ApplyRegenerated(h.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first)
+	got, _, err := ApplyRegenerated(h.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestOnlyEditMarksHandEdited(t *testing.T) {
 func TestApplyRegeneratedRefusesACorpusAnswer(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, Status: StatusReady, Generator: GeneratorOpenAI})
-	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorCorpus, Model: `corpus:cheap`}, `Admin`, first); err == nil {
+	if _, _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorCorpus, Model: `corpus:cheap`}, `Admin`, first); err == nil {
 		t.Fatal("a corpus answer must not replace a record's text")
 	}
 }

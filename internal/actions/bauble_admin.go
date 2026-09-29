@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
@@ -83,13 +84,19 @@ func RegenerateBauble(id string, adminUserId int, adminName string) error {
 			util.LockMud()
 			defer util.UnlockMud()
 		}
-		updated, err := baubles.ApplyRegenerated(id, res, adminName, util.Rand)
-		if err != nil {
+		updated, removed, err := baubles.ApplyRegenerated(id, res, adminName, util.Rand)
+		if err != nil && !errors.Is(err, baubles.ErrCorpusCleanup) {
 			tellBaubleAdmin(adminUserId, fmt.Sprintf(`Bauble %s was not regenerated: %s.`, id, err))
 			return
 		}
 		tellBaubleAdmin(adminUserId, fmt.Sprintf(`Bauble %s is now <ansi fg="itemname">%s</ansi> (%d gold, %.1f lb): %s`,
 			id, updated.Name, updated.Value, updated.WeightLbs, updated.Description))
+		if removed > 0 {
+			tellBaubleAdmin(adminUserId, fmt.Sprintf(`Its old text left the fallback corpus (promoted entries removed: %d).`, removed))
+		}
+		if err != nil {
+			tellBaubleAdmin(adminUserId, fmt.Sprintf(`<ansi fg="red">%s.</ansi>`, err))
+		}
 	})
 	return nil
 }
