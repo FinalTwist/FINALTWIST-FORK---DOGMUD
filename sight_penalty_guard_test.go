@@ -68,6 +68,12 @@ var guardedSightFuncs = map[string]map[string]bool{
 	"contest":  {"AgainstDifficulty": true},
 	"crafting": {"RunCraftContest": true, "RunSalvageContest": true, "RollSalvageReturns": true, "RollSalvageReturnsFromSpec": true},
 	"forager":  {"ForageCore": true},
+	// The bauble search roll pays the sight ramp through SightMult (owner
+	// ruling 2026-09-28). RollFind is the roll; searchBaubleRoll is the
+	// actions seam both bauble searches call it through, so both are
+	// guarded: a new caller of either must pass SightPenalty.
+	"baubles": {"RollFind": true},
+	"actions": {"searchBaubleRoll": true},
 }
 
 // sightPenaltyHelpers are the names a complying function calls. The match is on
@@ -108,6 +114,11 @@ var sightExemptSites = map[string]string{
 	"internal/forager/forage_core.go|ForageCore": "pure core: actions.Forage multiplies SearchScore once before calling",
 	// Rhetoric is voice, exempt by ruling.
 	"internal/actions/combat_counter.go|executeCounterTaunt": "rhetoric (voice) is exempt by ruling, owner 2026-09-26",
+	// The bauble roll seam: a package-level initialiser that only forwards
+	// to baubles.RollFind. Its two callers are guarded as
+	// actions.searchBaubleRoll and each passes SightPenalty from
+	// messaging.SightMult once.
+	"internal/actions/search_bauble.go|var searchBaubleRoll": "test seam forwarding to baubles.RollFind; searchForBauble and searchFeatureForBauble pass SightPenalty from SightMult once each",
 	// Runner seams: these functions only hand RunContest (or its alias) to a
 	// *WithRunner body that multiplies the defence side itself.
 	"internal/combat/defence_multiplier.go|ResolveChannelAttack":      "the channel funnel: resolveChannelAttackWithRunner applies SituationalDefenceMult; callers fold SituationalAttackMult into AttackSide.Mult",
@@ -591,6 +602,34 @@ func blank() {
 	got = findUnpenalisedRollSites(fset, []sightFile{local}, nil)
 	if len(got) != 1 || got[0].Func != "withLocal" || !strings.Contains(got[0].Call, "run (alias of combat.RunContest)") {
 		t.Errorf("want only withLocal's local alias reported, got:\n  %s", formatSightSites(got))
+	}
+}
+
+// TestSightPenaltyGuardSeesTheBaubleRollSeam proves the guard sees the
+// bauble roll through its test seam: a caller of searchBaubleRoll with no
+// sight helper is reported, one that calls SightMult is not, and the seam's
+// initialiser (which forwards to baubles.RollFind) is reported until
+// exempted by its file|var key.
+func TestSightPenaltyGuardSeesTheBaubleRollSeam(t *testing.T) {
+	fset := token.NewFileSet()
+	f := parseSightSource(t, fset, "internal/actions/search_bauble.go", `package actions
+
+var searchBaubleRoll = func(o baubles.FindOpts) (baubles.ValueTier, bool) { return baubles.RollFind(o) }
+
+func dark(a Actor, r *rooms.Room) { searchBaubleRoll(baubles.FindOpts{}) }
+
+func lit(a Actor, r *rooms.Room) {
+	searchBaubleRoll(baubles.FindOpts{SightPenalty: 1 - messaging.SightMult(a.GetCharacter(), r)})
+}
+`)
+	got := findUnpenalisedRollSites(fset, []sightFile{f}, nil)
+	if len(got) != 2 || got[0].Func != "var searchBaubleRoll" || got[0].Call != "baubles.RollFind" ||
+		got[1].Func != "dark" || got[1].Call != "actions.searchBaubleRoll" {
+		t.Fatalf("want the seam's initialiser and dark reported, got:\n  %s", formatSightSites(got))
+	}
+	got = findUnpenalisedRollSites(fset, []sightFile{f}, map[string]string{"internal/actions/search_bauble.go|var searchBaubleRoll": "test"})
+	if len(got) != 1 || got[0].Func != "dark" {
+		t.Fatalf("exempting the seam leaves only dark, got:\n  %s", formatSightSites(got))
 	}
 }
 
