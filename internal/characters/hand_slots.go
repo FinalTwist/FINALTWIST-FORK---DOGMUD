@@ -50,6 +50,27 @@ func (c *Character) GetHandPairs() []HandPair {
 	return pairs
 }
 
+// ArmLabel is the label of arm N (1 to 6) as GetHandPairs names it
+// ("wielded", "offhand", "extra arm 1" ...), or "" when the character has no
+// such arm.
+func (c *Character) ArmLabel(arm int) string {
+	if arm < 1 {
+		return ``
+	}
+	pairs := c.GetHandPairs()
+	pairIdx, slotInPair := (arm-1)/2, (arm-1)%2
+	if pairIdx >= len(pairs) {
+		return ``
+	}
+	if slotInPair == 0 {
+		return pairs[pairIdx].First.Label
+	}
+	if pairs[pairIdx].IsHalfPair() {
+		return ``
+	}
+	return pairs[pairIdx].Second.Label
+}
+
 // Is2H returns true if the item in this slot is a 2-handed weapon that
 // occupies both slots of the pair.
 func (s HandSlot) Is2H(c *Character) bool {

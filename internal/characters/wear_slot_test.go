@@ -189,3 +189,74 @@ func TestHandsRequired_UnregisteredSpeciesIsMedium(t *testing.T) {
 	c := &Character{SpeciesId: 424242}
 	assert.Equal(t, 2, c.HandsRequired(goldenItem(9000, goldenGreat, false)))
 }
+
+func TestWearInArm(t *testing.T) {
+	seedGoldenSpecies(t)
+
+	// A cursed arm-5 item refuses the named arm, though arms 1 to 4 and 6
+	// are plain, and nothing moves (ruling 12).
+	c := goldenChar(4, goldenMedium, false)
+	fillHands(c, map[int]rune{5: 'S'})
+	before := goldenSnapshot(c)
+	_, worn, why := c.WearInArm(goldenItem(9000, goldenSword, false), 5)
+	assert.False(t, worn)
+	assert.Equal(t, `Your Sword`+cursedLine, why)
+	assert.Equal(t, before, goldenSnapshot(c))
+
+	c = goldenChar(2, goldenMedium, false)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenSword, false), 5)
+	assert.Equal(t, `You don't have arm 5.`, why)
+
+	// The five shape refusals keep the player's wording.
+	c = goldenChar(0, goldenMedium, false)
+	_, _, why = c.WearInArm(goldenItem(9000, armourSpec("cap", items.Head), false), 1)
+	assert.Equal(t, `You can only wield weapons or shields in arm slots.`, why)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenShield, false), 1)
+	assert.Equal(t, `You can't put a shield in your primary weapon hand (arm 1).`, why)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenSword, false), 3)
+	assert.Equal(t, `You don't have arm 3.`, why)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenGreat, false), 2)
+	assert.Equal(t, `A two-handed weapon needs a pair of arms. Try arm 1, 3, or 5.`, why)
+	c = goldenChar(1, goldenMedium, false)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenGreat, false), 3)
+	assert.Equal(t, `That arm doesn't have a partner for a two-handed weapon.`, why)
+
+	// MinStrength runs before the arm's shape refusals.
+	c = goldenChar(0, goldenMedium, false)
+	c.Stats.Strength.ValueAdj = 1
+	heavy := goldenSword
+	heavy.MinStrength = 500
+	_, _, why = c.WearInArm(goldenItem(9000, heavy, false), 3)
+	assert.Equal(t, `You aren't strong enough to handle Sword.`, why)
+
+	// Arm 2 beside a two-hander takes the two-hander off.
+	c = goldenChar(0, goldenMedium, false)
+	id := 4500
+	applyLayout(handSlotsInArmOrder(c), "ge", &id)
+	ret, worn, why := c.WearInArm(goldenItem(9000, goldenShield, false), 2)
+	require.True(t, worn, why)
+	assert.Equal(t, "4501,", goldenIds(ret))
+	assert.Equal(t, 0, c.Equipment.Weapon.ItemId)
+	assert.Equal(t, 9000, c.Equipment.Offhand.ItemId)
+
+	// A cursed two-hander beside arm 2, and a cursed second slot under a
+	// two-hander named at arm 1, both refuse with the shared line.
+	c = goldenChar(0, goldenMedium, false)
+	applyLayout(handSlotsInArmOrder(c), "Ge", &id)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenShield, false), 2)
+	assert.Equal(t, `Your Greatsword`+cursedLine, why)
+	c = goldenChar(0, goldenMedium, false)
+	applyLayout(handSlotsInArmOrder(c), "sB", &id)
+	_, _, why = c.WearInArm(goldenItem(9000, goldenGreat, false), 1)
+	assert.Equal(t, `Your Buckler`+cursedLine, why)
+}
+
+func TestArmLabel(t *testing.T) {
+	seedGoldenSpecies(t)
+	c := goldenChar(1, goldenMedium, false)
+	assert.Equal(t, `wielded`, c.ArmLabel(1))
+	assert.Equal(t, `offhand`, c.ArmLabel(2))
+	assert.Equal(t, `extra arm 1`, c.ArmLabel(3))
+	assert.Equal(t, ``, c.ArmLabel(4), "a half pair has no arm 4")
+	assert.Equal(t, ``, c.ArmLabel(0))
+}

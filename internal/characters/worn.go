@@ -496,6 +496,16 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 	})
 }
 
+// WearInArm is `equip X armN` (spec ruling 11): Wear's gates (type,
+// MinStrength, hands over two, reservation, curse) around a placement into
+// the one arm named, 1 to 6. A cursed item in that arm refuses; it never
+// moves the item to another arm (ruling 12).
+func (c *Character) WearInArm(i items.Item, arm int) (returnItems []items.Item, newItemWorn bool, failureReason string) {
+	return c.wear(i, func(i items.Item, _ items.ItemSpec) ([]items.Item, bool, string) {
+		return c.wearChosen(i, arm)
+	})
+}
+
 // wear is Wear's body with the placement step passed in, so Wear and
 // WearInArm share every gate: the type gate, MinStrength, hands over two, the
 // reservation snapshot and revert, the curse pass and the success tail.
