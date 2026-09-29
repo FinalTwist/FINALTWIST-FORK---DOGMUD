@@ -400,16 +400,56 @@ func TestPackFlee_SkipsNonGroupmates(t *testing.T) {
 func TestPackFlee_IdlePackmateStaysPut(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	mob := mobs.GetInstance(100)
-	require.NotNil(t, mob)
+	mob, restore := packFleeFixture(t)
+	defer restore()
 	require.False(t, mob.Character.IsInCombat(), "fixture: mob 100 starts idle")
-	events.DrainQueuedInputsForTest(mob.InstanceId)
 
 	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
 
+	require.False(t, packFleeQueued(mob), "an idle packmate was told to flee")
+}
+
+// The positive twin: without it the idle test above would pass on a PackFlee
+// that queues nothing at all.
+func TestPackFlee_FightingPackmateFlees(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, restore := packFleeFixture(t)
+	defer restore()
+	fleeingMob(t)
+
+	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
+
+	require.True(t, packFleeQueued(mob), "a fighting packmate was not told to flee")
+}
+
+// packFleeFixture reseeds the mob registry so spec 1 and instance 100 carry a
+// species. The shared seedAllRegistries fixture leaves SpeciesId 0, and
+// PackFlee returns before looking at any packmate when the dead mob's spec has
+// no species, so a PackFlee test on the bare fixture cannot fail. GetMobSpec
+// returns a copy, hence the reseed. The caller defers the returned cleanup,
+// which must run before seedAllRegistries' own.
+func packFleeFixture(t *testing.T) (*mobs.Mob, func()) {
+	t.Helper()
+	spec := mobs.GetMobSpec(1)
+	require.NotNil(t, spec)
+	spec.Character.SpeciesId = 1
+	mob := mobs.GetInstance(100)
+	require.NotNil(t, mob)
+	mob.Character.SpeciesId = 1
+	restore := mobs.SeedMobsForTest(
+		map[int]*mobs.Mob{1: spec, 2: mobs.GetMobSpec(2)},
+		map[int]*mobs.Mob{100: mob},
+	)
+	events.DrainQueuedInputsForTest(mob.InstanceId)
+	return mob, restore
+}
+
+func packFleeQueued(mob *mobs.Mob) bool {
 	for _, cmd := range events.DrainQueuedInputsForTest(mob.InstanceId) {
 		if cmd == "flee" {
-			t.Fatal("an idle packmate was told to flee")
+			return true
 		}
 	}
+	return false
 }
