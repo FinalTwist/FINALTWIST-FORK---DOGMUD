@@ -3,11 +3,14 @@ package apiframework
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -72,8 +75,9 @@ func TestARelayReserveLeavesTheServerAlone(t *testing.T) {
 // The ledger's clock is the only day.
 func TestDayIsTheLedgersClock(t *testing.T) {
 	k := NewBooksForTest()
-	if k.Day() != Today().Day {
-		t.Fatalf("today: %s vs %s", k.Day(), Today().Day)
+	k.SetClockForTest(func() time.Time { return time.Date(2020, 3, 4, 23, 30, 0, 0, time.FixedZone(`x`, -5*3600)) })
+	if k.Day() != `2020-03-05` {
+		t.Fatalf("the ledger's clock, as a UTC date: %s", k.Day())
 	}
 }
 
@@ -287,27 +291,39 @@ func TestAllowancesSaveLoadAndSeedOnce(t *testing.T) {
 
 // R38: SaveBudget marshals copies, never the live maps. Only -race can see
 // the shared map; run it in CI or the Docker test image (see the gate). The
-// key space is bounded (ten users and ten seed dimensions per goroutine) and
-// the loop capped, so the maps stay small and it runs in seconds under -race.
+// key space is bounded (ten users per goroutine, and one seed dimension per
+// goroutine per save), so the maps stay small and it runs in seconds under
+// -race. The goroutines run until the saves are done.
+//
+// ResetBudgetForTest(dir) leaves the ledger unloaded, and SaveBudget returns
+// at once while it is, so the ledger is loaded before any goroutine starts,
+// and the saves begin only once the goroutines are writing and end before
+// they stop: every save overlaps real writes to ByUser and Seeded.
 func TestSaveBudgetCopiesEveryMapUnderTheLock(t *testing.T) {
 	dir := t.TempDir()
 	ResetBudgetForTest(dir)
 	restore := SetServerForTest(ServerSettings{Endpoint: Endpoint{BaseURL: DefaultBaseURL}, BreakerErrors: 2, BreakerSeconds: 60})
 	t.Cleanup(func() { restore(); ResetBudgetForTest(``) })
+	day := Today().Day // loads the ledger
 	stop := make(chan struct{})
+	var progress, round atomic.Int64
 	var wg sync.WaitGroup
 	for g := 0; g < 4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; ; i++ {
 				// The work comes first, so goroutine 0 writes key 0 (read
 				// back below) before it can see stop.
 				c := Charge{Dim: DimBaublesFinder, UserId: g*10 + i%10}
 				if h, err := Reserve(ConsumerBaubles, 1, true, c); err == nil {
 					Settle(h, 1, false)
 				}
-				SeedAllowances(fmt.Sprintf(`test.seed%d`, g*10+i%10), Today().Day, map[int]int{1: 1})
+				// A new dimension each save round, so Seeded and ByUser are
+				// written again after every save, and the maps grow by only
+				// four entries a round.
+				SeedAllowances(fmt.Sprintf(`test.seed%d.%d`, g, round.Load()), day, map[int]int{1: 1})
+				progress.Add(1)
 				select {
 				case <-stop:
 					return
@@ -316,15 +332,120 @@ func TestSaveBudgetCopiesEveryMapUnderTheLock(t *testing.T) {
 			}
 		}(g)
 	}
-	for i := 0; i < 200; i++ {
-		SaveBudget()
+	for progress.Load() < 20 {
+		runtime.Gosched()
 	}
+	before := progress.Load()
+	for i := 0; i < 100; i++ {
+		SaveBudget()
+		round.Add(1)
+	}
+	during := progress.Load() - before
 	close(stop)
 	wg.Wait()
+	if during == 0 {
+		t.Fatal("fixture: the saves overlapped no writes")
+	}
 	SaveBudget()
 	want := Allowance(DimBaublesFinder, 0)
 	ResetBudgetForTest(dir)
 	if want < 1 || Allowance(DimBaublesFinder, 0) != want {
 		t.Fatalf("what was saved reads back: saved %d, read %d", want, Allowance(DimBaublesFinder, 0))
+	}
+}
+
+// SeedAllowances hands over only real spends: a count of 0 or less seeds
+// nothing, so a bad backup cannot lower an allowance.
+func TestSeedAllowancesSkipsNothingSpent(t *testing.T) {
+	k := NewBooksForTest()
+	k.SetAllowanceForTest(DimCompanionOwner, 9, 0)
+	k.SeedAllowances(DimCompanionOwner, k.Day(), map[int]int{5: 300, 8: 0, 9: -50})
+	if k.Allowance(DimCompanionOwner, 5) != 300 || k.Allowance(DimCompanionOwner, 9) != 0 {
+		t.Fatalf("seeded 300, and nothing from -50: %d, %d", k.Allowance(DimCompanionOwner, 5), k.Allowance(DimCompanionOwner, 9))
+	}
+}
+
+// Allowances leaves out a user whose counter holds nothing, even when the
+// counter exists (charged, then settled back to 0).
+func TestAllowancesOmitsNothingSpent(t *testing.T) {
+	k := NewBooksForTest()
+	h, err := k.Reserve(ConsumerCompanion, 400, false, Charge{Dim: DimCompanionStranger, UserId: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.Settle(h, 0, false)
+	k.SetAllowanceForTest(DimCompanionStranger, 3, 250)
+	if got := k.Allowances(DimCompanionStranger); !reflect.DeepEqual(got, map[int]int{3: 250}) {
+		t.Fatalf("the settled-to-nothing counter is left out: %v", got)
+	}
+}
+
+// A share of -1 is no share cap (ServerSettings keeps "no cap" as 0, but a
+// negative share reaching the ledger must not refuse everything).
+func TestANegativeShareIsNoShareCap(t *testing.T) {
+	ResetBudgetForTest(``)
+	if _, err := budget.reserve(ConsumerBaubles, 900, 1000, -1, true, nil); err != nil {
+		t.Fatalf("-1 is no share cap: %v", err)
+	}
+}
+
+// A hold keeps its own copy of the charges: the caller's slice changing
+// after Reserve changes nothing the hold will settle.
+func TestAHoldCopiesItsCharges(t *testing.T) {
+	ResetBudgetForTest(``)
+	cs := []Charge{{Dim: DimCompanionStranger, UserId: 2, Limit: 1000}}
+	h, err := Reserve(ConsumerCompanion, 400, false, cs...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs[0].UserId = 99
+	Settle(h, 100, false)
+	if Allowance(DimCompanionStranger, 2) != 100 || Allowance(DimCompanionStranger, 99) != 0 {
+		t.Fatalf("settled on user 2 only: 2=%d 99=%d", Allowance(DimCompanionStranger, 2), Allowance(DimCompanionStranger, 99))
+	}
+}
+
+// A huge DailyTokenBudget does not overflow the share: 25% of the largest
+// int is held exactly, and one token more is refused.
+func TestAShareOfAHugeBudgetDoesNotOverflow(t *testing.T) {
+	ResetBudgetForTest(``)
+	limit := math.MaxInt
+	share := limit/100*25 + limit%100*25/100
+	if _, err := budget.reserve(ConsumerBaubles, share, limit, 25, true, nil); err != nil {
+		t.Fatalf("the whole share: %v", err)
+	}
+	if _, err := budget.reserve(ConsumerBaubles, 1, limit, 25, true, nil); !errors.Is(err, ErrOverShare) {
+		t.Fatalf("one token past it: %v", err)
+	}
+}
+
+// Two charges on one allowance in one reservation are checked together:
+// each would fit alone, the two do not.
+func TestDuplicateChargesAreCheckedTogether(t *testing.T) {
+	ResetBudgetForTest(``)
+	c := Charge{Dim: DimCompanionStranger, UserId: 2, Limit: 1000}
+	if _, err := budget.reserve(ConsumerCompanion, 600, 0, 0, true, []Charge{c, c}); !errors.Is(err, ErrOverAllowance) {
+		t.Fatalf("1200 of a 1000 allowance: %v", err)
+	}
+	if Allowance(DimCompanionStranger, 2) != 0 {
+		t.Fatalf("refused, so nothing held: %d", Allowance(DimCompanionStranger, 2))
+	}
+	if _, err := budget.reserve(ConsumerCompanion, 400, 0, 0, true, []Charge{c, c}); err != nil {
+		t.Fatalf("800 fits: %v", err)
+	}
+	if Allowance(DimCompanionStranger, 2) != 800 {
+		t.Fatalf("both charged: %d", Allowance(DimCompanionStranger, 2))
+	}
+}
+
+// A positive share of a positive budget that rounds down to nothing is one
+// token, not a cap that refuses every call.
+func TestATinyShareIsAtLeastOneToken(t *testing.T) {
+	ResetBudgetForTest(``)
+	if _, err := budget.reserve(ConsumerBaubles, 1, 10, 5, true, nil); err != nil {
+		t.Fatalf("5%% of 10 is at least one token: %v", err)
+	}
+	if _, err := budget.reserve(ConsumerBaubles, 1, 10, 5, true, nil); !errors.Is(err, ErrOverShare) {
+		t.Fatalf("and no more: %v", err)
 	}
 }

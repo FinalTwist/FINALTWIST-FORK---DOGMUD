@@ -224,8 +224,8 @@ func (k *Books) Reserve(consumer string, tokens int, spendServer bool, charges .
 }
 
 // reserve checks everything before it adds anything, so a refusal holds
-// nothing anywhere. sharePct caps consumer's part of limit (0 is no share
-// cap).
+// nothing anywhere. sharePct caps consumer's part of limit (0 or less, or
+// 100 and above, is no share cap).
 func (l *ledger) reserve(consumer string, tokens int, limit int, sharePct int, spendServer bool, charges []Charge) (Hold, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -238,11 +238,17 @@ func (l *ledger) reserve(consumer string, tokens int, limit int, sharePct int, s
 		return Hold{}, refused(RefusedGlobal, ErrOverBudget)
 	}
 	if spendServer && limit > 0 && sharePct > 0 && sharePct < 100 &&
-		l.st.ByConsumer[consumer]+tokens > limit*sharePct/100 {
+		l.st.ByConsumer[consumer]+tokens > shareOf(limit, sharePct) {
 		return Hold{}, refused(RefusedShare, ErrOverShare)
 	}
+	// Two charges on one allowance in one reservation each add tokens, so
+	// each is checked against what all of them add together.
+	adds := make(map[string]int, len(charges))
 	for _, c := range charges {
-		if c.Limit > 0 && l.st.ByUser[c.key()]+tokens > c.Limit {
+		adds[c.key()] += tokens
+	}
+	for _, c := range charges {
+		if c.Limit > 0 && l.st.ByUser[c.key()]+adds[c.key()] > c.Limit {
 			return Hold{}, refused(c.Dim, ErrOverAllowance)
 		}
 	}
@@ -259,6 +265,18 @@ func (l *ledger) reserve(consumer string, tokens int, limit int, sharePct int, s
 	l.dirty = true
 	return Hold{Consumer: consumer, Tokens: tokens, Day: l.st.Day, SpendServer: spendServer,
 		Charges: append([]Charge(nil), charges...)}, nil
+}
+
+// shareOf is pct percent of limit (both above 0), rounded down but never
+// below one token, so a small share of a small budget still admits a call.
+// It is worked out without multiplying limit, which a huge DailyTokenBudget
+// would overflow.
+func shareOf(limit int, pct int) int {
+	share := limit/100*pct + limit%100*pct/100
+	if share < 1 {
+		share = 1
+	}
+	return share
 }
 
 // Settle replaces a reservation with what the call really used (use
