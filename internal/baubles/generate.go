@@ -234,3 +234,28 @@ func RecentNames(zone string, n int) []string {
 	cat.mu.RUnlock()
 	return out
 }
+
+// RecentFallbackNames returns up to n names of named finds in the zone
+// (model or corpus), newest first: what a corpus fallback avoids
+// repeating. A promoted entry shares its model record's name, so both
+// count. Like RecentNames, a player-key name is never counted: it never
+// reaches another prompt or fallback.
+func RecentFallbackNames(zone string, n int) []string {
+	cat.mu.RLock()
+	defer cat.mu.RUnlock()
+	recs := make([]*Record, 0, 32)
+	for _, r := range cat.records {
+		if r.Zone == zone && r.Generator.Named() && !r.PlayerKey {
+			recs = append(recs, r)
+		}
+	}
+	sort.Slice(recs, func(a, b int) bool { return recs[a].Id > recs[b].Id })
+	out := []string{}
+	for _, r := range recs {
+		if len(out) >= n {
+			break
+		}
+		out = append(out, r.Name)
+	}
+	return out
+}

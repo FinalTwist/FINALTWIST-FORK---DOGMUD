@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -297,5 +298,114 @@ func TestAnOverlayThatCannotBeQuarantinedIsBroken(t *testing.T) {
 	quarantineOverlay = util.QuarantineCorrupt
 	if rep := LoadCorpusFrom(seedPath, overlayPath); rep.OverlayBroken || rep.Quarantined == `` {
 		t.Fatalf("moved aside on the next reload, and writable again: %+v", rep)
+	}
+}
+
+// Search finds merge the overlay and the seed at biome-tier and
+// group-tier into one pool, and fall to the bare tier only when that pool
+// is empty. An empty or unmapped biome skips both.
+func TestFallbackMergesBiomeAndGroupThenTier(t *testing.T) {
+	withCorpus(t, testSeed, testSpoolOverlay)
+
+	seen := map[string]bool{}
+	for i := 0; i < 3; i++ {
+		drewFrom := 0
+		res := Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, nil, func(n int) int { drewFrom = n; return i % n })
+		if drewFrom != 3 {
+			t.Fatalf("interior-cheap (overlay and seed) and dwelling-cheap are one pool of three, drew from %d", drewFrom)
+		}
+		if res.Generator != GeneratorCorpus || res.Moderated || res.PlayerKey {
+			t.Fatalf("corpus result: %+v", res)
+		}
+		seen[res.Reply.Name] = true
+	}
+	for _, name := range []string{`Painted Wooden Spool`, `Bent Tin Thimble`, `Chipped Clay Marble`} {
+		if !seen[name] {
+			t.Errorf("%s is in the merged pool", name)
+		}
+	}
+
+	if res := Fallback(Place{Biome: `fort`}, TierCheap, SourceSearch, nil, first); res.Reply.Name != `Chipped Clay Marble` || res.Model != `corpus:dwelling-cheap` {
+		t.Fatalf("fort has no pool of its own: its group's, got %+v", res)
+	}
+	for _, biome := range []string{`ruins`, ``, `water`} {
+		if res := Fallback(Place{Biome: biome}, TierCheap, SourceSearch, nil, first); res.Reply.Name != `Knotted Twine Bracelet` || res.Model != `corpus:cheap` {
+			t.Fatalf("biome %q: nothing at biome or group, so the bare tier, got %+v", biome, res)
+		}
+	}
+	// ruins is both a biome and a group: its pool is counted once.
+	drewFrom := 0
+	res := Fallback(Place{Biome: `ruins`}, TierAverage, SourceSearch, nil, func(n int) int { drewFrom = n; return 0 })
+	if res.Reply.Name != `Faded Mosaic Tile` || drewFrom != 0 {
+		t.Fatalf("one entry, drawn without a roll: %+v (drew from %d)", res, drewFrom)
+	}
+}
+
+// Values are stored as written and clamped into the tier when used.
+func TestFallbackClampsTheValueIntoTheTier(t *testing.T) {
+	withCorpus(t, testSeed, ``)
+	if res := Fallback(Place{}, TierCheap, SourceSearch, nil, first); res.Reply.Value != TierCheap.Range().Max {
+		t.Fatalf("99 gold in the cheap pool is clamped to the cheap maximum, got %d", res.Reply.Value)
+	}
+}
+
+// Pickpocketed finds use pocket-tier then tier, and only what fits a
+// pocket (TooBigFor). Nothing that fits: a generic trinket.
+func TestFallbackPocketFindsFitAPocket(t *testing.T) {
+	withCorpus(t, testSeed, ``)
+	for i := 0; i < 4; i++ {
+		res := Fallback(Place{Biome: `interior`}, TierCheap, SourcePickpocket, nil, func(n int) int { return i % n })
+		if res.Reply.Name != `Brass Snuff Spoon` || res.Model != `corpus:pocket-cheap` {
+			t.Fatalf("the tankard is too heavy for a pocket; only the spoon: %+v", res)
+		}
+	}
+	if res := Fallback(Place{}, TierAverage, SourcePickpocket, nil, first); res.Generator != GeneratorLocal || res.Reply.Name != `Trinket` {
+		t.Fatalf("no pocket-average and no average pool: a generic trinket, got %+v", res)
+	}
+	setBaubleConfig(t, func(b *configs.Balance) { b.BaublePickpocketMaxWeight = 0.05 })
+	if res := Fallback(Place{}, TierCheap, SourcePickpocket, nil, first); res.Generator != GeneratorLocal || res.Reply.Name != `Trinket` {
+		t.Fatalf("every entry is over the pocket limit, the bare tier's too: a generic trinket, got %+v", res)
+	}
+}
+
+// Entries a zone found lately are avoided. When every entry of the pool was
+// found lately, the least recent is taken; recency never widens the key.
+func TestFallbackAvoidsRecentNamesWithoutFallingThrough(t *testing.T) {
+	withCorpus(t, testSeed, ``)
+	for i := 0; i < 4; i++ {
+		res := Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, []string{`Bent Tin Thimble`}, func(n int) int { return i % n })
+		if res.Reply.Name != `Chipped Clay Marble` {
+			t.Fatalf("the only entry not found lately, got %q", res.Reply.Name)
+		}
+	}
+	recent := []string{`Bent Tin Thimble`, `Chipped Clay Marble`} // newest first
+	if res := Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, recent, first); res.Reply.Name != `Chipped Clay Marble` {
+		t.Fatalf("all recent: the least recent, never the bare tier's bracelet, got %q", res.Reply.Name)
+	}
+	recent = []string{`chipped clay marble`, `Bent Tin Thimble`}
+	if res := Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, recent, first); res.Reply.Name != `Bent Tin Thimble` {
+		t.Fatalf("names match without case: the thimble is now least recent, got %q", res.Reply.Name)
+	}
+}
+
+func TestFallbackWithNoCorpusIsAGenericTrinket(t *testing.T) {
+	ClearCorpusForTest()
+	res := Fallback(Place{Biome: `interior`}, TierAverage, SourceSearch, nil, nil)
+	if res.Generator != GeneratorLocal || res.Reply.Name != `Trinket` || res.Reply.Value != TierAverage.RollValue(nil) {
+		t.Fatalf("empty corpus: exactly the old generic trinket, got %+v", res)
+	}
+}
+
+// The names to avoid are the zone's newest model and corpus finds; a
+// generic trinket is not a name.
+func TestRecentFallbackNamesCountsModelAndCorpusFinds(t *testing.T) {
+	withCatalog(t)
+	_, _ = Create(Record{Name: `Old Cup`, Zone: `ashwick`, Generator: GeneratorOpenAI})
+	_, _ = Create(Record{Name: `Trinket`, Zone: `ashwick`, Generator: GeneratorLocal})
+	_, _ = Create(Record{Name: `Bent Tin Thimble`, Zone: `ashwick`, Generator: GeneratorCorpus})
+	_, _ = Create(Record{Name: `Elsewhere`, Zone: `thornwall`, Generator: GeneratorCorpus})
+	got := RecentFallbackNames(`ashwick`, 5)
+	if len(got) != 2 || got[0] != `Bent Tin Thimble` || got[1] != `Old Cup` {
+		t.Fatalf("newest first, model and corpus finds in the zone only: %v", got)
 	}
 }

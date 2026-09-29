@@ -388,3 +388,118 @@ func CorpusCounts() (seed int, promoted int) {
 	}
 	return seed, promoted
 }
+
+type corpusCandidate struct {
+	key   string
+	entry CorpusEntry
+}
+
+// candidates is the pool for one find. A search, admin or burglary find
+// merges <biome>-<tier> and <group>-<tier> (overlay and seed alike); an
+// empty or unmapped biome skips both. A pickpocketed find uses
+// pocket-<tier>. Only when that pool is empty after filtering does it fall
+// to the bare <tier>. Every entry must pass TooBigFor for the source (a
+// no-op for anything but a pickpocket).
+func (p *corpusPool) candidates(biome string, tier ValueTier, source Source) []corpusCandidate {
+	var keys []string
+	if source == SourcePickpocket {
+		keys = []string{corpusKey(pocketPrefix, tier)}
+	} else if b := normKey(biome); b != `` {
+		if g, ok := p.groups[b]; ok {
+			keys = append(keys, corpusKey(b, tier))
+			if g != b {
+				keys = append(keys, corpusKey(g, tier))
+			}
+		}
+	}
+	if out := p.collect(keys, source); len(out) > 0 {
+		return out
+	}
+	return p.collect([]string{corpusKey(``, tier)}, source)
+}
+
+func (p *corpusPool) collect(keys []string, source Source) []corpusCandidate {
+	var out []corpusCandidate
+	add := func(key string, e CorpusEntry) {
+		if !TooBigFor(e.reply(), source) {
+			out = append(out, corpusCandidate{key: key, entry: e})
+		}
+	}
+	for _, k := range keys {
+		for _, s := range p.promoted[k] {
+			if s.ok {
+				add(k, s.use)
+			}
+		}
+		for _, e := range p.seed[k] {
+			add(k, e)
+		}
+	}
+	return out
+}
+
+// pickIndex draws an index in [0, n): a nil randn, or an answer out of
+// range, gives 0, which tests rely on.
+func pickIndex(n int, randn func(n int) int) int {
+	if randn == nil || n <= 1 {
+		return 0
+	}
+	if v := randn(n); v >= 0 && v < n {
+		return v
+	}
+	return 0
+}
+
+// pickCandidate prefers an entry whose name is not in recent (newest
+// first), at random. When every entry is recent it takes the one whose
+// latest find is oldest. It never looks beyond cands.
+func pickCandidate(cands []corpusCandidate, recent []string, randn func(n int) int) corpusCandidate {
+	lastSeen := map[string]int{}
+	for i, n := range recent {
+		k := normKey(n)
+		if _, seen := lastSeen[k]; !seen {
+			lastSeen[k] = i
+		}
+	}
+	var fresh []corpusCandidate
+	for _, c := range cands {
+		if _, seen := lastSeen[normKey(c.entry.Name)]; !seen {
+			fresh = append(fresh, c)
+		}
+	}
+	if len(fresh) > 0 {
+		return fresh[pickIndex(len(fresh), randn)]
+	}
+	best := cands[0]
+	for _, c := range cands[1:] {
+		if lastSeen[normKey(c.entry.Name)] > lastSeen[normKey(best.entry.Name)] {
+			best = c
+		}
+	}
+	return best
+}
+
+// Fallback is a find no model named: an entry from the corpus for where it
+// was found, its value clamped into the tier and its weight limited for
+// the source, or a generic trinket when the corpus has nothing that fits.
+// It never blocks and reads only the snapshot, so it is safe off the mud
+// lock. randn(n) returns [0, n); nil picks the first entry (tests).
+func Fallback(place Place, tier ValueTier, source Source, recent []string, randn func(n int) int) GenResult {
+	if !tier.Valid() {
+		tier = TierCheap
+	}
+	if p := corpus.Load(); p != nil {
+		if cands := p.candidates(place.Biome, tier, source); len(cands) > 0 {
+			c := pickCandidate(cands, recent, randn)
+			limited := ApplyLimitsFor(c.entry.reply(), tier, source)
+			return GenResult{Reply: limited.Reply, Generator: GeneratorCorpus, Model: `corpus:` + c.key}
+		}
+	}
+	return GenResult{Reply: GenericTrinket(tier, randn), Generator: GeneratorLocal}
+}
+
+// FallbackFor is Fallback for a naming request, avoiding the names of the
+// zone's recent finds.
+func FallbackFor(req GenRequest, randn func(n int) int) GenResult {
+	return Fallback(req.Place, req.Tier, req.Source, RecentFallbackNames(req.Place.Zone, fallbackRecentNames), randn)
+}
