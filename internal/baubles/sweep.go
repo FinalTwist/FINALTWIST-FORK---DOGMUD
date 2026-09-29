@@ -111,7 +111,32 @@ type LiveWalk func(visit func(*items.Item))
 var (
 	liveMu      sync.Mutex
 	liveSources = map[string]LiveWalk{}
+	// expectedSources are the live stores a sweep must see before it may
+	// apply anything (ExpectLiveSources).
+	expectedSources []string
 )
+
+// ExpectLiveSources declares every live store a sweep must see. A sweep
+// that runs while one of them is not registered (a module that is not
+// built in, or the sweeper started before the main package registered its
+// sources) fails closed rather than read that store as empty, and so does
+// a sweep that runs before any expectation is declared. The main package
+// declares them from baubleSweepSourceNames (bauble_sweep.go), the list
+// TestBaubleSweepSourcesMatchTheGuardedRoots holds to the guarded roots.
+func ExpectLiveSources(names ...string) {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	expectedSources = append([]string{}, names...)
+}
+
+// ExpectedLiveSourceNames lists the declared live stores, sorted.
+func ExpectedLiveSourceNames() []string {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	out := append([]string{}, expectedSources...)
+	sort.Strings(out)
+	return out
+}
 
 // RegisterLiveSource names a store of live items for the sweep; the same
 // name replaces the earlier walk. The core stores are registered by the
@@ -165,6 +190,9 @@ func collectLive(add func(id string)) (time.Duration, error) {
 	if len(sources) == 0 {
 		return 0, errNoLiveSources
 	}
+	if err := checkExpectedSources(sources); err != nil {
+		return 0, err
+	}
 	sweepLock()
 	defer sweepUnlock()
 	start := time.Now()
@@ -174,6 +202,28 @@ func collectLive(add func(id string)) (time.Duration, error) {
 		}
 	}
 	return time.Since(start), nil
+}
+
+var errNoExpectedSources = errors.New(`no expected live sources are declared, so a missing store cannot be told from an empty one`)
+
+// checkExpectedSources fails when a declared store is not registered: its
+// items would be unseen, and a store the sweep cannot see must not read as
+// empty.
+func checkExpectedSources(sources []namedWalk) error {
+	expected := ExpectedLiveSourceNames()
+	if len(expected) == 0 {
+		return errNoExpectedSources
+	}
+	have := map[string]bool{}
+	for _, s := range sources {
+		have[s.name] = true
+	}
+	for _, name := range expected {
+		if !have[name] {
+			return fmt.Errorf(`live source %s is expected but not registered, so its items cannot be seen`, name)
+		}
+	}
+	return nil
 }
 
 func walkLiveSource(s namedWalk, add func(id string)) (err error) {

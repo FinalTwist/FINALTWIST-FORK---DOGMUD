@@ -11,19 +11,22 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
-// withLiveSources replaces the registered live sources for one test.
+// withLiveSources replaces the registered live sources for one test, and
+// expects exactly those.
 func withLiveSources(t *testing.T, sources map[string]LiveWalk) {
 	t.Helper()
 	liveMu.Lock()
-	saved := liveSources
+	saved, savedExpected := liveSources, expectedSources
 	liveSources = map[string]LiveWalk{}
+	expectedSources = nil
 	for name, walk := range sources {
 		liveSources[name] = walk
+		expectedSources = append(expectedSources, name)
 	}
 	liveMu.Unlock()
 	t.Cleanup(func() {
 		liveMu.Lock()
-		liveSources = saved
+		liveSources, expectedSources = saved, savedExpected
 		liveMu.Unlock()
 	})
 }
@@ -41,12 +44,27 @@ func holding(ids ...string) LiveWalk {
 // A sweep that could not see everything applies nothing.
 func TestRunSweepFailsClosed(t *testing.T) {
 	for name, tc := range map[string]struct {
-		sources map[string]LiveWalk
-		files   map[string]string
-		readErr bool
-		want    string
+		sources  map[string]LiveWalk
+		expect   []string // replaces the expected sources when set
+		noExpect bool     // no expected sources declared at all
+		files    map[string]string
+		readErr  bool
+		want     string
 	}{
 		`no live sources`: {want: `no live item sources`},
+		// The auction house registers itself; if it is not built in, or the
+		// core sources were registered after the sweeper started, a store
+		// is missing and must not read as empty.
+		`an expected live source is not registered`: {
+			sources: map[string]LiveWalk{`rooms`: holding()},
+			expect:  []string{`auctions`, `rooms`},
+			want:    `live source auctions is expected but not registered`,
+		},
+		`the expected live sources were never declared`: {
+			sources:  map[string]LiveWalk{`auctions`: holding()},
+			noExpect: true,
+			want:     `no expected live sources are declared`,
+		},
 		`a live source panics`: {
 			sources: map[string]LiveWalk{`rooms`: func(func(*items.Item)) { panic(`boom`) }},
 			want:    `live source rooms: panic: boom`,
@@ -67,6 +85,11 @@ func TestRunSweepFailsClosed(t *testing.T) {
 			SetDirForTest(t.TempDir())
 			t.Cleanup(func() { items.SetBaubleResolver(nil) })
 			withLiveSources(t, tc.sources)
+			if tc.expect != nil || tc.noExpect {
+				liveMu.Lock()
+				expectedSources = tc.expect
+				liveMu.Unlock()
+			}
 			root := t.TempDir()
 			writeDataFiles(t, root, tc.files)
 			if tc.readErr {

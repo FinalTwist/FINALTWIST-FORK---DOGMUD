@@ -563,6 +563,11 @@ func main() {
 		}
 	}()
 
+	// Bauble catalog sweep: once now, then every Balance.BaubleSweepHours,
+	// prune the records no item points at any more (internal/baubles/sweep.go).
+	registerBaubleSweepSources()
+	baubles.StartSweeper()
+
 	mudlog.Info("Server Ready", "Time Taken", time.Since(serverStartTime))
 
 	// block until a signal comes in
@@ -608,6 +613,7 @@ func main() {
 	forager.SaveAllThroughputs()
 	caravan.SaveAllThroughputs()
 	warehouse.SaveAll()
+	baubles.StopSweeper()     // a sweep in progress finishes its writes first
 	baubles.SaveAll()         // retries any catalog write that failed; the rest is already on disk
 	apiframework.SaveBudget() // the server key's day's spending, shared by every feature
 
