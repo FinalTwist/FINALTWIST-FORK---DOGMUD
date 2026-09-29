@@ -296,20 +296,23 @@ What matters is the shape, not the list:
   wrapper will render a private, pool-aware refusal only when its returned
   `CostCommitResult` has `Status == characters.CostRefused`; it must not
   re-quote, re-commit, or charge a pool directly.
-- **Flee is the life-preserving partial-pay exception.** `Flee` first publishes
-  a pending `fleeAdmission`, transitions to Disengaging, then commits cost and
-  marks the admission ready. `TakeFleeAdmission(user) (includeSkill, ok)`
-  atomically consumes only a ready admission in the asynchronous round hook;
-  `CancelFleeAdmission` retracts pending or ready state when combat terminates.
-  A rejected transition or an out-of-combat queued command spends nothing and
-  publishes no attempt. `ok == false` is not reusable state: on a phase flee it
-  means the command is still publishing or a resolver/cancellation already
-  owns the attempt, while a true legacy `Aggro{Type:Flee}` path defaults to the
-  historical full-skill behavior.
-- **Casting interception preserves terminal semantics.** `flee` cancels a
-  pending fold-cast only when the character is actually in combat; an
-  out-of-combat rejection leaves the cast intact. The cancellation line never
-  exposes the raw conviction already invested in the cast.
+- **Flee is a thin wrapper (slice 4a).** `Flee` (`flee.go`) calls
+  `actions.BeginFlee` and renders the returned `actions.FleeBegin`: a
+  `fleeRefusalText[begin.Refusal]` line on refusal, the shortage line when
+  `Short`, else "You attempt to flee...". The gates, the admission handoff,
+  the `Disengaging` transition and the partial stamina cost all moved into
+  `actions.BeginFlee`, shared with `mobcommands.Flee`. `TakeFleeAdmission` and
+  `CancelFleeAdmission` no longer exist in this package — the handoff lives on
+  `characters.Character` (`internal/characters/flee_admission.go`) and the
+  round resolves through `actions.ResolveFlee`, called from
+  `hooks.handlePlayerFlee`. A rejected transition or an out-of-combat command
+  spends nothing and publishes no admission.
+- **Casting interception preserves terminal semantics.** The generic command
+  dispatcher (`usercommands.go`, unchanged by slice 4a) cancels a pending
+  fold-cast only when `cmd == "flee"` and the character is actually in
+  combat, before `Flee` itself runs; an out-of-combat rejection leaves the
+  cast intact. The cancellation line never exposes the raw conviction already
+  invested in the cast.
 - **Player shortage lines are private and singular.** Autoattack, winning
   defence, flee, and grapple maintenance explain the skill-less resolution once
   at their owning round/action boundary. Losing defence candidates never emit a

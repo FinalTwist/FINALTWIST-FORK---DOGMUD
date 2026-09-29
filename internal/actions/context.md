@@ -266,6 +266,60 @@ the target instead of an interrupt.
 
 ---
 
+## Flee (`flee.go`, `relocate_mob.go`, slice 4a)
+
+A player and a mob flee through the same two functions. Before 4a a mob's
+flee was free, instant, and ignored roots, standing, and whether it was even
+fighting; a player's flee paid stamina, took a round to resolve, and could be
+blocked. Now both go through `BeginFlee` (the command half) and `ResolveFlee`
+(the round half), and `usercommands.Flee` / `mobcommands.Flee` are thin
+wrappers that render the outcome.
+
+- **`FleeGate(c *characters.Character) FleeRefusal`** is every refusal a flee
+  can know before it transitions: rooted (`conditions.NoMovement`), no-flee
+  (`conditions.NoFlee`), already disengaging, not in combat, grappled
+  (`IsStandingGrapple`/`IsGroundGrapple`), not standing. It duplicates
+  `CombatPhase`'s position veto on purpose, because that veto is registered by
+  `internal/hooks`; without the duplicate a flee's outcome in a package that
+  does not link `hooks` would silently differ.
+- **`BeginFlee(actor Actor, preferredExit string) FleeBegin`** runs the gate,
+  publishes a pending `characters.FleeAdmission`, transitions the character to
+  `combatphase.Disengaging`, then quotes and partially commits the flee
+  stamina cost (`configs.Balance.FleeStaminaCost`, halved by
+  `FlightFleeStaminaMult` when `mutations.IsFlying`). A short payment never
+  refuses the flee; it drops Skullduggery from the round's blocker contest
+  instead (`FleeBegin.Short`). `preferredExit` is carried to the round (a
+  kiting archer's retreat-toward-home exit); empty means a random passable
+  exit at resolution.
+- **`ResolveFlee(actor Actor, room *rooms.Room) FleeOutcome`** is the round: it
+  takes the ready admission, refuses a fleer grappled since the command,
+  runs `combat.ResolveFleeBlockers`, awards Skullduggery only when the
+  contest happened and the fleer paid in full, picks the exit
+  (`fleeExit`, preferred-then-random), and settles `CombatPhase.ResolveFlee`
+  (success or back to Engaged). It does not move the fleer — the caller does,
+  because a player's move differs from a mob's (`Look`, charmed followers and
+  `room_enter` for one; `RelocateMob` and the `mob_flee` behaviour event for
+  the other).
+- **`RelocateMob(mob *mobs.Mob, from *rooms.Room, exitName string, dest *rooms.Room)`**
+  is the mob's move with no gate and no charge: walking
+  (`mobcommands.Go`, after its own lock check) and a successful flee
+  (`hooks.handleMobFlee`) both end here. It removes the mob from `from`,
+  calls `ClearRoomAggroOnDeparture`, adds it to `dest`, narrates both sides
+  (sight-gated, with a sound fallback), plays the movement sounds, and pulls
+  an NPC party's idle (not in-combat) members through the same exit.
+- **`ClearRoomAggroOnDeparture(room *rooms.Room, departingInstanceId int)`**
+  moved here from the (still unexported at the call site) `mobcommands`
+  version; retargets or releases players and mobs in `room` that were
+  targeting the departing mob.
+- **The wrappers must not re-fork the mechanics.** `usercommands.Flee` and
+  `mobcommands.Flee` may only call `BeginFlee` and render `FleeBegin`;
+  `hooks.handlePlayerFlee` and `hooks.handleMobFlee` may only call
+  `ResolveFlee` and render `FleeOutcome`. `flee_wrapper_guard_test.go` (repo
+  root) greps the four files for a second flee-cost or flee-resolution
+  implementation.
+
+---
+
 ## Naming and aiming in the dark (follow-up slice A)
 
 - **`ResolveTargetOptions.Viewer`**: every player command that names a creature
@@ -896,6 +950,8 @@ taunt path's ordering).
 | Sneak | actions | self vs room | SneakResult | silent | shared |
 | Steal | actions | self vs mob/player/container | StealResult | varies | shared |
 | ExecuteFire | actions | self vs target (same/adjacent room) | FireResult | both | shared (special-move), EVERY shot |
+| BeginFlee | actions | self (command half) | FleeBegin | wrapper renders | none |
+| ResolveFlee | actions | self vs blocker (round half) | FleeOutcome | wrapper renders | none |
 | Sell | actions | self vs merchant | SellResult | player only | none |
 | Sleep | actions | self | SleepResult | varies | none |
 | Track | actions | self vs trail/target | TrackResult | user only | shared |
@@ -1087,6 +1143,7 @@ the rest are ordinary verbs.
 | Shared helpers | `combat_helpers.go`, `skill_helpers.go`, `mutation_helpers.go`, `aggression.go`, `bleed.go` (`bleedPerRound`) |
 | Combat specials | `combat_attack.go`, `combat_bash.go`, `combat_counter.go`, `combat_drain.go`, `combat_fire.go`, `combat_gore.go`, `combat_grapple.go`, `combat_hamstring.go`, `combat_kick.go`, `combat_maul.go`, `combat_pounce.go`, `combat_rake.go`, `combat_rally.go`, `combat_reload.go`, `combat_taunt.go`, `combat_throttle.go`, `combat_trip.go`, `combat_warcry.go` |
 | Casting | `cast.go`, `cast_interrupt.go` |
+| Flee | `flee.go`, `relocate_mob.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `scan.go`, `track.go`, `steal.go` |
 | Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go`, `shop_sight.go`, `drink.go` |
