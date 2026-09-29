@@ -115,6 +115,11 @@ func ApplyTier(item *items.Item, def *EnchantmentDef, tier int) {
 	if tier < 0 || tier >= len(def.Tiers) {
 		return
 	}
+	// A bauble's text lives in the catalog and may be one viewer's alone;
+	// a baked Spec would outlive both (slice H). Never enchanted.
+	if item.IsBauble() {
+		return
+	}
 
 	tierDef := def.Tiers[tier]
 

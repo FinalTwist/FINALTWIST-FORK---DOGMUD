@@ -30,6 +30,20 @@ type BaubleView struct {
 	Description string
 	Value       int
 	WeightLbs   float64
+
+	// FinderUserId and Finder make a finder-only view (internal/baubles
+	// Record.KeptToFinder, owner ruling 2026-09-29): the fields above are what
+	// everyone sees, Finder what player FinderUserId sees, and only through
+	// the viewer-aware accessors (bauble_viewer.go). Nil Finder: everyone
+	// sees the fields above.
+	FinderUserId int
+	Finder       *BaubleView
+
+	// PlayerText: the record's text was written by a player's own key,
+	// moderated or not. Such text never goes into any language model's
+	// prompt (spec S3): ModelName and ModelDescription (Task 9c) show the
+	// carrier's own name instead.
+	PlayerText bool
 }
 
 // BaubleResolver looks a catalog record up by id.
@@ -60,6 +74,13 @@ func (i *Item) IsBauble() bool {
 // returned unchanged, so a missing record degrades to "Curious Trinket"
 // rather than to an error.
 func baubleSpec(base ItemSpec, id string) ItemSpec {
+	return baubleSpecFor(base, id, 0)
+}
+
+// baubleSpecFor is baubleSpec as viewerUserId sees it: a finder-only
+// bauble's own text for its finder, the generic view for everyone else.
+// Viewer 0 is nobody, so baubleSpec is always the generic view.
+func baubleSpecFor(base ItemSpec, id string, viewerUserId int) ItemSpec {
 	p := baubleResolver.Load()
 	if p == nil || *p == nil {
 		return base
@@ -67,6 +88,9 @@ func baubleSpec(base ItemSpec, id string) ItemSpec {
 	v, ok := (*p)(id)
 	if !ok {
 		return base
+	}
+	if v.Finder != nil && viewerUserId > 0 && viewerUserId == v.FinderUserId {
+		v = *v.Finder
 	}
 	if v.Name != `` {
 		base.Name = v.Name
@@ -195,6 +219,7 @@ func matchStrength(i *Item, input string) int {
 	}
 	in := util.NormalizeForMatch(input)
 	names := []string{util.NormalizeForMatch(i.Name()), util.NormalizeForMatch(i.NameSimple()), withoutPossessives(i.Name())}
+	names = append(names, i.baubleFinderNames()...)
 	if len(i.Adjectives) > 0 {
 		names = append(names, util.NormalizeForMatch(strings.Join(i.Adjectives, " ")+" "+i.NameSimple()))
 	}
@@ -206,6 +231,24 @@ func matchStrength(i *Item, input string) int {
 		return 2
 	}
 	return 1
+}
+
+// baubleFinderNames is a finder-only bauble's own name and keyword,
+// normalised for matching, so its finder can type the words they read
+// (`drop horse`). Matching shows nobody any text. Nil for any other item.
+func (i *Item) baubleFinderNames() []string {
+	if i.Bauble == `` {
+		return nil
+	}
+	p := baubleResolver.Load()
+	if p == nil || *p == nil {
+		return nil
+	}
+	v, ok := (*p)(i.Bauble)
+	if !ok || v.Finder == nil {
+		return nil
+	}
+	return []string{util.NormalizeForMatch(v.Finder.Name), util.NormalizeForMatch(v.Finder.NameSimple), withoutPossessives(v.Finder.Name)}
 }
 
 // anyBauble reports whether any item in the list is a bauble.

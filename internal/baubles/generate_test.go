@@ -391,3 +391,27 @@ func TestMintRollsAPlayerKeyFindsValue(t *testing.T) {
 		t.Fatalf("a server-key value stands: %+v", rec)
 	}
 }
+
+// A finder-only result reaches the record kept to the finder Mint records
+// (owner ruling 2026-09-29), whatever GenResult.FinderOnly said: the record
+// derives it from PlayerKey and Moderated. A regeneration, always on the
+// server's key, makes it everyone's.
+func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
+	withCatalog(t)
+	// FinderOnly deliberately left false: the record must not trust it.
+	res := GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, PlayerKey: true, Moderated: false}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), FinderUserId: 7, Tier: TierAverage, Result: &res, Randn: first})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rec.KeptToFinder() || rec.FoundByUserId != 7 || rec.View().Finder == nil {
+		t.Fatalf("finder-only, kept to user 7: %+v", rec)
+	}
+	got, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.KeptToFinder() || got.PlayerKey || got.View().Finder != nil {
+		t.Fatalf("named again on the server's key: everyone's: %+v", got)
+	}
+}

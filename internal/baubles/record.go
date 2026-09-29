@@ -113,6 +113,15 @@ type Record struct {
 	SoldValue int       `yaml:"sold_value,omitempty"`
 }
 
+// KeptToFinder reports whether the record's text is its finder's alone:
+// text a player's own key wrote that was never moderated (owner ruling
+// 2026-09-29). Derived, never stored, so a record named before the rule
+// (PlayerKey, Moderated false) is kept to its finder too. Never promotable
+// to the corpus either way (slice C takes only server-key moderated text).
+func (r Record) KeptToFinder() bool {
+	return r.PlayerKey && !r.Moderated
+}
+
 // Text shown for a bauble whose text an admin has withdrawn.
 const (
 	retiredName        = `Trinket`
@@ -132,6 +141,27 @@ func (r Record) View() items.BaubleView {
 		v.Name = retiredName
 		v.NameSimple = `trinket`
 		v.Description = retiredDescription
+		return v
+	}
+	v.PlayerText = r.PlayerKey
+	if r.KeptToFinder() {
+		// Text a player's own key wrote that was never moderated (owner
+		// ruling 2026-09-29): its finder reads it through the item layer's
+		// viewer-aware accessors, everyone else the generic trinket.
+		own := v
+		v.Name, v.NameSimple, v.Description = genericName, genericNameSimple, genericDescriptionFor(r.Id)
+		if r.FoundByUserId > 0 {
+			v.FinderUserId, v.Finder = r.FoundByUserId, &own
+		}
 	}
 	return v
+}
+
+// MaterialFor is the material as viewerUserId may read it (appraise): a
+// finder-only record's is its finder's alone, like its name (View).
+func (r Record) MaterialFor(viewerUserId int) string {
+	if r.KeptToFinder() && (viewerUserId <= 0 || viewerUserId != r.FoundByUserId) {
+		return ``
+	}
+	return r.Material
 }
