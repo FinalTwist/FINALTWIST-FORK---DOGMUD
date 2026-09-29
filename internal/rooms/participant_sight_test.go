@@ -122,3 +122,24 @@ func TestSendTextVisualHidingNames_PartOfATagDoesNotLeakTheRest(t *testing.T) {
 		t.Fatalf("infrared observer read %q, want %q", got, "A figure kicks a figure!")
 	}
 }
+
+// The look and search observer lines tag the actor as a username, so a
+// shapes-only reader already reads "a figure" through the pipeline's
+// Anonymize; SendTextVisualHidingNames with the actor's name keeps that
+// true when the name reaches the line without its tag.
+func TestLookAndSearchObserverLinesHideTheActor(t *testing.T) {
+	r := sightTestRoom(t, "cave")
+	if !users.GetByUserId(7413).Character.Conditions.AddCondition(sightTestInfraredConditionId, true) {
+		t.Fatal("precondition: the observer should now carry infrared")
+	}
+	tagged := `<ansi fg="username">Aliceia</ansi> is snooping around.`
+	r.SendTextVisual(messaging.CategoryMobEmote, tagged, 7411)
+	r.SendTextVisualHidingNames(messaging.CategoryMobEmote, tagged, []string{"Aliceia"}, 7411)
+	r.SendTextVisualHidingNames(messaging.CategoryMobEmote, `Aliceia is snooping around.`, []string{"Aliceia"}, 7411)
+
+	got := sightTestPlain(events.DrainQueuedMessagesForTest(7413))
+	want := "A figure is snooping around."
+	if len(got) != 3 || got[0] != want || got[1] != want || got[2] != want {
+		t.Fatalf("infrared observer read %q, want %q three times", got, want)
+	}
+}

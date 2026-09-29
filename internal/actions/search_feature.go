@@ -170,8 +170,10 @@ func searchFeatureForBauble(actor Actor, room *rooms.Room, feature SearchFeature
 		Place:       BaublePlace(room),
 		UserId:      actor.GetUserId(),
 		SkillFactor: BaubleSkillFactor(actor.GetCharacter()),
-		Feature:     feature.WindowName(),
-		Household:   household,
+		// sight ramp (plan 5b): the searcher needs to see what glints.
+		SightPenalty: 1 - messaging.SightMult(actor.GetCharacter(), room),
+		Feature:      feature.WindowName(),
+		Household:    household,
 	})
 	if !found {
 		return false, true

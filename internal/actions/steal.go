@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -187,11 +188,23 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 		return StealResult{Reason: "target not found"}
 	}
 
-	// Deliberately NOT mobs.CheckPlayerHarm: that policy also blocks charmed
-	// companions, and stealing from a companion is currently allowed. Widening
-	// it here would be a gameplay change, not a finding-3 fix. Keep the two
-	// protections that do apply.
-	if m.IsNonCombatant() || m.PlayerAttackImmune {
+	// Any companion is off-limits to theft, the thief's own included: a
+	// charmed one (IsCharmed, the predicate mobs.CheckPlayerHarm refuses
+	// first) or one bonded to the AI companion, which need not be charmed.
+	// Its pocket is its owner's (owner ruling 2026-09-29). This holds for a
+	// mob thief as well, as the two protections below do.
+	if m.Character.IsCharmed() || companionai.IsBondedCompanion(m.InstanceId) {
+		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi> is someone's companion. You can't steal from them.`,
+			m.Character.Name))
+		return StealResult{
+			DefenderName: m.Character.Name,
+			Reason:       "companion",
+		}
+	}
+
+	// The rest of mobs.CheckPlayerHarm's policy.
+	if block := mobs.CheckPlayerHarm(m); block.Blocked() {
 		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`You can't steal from <ansi fg="mobname">%s</ansi>.`,
 			m.Character.Name))
@@ -623,6 +636,68 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 		Trigger: awareness.TriggerSkullduggeryFailed,
 	})
 
+	theftCrime(actor.GetUserId(), m, room, false, messaging.SightNone)
+
+	markAttacksThief(actor, m)
+}
+
+// markAttacksThief is a mark that caught actor stealing turning on them.
+// A victim that cannot be fought (a non-combatant shopkeeper, a
+// player-attack-immune NPC) does not attack; its caller has already raised
+// the crime. stealFromMob never reaches here with one (it refuses to steal
+// from them), so for `steal` this changes nothing. Nor does it attack a
+// thief who is dead or downed (health below 1, rooms.FindDowned's test),
+// which a pickpocket's reveal can find beside the mark.
+func markAttacksThief(actor Actor, m *mobs.Mob) {
+	if thief := actor.GetCharacter(); !thief.IsAlive() || thief.Health < 1 {
+		return
+	}
+	if !m.IsNonCombatant() && !m.PlayerAttackImmune {
+		m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
+	}
+}
+
+// theftWitnesses is who witnessed userId's theft from m in room, and
+// whether anyone but m identified the thief. In the act: every faction mob
+// in room that saw it, m included, by its sight (crimes.WitnessesInRoom).
+// Away (a pickpocket's failed roll revealed after the thief had gone; slice
+// H review finding b): m alone, which felt the hand, by markSaw, its sight
+// of the theft room at the attempt (not the room's light now, which the
+// thief may have carried off); bystanders saw nothing, so hadExternal is
+// false. markSaw is ignored in the act.
+func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away bool, markSaw messaging.SightDecision) (crimes.Witnesses, bool) {
+	if !away {
+		// All witnesses including the victim (excludeInstanceId=0), and the
+		// external ones (excluding the victim) for HadExternalWitness, which
+		// asks whether the theft was identified by someone other than the
+		// victim, not merely noticed, so it reads Identifying.
+		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
+		external := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
+		return witnesses, len(external.Identifying) > 0
+	}
+	var w crimes.Witnesses
+	switch markSaw {
+	case messaging.SightFull:
+		w.Identifying = []int{m.InstanceId}
+	case messaging.SightShapes:
+		w.ShapesOnly = []int{m.InstanceId}
+	}
+	return w, false
+}
+
+// theftCrime is the mark's side of a caught theft by userId in room (the
+// room the theft happened in): a sleeping m wakes, and the theft is
+// recorded as a crime against m's factions (reputation, bounty, witnesses'
+// knowledge). Every part of it goes by user id, so it holds for a thief
+// who has left or logged out. away is a pickpocket's failed roll revealed
+// after the thief walked away (steal_pocket.go, pocketCrime): the mark is
+// the only witness (theftWitnesses), judged by markSaw, its sight at the
+// attempt. A mark that saw clearly still learns who robbed it
+// (knowledge.RecordCrimeWitnessed makes a record with HasMet set); it only
+// gets no last-seen room or round (RecordMet is skipped), since it did not
+// see where the thief went. Bystanders learn nothing. thiefCaught runs it
+// in the act.
+func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool, markSaw messaging.SightDecision) {
 	// Chunk 3.3: failed theft wakes a sleeping victim.
 	if m.Character.HasConditionFlag(conditions.Sleeping) {
 		m.Character.CancelConditionsWithFlag(conditions.Sleeping)
@@ -631,22 +706,15 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 
 	// chunk 1.3: record theft crime on faction-aligned victim.
 	if factionIds := factions.FactionsForMob(m); len(factionIds) > 0 {
-		// All witnesses including the victim (excludeInstanceId=0).
-		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
-		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
-		// External witnesses (excluding victim) for HadExternalWitness.
-		externalWitnesses := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
-		// HadExternalWitness asks whether the theft was identified by
-		// someone other than the victim, not merely noticed, so it reads
-		// Identifying.
-		hadExternal := len(externalWitnesses.Identifying) > 0
+		witnesses, hadExternal := theftWitnesses(factionIds, m, room, away, markSaw)
+		perp := crimes.IdentifiedPerp(userId, witnesses)
 		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
 		for _, fid := range factionIds {
 			crimeIds := crimes.Record([]string{fid}, crimes.KindTheft, perp,
 				m, m.InstanceId, room.RoomId, m.Character.Zone, hadExternal)
 			if perp.Type == crimes.PerpPlayer {
-				factions.BumpRep(fid, actor.GetUserId(), delta)
-				justice.MaybeDeclareBounty(fid, actor.GetUserId(), crimes.KindTheft)
+				factions.BumpRep(fid, userId, delta)
+				justice.MaybeDeclareBounty(fid, userId, crimes.KindTheft)
 				// Knowledge: each witness records the player as the perp of
 				// these crimes. Range Identifying only. perp is computed
 				// once for the whole room, so a single clear-sighted
@@ -654,7 +722,7 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 				// writing this player-subject knowledge for a shapes-only
 				// witness would record that mob knowing exactly who it was
 				// when all it saw was a figure.
-				subject := knowledge.PlayerSubject(actor.GetUserId())
+				subject := knowledge.PlayerSubject(userId)
 				for _, witnessInstId := range witnesses.Identifying {
 					w := mobs.GetInstance(witnessInstId)
 					if w == nil {
@@ -663,20 +731,18 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 					for _, crimeId := range crimeIds {
 						knowledge.RecordCrimeWitnessed(int(w.MobId), subject, crimeId)
 					}
-					knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
-						knowledge.SourceWitnessed)
+					// Away, the mark knows who robbed it (the record above,
+					// HasMet included) but not where the thief was last
+					// seen: it felt the hand after they had gone.
+					if !away {
+						knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
+							knowledge.SourceWitnessed)
+					}
 				}
 			}
 		}
 	}
 
-	// A victim that cannot be fought (a non-combatant shopkeeper, a
-	// player-attack-immune NPC) does not attack; it has already raised the
-	// crime above. stealFromMob never reaches here with one (it refuses to
-	// steal from them), so for `steal` this changes nothing.
-	if !m.IsNonCombatant() && !m.PlayerAttackImmune {
-		m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
-	}
 }
 
 // stealObserverPass is the theft observer contest: the thief's
@@ -799,9 +865,10 @@ func stealHouseholdBauble(actor Actor, itm items.Item, attackerScore float64, ra
 		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> spots you reaching for the <ansi fg="itemname">%s</ansi>!`,
 			spotterName, name))
-		room.SendTextVisual(messaging.CategoryMobEmote,
+		room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> is caught trying to pocket the <ansi fg="itemname">%s</ansi>!`,
 				actor.GetName(), name),
+			[]string{actor.GetName()},
 			actor.GetUserId(),
 		)
 		if spotterMob != nil && householdMember(spotterMob, room) {

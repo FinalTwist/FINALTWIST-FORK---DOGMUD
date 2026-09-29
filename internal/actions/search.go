@@ -205,14 +205,16 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		if hasFeature {
 			actor.SendText(messaging.CategorySystem,
 				fmt.Sprintf("You search the <ansi fg=\"noun\">%s</ansi> and snoop around for a bit...\n", feature.Name))
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is searching the %s.`, char.Name, feature.Name),
+				[]string{char.Name},
 				actor.GetUserId(),
 			)
 		} else {
 			actor.SendText(messaging.CategorySystem, "You snoop around for a bit...\n")
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is snooping around.`, char.Name),
+				[]string{char.Name},
 				actor.GetUserId(),
 			)
 		}

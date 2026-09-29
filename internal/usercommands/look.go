@@ -63,8 +63,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	if len(lookAt) == 0 {
 
 		if !secretLook && !isSneaking {
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking around.`, user.Character.Name),
+				[]string{user.Character.Name},
 				user.UserId,
 			)
 
@@ -97,8 +98,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				)
 
 				// The looker and the looked-at each have their own line.
-				room.SendTextVisual(messaging.CategoryMobEmote,
+				room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 					fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at <ansi fg="username">%s</ansi>.`, user.Character.Name, u.Character.Name),
+					[]string{user.Character.Name, u.Character.Name},
 					user.UserId, u.UserId)
 			}
 
@@ -124,8 +126,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			if !isSneaking {
 				targetName := m.Character.GetMobName(0).String()
-				room.SendTextVisual(messaging.CategoryMobEmote,
+				room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 					fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at %s.`, user.Character.Name, targetName),
+					[]string{user.Character.Name},
 					user.UserId,
 				)
 			}
@@ -292,7 +295,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		user.SendText(messaging.CategorySystem, fmt.Sprintf("You peer toward the %s.", exitName))
 		if !isSneaking {
-			room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> peers toward the %s.`, user.Character.Name, exitName), user.UserId)
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> peers toward the %s.`, user.Character.Name, exitName), []string{user.Character.Name}, user.UserId)
 		}
 
 		lookRoom(user, lookRoomId, secretLook || isSneaking)
@@ -338,8 +341,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.SendText(messaging.CategoryRoomDescription, ``)
 
 		if !isSneaking {
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is admiring their <ansi fg="item">%s</ansi>.`, user.Character.Name, lookItem.DisplayName()),
+				[]string{user.Character.Name},
 				user.UserId,
 			)
 		}
@@ -417,8 +421,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				}
 			}
 
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is examining the <ansi fg="noun">%s</ansi>.`, user.Character.Name, foundNoun),
+				[]string{user.Character.Name},
 				user.UserId,
 			)
 		}
@@ -443,7 +448,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			user.SendText(messaging.CategoryRoomDescription, fmt.Sprintf(`You look at %s`, petUser.Character.Pet.DisplayName()))
 
-			room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at %s.`, user.Character.Name, petUser.Character.Pet.DisplayName()), user.UserId)
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at %s.`, user.Character.Name, petUser.Character.Pet.DisplayName()), []string{user.Character.Name}, user.UserId)
 
 			textOut, _ := templates.Process("character/pet", petUser, user.UserId)
 			user.SendText(messaging.CategoryRoomDescription, textOut)
@@ -461,12 +466,23 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if corpse, corpseFound := room.FindCorpse(rest); corpseFound {
 
 			corpseColor := `mob-corpse`
+			// A player corpse is named "<name> corpse" inside a user-corpse
+			// tag, which Anonymize does not strip, so the dead player's name
+			// is hidden from a shapes-only observer by name. The observer
+			// line calls it "the corpse of <name>" so the hidden form reads
+			// "the corpse of a figure" (not "the a figure corpse").
+			hidden := []string{user.Character.Name}
+			observedCorpse := corpse.DisplayName()
 			if corpse.UserId > 0 {
 				corpseColor = `user-corpse`
+				if corpse.CorpseName == "" {
+					observedCorpse = `corpse of ` + corpse.Character.Name
+				}
+				hidden = append(hidden, corpse.Character.Name)
 			}
 
 			user.SendText(messaging.CategoryRoomDescription, fmt.Sprintf(`You look at the <ansi fg="%s">%s</ansi>.`, corpseColor, corpse.DisplayName()))
-			room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="%s">%s</ansi>.`, user.Character.Name, corpseColor, corpse.DisplayName()), user.UserId)
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="%s">%s</ansi>.`, user.Character.Name, corpseColor, observedCorpse), hidden, user.UserId)
 
 			if corpse.CorpseDescription != "" {
 				user.SendText(messaging.CategoryRoomDescription, corpse.CorpseDescription)
@@ -536,8 +552,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.SendText(messaging.CategoryRoomDescription, ``)
 
 		if !isSneaking {
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="item">%s</ansi> %s.`, user.Character.Name, floorItem.DisplayName(), where),
+				[]string{user.Character.Name},
 				user.UserId,
 			)
 		}
@@ -583,13 +600,15 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 		// Find the exit back
 		lookFromName := room.FindExitTo(user.Character.RoomId)
 		if lookFromName == "" {
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking into the room from somewhere...`, user.Character.Name),
+				[]string{user.Character.Name},
 				user.UserId,
 			)
 		} else {
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking into the room from the <ansi fg="exit">%s</ansi> exit`, user.Character.Name, lookFromName),
+				[]string{user.Character.Name},
 				user.UserId,
 			)
 		}

@@ -360,6 +360,12 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		if t.Kind != `item` && t.Kind != `gold` {
 			return actionOutcome{Refused: `cannot pick that up`}
 		}
+		// actions.GetItemFromFloor refuses a household's bauble to every
+		// taker (ErrHouseholdBauble); say so now, so she does not keep
+		// issuing a get that quietly does nothing.
+		if t.Kind == `item` && t.Item.BaubleBelongsTo(room.RoomId) {
+			return actionOutcome{Refused: `it belongs to the household here`}
+		}
 		if reason := lootAllowedByArrangement(c.mind.LootRule, stims); reason != `` {
 			return actionOutcome{Refused: reason}
 		}

@@ -8,11 +8,19 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/crimes"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/knowledge"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/awareness"
+	"github.com/GoMudEngine/GoMud/internal/state/life"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -404,9 +412,8 @@ func TestFlushRevealsAPickpocketInItsPause(t *testing.T) {
 var origPocketThief = pocketThief
 
 // Training comes with the reveal, never before it (a skill-up line then
-// would give the roll away), and never for a chance lost (walking off to
-// dodge being caught trains nothing). A failed attempt is caught at the
-// reveal, not before.
+// would give the roll away). A failed attempt is caught at the reveal, not
+// before, and walking off does not dodge it (owner ruling 2026-09-29).
 func TestPickpocketAwardsAndCatchesAtTheReveal(t *testing.T) {
 	h := setupPocket(t, 9610, 7610)
 	paused(100*time.Millisecond, 0)
@@ -424,14 +431,230 @@ func TestPickpocketAwardsAndCatchesAtTheReveal(t *testing.T) {
 	}
 
 	h2 := setupPocket(t, 9611, 7611)
+	seedPocketRooms(t, h2.room)
+	crimes := stubPocketCrime(t)
 	paused(100*time.Millisecond, 0)
 	util.LockMud()
 	startPocketAttempt(h2.thief, h2.mark, false)
 	h2.thief.room = newSearchTestRoom(9698) // walks off
 	util.UnlockMud()
 	waitSettled(t)
-	if len(h2.thief.awards) != 0 || said(h2.thief, "catches you in the act") != 0 || said(h2.thief, "lose your chance") != 1 {
-		t.Fatalf("a chance lost trains nothing and is caught by nobody: %+v %q", h2.thief.awards, h2.thief.sent)
+	if len(h2.thief.awards) != 1 || h2.thief.awards[0].won || said(h2.thief, "felt your hand") != 1 ||
+		said(h2.thief, "lose your chance") != 0 || len(*crimes) != 1 {
+		t.Fatalf("walked off, still caught, trained on the loss: %+v %q crimes=%v", h2.thief.awards, h2.thief.sent, *crimes)
+	}
+}
+
+// stubPocketCrime records the crimes a pickpocket caught away from the mark
+// raises (pocketCrime), instead of reaching the faction books.
+func stubPocketCrime(t *testing.T) *[]int {
+	t.Helper()
+	got := &[]int{}
+	orig := pocketCrime
+	pocketCrime = func(userId int, m *mobs.Mob, room *rooms.Room, _ messaging.SightDecision) {
+		*got = append(*got, userId)
+	}
+	t.Cleanup(func() { pocketCrime = orig })
+	return got
+}
+
+// seedPocketRooms makes rooms loadable, as real ones are: the reveal loads
+// the theft room and the mark's room by ID (rooms.LoadRoom).
+func seedPocketRooms(t *testing.T, rs ...*rooms.Room) {
+	t.Helper()
+	m := map[int]*rooms.Room{}
+	for _, r := range rs {
+		m[r.RoomId] = r
+	}
+	t.Cleanup(rooms.SeedRoomsForTest(m, nil))
+}
+
+// A failed roll is caught however the pause ends (owner ruling 2026-09-29).
+// A thief who walked off or logged out, or whose mark moved, is caught away
+// from the mark: the mark cries thief in its own room and the crime is
+// recorded, and nobody is attacked. One still beside it is caught in the
+// act. A mark that has gone catches nobody.
+func TestPickpocketFailedRollIsCaughtHoweverThePauseEnds(t *testing.T) {
+	cases := map[string]struct {
+		before func(h *pocketHarness, p *pocketAttempt)
+		caught bool
+		crimes int    // raised away from the mark (pocketCrime)
+		told   string // a line the thief is told exactly once
+	}{
+		`walked off`: {func(h *pocketHarness, p *pocketAttempt) { h.thief.room = newSearchTestRoom(9696) }, true, 1, "felt your hand"},
+		`logged out`: {func(h *pocketHarness, p *pocketAttempt) { p.actor = nil }, true, 1, "You attempt to pick"},
+		`mark moved`: {func(h *pocketHarness, p *pocketAttempt) { h.mark.Character.RoomId = 9695 }, true, 1, "felt your hand"},
+		`still here`: {func(h *pocketHarness, p *pocketAttempt) {}, true, 0, "catches you in the act"},
+		`mark gone`:  {func(h *pocketHarness, p *pocketAttempt) { mobs.SetInstanceForTest(h.mark.InstanceId, nil) }, false, 0, "lose your chance"},
+	}
+	for name, c := range cases {
+		c := c
+		h := setupPocket(t, 9617, 7617)
+		seedPocketRooms(t, h.room, newSearchTestRoom(9695))
+		crimes := stubPocketCrime(t)
+		runPocketAttempt = func(p *pocketAttempt) StealResult {
+			c.before(h, p)
+			return resolvePocketInLine(p)
+		}
+		res := startPocketAttempt(h.thief, h.mark, false)
+		if res.Detected != c.caught || len(*crimes) != c.crimes || said(h.thief, c.told) != 1 {
+			t.Errorf("%v: detected %v (want %v), crimes %v (want %d), told %q", name, res.Detected, c.caught, *crimes, c.crimes, h.thief.sent)
+		}
+		if name == `logged out` && (len(h.thief.sent) != 1 || len(h.thief.awards) != 0) {
+			t.Errorf("logged out: told and trained nothing after the attempt line: %q %+v", h.thief.sent, h.thief.awards)
+		}
+	}
+}
+
+// A failed roll whose thief and mark have both left the theft room, and are
+// together somewhere else at the reveal, is not a catch in the act: the
+// crime belongs to the theft room, and the bystanders where they meet saw
+// no theft, so none of them identifies the thief. The mark, which can see
+// the thief now, still cries thief and attacks.
+func TestPickpocketCaughtTogetherElsewhereIsNotInTheAct(t *testing.T) {
+	h := setupPocket(t, 9618, 7618)
+	seedTheftFaction(t)
+	h.room.Lamp = rooms.LampPtr(90)
+	h.room.AddMob(h.mark.InstanceId)
+	h.mark.MobId = 9718
+	h.mark.Groups = []string{"thornwall_citizens"}
+	elsewhere := &rooms.Room{RoomId: 9694, Lamp: rooms.LampPtr(90)}
+	seedPocketRooms(t, h.room, elsewhere)
+	bystander := newStealTestMob(9890, 0, 100)
+	bystander.MobId = 9790
+	bystander.Character.RoomId = elsewhere.RoomId
+	bystander.Groups = []string{"thornwall_citizens"}
+	mobs.SetInstanceForTest(bystander.InstanceId, bystander)
+	t.Cleanup(func() { mobs.SetInstanceForTest(bystander.InstanceId, nil) })
+	elsewhere.AddMob(bystander.InstanceId)
+	events.DrainQueuedInputsForTest(h.mark.InstanceId)
+
+	runPocketAttempt = func(p *pocketAttempt) StealResult {
+		h.thief.room = elsewhere
+		h.room.RemoveMob(h.mark.InstanceId)
+		h.mark.Character.RoomId = elsewhere.RoomId
+		elsewhere.AddMob(h.mark.InstanceId)
+		hideRhetoricActor(t, h.thief.GetCharacter()) // hid during the pause
+		return resolvePocketInLine(p)
+	}
+	res := startPocketAttempt(h.thief, h.mark, false)
+	if !res.Detected || said(h.thief, "catches you in the act") != 0 || said(h.thief, "felt your hand") != 1 {
+		t.Fatalf("caught, but not in the act: %+v %q", res, h.thief.sent)
+	}
+	if h.thief.GetCharacter().Awareness.State() == awareness.Hidden {
+		t.Fatal("the mark beside the thief reveals them before it attacks")
+	}
+	got := crimes.AllForFaction("thornwall_citizens", false)
+	if len(got) != 1 {
+		t.Fatalf("one theft recorded: %+v", got)
+	}
+	if got[0].RoomId != h.room.RoomId || got[0].HadExternalWitness || got[0].Perpetrator.Type != crimes.PerpPlayer {
+		t.Fatalf("in the theft room, the mark its only witness: %+v", *got[0])
+	}
+	subject := knowledge.PlayerSubject(7618)
+	if knowledge.Get(int(bystander.MobId), subject) != nil {
+		t.Fatal("the bystander where they met saw no theft, and learns nothing")
+	}
+	if r := knowledge.Get(int(h.mark.MobId), subject); r == nil || len(r.CrimesWitnessed) != 1 {
+		t.Fatalf("the mark learns who robbed it: %+v", r)
+	}
+	attacks := 0
+	for _, in := range events.DrainQueuedInputsForTest(h.mark.InstanceId) {
+		if in == "attack @7618" {
+			attacks++
+		}
+	}
+	if attacks != 1 {
+		t.Fatalf("the mark, beside the thief, attacks: %d", attacks)
+	}
+}
+
+// The mark's sight of the thief is taken at the attempt, when it felt the
+// hand, not at the reveal. A thief whose own carried light was all that lit
+// the theft room, and who walked off with it before the reveal, was seen
+// by that light: the mark still names them.
+func TestPickpocketMarkJudgedByTheLightAtTheAttempt(t *testing.T) {
+	const torchId = 9731
+	h := setupPocket(t, 9619, 7619)
+	seedTheftFaction(t)
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		torchId: {ConditionId: torchId, Name: "Test Torch", TriggerCount: 4, RoundInterval: 1,
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {Literal: 56}}},
+	}))
+	thiefUser := users.NewTestUser(7619, "nimble", "Nimble", 97619)
+	thiefUser.Character.Conditions.AddCondition(torchId, false)
+	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{7619: thiefUser}))
+
+	noSky := 0.0
+	h.room.SkyLight = &noSky
+	h.room.AddPlayer(7619)
+	h.room.AddMob(h.mark.InstanceId)
+	h.mark.MobId = 9719
+	h.mark.Groups = []string{"thornwall_citizens"}
+	elsewhere := newSearchTestRoom(9693)
+	seedPocketRooms(t, h.room, elsewhere)
+	if !messaging.CanSeeClearly(&h.mark.Character, h.room) {
+		t.Fatalf("fixture: the thief's torch lights the theft room (%d)", h.room.LightLevel())
+	}
+
+	runPocketAttempt = func(p *pocketAttempt) StealResult {
+		h.thief.room = elsewhere // walks off, and the torch with them
+		h.room.RemovePlayer(7619)
+		if messaging.CanSeeShapes(&h.mark.Character, h.room) {
+			t.Fatalf("fixture: the theft room is dark once the thief has gone (%d)", h.room.LightLevel())
+		}
+		return resolvePocketInLine(p)
+	}
+	if res := startPocketAttempt(h.thief, h.mark, false); !res.Detected {
+		t.Fatalf("caught: %+v", res)
+	}
+	got := crimes.AllForFaction("thornwall_citizens", false)
+	if len(got) != 1 {
+		t.Fatalf("one theft recorded: %+v", got)
+	}
+	if got[0].Perpetrator.Type != crimes.PerpPlayer || got[0].Perpetrator.Id != 7619 {
+		t.Fatalf("the mark names the thief it saw by the torch: %+v", *got[0])
+	}
+	if r := knowledge.Get(int(h.mark.MobId), knowledge.PlayerSubject(7619)); r == nil {
+		t.Fatal("and learns who robbed it")
+	}
+}
+
+// A thief downed or dead beside the mark at the reveal is still caught, but
+// the mark does not attack them: there is nobody left to fight. A thief on
+// their feet is attacked, as ever.
+func TestPickpocketMarkDoesNotAttackAFallenThief(t *testing.T) {
+	for name, c := range map[string]struct {
+		fall    func(h *pocketHarness)
+		attacks int
+	}{
+		`standing`: {func(h *pocketHarness) {}, 1},
+		`downed`:   {func(h *pocketHarness) { h.thief.char.Health = 0 }, 0},
+		`dead`: {func(h *pocketHarness) {
+			if err := h.thief.char.Life.TransitionToDead(life.DeadData{}, state.TransitionReason{}); err != nil {
+				t.Fatal(err)
+			}
+		}, 0},
+	} {
+		h := setupPocket(t, 9620, 7620)
+		events.DrainQueuedInputsForTest(h.mark.InstanceId)
+		runPocketAttempt = func(p *pocketAttempt) StealResult {
+			c.fall(h)
+			return resolvePocketInLine(p)
+		}
+		res := startPocketAttempt(h.thief, h.mark, false)
+		if !res.Detected || said(h.thief, "catches you in the act") != 1 {
+			t.Errorf("%s: caught in the act: %+v %q", name, res, h.thief.sent)
+		}
+		attacks := 0
+		for _, in := range events.DrainQueuedInputsForTest(h.mark.InstanceId) {
+			if in == "attack @7620" {
+				attacks++
+			}
+		}
+		if attacks != c.attacks {
+			t.Errorf("%s: %d attacks, want %d", name, attacks, c.attacks)
+		}
 	}
 }
 

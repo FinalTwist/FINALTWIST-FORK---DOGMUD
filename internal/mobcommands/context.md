@@ -74,7 +74,10 @@ The `internal/mobcommands` package implements the AI command system for non-play
 - **Home behavior**: Return-to-home mechanics for territorial mobs
 
 #### **Item and Resource Management**
-- **Inventory control**: `get`, `drop`, `put`, `give` - Intelligent item handling
+- **Inventory control**: `get`, `drop`, `put`, `give` - Intelligent item
+  handling. A mob's `get` never takes a household's bauble:
+  `actions.GetItemFromFloor` refuses it (`ErrHouseholdBauble`) and the mob says
+  nothing.
 - **Equipment management**: `equip`, `remove`, `gearup` - Automated gear optimization
 - **Resource consumption**: `eat`, `drink` - Survival behaviors. `Drink`
   (`drink.go`) is a wrapper over `actions.Drink`, the same body a player drinks

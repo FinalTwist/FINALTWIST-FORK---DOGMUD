@@ -165,6 +165,12 @@ type FindOpts struct {
 	// SkillFactor is the searcher's search skill from 0 to 1 (see ChanceFor).
 	SkillFactor float64
 
+	// SightPenalty is what the searcher's sight costs the chance, from 0
+	// (none: the zero value, so a FindOpts without it behaves as before) to
+	// 1 (nothing can be found). The caller passes 1 - messaging.SightMult
+	// for the searcher in the room (lighting plan 5b's ramp).
+	SightPenalty float64
+
 	// Feature is the noun or container searched on its own (`search
 	// bookshelf`); empty for a search of the whole room. A feature search
 	// spends NO roll from the room's window: the caller has already claimed
@@ -215,6 +221,10 @@ func RollFind(o FindOpts) (tier ValueTier, found bool) {
 	if chance <= 0 {
 		return ``, false
 	}
+	// The searcher's sight, after the check above: a search in the dark
+	// still spends its window roll exactly as one in the light does, so
+	// only a place where nothing is ever found opens no window.
+	chance *= 1 - clampUnit(o.SightPenalty)
 	if o.Feature == `` && !takeRoll(o.Place.RoomId, o.UserId, s.perPlayer, s.rolls, s.window, now) {
 		return ``, false
 	}
@@ -226,7 +236,7 @@ func RollFind(o FindOpts) (tier ValueTier, found bool) {
 		weights = s.household
 	}
 	tier = pickTier(weights, randn)
-	mudlog.Info(`baubles`, `action`, `found`, `tier`, string(tier), `household`, o.Household, `chancePct`, chance, `biome`, o.Place.Biome, `feature`, o.Feature, `roomId`, o.Place.RoomId, `zone`, o.Place.Zone, `userId`, o.UserId)
+	mudlog.Info(`baubles`, `action`, `found`, `tier`, string(tier), `household`, o.Household, `chancePct`, chance, `sightPenalty`, o.SightPenalty, `biome`, o.Place.Biome, `feature`, o.Feature, `roomId`, o.Place.RoomId, `zone`, o.Place.Zone, `userId`, o.UserId)
 	return tier, true
 }
 
@@ -235,4 +245,15 @@ func RollFind(o FindOpts) (tier ValueTier, found bool) {
 // named by the model and a generic trinket arrive at the same pace.
 func RevealDelay() time.Duration {
 	return time.Duration(configs.GetBalanceConfig().BaubleRevealSeconds) * time.Second
+}
+
+// clampUnit holds v to 0..1.
+func clampUnit(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
 }

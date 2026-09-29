@@ -316,3 +316,36 @@ func TestFeatureSearchedOncePerWindow(t *testing.T) {
 		t.Fatal("reset clears the room's features too")
 	}
 }
+
+// The searcher's sight costs the chance (owner ruling 2026-09-28, lighting
+// plan 5b's ramp): FindOpts.SightPenalty is 1 - messaging.SightMult, 0 is
+// none. A search in the dark still spends its window roll, exactly as one
+// in the light does.
+func TestRollFindPaysTheSightPenalty(t *testing.T) {
+	resetAllWindowsForTest()
+	t0 := time.Unix(4_000_000, 0)
+
+	// 40000 in a million is 4%: under an unskilled indoor search's 5%...
+	if _, found := RollFind(FindOpts{Place: NewPlace(601, `town`, ``, `interior`), Randn: always(40000), Now: t0}); !found {
+		t.Fatal("4% hits 5% in the light")
+	}
+	// ...and not under 5% x (1 - 0.3) = 3.5%, well clear of the 4% roll
+	// (a case exactly on the threshold would hang on float rounding).
+	if _, found := RollFind(FindOpts{Place: NewPlace(602, `town`, ``, `interior`), SightPenalty: 0.3, Randn: always(40000), Now: t0}); found {
+		t.Fatal("the dark costs the chance")
+	}
+	if used, _, _, open := WindowState(602, 0, t0); !open || used != 1 {
+		t.Fatalf("a search in the dark spends its window roll: used %d open %v", used, open)
+	}
+
+	// Out of range is clamped: below 0 is none, above 1 is all.
+	if _, found := RollFind(FindOpts{Place: NewPlace(603, `town`, ``, `interior`), SightPenalty: -3, Randn: always(40000), Now: t0}); !found {
+		t.Fatal("a negative penalty is none")
+	}
+	if _, found := RollFind(FindOpts{Place: NewPlace(604, `town`, ``, `interior`), SightPenalty: 7, Randn: always(0), Now: t0}); found {
+		t.Fatal("a penalty above 1 leaves no chance")
+	}
+	if used, _, _, open := WindowState(604, 0, t0); !open || used != 1 {
+		t.Fatalf("even a hopeless search spends its window roll: used %d open %v", used, open)
+	}
+}

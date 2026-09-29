@@ -187,9 +187,11 @@ The `internal/usercommands` package implements the complete command system for p
 #### **Household baubles** (`get.go`, `skill.skullduggery.steal.go`)
 - `get` never takes a bauble that belongs to this room's household
   (`Item.BaubleBelongsTo`), so no pickup can start a crime by accident. An
-  explicit `get <name>` refuses with "The X belongs to this household. To
-  take it anyway, steal <word>." before the ordinary pickup (which would end
-  the player's hiding); `get all`, `get all <name>` and `get all.<name>` skip
+  explicit `get <name>` is refused by the shared floor pickup
+  (`actions.GetItemFromFloor` returns `actions.ErrHouseholdBauble` for every
+  taker, mobs included), and `get` words it: "The X belongs to this household.
+  To take it anyway, steal <word>.", before anything that would end the player's
+  hiding; `get all`, `get all <name>` and `get all.<name>` skip
   it with "You leave the X: it belongs to this household. To take it anyway,
   steal <word>." (`leaveHouseholdBauble`), once each, and go on to take
   everything else the name matches (`takeableOnFloor`: the floor without
