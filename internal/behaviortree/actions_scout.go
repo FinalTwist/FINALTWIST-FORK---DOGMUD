@@ -207,6 +207,11 @@ func actMoveTowardTracked(params map[string]any, ctx *EvalContext) Result {
 		return Failure
 	}
 
+	// Movement parity 4b: fail when the mob cannot pay for the step.
+	if !actions.QuoteMobStep(mob, dir).OK() {
+		return Failure
+	}
+
 	// Dispatch `go <direction>` via the engine command pipeline.
 	mob.Command("go " + dir)
 	return Success

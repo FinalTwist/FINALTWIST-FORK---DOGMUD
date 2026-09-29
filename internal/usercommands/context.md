@@ -239,6 +239,22 @@ The `internal/usercommands` package implements the complete command system for p
   change so the `gmcp.Automation` module immediately re-pushes
   `Char.Automation` and the web automation panel stays in sync.
 
+#### **Movement (`go.go`, movement parity 4b)**
+
+`Go` is now a thin wrapper: it keeps the lock gate (pick, key ring, backpack
+key), the narration, and the exit-message requeue, but the step's price and
+the hidden-detection contests moved to `internal/actions/move.go` (see that
+package's "Movement" section for the mechanism). The charge
+(`actions.ChargeMove`) now runs AFTER the lock gate and after the
+exit-message requeue, not before — before this slice it ran first, so
+walking into a locked door or triggering an exit message cost a step;
+**a locked door now costs nothing.** Detection (a sneaking mover spotted, or
+the mover spotting a hidden occupant) runs through `actions.EntryDetection`
+instead of `go.go`'s own inline rolls; the rare Search-training call
+(`actions.TrainSearchOnMove`) still fires from here, inside the
+`rooms.MoveToRoom` success branch. `move_wrapper_guard_test.go` (repo root)
+fails if this file prices or detects a step itself again.
+
 ## Dependencies
 - `internal/users`: User management and character data
 - `internal/rooms`: Room system for location-based commands
@@ -249,10 +265,12 @@ The `internal/usercommands` package implements the complete command system for p
 - `internal/spells`: Magic system integration
 - `internal/conditions`: Status effect checking and application
 - `internal/scripting`: JavaScript runtime integration
-- `internal/combat`: contest resolution. The four movement contests in `go.go`
-  (a sneaking mover against each occupant, and the mover spotting hidden
-  players and mobs on arrival), the one in `skill.skullduggery.shadow.go` and
-  the one in `throw.go` all resolve through
+- `internal/combat`: contest resolution. The movement contests (a sneaking
+  mover against each occupant, and the mover spotting hidden players and
+  mobs on arrival) moved out of `go.go` in movement parity 4b — they resolve
+  in `actions.EntryDetection`, shared with mobs. The one in
+  `skill.skullduggery.shadow.go` and the one in `throw.go` are still here and
+  all resolve through
   `combat.RunContest(attackScore, []contest.Entry{{Score: defenseScore}})`.
   U4 routed them to per-channel wrappers; U6 collapsed those into this single
   entry point. This package imports `internal/contest` for the `Entry` type

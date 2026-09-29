@@ -89,7 +89,22 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **travel.go**: trips. `go_to`, `explore` and the automatic return walk a
   route one ordinary `go <exit>` at a time, waiting for each arrival,
   recording blocked exits, re-planning from wherever the companion ends up,
-  and giving up cleanly.
+  and giving up cleanly. Movement parity 4b: `advanceTravel` quotes each step
+  with `stepQuote` (`actions.QuoteMobStep(mob, exitName)`, a variable so
+  tests can pin it) before issuing it. Too tired to pay: the companion
+  pauses, adds one mind line (`tooTiredLine`, "You are too tired to go on,
+  and stop to catch your breath.") the first time she rests on a trip (once
+  per trip, not once per rest, so a companion whose steps outrun her regen
+  does not fill working memory with it), and re-quotes
+  next round without starting the step-timeout clock. A quote that says
+  `Never` (she could not pay even fully rested) ends the trip through
+  `endTooWeak`, which calls `endTravel` like any failed trip, with its mind
+  line and no failure charged to the exit. Before this
+  slice a step that didn't complete because it couldn't be paid for ran out
+  the `stepTimeoutRounds` timer like a genuinely blocked exit and counted an
+  `er.Fails++` against it, which could reach the 3-strike threshold
+  (`worldmap.go`) and teach the pathfinder to avoid a perfectly good exit for
+  no reason but exhaustion.
 - **archetype.go**: archetype validation against the game's skills, gear
   fit, skill rank words and rank-change detection.
 - **inventory.go**: supplies and shortfalls, carrying load, protected items.

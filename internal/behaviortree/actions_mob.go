@@ -310,6 +310,11 @@ func actGoToCallerRoom(params map[string]any, ctx *EvalContext) Result {
 	}
 	for exitName, info := range myRoom.Exits {
 		if info.RoomId == caller.Character.RoomId {
+			// Movement parity 4b: a tired mob fails the node so a selector
+			// falls through, rather than issuing a step it cannot pay.
+			if !actions.QuoteMobStep(self, exitName).OK() {
+				return Failure
+			}
 			self.Command(fmt.Sprintf("go %s", exitName))
 			return Success
 		}
@@ -352,6 +357,10 @@ func actMove(params map[string]any, ctx *EvalContext) Result {
 	}
 	direction := getStringParam(params, "direction")
 	if direction == "" {
+		return Failure
+	}
+	// Movement parity 4b: fail when the mob cannot pay for the step.
+	if !actions.QuoteMobStep(mob, direction).OK() {
 		return Failure
 	}
 	mob.Command("go " + direction)

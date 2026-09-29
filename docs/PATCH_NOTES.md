@@ -1,5 +1,15 @@
 # DOGMud Patch Notes
 
+## 2026-09-29: Creatures walk by your rules now
+
+Creatures now tire as they travel, exactly as you do, and stop to rest
+when they are spent instead of pressing on forever. A guard walking into
+a room can now notice you hiding there, and if you creep into a room
+while something is hiding in it, you have a chance to spot it too.
+Walking into a door that turns out to be locked no longer tires you out.
+Your own pets and companions never give you away, whether you sneak into
+a room beside them or try to hide in front of them.
+
 ## 2026-09-29: Monsters flee by your rules now
 
 - Monsters now flee by the same rules you do. A monster that turns to run

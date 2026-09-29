@@ -5,11 +5,8 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
-	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/conversationadapter"
 	"github.com/GoMudEngine/GoMud/internal/conversations"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
@@ -19,67 +16,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
-	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/relationships"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
-	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
-
-// movementTrainsSearch reports whether this move should record a search use.
-//
-// U7 prices movement partly on the actor's search rank, so travelling has to be
-// able to earn that discount -- today movement trains nothing at all, which
-// leaves nearly every live character at rank one with no way to improve it by
-// walking. But walking must stay the SLOW road: search is already easy to raise
-// through forage, search and track, and it should never be the case that the
-// best way to become a tracker is to pace back and forth.
-//
-// The rarity is in whether the use is RECORDED, not in the odds attached to it.
-//
-// NOTE: the original reason no longer holds. CheckSkillProgression derived its
-// decay from the use count (virtualRank = useCount / UsesPerRank), so recording
-// a use per step would have buried the counter and devalued forage, search and
-// track. Since U10b-0 Phase C the rank IS the skill level, so frequency no
-// longer exhausts the curve and UsesPerRank drives nothing.
-//
-// The gate stays anyway, on the simpler ground below: a roll now happens on
-// every recorded use, so recording one per room step would make walking the
-// fastest route to a search rank regardless of how the curve decays. Scaling
-// the odds down instead is not equivalent -- it would still pay out steadily
-// for an activity that costs the player nothing.
-//
-// STALE FIGURES, kept for intent only: at the shipped 1-in-200 gate this was
-// reckoned at roughly 7,700 room moves to search rank 10 and around 33,000 to
-// rank 35, against roughly 8,300 moves to rank 35 at a 1-in-50 gate. Those
-// numbers were computed under the retired useCount/UsesPerRank model and have
-// NOT been recomputed against the level-keyed curve or the Phase D multipliers.
-// The intent they encode still stands -- "an eye for the road picked up over a
-// very long time", not a training strategy -- but do not quote the counts.
-//
-// Second-order effect, and deliberate: search also feeds hidden-creature
-// detection on room entry (Perception + Search against Dex + Skullduggery, later
-// in this same file) and foraging yields. So a well-travelled character slowly
-// grows harder to sneak up on and slightly better at living off the land. That
-// is the intended flavour of the change -- please do not "fix" it.
-//
-// A zero or negative MovementSearchTrainChance switches the feature off.
-func movementTrainsSearch() bool {
-	chance := float64(configs.GetBalanceConfig().MovementSearchTrainChance)
-	if chance <= 0 {
-		return false
-	}
-	// util.Rand is the randomness idiom in this file. Resolving against 100,000
-	// keeps a knob as small as 0.00001 meaningful.
-	const resolution = 100000
-	return util.Rand(resolution) < int(chance*resolution)
-}
 
 // unlockExit performs the shared tail of a successful exit unlock: it tells the
 // actor, narrates to the room, plays the unlock sound, and clears the lock on
@@ -188,74 +133,9 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			return true, nil
 		}
 
-		actionCost := 10
-		encumbered := false
-		if user.Character.GetCarriedWeight() > user.Character.CarryCapacity() {
-			actionCost = 50
-			encumbered = true
-		}
-
-		if !user.Character.DeductActionPoints(actionCost) {
-
-			if encumbered {
-				user.SendText(messaging.CategorySystem, "You're too encumbered to move (<ansi fg=\"command\">help encumbrance</ansi>)!")
-			} else {
-				user.SendText(messaging.CategorySystem, "You're too tired to move (slow down)!")
-				mudlog.Debug("No ActionPoints", "AP", user.Character.ActionPoints, "Needed", actionCost)
-			}
-
-			return true, nil
-		}
-
-		// Calculate stamina cost for movement
-		// Get destination room biome for terrain difficulty
 		destRoom := rooms.LoadRoom(goRoomId)
 		if destRoom == nil {
 			return false, fmt.Errorf(`room %d not found`, goRoomId)
-		}
-
-		// Get biome movement cost
-		biome, _ := rooms.GetBiome(destRoom.Biome)
-		terrainMultiplier := 1.0
-		if biome != nil {
-			terrainMultiplier = biome.GetMovementCost()
-		}
-
-		// Calculate and check stamina cost
-		staminaCost := user.Character.GetMovementStaminaCost(terrainMultiplier)
-		if mutations.IsFlying(user.Character.Mutations) {
-			// Winged Flight glides over terrain — movement barely tires you.
-			//
-			// The old "never below 1" clamp here is gone with the integer cost.
-			// It was the same flattening as MovementCostFloor wearing a
-			// different hat, and on a fractional cost it inverted the mutation:
-			// halving a 0.55 move to 0.27 and then clamping it back to a whole
-			// point made flight cost a laden flyer MORE than the unfloored
-			// ground price it was meant to undercut.
-			staminaCost *= float64(configs.GetBalanceConfig().FlightMoveStaminaMult)
-		}
-		// U5b-2: movement REFUSES when unaffordable -- the character keeps every
-		// other action, and this is the gate that makes flee the only
-		// player-initiated disengage while in combat.
-		//
-		// ApplyCostFloatOrRefuse, not ApplyCost: the cost is fractional and its
-		// remainder is banked so the encumbrance curve keeps its full range. The
-		// refusal below happens BEFORE anything is banked, so a refused move
-		// leaves no debt behind.
-		if !user.Character.ApplyCostFloatOrRefuse(characters.PoolStamina, staminaCost) {
-			user.SendText(messaging.CategorySystem, "You're too exhausted to move! Rest and recover your stamina.")
-			// Refund the action points since movement failed
-			user.Character.ActionPoints += actionCost
-			return true, nil
-		}
-
-		// Warn if stamina is getting low (< 25% of the pool they can reach).
-		// EffectivePoolMax, not the raw max (U7 Task 11): current stamina is
-		// already reserve-clamped, so a raw denominator nags a 40%-reserved
-		// character about being winded at what is, for them, a full pool. No
-		// mechanical effect, but the message is still wrong.
-		if user.Character.Stamina < user.Character.EffectivePoolMax(characters.PoolStamina)/4 {
-			user.SendText(messaging.CategorySystem, "<ansi fg=\"yellow\">You're feeling winded. Consider resting to recover your stamina.</ansi>")
 		}
 
 		originRoomId := user.Character.RoomId
@@ -335,7 +215,28 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			return true, nil
 		}
 
-		// destRoom already loaded above for stamina calculation
+		// Movement parity 4b: the step is paid here, after the lock and the
+		// exit-message requeue, so a door that stays locked costs nothing and
+		// a requeued step is charged once, not twice. The price and the charge
+		// are actions.ChargeMove, shared with mobs. U5b-2: movement REFUSES
+		// when unaffordable, leaving no debt behind.
+		charge := actions.ChargeMove(actions.NewUserActorInRoom(user, room), destRoom)
+		switch charge.Refusal {
+		case actions.MoveRefuseEncumbered:
+			user.SendText(messaging.CategorySystem, "You're too encumbered to move (<ansi fg=\"command\">help encumbrance</ansi>)!")
+			return true, nil
+		case actions.MoveRefuseTired:
+			user.SendText(messaging.CategorySystem, "You're too tired to move (slow down)!")
+			mudlog.Debug("No ActionPoints", "AP", user.Character.ActionPoints, "Needed", charge.ActionCost)
+			return true, nil
+		case actions.MoveRefuseExhausted:
+			user.SendText(messaging.CategorySystem, "You're too exhausted to move! Rest and recover your stamina.")
+			return true, nil
+		}
+		if charge.Winded {
+			user.SendText(messaging.CategorySystem, "<ansi fg=\"yellow\">You're feeling winded. Consider resting to recover your stamina.</ansi>")
+		}
+
 		// Grab the exit in the target room that leads to this room (if any)
 		enterFromExit := destRoom.FindExitTo(room.RoomId)
 
@@ -386,19 +287,10 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			// non-ephemeral rooms, so this is a no-op there.
 			user.Character.MarkRoomVisited(destRoom.Zone, matchRoom)
 
-			// U7 Task 10: a completed move rarely trains search. This sits
-			// inside the MoveToRoom success branch on purpose -- a refused
-			// move (no action points, unaffordable stamina), a locked exit the
-			// actor could not open, and a MoveToRoom error all return or
-			// message out above and never reach here.
-			// U10b-1 Task 22: won is unconditionally true. Walking is not a
-			// contest -- movementTrainsSearch is a rarity gate, not a roll
-			// against anything -- so there is no losing branch. The gate is
-			// unchanged and is not the firing rule.
-			if movementTrainsSearch() {
-				user.Character.AwardResolved(user.UserId, true,
-					user.Character.CandidateFor(string(skills.Search)))
-			}
+			// U7 Task 10: a completed move rarely trains search. Inside the
+			// MoveToRoom success branch on purpose: a refused or locked move
+			// never reaches here. Shared with mobs (movement parity 4b).
+			actions.TrainSearchOnMove(actions.NewUserActorInRoom(user, destRoom))
 
 			// Tell the player they are moving
 			if isSneaking {
@@ -542,187 +434,10 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				}
 			}
 
-			// The destination room's light is invariant across every
-			// occupant checked in the two stealth-detection blocks below
-			// (isSneaking and !isSneaking), so it is composed once here
-			// rather than inside CalcSneakScoreVsObserver on every occupant
-			// in what can be an unconditional per-room-entry loop.
-			destRoomLight := messaging.FixedLight(destRoom.LightLevel())
-
-			// Stealth detection: hidden player entering a room
-			if isSneaking {
-				// Build party exclusion set so allies don't expose the sneaker
-				partyIds := make(map[int]bool)
-				if p := parties.Get(user.UserId); p != nil {
-					for _, uid := range p.GetMembers() {
-						partyIds[uid] = true
-					}
-				}
-
-				spotted := false
-
-				// Check player observers. Sneak score is computed per-observer so
-				// NightVision observers apply the correct light modifier.
-				for _, pId := range destRoom.GetPlayers() {
-					if pId == user.UserId || partyIds[pId] {
-						continue
-					}
-					p := users.GetByUserId(pId)
-					if p == nil {
-						continue
-					}
-					sneakScore := actions.CalcSneakScoreVsObserver(user.Character, p.Character, destRoomLight)
-					observerScore := actions.CalcDetectionScore(p.Character, destRoom)
-					success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
-					if !success {
-						p.SendText(messaging.CategorySystem, fmt.Sprintf(
-							`<ansi fg="username">%s</ansi> slips into the room but you notice them.`,
-							user.Character.Name))
-						spotted = true
-						break
-					}
-				}
-
-				// Check mob observers if not yet spotted
-				if !spotted {
-					for _, mId := range destRoom.GetMobs() {
-						mob := mobs.GetInstance(mId)
-						if mob == nil {
-							continue
-						}
-						sneakScore := actions.CalcSneakScoreVsObserver(user.Character, &mob.Character, destRoomLight)
-						observerScore := actions.CalcDetectionScore(&mob.Character, destRoom)
-						success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
-						if !success {
-							spotted = true
-							break
-						}
-					}
-				}
-
-				if spotted {
-					// Drive the Awareness FSM out of Hidden — the mirror
-					// cascade in Awareness_Cascades.go handles
-					// CancelConditionsWithFlag(conditions.Hidden) and clears the
-					// hidden state. Calling CancelConditionsWithFlag directly
-					// here would expire condition 9 but leave the FSM in
-					// Hidden, so IsHidden() would still return true and
-					// the next attack would still surprise-strike.
-					_ = user.Character.Awareness.TransitionToRevealing(
-						state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
-					user.Character.SetMiscData(`sneaking`, nil)
-					isSneaking = false
-					// Intentionally silent — if the observer is itself hidden,
-					// surfacing their name leaks information the player can't
-					// see. The Hidden condition's end_user_text ("You no longer feel
-					// sneaky.") on the next tick is sufficient signal that
-					// stealth dropped.
-				}
-			}
-
-			// Newcomer tries to spot hidden occupants (players and mobs)
-			if !isSneaking {
-				// The newcomer now stands in destRoom: that is the light their
-				// eyes meet.
-				observerScore := actions.CalcDetectionScore(user.Character, destRoom)
-
-				// Check hidden players
-				for _, pId := range destRoom.GetPlayers() {
-					if pId == user.UserId {
-						continue
-					}
-					hiddenP := users.GetByUserId(pId)
-					if hiddenP == nil || !hiddenP.Character.IsHidden() {
-						continue
-					}
-					hiddenScore := actions.CalcSneakScoreVsObserver(hiddenP.Character, user.Character, destRoomLight)
-					success := combat.RunContest(observerScore, []contest.Entry{{Score: hiddenScore}}).Success
-					if success {
-						_ = hiddenP.Character.Awareness.TransitionToRevealing(
-							state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
-						hiddenP.Character.SetMiscData(`sneaking`, nil)
-						// Neither side may learn a name they cannot see. Both
-						// lines used to name the other party unconditionally,
-						// so a player standing in an unlit room with no
-						// nightvision was told exactly who was there. The
-						// "notices you as you enter" line further down this
-						// same function already gets this right.
-						if messaging.CanSeeClearly(hiddenP.Character, destRoom) {
-							hiddenP.SendText(messaging.CategorySystem, fmt.Sprintf(
-								`<ansi fg="username">%s</ansi> enters the room and notices you!`,
-								user.Character.Name))
-						} else {
-							hiddenP.SendText(messaging.CategorySystem,
-								`Someone enters the room and notices you!`)
-						}
-						if messaging.CanSeeClearly(user.Character, destRoom) {
-							user.SendText(messaging.CategorySystem, fmt.Sprintf(
-								`You notice <ansi fg="username">%s</ansi> lurking in the shadows.`,
-								hiddenP.Character.Name))
-						} else {
-							user.SendText(messaging.CategorySystem,
-								`You notice someone lurking in the shadows.`)
-						}
-					}
-					// U10b-2: the observer's Search award now fires on BOTH
-					// outcomes, full on a win and partial on a loss, instead of
-					// only when the observer spotted someone.
-					//
-					// It sits outside the `if success` block on purpose. This is
-					// a resolved contest -- U10b-1b gave it a real opposed roll
-					// against the hider's sneak score -- and the settled firing
-					// convention pays a resolved loss at the partial fraction.
-					// Leaving the award inside the success branch was the exact
-					// win-only defect the convention exists to remove; it stayed
-					// behind because U10b-1b converted this site's RESOLUTION and
-					// left its FIRING, which is why the seam guard carried a row
-					// for this file marked temporary.
-					//
-					// Still opportunity-gated: no hidden actor in the room means
-					// no contest and no award, and it fires at most once per room
-					// entry per hidden actor.
-					user.Character.AwardResolved(user.UserId, success,
-						user.Character.CandidateFor(string(skills.Search)))
-				}
-
-				// Check hidden mobs
-				for _, mId := range destRoom.GetMobs(rooms.FindAll) {
-					mob := mobs.GetInstance(mId)
-					if mob == nil || !mob.Character.IsHidden() {
-						continue
-					}
-					hiddenScore := actions.CalcSneakScoreVsObserver(&mob.Character, user.Character, destRoomLight)
-					success := combat.RunContest(observerScore, []contest.Entry{{Score: hiddenScore}}).Success
-					if success {
-						_ = mob.Character.Awareness.TransitionToRevealing(
-							state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
-						// Spotting something is not the same as identifying it.
-						// In an unlit room with no nightvision the spotter
-						// learns that something is there, not what it is.
-						if messaging.CanSeeClearly(user.Character, destRoom) {
-							user.SendText(messaging.CategorySystem, fmt.Sprintf(
-								`You notice <ansi fg="mobname">%s</ansi> lurking in the shadows!`,
-								mob.Character.Name))
-						} else {
-							user.SendText(messaging.CategorySystem,
-								`You notice something lurking in the shadows!`)
-						}
-						// SendTextVisual, not SendText: this is a sight event,
-						// and the audio channel bypasses the sight gate and the
-						// anonymizer by design. Visual gets each bystander the
-						// right version, or nothing at all if they cannot see.
-						destRoom.SendTextVisual(messaging.CategorySystem, fmt.Sprintf(
-							`<ansi fg="username">%s</ansi> spots <ansi fg="mobname">%s</ansi> hiding in the shadows!`,
-							user.Character.Name, mob.Character.Name),
-							user.UserId)
-					}
-					// U10b-2: same conversion as the hidden-PLAYER loop above --
-					// full on a win, partial on a resolved loss. See that comment
-					// for why this sits outside the `if success` block.
-					user.Character.AwardResolved(user.UserId, success,
-						user.Character.CandidateFor(string(skills.Search)))
-				}
-			}
+			// Hidden detection on room entry, both directions: the sneaking
+			// mover against the room, then the newcomer against the room's
+			// hiders. Shared with mobs (movement parity 4b).
+			isSneaking = actions.EntryDetection(actions.NewUserActorInRoom(user, destRoom), destRoom, isSneaking).StillSneaking
 
 			if !isSneaking {
 				// U10b-1 Task 19 DELETED the mob-follow roll that stood here.

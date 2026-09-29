@@ -1,4 +1,4 @@
-package usercommands
+package actions
 
 // dark_name_leak_guard_test.go — guards the 2026-08-31 dark-room name leak.
 //
@@ -36,6 +36,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -53,10 +55,13 @@ type posRange struct {
 	why      string
 }
 
-func TestHiddenDetectionNeverNamesWhatYouCannotSee(t *testing.T) {
+func TestEntryDetectionNeverNamesWhatYouCannotSee(t *testing.T) {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "go.go", nil, parser.ParseComments)
-	require.NoError(t, err, "go.go must parse")
+	// Anchored on this file, not the CWD: other actions tests chdir.
+	_, thisFile, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	file, err := parser.ParseFile(fset, filepath.Join(filepath.Dir(thisFile), "move.go"), nil, parser.ParseComments)
+	require.NoError(t, err, "move.go must parse")
 
 	// Pass 1 — collect the spans inside which naming a creature is legitimate.
 	var protected []posRange
@@ -136,6 +141,6 @@ func TestHiddenDetectionNeverNamesWhatYouCannotSee(t *testing.T) {
 	// the hidden-mob notice, and the room broadcast. If a rename or a refactor
 	// makes this walk match nothing, that is a broken guard, not a clean file.
 	require.GreaterOrEqual(t, found, 3,
-		"expected at least 3 name-tagged stealth lines in go.go, found %d — "+
+		"expected at least 3 name-tagged stealth lines in move.go, found %d; "+
 			"the walk is no longer finding them", found)
 }

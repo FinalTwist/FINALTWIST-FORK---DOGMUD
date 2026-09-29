@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -94,6 +95,12 @@ func Wander(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		if r := rooms.LoadRoom(roomId); r != nil {
 			if !restrictZone || r.Zone == mob.Character.Zone {
 
+				// Movement parity 4b: a step the wanderer cannot pay is not
+				// taken and not counted, and drags no followers.
+				if !actions.QuoteMobStep(mob, exitName).OK() {
+					return true, nil
+				}
+
 				// Stage 42.8: Capture mob list before alpha moves (for follower movement)
 				var preMoveRoomMobs []int
 				if mob.IsPackAlpha && mobs.PackRoamingEnabled() {
@@ -103,9 +110,12 @@ func Wander(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				mob.WanderCount++
 				mob.Command(fmt.Sprintf("go %s", exitName))
 
-				// Stage 42.8: Move pack followers through the same exit
+				// Stage 42.8: Move pack followers through the same exit. Each
+				// pays its own step.
 				if mob.IsPackAlpha && len(preMoveRoomMobs) > 0 {
-					mobs.MovePackFollowers(mob, exitName, preMoveRoomMobs)
+					mobs.MovePackFollowers(mob, exitName, preMoveRoomMobs, func(f *mobs.Mob) bool {
+						return actions.QuoteMobStep(f, exitName).OK()
+					})
 				}
 
 			}
