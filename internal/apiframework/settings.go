@@ -15,8 +15,9 @@ import (
 const DefaultBaseURL = `https://api.openai.com/v1`
 
 // EndpointAllowed keeps the key and whatever is sent going where they are
-// meant to: https, and an OpenAI (or Azure OpenAI) host, unless the operator
-// has deliberately allowed another provider.
+// meant to: https, and exactly api.openai.com or an Azure OpenAI resource
+// (*.openai.azure.com), unless the operator has deliberately allowed
+// another provider (AllowCustomEndpoint, hard-locked).
 func EndpointAllowed(raw string, allowCustom bool) bool {
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == `` {
@@ -28,8 +29,14 @@ func EndpointAllowed(raw string, allowCustom bool) bool {
 	if allowCustom {
 		return true
 	}
+	// Exactly OpenAI's API host, or an Azure OpenAI resource
+	// (<resource>.openai.azure.com). Any other openai.com or azure.com host
+	// is not where the key belongs. Azure's newer AI Services hosts
+	// (*.cognitiveservices.azure.com, *.services.ai.azure.com) are refused
+	// too; an operator who uses one sets AllowCustomEndpoint, which is
+	// hard-locked, so only config.yaml can.
 	host := strings.ToLower(u.Hostname())
-	return host == `api.openai.com` || strings.HasSuffix(host, `.openai.com`) || strings.HasSuffix(host, `.azure.com`)
+	return host == `api.openai.com` || strings.HasSuffix(host, `.openai.azure.com`)
 }
 
 // DefaultKeyEnv is the environment variable read for the server's key when

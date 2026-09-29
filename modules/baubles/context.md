@@ -84,7 +84,9 @@ from the room it was found in.
 player chose), `Temperature` (0, not sent), `TimeoutSeconds` (15, 3 to 30),
 `MaxCompletionTokens` (800), `RetryTransient` (false), `MaxConcurrent` (4),
 `ModerateOutput` (true), `ModerationModel` (omni-moderation-latest),
-`LogRequests` (false).
+`LogRequests` (false). `Model`, `MaxCompletionTokens`, `MaxConcurrent`,
+`UsePlayerKeys`, `ModerateOutput` and `ModerationModel` are hard-locked
+(`configs.hardLocked`): only config.yaml sets them.
 
 The key, endpoint, daily budget and breaker are not here: they are the
 `APIFramework` section's, shared with the companion.

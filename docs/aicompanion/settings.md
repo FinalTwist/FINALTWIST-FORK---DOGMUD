@@ -27,7 +27,7 @@ APIFramework:
   APIKeyEnv: "OPENAI_API_KEY"   # environment variable holding the key
   APIKey: ""                     # or the key itself; the variable wins
   BaseURL: "https://api.openai.com/v1"
-  AllowCustomEndpoint: ""        # "true"/"false"; empty inherits the old setting. Off: any other host is refused
+  AllowCustomEndpoint: ""        # "true"/"false"; empty inherits the old setting. Off: only api.openai.com and *.openai.azure.com are accepted (Azure AI Services hosts need it on)
   DailyTokenBudget: 2000000      # tokens per UTC day, every feature together; -1 = no cap
   BreakerErrors: 5               # failures in a row before a pause
   BreakerSeconds: 60
@@ -344,6 +344,11 @@ finds are named on their own key through the same relay, with nothing of
 theirs in the request (only the room's authored text). Unticked, their finds
 use the server's key, or stay generic trinkets when there is none. The relay
 page refuses the bauble request shape from a key whose box is not ticked.
+
+`AllowCustomEndpoint` off accepts exactly `api.openai.com` and Azure OpenAI
+resources (`*.openai.azure.com`). Azure's AI Services hosts
+(`*.cognitiveservices.azure.com`, `*.services.ai.azure.com`) need it on, and
+it is hard-locked: only the config file changes it.
 
 ### Deploying player keys
 
