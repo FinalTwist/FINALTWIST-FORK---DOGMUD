@@ -66,6 +66,26 @@ func TestBaubleOneZeroWeightIsHonoured(t *testing.T) {
 	}
 }
 
+// The catalog sweep runs every BaubleSweepHours real hours: 6 by default,
+// never less than 1.
+func TestBaubleSweepHours(t *testing.T) {
+	b := &Balance{}
+	b.validateBaubles()
+	if b.BaubleSweepHours != 6 {
+		t.Fatalf("default %d, want 6", b.BaubleSweepHours)
+	}
+	b.BaubleSweepHours = -2
+	b.validateBaubles()
+	if b.BaubleSweepHours != 6 {
+		t.Fatalf("a negative value resets to %d, want 6", b.BaubleSweepHours)
+	}
+	b.BaubleSweepHours = 1
+	b.validateBaubles()
+	if b.BaubleSweepHours != 1 {
+		t.Fatalf("1 is allowed, got %d", b.BaubleSweepHours)
+	}
+}
+
 // A fence never pays more than the whole value; nonsense takes the defaults.
 func TestBaubleStolenSettingsAreBounded(t *testing.T) {
 	b := &Balance{BaubleStolenHeatHours: -4, BaubleFenceBuyPct: 250, BaubleReturnsPerCatch: -1}
@@ -193,6 +213,7 @@ func TestBaubleShippedConfigMatchesDefaults(t *testing.T) {
 		!reflect.DeepEqual(shipped.BaubleFenceGroups, defaults.BaubleFenceGroups) ||
 		shipped.BaubleReturnsPerCatch != defaults.BaubleReturnsPerCatch ||
 		shipped.BaubleCatalogKeepDays != defaults.BaubleCatalogKeepDays ||
+		shipped.BaubleSweepHours != defaults.BaubleSweepHours ||
 		shipped.BaubleCheapMinValue != defaults.BaubleCheapMinValue ||
 		shipped.BaubleCheapMaxValue != defaults.BaubleCheapMaxValue ||
 		shipped.BaubleAverageMinValue != defaults.BaubleAverageMinValue ||
