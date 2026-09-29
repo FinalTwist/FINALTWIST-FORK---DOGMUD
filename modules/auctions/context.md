@@ -69,6 +69,11 @@ that has been spending cannot keep bidding, and outbid gold is refunded.
   drains an NPC's wallet over days of uptime.
 - **`tooTrivialToAuction` filters junk** before it ever reaches the house. If a
   listing is refused, check there first.
+- **`auctionRefusesStolen` turns away a stolen bauble hot where it is
+  listed from** (docs/baubles Phase 6c: `baubles.ItemIsHotIn` with the
+  lister's room zone, read through the `auctionClock` clock), so the house
+  cannot launder what the area's honest merchants refuse; listed from
+  another town it is just a trinket.
 - **`restoreNpcBinding` re-attaches buyers after load** — a persisted auction
   holds a buyer id, not a live object. Anything reconstructing auctions must
   call it or NPC bids stop mid-auction.

@@ -1,6 +1,7 @@
 package aicompanion
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -137,6 +139,9 @@ type tierStats struct {
 }
 
 func (m *AICompanionModule) recordCall(tier string, res modelResult) {
+	if errors.Is(res.Err, errServerResting) {
+		return // held back for a breaker's probe: no call was made
+	}
 	if m.stats == nil {
 		m.stats = map[string]*tierStats{}
 	}
@@ -171,30 +176,30 @@ func (m *AICompanionModule) statsLines() []string {
 	return out
 }
 
-// Circuit breaker. After BreakerErrors consecutive failures the module
-// stops calling the model for BreakerSeconds and runs on fallback lines;
-// the first call after that is a probe, and one success closes it again.
+// Circuit breakers on the server's key (apiframework): the companion's own,
+// fed by every failure of its calls exactly as its breaker always was, and
+// the provider's, shared with every feature and fed only by failures that
+// say the provider or key is unwell (so a bauble model the provider refuses
+// never pauses her). APIFramework.BreakerErrors failures in a row stop calls
+// for BreakerSeconds; then exactly one call is let through as a probe, and
+// its success closes the breaker again. The companion runs on fallback lines
+// while either is open. A player's own key has its own breaker (relayTable).
 
 func (m *AICompanionModule) breakerOpen(now time.Time) bool {
-	return now.Before(m.breakerUntil)
+	return m.fw().Blocked(apiframework.ConsumerCompanion, now)
 }
 
-func (m *AICompanionModule) breakerResult(err error, now time.Time) {
-	if errors.Is(err, errNoConsent) {
-		// The door refused a request that never left the server. That is a
-		// bug in the caller, not the provider failing, and must not pause
-		// every other companion.
+func (m *AICompanionModule) breakerResult(t apiframework.Ticket, err error, now time.Time) {
+	if errors.Is(err, errNoConsent) || errors.Is(err, apiframework.ErrNotAdmitted) ||
+		errors.Is(err, errServerResting) || errors.Is(err, context.Canceled) {
+		// A request that never left the server (the door refused it, or the
+		// breaker was resting), or one given up on: not the provider
+		// failing, and must not pause every other companion. Its leave is
+		// handed back unjudged.
+		m.fw().Release(apiframework.ConsumerCompanion, t)
 		return
 	}
-	if err == nil {
-		m.consecutiveErrors = 0
-		return
-	}
-	m.consecutiveErrors++
-	if m.consecutiveErrors >= m.cfg.BreakerErrors {
-		m.breakerUntil = now.Add(time.Duration(m.cfg.BreakerSeconds) * time.Second)
-		m.consecutiveErrors = 0
-	}
+	m.fw().Record(apiframework.ConsumerCompanion, t, err, now)
 }
 
 // ownerBudgetLeft reports whether one companion has any daily tokens left
@@ -465,7 +470,7 @@ func (m *AICompanionModule) settingsFor(tier string, tools bool) tierSettings {
 // and stores the answer under the mud lock. A failure leaves the list
 // unknown and the tiers simply try their preferences in order.
 func (m *AICompanionModule) probeModels() {
-	baseURL, key := m.cfg.BaseURL, m.apiKey()
+	baseURL, key := m.baseURL(), m.apiKey()
 	if key == `` {
 		return
 	}
@@ -489,18 +494,9 @@ func (m *AICompanionModule) probeModels() {
 // is known.
 
 // estimateTokens is a rough count of a request's prompt, about four
-// characters to the token.
+// characters to the token (apiframework.EstimateTokens).
 func estimateTokens(msgs []chatMessage) int {
-	n := 0
-	for _, msg := range msgs {
-		// Bytes, not runes: a multi-byte character is more tokens, not
-		// fewer, so counting bytes errs towards over-reserving.
-		n += len(msg.Content)/4 + 8
-		for _, tc := range msg.ToolCalls {
-			n += (len(tc.Function.Name) + len(tc.Function.Arguments)) / 4
-		}
-	}
-	return n
+	return apiframework.EstimateTokens(msgs)
 }
 
 // requestOverhead is the schema and the tool definitions, which are sent
@@ -549,27 +545,35 @@ func (m *AICompanionModule) tryReserveTokens(ownerId int, tokens int) bool {
 // passer-by prompted (askerId above 0) is held against their own
 // StrangerDailyTokens instead of the owner's companion allowance, so a
 // stranger cannot spend somebody else's companion into silence. The
-// server's budget holds either way. Check and hold are still one step.
+// server's one budget (apiframework, shared with every feature) holds
+// either way, and is reserved in one check-and-hold step; the companion's
+// own allowances are checked first, so a refusal there holds nothing.
 func (m *AICompanionModule) tryReserveFor(ownerId int, askerId int, tokens int) bool {
+	_, ok := m.reserveFor(ownerId, askerId, tokens)
+	return ok
+}
+
+// reserveFor is tryReserveFor keeping the server budget's own hold, which
+// is what settleHeld gives back: the ledger's day, not the module's.
+func (m *AICompanionModule) reserveFor(ownerId int, askerId int, tokens int) (apiframework.Hold, bool) {
 	m.rollDay()
-	if m.cfg.DailyTokenBudget > 0 && m.tokensToday+tokens > m.cfg.DailyTokenBudget {
-		return false
-	}
 	if askerId > 0 {
 		if !m.strangerFits(ownerId, askerId, tokens) {
-			return false
+			return apiframework.Hold{}, false
 		}
 	} else if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
-		return false
+		return apiframework.Hold{}, false
 	}
-	m.tokensToday += tokens
-	m.outstanding += tokens
+	fh, err := m.fw().Reserve(apiframework.ConsumerCompanion, tokens)
+	if err != nil {
+		return apiframework.Hold{}, false
+	}
 	if askerId > 0 {
 		m.chargeStrangerFor(ownerId, askerId, tokens)
 	} else {
 		m.chargeOwner(ownerId, tokens)
 	}
-	return true
+	return fh, true
 }
 
 // settleTokens replaces a reservation with what the call really used.
@@ -592,15 +596,31 @@ func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, us
 // spent. What it used past its reservation is still charged.
 func (m *AICompanionModule) settleForDay(day string, ownerId int, askerId int, reserved int, used int) {
 	m.rollDay()
-	m.outstanding -= reserved
-	if m.outstanding < 0 {
-		m.outstanding = 0
+	holdDay := day
+	if holdDay == `` {
+		holdDay = m.budgetDay
 	}
+	m.settleHeld(apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay}, reserved, day, ownerId, askerId, used)
+}
+
+// settleHeld settles the server budget's own hold fh (reserveFor), and the
+// owner's or passer-by's counters for the reserved tokens held on the
+// module's budget day (day; "" is today). The ledger is given back exactly
+// the hold it gave out, so a call spanning the UTC midnight is settled
+// against the day the ledger held it on, even when the module's day turned
+// at a different moment. A hold with no ledger part (never reserved there)
+// is rebuilt from reserved and day, as before.
+func (m *AICompanionModule) settleHeld(fh apiframework.Hold, reserved int, day string, ownerId int, askerId int, used int) {
+	m.rollDay()
+	if fh.Consumer == `` {
+		holdDay := day
+		if holdDay == `` {
+			holdDay = m.budgetDay
+		}
+		fh = apiframework.Hold{Consumer: apiframework.ConsumerCompanion, Tokens: reserved, Day: holdDay}
+	}
+	m.fw().Settle(fh, used, false)
 	diff := used - reserved
-	m.tokensToday += diff
-	if m.tokensToday < 0 {
-		m.tokensToday = 0
-	}
 	if day != `` && day != m.budgetDay && diff < 0 {
 		diff = 0
 	}
@@ -642,7 +662,9 @@ func (m *AICompanionModule) loadBudget() {
 		return // a stale day is simply a new day
 	}
 	m.budgetDay = st.Day
-	m.tokensToday = st.Tokens
+	// The server's tokens are apiframework's now. A day saved before the
+	// move still counts: it is handed over once, to a fresh day only.
+	m.fw().SeedTokens(apiframework.ConsumerCompanion, st.Day, st.Tokens)
 	m.callsToday = st.Calls
 	m.ownerTokens = st.Owners
 	m.strangerTokens = st.Strangers
@@ -666,8 +688,20 @@ func (m *AICompanionModule) saveBudget() {
 	if !m.cfg.Enabled {
 		return
 	}
-	st := budgetState{Day: m.budgetDay, Tokens: m.tokensToday, Calls: m.callsToday,
+	apiframework.SaveBudget()
+	st := budgetState{Day: m.budgetDay, Calls: m.callsToday,
 		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor, Notices: m.noticesToday}
+	// Tokens is no longer read (apiframework keeps the books), but the
+	// companion's share of the server key's day is still written, so a
+	// server rolled back to the code before the framework resumes the day
+	// where it was rather than with a fresh budget.
+	if u := m.fw().Today(); u.Day == m.budgetDay {
+		for _, c := range u.ByConsumer {
+			if c.Consumer == apiframework.ConsumerCompanion {
+				st.Tokens = c.Tokens
+			}
+		}
+	}
 	if err := m.plug.WriteStruct(budgetStateId, &st); err != nil {
 		mudlog.Error(`aicompanion`, `action`, `saveBudget`, `error`, err)
 	}

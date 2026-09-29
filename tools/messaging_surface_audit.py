@@ -38,7 +38,7 @@ WORLD = os.path.join(REPO, "_datafiles", "world", "dogmud")
 # living state (see CLAUDE.md).
 SKIP_DIRS = {
     "mobs.instances", "rooms.instances", "users", "shops",
-    "guilds", "moderation", "plugin-data", "warehouses",
+    "guilds", "moderation", "plugin-data", "warehouses", "baubles",
 }
 
 # A key is a text candidate if its name contains any of these stems. Broad on

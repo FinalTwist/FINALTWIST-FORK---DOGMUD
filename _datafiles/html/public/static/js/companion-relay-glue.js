@@ -13,7 +13,7 @@
 //                   {type:'request', id, body, deadlineMs?}
 //   frame -> page   {type:'status', ready, model?, locked}
 //                   {type:'response', id, status, body} {type:'hide'}
-//   page -> server  Companion.Relay.Ready {model} | Companion.Relay.Gone {}
+//   page -> server  Companion.Relay.Ready {model, finds} | Companion.Relay.Gone {}
 //                   Companion.Relay.Response {id, status, body}
 //
 // Tests: tools/jstest/companion-relay-glue.test.js.
@@ -182,7 +182,8 @@
       locked = d.locked === true;
       if (d.ready === true && isValidModel(d.model)) {
         ready = true;
-        send('Companion.Relay.Ready', { model: d.model });
+        // finds: the player allowed their key to name what they find.
+        send('Companion.Relay.Ready', { model: d.model, finds: d.finds === true });
       } else {
         ready = false;
         send('Companion.Relay.Gone', {});

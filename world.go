@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/badinputtracker"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -797,6 +798,10 @@ loop:
 			mudlog.Warn(`MainWorker`, `action`, `shutdown received`)
 
 			util.LockMud()
+			// Finds still on their way need this lock to finish; finish them
+			// before anything is saved (see triggerCopyover).
+			actions.FlushBaubleDeliveries()
+			actions.FlushPocketAttempts()
 			// Guard G4 (chunk 3.6b-1). Autosave spreads its writes across ticks,
 			// so a cycle may be mid-flight; those pending writes exist only in
 			// memory and the process is about to exit.

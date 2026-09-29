@@ -19,7 +19,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/dice"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/audio"
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/bounties"
 	"github.com/GoMudEngine/GoMud/internal/caravan"
@@ -606,6 +608,8 @@ func main() {
 	forager.SaveAllThroughputs()
 	caravan.SaveAllThroughputs()
 	warehouse.SaveAll()
+	baubles.SaveAll()         // retries any catalog write that failed; the rest is already on disk
+	apiframework.SaveBudget() // the server key's day's spending, shared by every feature
 
 	// Just a goroutine that spins its wheels until the program shuts down")
 	go func() {
@@ -1634,6 +1638,17 @@ func loadAllDataFiles(isReload bool) {
 	rooms.RebuildZonePlayerCount() // build the zone → player-count index
 	conditions.LoadDataFiles()     // Load conditions before items for cost calculation reasons
 	items.LoadDataFiles()
+	// Baubles: the catalog behind item 900 (docs/baubles). Loaded after items
+	// so the carrier exists; installs the resolver GetSpec reads names from.
+	// A corrupt shard is logged and skipped inside Load; only an unreadable
+	// directory comes back here. Boot only: the catalog is runtime state, not
+	// authored data, so a data reload must not throw away records whose
+	// write is still waiting on a retry.
+	if !isReload {
+		if err := baubles.Load(); err != nil {
+			mudlog.Error("baubles.Load", "error", err)
+		}
+	}
 	// Pinnacle Stage 1: sentient item voices. Must load AFTER items so the
 	// voice_id cross-validation can see every item's ItemSpec.
 	itemvoices.LoadDataFiles()

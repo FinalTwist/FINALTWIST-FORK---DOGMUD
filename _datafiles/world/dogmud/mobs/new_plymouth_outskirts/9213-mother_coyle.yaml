@@ -12,7 +12,10 @@ groups:
   - innkeeper
   - new_plymouth_outskirts_folk
   - shopkeepers
+  - fence
 idlecommands:
+  - 'emote turns a small trinket over in her hand, asks nothing about it, and names a price'
+  - ''
   - 'emote counts a stack of coppers into columns with the tip of one finger,
     lips moving in a private arithmetic.'
   - ''

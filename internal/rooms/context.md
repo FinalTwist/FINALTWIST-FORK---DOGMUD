@@ -400,6 +400,7 @@ When writing hidden noun descriptions:
 | `exit`-adjacent: `sign.go` | Room signs |
 | `container.go` | Room containers |
 | `corpse.go` / `corpse_roundrobin.go` | Corpses and fair-share corpse looting |
+| `baubles_untaken.go` | Found baubles left lying untaken for `BaubleUntakenHours` (24) vanish: `removeUntakenBaubles`, run from `RoundTick` (rooms with players) and `Prepare` (before a visitor sees the floor); records `baubles.MarkVanished` |
 | `spawninfo.go` / `spawninfo_validate.go` | Room spawn lists and their validation |
 | `instances.go` / `ephemeral.go` | Instanced and ephemeral rooms |
 | `cubegen.go` | Generated cube/maze room structures |
@@ -519,6 +520,7 @@ from `Exits`.
 - `internal/configs`: Configuration management
 - `internal/lightscale`: The graded light scale's combine/attenuate arithmetic
 - `internal/fileloader`: Data file loading system
+- `internal/baubles`: `UntakenLimit` and `MarkVanished` for the untaken sweep (baubles imports only configs, items, mudlog and util, so there is no cycle)
 
 ## Usage Patterns
 - Room loading through manager functions with automatic caching

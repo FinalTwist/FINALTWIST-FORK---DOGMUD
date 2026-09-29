@@ -62,6 +62,10 @@ type Config struct {
 
 	LLM LLM `yaml:"LLM"`
 
+	// APIFramework is the server's model key, its one daily token budget and
+	// its breaker, shared by the AI companion and bauble naming.
+	APIFramework APIFramework `yaml:"APIFramework"`
+
 	Analytics Analytics `yaml:"Analytics"`
 
 	Logging Logging `yaml:"Logging"`
@@ -254,6 +258,7 @@ func (c *Config) Validate() {
 	c.Roles.Validate()
 	c.Balance.Validate()
 	c.LLM.Validate()
+	c.APIFramework.Validate()
 	c.Analytics.Validate()
 	c.Playtest.Validate()
 

@@ -13,6 +13,7 @@ groups:
   - merchant
   - thornwall_citizens
   - shopkeepers
+  - fence
 idlecommands:
   - 'emote examines an item behind the counter, turning it in the lamplight'
   - 'emote makes a notation in a small, well-hidden notebook'

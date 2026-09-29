@@ -237,7 +237,12 @@ check('a non-string is refused', Glue.canonicalRelayOrigin({}), '');
     h.glue.hello('Meirok');
     h.glue.onFrameMessage(h.frameMsg({ type: 'status', ready: true, model: 'gpt-4.1-mini', locked: false, key: KEY }));
     check('a ready status becomes Companion.Relay.Ready', h.sent[0].pkg, 'Companion.Relay.Ready');
-    check('Ready carries only the model', JSON.stringify(h.sent[0].obj), JSON.stringify({ model: 'gpt-4.1-mini' }));
+    check('Ready carries only the model and the finds choice', JSON.stringify(h.sent[0].obj), JSON.stringify({ model: 'gpt-4.1-mini', finds: false }));
+    h.glue.onFrameMessage(h.frameMsg({ type: 'status', ready: true, model: 'gpt-4.1-mini', finds: true, locked: false }));
+    check('the player allowing their key to name finds reaches the server', JSON.stringify(h.sent[1].obj), JSON.stringify({ model: 'gpt-4.1-mini', finds: true }));
+    h.glue.onFrameMessage(h.frameMsg({ type: 'status', ready: true, model: 'gpt-4.1-mini', finds: 'yes', locked: false }));
+    check('finds is true only when it is exactly true', JSON.stringify(h.sent[2].obj), JSON.stringify({ model: 'gpt-4.1-mini', finds: false }));
+    h.sent.splice(1, 2);
 
     h.glue.onFrameMessage(h.frameMsg({ type: 'status', ready: false, locked: true }));
     check('a not-ready status becomes Companion.Relay.Gone', h.sent[1].pkg, 'Companion.Relay.Gone');

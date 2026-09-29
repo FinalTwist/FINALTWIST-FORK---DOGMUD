@@ -9,7 +9,10 @@ maxwander: 0
 groups:
   - humanoid
   - hartcharn_folk
+  - fence
 idlecommands:
+  - 'emote weighs a small trinket in his palm, glances at the door, and drops it into a drawer beneath the bar'
+  - ''
   - 'emote draws a cup of ale and slides it down the bar without
     looking.'
   - ''

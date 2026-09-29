@@ -247,13 +247,17 @@ func (m *AICompanionModule) onRelayInbound(userId int, command string, payload [
 	case `Companion.Relay.Ready`:
 		var r struct {
 			Model string `json:"model"`
+			// Finds is the owner's "Also name things I find while
+			// searching" on the key page: their key may name their
+			// finds (baubles). Absent means no.
+			Finds bool `json:"finds"`
 		}
 		if json.Unmarshal(payload, &r) != nil {
 			return
 		}
 		model := strings.TrimSpace(r.Model)
 		if relayModelOK(model) {
-			m.relays.ready(userId, model)
+			m.relays.ready(userId, model, r.Finds)
 		}
 	case `Companion.Relay.Gone`:
 		m.relayGone(userId)

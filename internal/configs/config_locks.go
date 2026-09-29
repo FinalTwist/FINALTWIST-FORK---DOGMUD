@@ -8,9 +8,10 @@ import "strings"
 // domain, and the lock list itself. Exact paths, compared lowercase against
 // the path FindFullPath resolved.
 //
-// The APIFramework entries name a section master does not have yet (the
-// baubles PR adds it). They are plain strings: an absent key matches nothing
-// and costs nothing, and they bind the day the section lands.
+// The APIFramework entries name the shared model-key section the baubles
+// work added (config.apiframework.go). A bare `apikey` is a suffix of both
+// APIFramework.APIKey and Modules.aicompanion.APIKey, and resolves to either;
+// both are listed, so it is refused whichever it resolves to.
 var hardLocked = []string{
 	`APIFramework.APIKey`,
 	`APIFramework.APIKeyEnv`,

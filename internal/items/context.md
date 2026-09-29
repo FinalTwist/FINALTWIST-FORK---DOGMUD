@@ -338,6 +338,61 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 }
 ```
 
+### Baubles: one carrier, catalog-backed identity
+
+A bauble (`docs/baubles/implementation-plan.md`) is item 900 plus
+`Item.Bauble`, a catalog record id. It carries no `Spec`; instead
+`GetSpec()` overlays Name, NameSimple, DisplayName, Description, Value and
+Weight from the resolver that `internal/baubles` installs at boot
+(`SetBaubleResolver`). This package never imports `internal/baubles`, which
+imports it. With no resolver, or an unknown id, the bauble shows as the
+plain carrier ("Curious Trinket").
+
+- `SameStack` compares `Bauble`, so baubles never collapse into one row
+  (they share an ItemId and have no Spec, which would otherwise stack them).
+- `NameMatch` also accepts `bauble` and `trinket` for any bauble.
+- **Word matching** (`baubleWordMatch`, baubles only). Model-made names are
+  unpredictable, so a bauble answers to any word of its name, or several
+  words in order, as a PARTIAL match: "Small Child's Doll" answers to `doll`,
+  `childs doll`, `child's doll`, `child doll` and `small doll`; `a`/`the`
+  in front are dropped; hyphens split words; `dol` or `sm doll` match too;
+  `doll small` (wrong order) is none. A bauble is a FULL match only for its
+  exact name or the generic keywords, like any item, so it never outranks a
+  real item named in full. `FindMatchIn`, with no `N.` given, prefers a real
+  item to a bauble among full matches (a real "Brass Lantern" beats a bauble
+  of the same name). Short of a full match, when a bauble is among the
+  matches the strongest match wins (`matchStrength`: 4 exact, 3 whole
+  words, 2 the start of words, 1 merely contained) and a real item wins
+  only on an equal or stronger match (`strongestWithBauble`): with a "Round
+  Shield" and a bauble "Shield-Maiden's Brooch", `get shield` takes the
+  shield (a whole word in both), but with a "Buttoned Leather Vest" and a
+  bauble "Tarnished Copper Button", `sell button` sells the button (a whole
+  word beats the start of one). A list with no bauble among its matches is
+  chosen exactly as before; `N.name` above 1 keeps plain list order. `AuthoredKeyword(word)` (in
+  itemspec.go) is whether a loaded item answers to a word, as its keyword or
+  any word of its name: `internal/baubles` keeps bauble keywords off those. It reads
+  a snapshot (`authoredWords`, an atomic pointer) that every writer of the
+  items map rebuilds (`rebuildAuthoredKeywords`: the load, `SaveItemSpec`,
+  `DeleteItemSpec`, `CreateNewItemFile`, the test seeders), never the live
+  map: it runs on the bauble goroutine, off the mud lock, and a range over
+  the map racing a write is a fatal error. Everything that finds items by name
+  goes through `NameMatch` via `FindMatchIn`, so `get`, `drop`, `look`,
+  `appraise`, `sell`, `give` and `N.name` all behave the same.
+- `IsSpecial()` is false for a bauble. Any code that rebuilds an item from
+  its ItemId alone (`items.New(id)`) drops the link; the sell path has its
+  own bauble branch for this reason. Display code that groups items by
+  ItemId must also key on `Bauble` (the floor listing in `look.go` does).
+- **Placement** (`bauble_placement.go`). A found bauble LEFT LYING (in a
+  household, or its finder could not carry it or was gone) carries
+  `BaubleSpot` ("on the bookshelf"), `BaubleHousehold` (the owning room's id,
+  or 0) and `BaubleLeftAt` (unix seconds). `LeaveBaubleAt` sets them,
+  `ClearBaublePlacement` clears them, and `Character.StoreItem` clears them
+  on every pickup, so a carried bauble is an ordinary possession: no spot, no
+  owner, never vanishes, and dropping it sets nothing. `BaubleBelongsTo(roomId)`
+  (taking it there is theft), `BaubleUntakenFor(now)` (rooms' 24-hour sweep)
+  and `BaubleSpotSuffix()` (the " (on the bookshelf)" after its name on the
+  ground).
+
 ## Enchantment and Modification System
 
 The legacy upstream `Item.Enchant` (flat damage/defense/stat bonuses) was
@@ -1258,6 +1313,8 @@ and `TestPreDetuneBowTable_MatchesTheRealTemplates` both fail otherwise.
 | `aging.go` | Potion aging phases and effective aging speed |
 | `potion_conditions.go` | `PotionEffectConditionIds` (lighting plan 5c): the condition ids only a potion grants, for the Purging Draught's derived strip set; `PotionMagnitudeApplication`, the magnitude and trigger count a potion applies a scaled condition at, shared by the player and mob drink paths |
 | `affixgen.go` | Affix/name generation |
+| `bauble.go` | Baubles: `BaubleItemId` (900), `BaubleView`, `SetBaubleResolver`, `IsBauble`; the `GetSpec` overlay that reads a bauble's name, description, value and weight from the catalog in `internal/baubles` |
+| `bauble_placement.go` | Where a found bauble lies: `LeaveBaubleAt`, `ClearBaublePlacement`, `BaubleBelongsTo`, `BaubleUntakenFor`, `BaubleSpotSuffix` |
 | `spec_baseline.go` | `SpecBaseline`: pre-enchant numeric snapshot, so a tier re-apply cannot wipe affix scaling |
 | `detune_migration.go` | U10d ranged-weapon rescale (`MigrateDetunedBow`); idempotent by value threshold, no run-once marker |
 | `proc_accessors.go` | On-hit proc access |

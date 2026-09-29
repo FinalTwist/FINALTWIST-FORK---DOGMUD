@@ -10,3 +10,7 @@ The <ansi fg="command">look</ansi> command gives an object to another player or 
   <ansi fg="command">give 30 gold sam</ansi>
   This gives 30 gold to sam.
 
+Giving a stolen trinket back to whoever it was taken from
+returns it. Its owner will be glad of it, and a thief who
+has been caught stealing wins back a little of the goodwill
+that cost them. See <ansi fg="command">help steal</ansi>.

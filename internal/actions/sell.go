@@ -44,6 +44,11 @@ type SellResult struct {
 	TotalGold    int
 	Reason       SellStopReason
 	LastItemName string
+	// Mixed is set when the items sold were not all the same thing, so the
+	// caller must not pluralise LastItemName. Every bauble has its own name:
+	// `sell all bauble` sells three different objects, not three "Tarnished
+	// Copper Buttons".
+	Mixed bool
 }
 
 // Sell is the shared seller entry point for players and mobs. The seller is
@@ -118,8 +123,13 @@ func affixedSellPrice(item items.Item, cfg shops.PricingConfig) int {
 
 // resolveMerchant finds the first merchant in the room willing to buy probe,
 // returning the merchant mob and its living-economy ShopInventory (nil for
-// legacy-shop merchants).
-func resolveMerchant(room *rooms.Room, probe items.Item) (*mobs.Mob, *shops.ShopInventory) {
+// legacy-shop merchants). A bauble goes to the best offer the merchant can
+// pay instead (bestBaubleMerchant); playerSale says whether the seller is a
+// player, the only sellers a merchant's gold constrains.
+func resolveMerchant(room *rooms.Room, probe items.Item, playerSale bool) (*mobs.Mob, *shops.ShopInventory) {
+	if probe.IsBauble() {
+		return bestBaubleMerchant(room, probe, playerSale)
+	}
 	for _, mobId := range room.GetMobs(rooms.FindMerchant) {
 		mob := mobs.GetInstance(mobId)
 		if mob == nil {
@@ -178,7 +188,7 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 		}
 		return SellResult{Reason: SellStopRejected}
 	}
-	mob, shopInv := resolveMerchant(room, probe)
+	mob, shopInv := resolveMerchant(room, probe, seller.IsPlayer())
 	if mob == nil {
 		// No WILLING merchant. Distinguish "no merchant present at all" from
 		// "a merchant is here but won't buy this item." For the latter, route
@@ -194,7 +204,29 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 	}
 	var out SellResult
 	out.Reason = SellStopSoldAll
+	baubleSold := false // the buyer may since have changed from the probe's
 	for out.Sold < quantity {
+		// The item this iteration sells is the first match left, which is not
+		// always the probe: it differs for baubles, which share a keyword but
+		// each have their own name.
+		soldName := probe.GetSpec().Name
+		soldBauble := probe.IsBauble()
+		if next, ok := sellFindItemInChar(char, itemName); ok {
+			soldBauble = next.IsBauble()
+			soldName = next.GetSpec().Name
+			// Each bauble goes to the best offer for it, which is not
+			// always the merchant who took the one before (a fence pays
+			// more for stolen goods only; a merchant runs out of gold).
+			// A real item after a bauble gets its own merchant too, not
+			// the bauble's buyer; until then real items keep the probe's.
+			if out.Sold > 0 && (next.IsBauble() || baubleSold) {
+				if m, inv := resolveMerchant(room, next, seller.IsPlayer()); m != nil {
+					mob, shopInv = m, inv
+				} else if m, inv := firstMerchantInRoom(room); m != nil {
+					mob, shopInv = m, inv // says why nobody will buy it
+				}
+			}
+		}
 		value, res := sellOneToMerchant(seller, itemName, room, mob, shopInv, out.Sold == 0)
 		if res != SellStopSoldAll {
 			// Running out of matching items mid-loop is a NORMAL completion
@@ -208,9 +240,13 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 			}
 			break
 		}
+		if out.Sold > 0 && soldName != out.LastItemName {
+			out.Mixed = true
+		}
 		out.Sold++
 		out.TotalGold += value
-		out.LastItemName = probe.GetSpec().Name
+		out.LastItemName = soldName
+		baubleSold = baubleSold || soldBauble
 	}
 	return out
 }
@@ -226,12 +262,15 @@ func sellSweep(seller Actor, room *rooms.Room) SellResult {
 		if spec.ItemId < 1 || spec.QuestToken != "" || spec.Value <= 0 || spec.IsComponent {
 			continue
 		}
-		mob, shopInv := resolveMerchant(room, itm)
+		mob, shopInv := resolveMerchant(room, itm, seller.IsPlayer())
 		if mob == nil {
 			continue
 		}
 		value, res := sellOneToMerchant(seller, itm.Name(), room, mob, shopInv, !soldAny)
 		if res == SellStopSoldAll {
+			if soldAny && spec.Name != out.LastItemName {
+				out.Mixed = true
+			}
 			soldAny = true
 			out.Sold++
 			out.TotalGold += value
@@ -275,6 +314,10 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 	}
 
 	char.CancelConditionsWithFlag(conditions.Hidden)
+	// Baubles (docs/baubles): catalog-priced, never stocked. See sell_bauble.go.
+	if item.IsBauble() {
+		return sellBaubleToMerchant(seller, item, room, mob, shopInv, awardProgression)
+	}
 	// Affixed instance loot is sellable despite carrying a per-instance Spec;
 	// every other custom-spec item (enchanted / blob / uses) stays blocked.
 	if item.IsSpecial() && !item.Affixed {
@@ -405,8 +448,7 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 	// the merchant's only progression from trading. It is not the
 	// emitAttackerStatGain pattern Task 22 deletes.
 	if awardProgression {
-		seller.AwardResolved(true, seller.GetCharacter().CandidateFor(string(skills.Bartering)))
-		mob.Character.OnStatUse("charisma", 0)
+		saleProgression(seller, mob)
 	}
 
 	return sellValue, SellStopSoldAll
@@ -422,4 +464,14 @@ func sellFindItemInChar(char *characters.Character, name string) (items.Item, bo
 		item, found = char.FindInComponents(name)
 	}
 	return item, found
+}
+
+// saleProgression is a completed sale's progression: the seller's bartering
+// award, and the merchant's charisma roll (a different character's, and the
+// merchant's only progression from trading; allowlisted for this file in
+// progression/seam_guard_test.go). Shared by every item sold and a bauble
+// sold (sell_bauble.go), so the one allowlisted site covers both.
+func saleProgression(seller Actor, mob *mobs.Mob) {
+	seller.AwardResolved(true, seller.GetCharacter().CandidateFor(string(skills.Bartering)))
+	mob.Character.OnStatUse("charisma", 0)
 }

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -103,9 +105,14 @@ func Storage(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			allItems = append(allItems, user.Character.ComponentItems...)
 
 			deposited := 0
+			refused := []string{}
 			for _, itm := range allItems {
 				if user.ItemStorage.SlotCount() >= storageCap {
 					break
+				}
+				if storageRefusesStolen(itm, room) {
+					refused = append(refused, itm.DisplayName())
+					continue
 				}
 				if storageAddQuiet(user, itm) {
 					deposited++
@@ -114,18 +121,23 @@ func Storage(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			if deposited > 0 {
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You placed %d item(s) into storage.`, deposited))
 			}
+			for _, name := range refused {
+				storageSayStolen(user, name)
+			}
 			return true, nil
 		}
 
 		// storage add all iron-ore — deposit all matching units
 		if qtyAll {
 			deposited := 0
+			var hot items.Item
 			for {
 				if user.ItemStorage.SlotCount() >= storageCap {
 					break
 				}
-				itm, found := storageCarriedFind(user, itemName)
+				itm, found, stolen := storageFindAddable(user, itemName, room)
 				if !found {
+					hot = stolen
 					break
 				}
 				if !storageAddQuiet(user, itm) {
@@ -133,13 +145,18 @@ func Storage(rest string, user *users.UserRecord, room *rooms.Room, flags events
 				}
 				deposited++
 			}
-			switch deposited {
-			case 0:
+			switch {
+			case deposited == 0 && hot.ItemId != 0:
+				// the refusal below says why
+			case deposited == 0:
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't have a %s to add to storage.%s`, itemName, term.CRLFStr))
-			case 1:
+			case deposited == 1:
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You placed the <ansi fg="itemname">%s</ansi> into storage.`, itemName))
 			default:
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You placed %d <ansi fg="itemname">%s</ansi> into storage.`, deposited, itemName))
+			}
+			if hot.ItemId != 0 {
+				storageSayStolen(user, hot.DisplayName())
 			}
 			return true, nil
 		}
@@ -156,16 +173,21 @@ func Storage(rest string, user *users.UserRecord, room *rooms.Room, flags events
 				user.SendText(messaging.CategorySystem, `Your storage is full.`)
 				break
 			}
-			itm, found := storageCarriedFind(user, itemName)
+			itm, found, hot := storageFindAddable(user, itemName, room)
 			if !found {
-				if deposited > 0 {
+				switch {
+				case hot.ItemId != 0:
+					storageSayStolen(user, hot.DisplayName())
+				case deposited > 0:
 					user.SendText(messaging.CategorySystem, fmt.Sprintf(`You only had %d to deposit.`, deposited))
-				} else {
+				default:
 					user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't have a %s to add to storage.%s`, itemName, term.CRLFStr))
 				}
 				break
 			}
-			storageAddQuiet(user, itm)
+			if !storageAddQuiet(user, itm) {
+				break
+			}
 			deposited++
 		}
 		switch deposited {
@@ -290,6 +312,51 @@ func storageCarriedFind(user *users.UserRecord, itemName string) (items.Item, bo
 		}
 	}
 	return items.Item{}, false
+}
+
+// storageNow is the clock for a stolen bauble's heat. A variable for tests.
+var storageNow = time.Now
+
+// storageRefusesStolen reports whether storage in room turns itm away: a
+// bauble hot here (baubles.Record.HotIn: stolen lately, in this area),
+// which no vault in the area will hold while it is still being looked for
+// (docs/baubles Phase 6c).
+func storageRefusesStolen(itm items.Item, room *rooms.Room) bool {
+	return baubles.ItemIsHotIn(itm, room.Zone, storageNow())
+}
+
+// storageFindAddable is storageCarriedFind for an item storage will take:
+// a hot stolen bauble is passed over, so `storage add doll` stores a cool
+// doll when the player carries a hot one too. When the only match is hot,
+// found is false and hot is that bauble, for the refusal.
+func storageFindAddable(user *users.UserRecord, itemName string, room *rooms.Room) (itm items.Item, found bool, hot items.Item) {
+	now := storageNow()
+	if itm, ok := user.Character.FindInBackpackWhere(itemName, func(i items.Item) bool { return !baubles.ItemIsHotIn(i, room.Zone, now) }); ok {
+		// An item handle (@uuid) is an explicit pick that bypasses the
+		// filter, so the pick is checked itself.
+		if baubles.ItemIsHotIn(itm, room.Zone, now) {
+			return items.Item{}, false, itm
+		}
+		return itm, true, items.Item{}
+	}
+	if len(user.Character.ComponentItems) > 0 {
+		close, full := items.FindMatchIn(itemName, user.Character.ComponentItems...)
+		if full.ItemId != 0 {
+			return full, true, items.Item{}
+		}
+		if close.ItemId != 0 {
+			return close, true, items.Item{}
+		}
+	}
+	if stolen, ok := user.Character.FindInBackpack(itemName); ok {
+		return items.Item{}, false, stolen // every match is hot
+	}
+	return items.Item{}, false, items.Item{}
+}
+
+// storageSayStolen tells the player why storage turned name away.
+func storageSayStolen(user *users.UserRecord, name string) {
+	user.SendText(messaging.CategorySystem, fmt.Sprintf(`The keepers will not take the <ansi fg="itemname">%s</ansi>: it was reported stolen, and not long ago.`, name))
 }
 
 // storageAddQuiet transfers one unit of itm from the player to storage.

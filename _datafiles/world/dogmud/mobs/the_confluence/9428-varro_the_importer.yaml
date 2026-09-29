@@ -10,7 +10,10 @@ maxwander: 0
 groups:
   - humanoid
   - quayfolk
+  - fence
 idlecommands:
+  - 'emote slips a small wrapped trinket into a spice crate and marks the lid with a chalk tick'
+  - ''
   - 'emote lifts the lid from a clay crock, inhales slowly, and
     replaces the lid with a single nod -- satisfied.'
   - ''

@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/casing"
@@ -538,6 +539,58 @@ func GetAllItemSpecsMap() map[int]*ItemSpec {
 	return out
 }
 
+// authoredWords is every word a loaded, authored item answers to (its
+// keyword and every word of its name), rebuilt by whatever writes the items map (a load,
+// an item saved, created or deleted), on the game loop. AuthoredKeyword is
+// read from goroutines off the mud lock (a bauble being named), and a range
+// over the live items map there, racing one of those writes, is a fatal
+// "concurrent map iteration and map write"; this snapshot is read instead.
+var authoredWords atomic.Pointer[map[string]bool]
+
+// rebuildAuthoredKeywords takes the snapshot. Call after every change to
+// the items map, where the change is made.
+func rebuildAuthoredKeywords() {
+	set := make(map[string]bool, len(items)*2)
+	for id, spec := range items {
+		if id == BaubleItemId || spec == nil {
+			continue
+		}
+		if w := strings.ToLower(strings.TrimSpace(spec.NameSimple)); w != `` {
+			set[w] = true
+		}
+		// Every word of the name, not only its head noun: a bauble keyed
+		// "silver" would fully match `get silver` and take it over a real
+		// "Silver Dagger", which that word only partly matches.
+		for _, f := range strings.Fields(spec.Name) {
+			if w := headNoun(f); w != `` {
+				set[w] = true
+			}
+		}
+	}
+	authoredWords.Store(&set)
+}
+
+// AuthoredKeyword reports whether word is what a real, authored item
+// answers to: its keyword (NameSimple), or any word of its name ("lantern"
+// and "hooded" for "Hooded Lantern"). The bauble carrier is not counted. Bauble keywords are kept off these so `get lantern` never picks
+// up a model-named trinket instead of the lantern. Safe from any goroutine:
+// it reads the snapshot (authoredWords), never the items map.
+func AuthoredKeyword(word string) bool {
+	set := authoredWords.Load()
+	if set == nil {
+		return false
+	}
+	return (*set)[strings.ToLower(strings.TrimSpace(word))]
+}
+
+// headNoun is a name's last word as a keyword: lower case, with a
+// possessive and any punctuation around it dropped.
+func headNoun(w string) string {
+	w = strings.ToLower(strings.Trim(w, `.,;:!?"()[]`))
+	w = strings.TrimSuffix(strings.TrimSuffix(w, `'s`), `'`)
+	return w
+}
+
 func GetAllItemNames() []string {
 
 	itemNames := []string{}
@@ -804,6 +857,7 @@ func LoadDataFiles() {
 	}
 
 	items = tmpItems
+	rebuildAuthoredKeywords()
 
 	tmpAttackMessages, err := fileloader.LoadAllFlatFiles[ItemSubType, *WeaponAttackMessageGroup](dataPath + `/combat-messages`)
 	if err != nil {
@@ -829,5 +883,6 @@ func LoadDataFiles() {
 func RegisterTestItemSpec(spec *ItemSpec) {
 	if spec.ItemId > 0 {
 		items[spec.ItemId] = spec
+		rebuildAuthoredKeywords()
 	}
 }

@@ -5,6 +5,14 @@ partial names to refer to items. For example, "<ansi fg="item">a heavy sword</an
 referred to as "<ansi fg="item">sword</ansi>", or "<ansi fg="item">heavy</ansi>". You can also refer to it by
 its full name: "<ansi fg="item">heavy sword</ansi>".
 
+<ansi fg="yellow">━━━ Trinkets you find ━━━</ansi>
+
+The small trinkets you sometimes find while searching each have their
+own name. You can use any word of it, or several words in order:
+"<ansi fg="item">Small Child's Doll</ansi>" answers to "<ansi fg="item">doll</ansi>", "<ansi fg="item">child's doll</ansi>" or
+"<ansi fg="item">small doll</ansi>". Every one of them also answers to "<ansi fg="item">trinket</ansi>" and
+"<ansi fg="item">bauble</ansi>", so <ansi fg="command">sell all bauble</ansi> sells them all.
+
 <ansi fg="yellow">━━━ Disambiguation ━━━</ansi>
 
 Sometimes you may find yourself referring to items that share common

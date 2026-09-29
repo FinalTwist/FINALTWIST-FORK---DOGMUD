@@ -24,6 +24,11 @@ you take them.
 To grab a corpse's items AND its gold in one action, use
 <ansi fg="command">loot</ansi> instead. Type <ansi fg="command">look corpse</ansi> to see what a corpse holds.
 
+Something found in a household (shown as, for example,
+"a small doll <ansi fg="noun">(on the bookshelf)</ansi>") belongs to the people who live
+there. <ansi fg="command">get</ansi> leaves it alone: taking it is theft, and only
+<ansi fg="command">steal</ansi> does that (see <ansi fg="command">help steal</ansi>).
+
 Find out more about referring to items by name by typing
 <ansi fg="command">help item-names</ansi>.
 

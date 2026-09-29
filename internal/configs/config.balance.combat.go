@@ -10,6 +10,28 @@ func validPositiveActionCost(v ConfigFloat) bool {
 // validateCombat sets defaults for combat rolls, defense, prone/grapple,
 // special moves, skullduggery, darkness, damage channels, mitigation caps,
 // and toxicity fields.
+// validateCombatSteal bounds the pickpocket pause. Zero is an absent key,
+// so it takes the default (a pause of nothing would give the roll away at
+// once). Written `!(x > 0)` so a NaN from YAML `.nan` is caught too (see the
+// warning on ContestGapSaturation below).
+func (b *Balance) validateCombatSteal() {
+	if !(b.StealPocketSeconds > 0) {
+		b.StealPocketSeconds = defaultStealPocketSeconds
+	}
+	if !(b.StealPocketMinSeconds > 0) {
+		b.StealPocketMinSeconds = defaultStealPocketMinSeconds
+	}
+	if !(b.StealPocketMaxSeconds > 0) {
+		b.StealPocketMaxSeconds = defaultStealPocketMaxSeconds
+	}
+	if b.StealPocketMaxSeconds > maxStealPocketSeconds {
+		b.StealPocketMaxSeconds = maxStealPocketSeconds
+	}
+	if b.StealPocketMinSeconds > b.StealPocketMaxSeconds {
+		b.StealPocketMinSeconds = b.StealPocketMaxSeconds
+	}
+}
+
 func (b *Balance) validateCombat() {
 	// ── ROLL SPREAD ──────────────────────────────────────────────────────────
 	if b.RollSpread < 0.05 || b.RollSpread > 0.50 {
@@ -245,6 +267,7 @@ func (b *Balance) validateCombat() {
 	if b.StealCooldown < 0 {
 		b.StealCooldown = 60
 	}
+	b.validateCombatSteal()
 	if b.ShadowCooldown < 0 {
 		b.ShadowCooldown = 5
 	}

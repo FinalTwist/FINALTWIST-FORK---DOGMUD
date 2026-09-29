@@ -2,12 +2,14 @@ package aicompanion
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -38,6 +40,9 @@ func (m *AICompanionModule) onNewRound(e events.Event) events.ListenerReturn {
 	if !ok || !m.cfg.Enabled {
 		return events.Continue
 	}
+	// The server key's settings, re-read here on the game loop, where the
+	// config is written (apiframework.RefreshServer).
+	apiframework.RefreshServer()
 	m.sync(evt.RoundNumber)
 	m.dispatchAll()
 	return events.Continue
@@ -548,7 +553,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	ts := m.settingsFor(tier, toolRounds > 0)
 
 	call := modelCall{
-		BaseURL:     m.cfg.BaseURL,
+		BaseURL:     m.baseURL(),
 		APIKey:      m.apiKey(),
 		Model:       ts.Model,
 		Timeout:     ts.Timeout,
@@ -647,6 +652,12 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	m.decisions.Add(1)
 	go func() {
 		defer m.decisions.Done()
+		// The breakers' leave is always handed back last: a no-op once its
+		// outcome was recorded, and what frees a half-open breaker's probe
+		// if a panic kept the outcome from ever being recorded.
+		var tk apiframework.Ticket
+		call.ticketOut = &tk
+		defer func() { m.fw().Release(apiframework.ConsumerCompanion, tk) }()
 		settled := false
 		used := 0 // what the call spent, once it is known
 		defer func() {
@@ -725,8 +736,11 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	// an owner who keeps resetting her. It reaches no breaker at all.
 	if res.Canceled {
 		failure = nil
+		if rt.kind != routeRelay {
+			m.fw().Release(apiframework.ConsumerCompanion, res.Ticket)
+		}
 	} else {
-		m.routeResult(rt, ownerId, failure, time.Now())
+		m.routeResult(rt, ownerId, res.Ticket, failure, time.Now())
 	}
 	// A model the player's provider refused says nothing about the server's
 	// choice of models.
@@ -762,6 +776,12 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	if failure != nil || res.Parsed == nil {
 		if failure == nil {
 			failure = fmt.Errorf(`no decision`)
+		}
+		if errors.Is(failure, errServerResting) {
+			// Held back while another call probes a half-open breaker: no
+			// call was made, so no error to show or count; set lines.
+			m.fallback(c, mob, stims)
+			return
 		}
 		c.lastErr = failure.Error()
 		trace.Err = c.lastErr
@@ -1313,6 +1333,7 @@ func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint6
 			}
 		}
 		res := m.callModel(call)
+		call.ticket, call.admitted = res.Ticket, res.Admitted // one leave for every round
 		tokens += res.Tokens
 		if spent != nil {
 			*spent = tokens
@@ -1531,13 +1552,14 @@ func (m *AICompanionModule) logBudgetRefusal(ownerId int, askerId int, wanted in
 		return
 	}
 	m.lastBudgetLog = now
+	server := m.fw().Today() // the one budget every feature shares
 	if askerId > 0 {
 		mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `asker`, askerId, `wanted`, wanted,
 			`askerSpentToday`, m.strangerTokens[askerId], `askerCap`, m.cfg.StrangerDailyTokens,
-			`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)
+			`serverSpentToday`, server.Tokens, `serverCap`, server.Limit)
 		return
 	}
 	mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `wanted`, wanted,
 		`ownerSpentToday`, m.ownerTokens[ownerId], `ownerCap`, m.cfg.DailyTokensPerCompanion,
-		`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)
+		`serverSpentToday`, server.Tokens, `serverCap`, server.Limit)
 }

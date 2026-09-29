@@ -124,6 +124,31 @@ FilePaths:
   CarefulSaveFiles: true
 ```
 
+### APIFramework Configuration (`config.apiframework.go`)
+The server's model API key, endpoint, daily token budget and breaker, shared
+by every feature that calls a model (`internal/apiframework`, used by the AI
+companion and bauble naming). `GetAPIFrameworkConfig()` returns it;
+`Validate()` only tidies the strings and sets no numeric defaults: an absent
+key decodes as zero, which `apiframework.Server` reads as "not set here" and
+fills from the companion's old `Modules.aicompanion` settings, then the old
+defaults. A negative `DailyTokenBudget` is no cap. `AllowCustomEndpoint` is
+a `ConfigString`, not a `ConfigBool`, so an explicit "false" can override
+the companion's old true (a bool cannot tell false from absent); `Validate`
+makes it "true", "false" or empty, and anything unreadable is "false".
+```yaml
+APIFramework:
+  APIKeyEnv: "OPENAI_API_KEY"
+  APIKey: ""
+  BaseURL: "https://api.openai.com/v1"
+  AllowCustomEndpoint: ""   # "true", "false", or empty to inherit
+  DailyTokenBudget: 2000000
+  BreakerErrors: 5
+  BreakerSeconds: 60
+```
+
+Bauble loot's balance knobs are `Balance.Bauble*` (`config.balance.baubles.go`),
+with `Balance.BaublesEnabled` false by default.
+
 ## Configuration Types
 
 ### Basic Types

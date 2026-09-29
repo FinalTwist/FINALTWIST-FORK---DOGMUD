@@ -173,6 +173,10 @@ func (c *Character) StoreItem(i items.Item) bool {
 
 	i.Validate()
 
+	// A found bauble someone carries is no longer lying anywhere: it shows no
+	// spot, belongs to no household and never vanishes (items/bauble_placement.go).
+	i.ClearBaublePlacement()
+
 	// Check if adding this item would exceed carry capacity
 	newWeight := c.GetCarriedWeight() + i.GetSpec().GetWeight()
 	capacity := c.CarryCapacity()

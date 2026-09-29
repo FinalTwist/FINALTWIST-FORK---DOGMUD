@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/events"
 )
 
@@ -278,12 +279,12 @@ func TestKeyShapedRepliesAreRefused(t *testing.T) {
 // their provider did not answer.
 func TestKeyShapedReplyIsNotABreakerFailure(t *testing.T) {
 	m := relayModule(t)
-	m.relays.ready(5, `m`)
+	m.relays.ready(5, `m`, false)
 	var told []string
 	m.tell = func(_ int, text string) { told = append(told, text) }
 	now := time.Now()
 	for i := 0; i < 5; i++ {
-		m.routeResult(route{kind: routeRelay, model: `m`}, 5, errRelayKeyShaped, now)
+		m.routeResult(route{kind: routeRelay, model: `m`}, 5, apiframework.Ticket{}, errRelayKeyShaped, now)
 	}
 	if m.route(5).kind != routeRelay {
 		t.Fatal("key-shaped replies must not open the owner's breaker")
@@ -358,7 +359,7 @@ func TestRelayDoorRefusesAnOwnerWhoHasNotAgreed(t *testing.T) {
 		t.Fatalf("nothing may reach the browser, sent %+v", r)
 	default:
 	}
-	m.routeResult(c.Route, 5, res.Err, time.Now())
+	m.routeResult(c.Route, 5, apiframework.Ticket{}, res.Err, time.Now())
 	if m.relays.owners[5].failures != 0 {
 		t.Fatal("a refusal at the door is not the provider's failure")
 	}

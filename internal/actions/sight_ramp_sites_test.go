@@ -100,6 +100,9 @@ func TestStealPaysTheThiefsEyes(t *testing.T) {
 			// Rank 2 is the steal floor; Dex tops the thief up to 150.
 			actor := newStealPlayerActor(150-int(2*sw), 2)
 			actor.room.Lamp = rooms.LampPtr(lamp)
+			// A player's pickpocket is revealed after a pause, and only if
+			// the mark is still in the thief's room (steal_pocket.go).
+			target.Character.RoomId = actor.room.RoomId
 			target.Character.Gold = 50
 			if Steal(actor, StealOptions{TargetMobInstanceId: testMobInstId}).Succeeded {
 				won++

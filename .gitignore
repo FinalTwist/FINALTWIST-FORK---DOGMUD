@@ -20,6 +20,11 @@ _datafiles/**/plugin-data/*
 _datafiles/**/shops/*
 !_datafiles/**/shops/.gitkeep
 _datafiles/**/warehouses
+# Runtime bauble catalog (docs/baubles): every found bauble's record
+_datafiles/**/baubles/*
+!_datafiles/**/baubles/.gitkeep
+# The server model key's day's spending (internal/apiframework)
+_datafiles/**/apiframework
 # Runtime living-economy state — server-maintained delivery/stock/bounty ledgers
 _datafiles/**/caravans/
 _datafiles/**/foragers/

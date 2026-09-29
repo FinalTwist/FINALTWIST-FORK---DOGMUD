@@ -8,6 +8,7 @@ you steal -- you grab whatever you can get your hands on.
 
   <ansi fg="command">steal <npc name></ansi>     Steal from an NPC
   <ansi fg="command">steal <container></ansi>    Steal from a container
+  <ansi fg="command">steal <thing></ansi>        Take something that belongs to a household
 
 <ansi fg="yellow">Examples:</ansi>
 
@@ -19,5 +20,44 @@ is blown and the target may attack. Cannot be used on
 other players.
 
 Requires <ansi fg="skill">skullduggery</ansi> rank 2.
+
+<ansi fg="yellow">Picking a pocket:</ansi>
+
+Stealing from an NPC takes a moment. Your fingers are in the
+pocket before you know whether you were seen, and quick hands
+(<ansi fg="yellow">Dexterity</ansi>) make the moment shorter. Walk away or get into a
+fight before it is done, and you lose your chance. Now and then
+a pocket holds a small curiosity of its own, worth a coin or two
+to the right merchant, and often more than the odds and ends
+people leave lying about.
+
+<ansi fg="yellow">Things that belong to a household:</ansi>
+
+Something you find while searching someone's home, with one of the
+household about, is theirs, shown as, for example, "a small doll
+<ansi fg="noun">(on the bookshelf)</ansi>". <ansi fg="command">get</ansi> will not take it, and neither will
+<ansi fg="command">get all</ansi>, so you never steal by accident. To take it anyway,
+<ansi fg="command">steal</ansi> it (<ansi fg="command">steal doll</ansi>). It is a theft like any other: your
+<ansi fg="skill">skullduggery</ansi> is tested against the most watchful person in the
+room, and being hidden helps. Seen by one of the household, you
+are treated as a thief caught stealing from them; seen by anyone
+else, your cover is blown. Either way the thing stays where it was.
+What a household keeps tends to be worth more than what lies about
+in the street, which is some comfort for the risk.
+
+<ansi fg="yellow">After the theft:</ansi>
+
+A stolen trinket stays "hot" for three days, in the town where you
+took it. There, no honest merchant will buy it, no storage will
+hold it, and the auction house will not list it; somewhere else it
+is just a trinket. A fence will buy it anywhere, and pays well for
+stolen goods. While it is hot, the one you took it from may
+recognise it on you if your paths cross, wherever that is, and that
+is the same as being caught in the act. Give
+it back to its owner and it is no longer hot; but walk in carrying
+it and they may spot it before you can hand it over, so go quietly.
+A thief who has been caught stealing wins back a little of the
+goodwill that cost with each thing they return, though never as
+much as the catch itself, and never more than they lost.
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help plant</ansi>, <ansi fg="command">help skullduggery</ansi>

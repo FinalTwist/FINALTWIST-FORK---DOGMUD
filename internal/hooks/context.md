@@ -1722,6 +1722,18 @@ This is the T11 room-entry wake path; T7 (auto-wake on attack) is wired
 inline in `internal/combat/combat.go`'s `AttackPlayerVsMob` /
 `AttackMobVsMob`.
 
+### RoomChange_StolenBaubleRecognition.go
+
+Registered as a `RoomChange` event listener (docs/baubles Phase 6c). On
+any move into a room it routes to `actions.RecognizeStolenBaubles`: a
+player's move (`evt.UserId`) looks only at that player's baubles, a mob's
+move (`evt.MobInstanceId`) lets only that mob look. An NPC robbed of a
+bauble that is still hot may recognise it on whoever carries it (a
+contest; a catch through `thiefCaught`), once per theft. The call goes
+through the `recognizeStolenBaubles` variable so tests can see the
+routing; `TestStolenBaubleRecognitionIsRegistered` reads `hooks.go` to
+guard the registration.
+
 ### Scheduler observer (in `validate.go` + `mobs.go`)
 
 NOT a hook file — registered inline at each Presence-machine
@@ -2063,16 +2075,16 @@ room targeting the shooter", a wider question than "who has engaged me".
 - `internal/state/presence` - Presence state machine (chunk 5)
 ## Files: one handler per file
 
-134 non-test files (recounted for lighting plan 5a, which added
-`light_spell.go`). The filename **is** the index. Each is named for the event
+135 non-test files (recounted for baubles Phase 6c, which added
+`RoomChange_StolenBaubleRecognition.go`). The filename **is** the index. Each is named for the event
 it handles and the job it does, so `NewRound_IdleMobs.go` is the idle-mob step
 of the new-round event.
 
-The prefix IS the event name, so there is no short list of them: 99 of the 134
+The prefix IS the event name, so there is no short list of them: 100 of the 135
 files carry one and they spell 42 distinct events. The big ones are
 `NewRound_*` (21 files), `Death_*` (11), `MobDeath_*` (7), `NewTurn_*` and
-`Position_*` (5 each), `CombatPhase_*` (4), and `Awareness_*`,
-`MobRoomChange_*`, `PlayerDespawn_*` and `RoomChange_*` (3 each); the other 32
+`Position_*` (5 each), `CombatPhase_*` and `RoomChange_*` (4 each), and
+`Awareness_*`, `MobRoomChange_*` and `PlayerDespawn_*` (3 each); the other 32
 prefixes carry one or two files apiece. Enumerate them with
 `ls internal/hooks/*.go | sed 's/_.*//' | sort -u` rather than trusting a list
 here. There is no `Input_*` or `Combat_*` prefix.

@@ -1,0 +1,18 @@
+itemid: 900
+name: Curious Trinket
+namesimple: trinket
+# The carrier for every bauble (docs/baubles/implementation-plan.md). Each
+# bauble instance is this item plus a catalog id; the catalog supplies its
+# real name, description, value and weight. What is written here only shows
+# when a bauble's catalog record cannot be found.
+# not_salable stays on: baubles are sold through their own branch
+# (internal/actions/sell_bauble.go), priced from the catalog. This flag keeps
+# every ItemId-keyed path from buying or stocking the bare carrier.
+not_salable: true
+description: >
+  A small object of uncertain make, the kind of thing people lose and
+  other people find. Someone might pay a little for it.
+type: object
+subtype: mundane
+weight: 0.2
+value: 1

@@ -1,5 +1,6 @@
 mobid: 9215
 zone: New Plymouth Outskirts
+craft_support: general
 behavior_archetype: noncombat_passive
 statpool: 50
 itemdropchance: 0
@@ -10,7 +11,10 @@ maxwander: 1
 groups:
   - humanoid
   - new_plymouth_outskirts_folk
+  - fence
 idlecommands:
+  - 'emote tucks a small trinket into a waterproof pouch and says nothing about where it came from'
+  - ''
   - 'emote watches the ford crossing from the shadow of the reed-bank,
     arms loose at his sides.'
   - ''
@@ -40,7 +44,7 @@ character:
     approaching before you thought you were close.
   speciesid: 1
   level: 1
-  gold: 80
+  gold: 1000
   stats:
     perception:
       base: 110
@@ -48,3 +52,14 @@ character:
       base: 108
     willpower:
       base: 105
+  shop:
+    # A fence's counter goods (docs/baubles: fences are shopkeepers)
+    - itemid: 33       # iron lockpicks
+      quantity: 0
+      quantitymax: 0
+      price: 5
+    - itemid: 36       # basic disarm kit
+      quantity: 0
+      quantitymax: 0
+      price: 30
+    - itemid: 20096    # torch

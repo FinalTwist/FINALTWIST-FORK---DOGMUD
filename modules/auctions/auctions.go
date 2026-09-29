@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -387,6 +388,14 @@ func (mod *AuctionsModule) auctionCommand(rest string, user *users.UserRecord, r
 	if tooTrivialToAuction(matchItem) {
 		user.SendText(messaging.CategorySystem,
 			fmt.Sprintf(`The <ansi fg="item">%s</ansi> is too trivial to interest the auction house.`, matchItem.DisplayName()))
+		return true, nil
+	}
+
+	// A hot stolen bauble (docs/baubles Phase 6c) cannot be sold in the open
+	// while it is still being looked for; that is what fences are for.
+	if auctionRefusesStolen(matchItem, room.Zone) {
+		user.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`The auction house will not list the <ansi fg="item">%s</ansi>: it was reported stolen, and not long ago.`, matchItem.DisplayName()))
 		return true, nil
 	}
 
@@ -804,6 +813,17 @@ var (
 // high buyout on junk can't bypass the floor.
 func tooTrivialToAuction(item items.Item) bool {
 	return auctionMinListValue > 0 && item.GetSpec().Value < auctionMinListValue
+}
+
+// auctionClock is the clock for a stolen bauble's heat. A variable for
+// tests.
+var auctionClock = time.Now
+
+// auctionRefusesStolen reports whether the house turns item away as a
+// stolen bauble hot where it is being listed from (zone; baubles.Record.HotIn:
+// stolen lately, in this area). Listed from elsewhere it is just a trinket.
+func auctionRefusesStolen(item items.Item, zone string) bool {
+	return baubles.ItemIsHotIn(item, zone, auctionClock())
 }
 
 // reserveFrom derives the reserve / minimum bid from a buyout price. Floors at 1.

@@ -13,11 +13,17 @@ package items
 //   - Spec override: if either item carries a custom Spec (enchant stat
 //     mods, renamed items, etc.) the items are treated as distinct unless
 //     their overrides are pointer-equal (same source object).
+//   - Bauble: every bauble shares one ItemId (the carrier) and has no Spec,
+//     so without this check they would all collapse into one row. Two
+//     items are the same bauble only if they carry the same catalog id.
 //
 // Note: EnchantBonus and StatModsType are not yet separate fields on
 // Item; their effect is captured by the Spec override check.
 func SameStack(a, b Item) bool {
 	if a.ItemId != b.ItemId {
+		return false
+	}
+	if a.Bauble != b.Bauble {
 		return false
 	}
 	if a.Uses != b.Uses {

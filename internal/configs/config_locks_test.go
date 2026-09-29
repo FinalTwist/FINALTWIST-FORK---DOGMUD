@@ -10,8 +10,12 @@ import (
 // TestSetConfigWithLookupsForTestResolvesKeys proves the helper gives
 // FindFullPath real lookups (a test binary never runs ReloadConfig) and puts
 // the previous lookups back when the test ends.
+//
+// It resolves `aicompanion.apikey`, not the bare `apikey`: once the
+// APIFramework section exists the bare suffix is shared by two keys, and
+// buildKeyLookups resolves a shared suffix by map iteration order.
 func TestSetConfigWithLookupsForTestResolvesKeys(t *testing.T) {
-	beforePath, beforeType := FindFullPath(`apikey`)
+	beforePath, beforeType := FindFullPath(`aicompanion.apikey`)
 
 	t.Run(`installed`, func(t *testing.T) {
 		c := GetConfig()
@@ -21,13 +25,13 @@ func TestSetConfigWithLookupsForTestResolvesKeys(t *testing.T) {
 		if p, typ := FindFullPath(`seed`); p != `Server.Seed` || typ != `configs.ConfigSecret` {
 			t.Errorf(`FindFullPath("seed") = (%q, %q), want ("Server.Seed", "configs.ConfigSecret")`, p, typ)
 		}
-		if p, typ := FindFullPath(`apikey`); p != `Modules.aicompanion.APIKey` || typ != `string` {
-			t.Errorf(`FindFullPath("apikey") = (%q, %q), want ("Modules.aicompanion.APIKey", "string")`, p, typ)
+		if p, typ := FindFullPath(`aicompanion.apikey`); p != `Modules.aicompanion.APIKey` || typ != `string` {
+			t.Errorf(`FindFullPath("aicompanion.apikey") = (%q, %q), want ("Modules.aicompanion.APIKey", "string")`, p, typ)
 		}
 	})
 
-	if p, typ := FindFullPath(`apikey`); p != beforePath || typ != beforeType {
-		t.Errorf(`lookups not restored: FindFullPath("apikey") = (%q, %q), was (%q, %q)`, p, typ, beforePath, beforeType)
+	if p, typ := FindFullPath(`aicompanion.apikey`); p != beforePath || typ != beforeType {
+		t.Errorf(`lookups not restored: FindFullPath("aicompanion.apikey") = (%q, %q), was (%q, %q)`, p, typ, beforePath, beforeType)
 	}
 }
 
@@ -54,14 +58,16 @@ func TestSetValRefusesLockedKeys(t *testing.T) {
 		{`locked`, `Server.Locked`, `hard list through a suffix key`},
 		{`FilePaths.WebDomain`, `FilePaths.WebDomain`, `hard list`},
 		{`Modules.aicompanion.APIKey`, `Modules.aicompanion.APIKey`, `hard list, module key`},
-		{`apikey`, `Modules.aicompanion.APIKey`, `hard list through a suffix key`},
+		{`aicompanion.apikey`, `Modules.aicompanion.APIKey`, `hard list through a suffix key`},
+		{`apikey`, `APIFramework.APIKey|Modules.aicompanion.APIKey`, `hard list through a SHARED suffix key: either resolution is locked`},
 		{`Modules.aicompanion.RelayOrigin`, `Modules.aicompanion.RelayOrigin`, `hard list`},
 		{`Modules.aicompanion.Model`, `Modules.aicompanion.Model`, `hard list`},
 		{`Modules.aicompanion.ModerateOutput`, `Modules.aicompanion.ModerateOutput`, `hard list (ruling 13), resolves through the lookups`},
 		{`moderateoutput`, `Modules.aicompanion.ModerateOutput`, `hard list (ruling 13) through a suffix key`},
 		{`Modules.aicompanion.ModerationModel`, `Modules.aicompanion.ModerationModel`, `hard list (ruling 13), not in the lookups: refused as LOCKED, not as unknown`},
 		{`Modules.aicompanion.BaseURL`, `Modules.aicompanion.BaseURL`, `not in the lookups: refused as LOCKED, not as unknown`},
-		{`APIFramework.APIKey`, `APIFramework.APIKey`, `section absent on master: the entry costs nothing and still binds`},
+		{`APIFramework.APIKey`, `APIFramework.APIKey`, `hard list, the shared model key`},
+		{`apiframework.apikey`, `APIFramework.APIKey`, `hard list, lowercased full path`},
 		{`Integrations.Discord.WebhookUrl`, `Integrations.Discord.WebhookUrl`, `hard list: names where server data is sent`},
 		{`webhookurl`, `Integrations.Discord.WebhookUrl`, `hard list through a suffix key`},
 	}
@@ -71,7 +77,15 @@ func TestSetValRefusesLockedKeys(t *testing.T) {
 			t.Errorf(`SetVal(%q) = %v, want ErrLockedConfig (%s)`, tc.key, err, tc.why)
 			continue
 		}
-		if !strings.Contains(err.Error(), tc.resolved) {
+		// resolved may list alternatives separated by "|": a suffix shared by
+		// two keys resolves to either (buildKeyLookups, map order).
+		named := false
+		for _, want := range strings.Split(tc.resolved, `|`) {
+			if strings.Contains(err.Error(), want) {
+				named = true
+			}
+		}
+		if !named {
 			t.Errorf(`SetVal(%q) error %q does not name the resolved path %q (%s)`, tc.key, err, tc.resolved, tc.why)
 		}
 	}

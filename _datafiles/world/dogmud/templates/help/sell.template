@@ -14,6 +14,24 @@ The price offered depends on the merchant's current stock and
 gold reserves. Your <ansi fg="skill">Bartering</ansi> skill can increase
 the sale price meaningfully.
 
+Baubles, the small trinkets you sometimes find, are bought only
+by general stores and jewellers, at a fixed share of their worth.
+Every bauble answers to <ansi fg="command">bauble</ansi>, so
+<ansi fg="command">sell all bauble</ansi> sells them all.
+
+<ansi fg="yellow">Stolen goods:</ansi>
+
+A stolen trinket stays "hot" for three days after it is taken,
+but only in the town it was taken in. No honest merchant there
+will buy it while it is hot; take it somewhere else and it sells
+like any trinket. A fence will buy it anywhere, and a fence pays
+better for stolen goods than honest merchants pay for anything.
+Most towns have one, or have one close by: a shopkeeper who asks
+no questions, and like any shopkeeper, only as flush as their
+till. Ask around the back alleys,
+the rougher taverns and the roads just outside town. Once the
+three days are out, anyone who buys trinkets will take it.
+
 Find out more about referring to items by name by typing
 <ansi fg="command">help item-names</ansi>.
 

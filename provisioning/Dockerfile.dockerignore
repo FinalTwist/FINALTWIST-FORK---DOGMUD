@@ -100,6 +100,15 @@ _datafiles/**/guilds
 _datafiles/**/guilds/**
 _datafiles/**/warehouses
 _datafiles/**/warehouses/**
+# Bauble catalog (docs/baubles): every found bauble's record. Living state,
+# kept on the server like shops/ and guilds/; the image carries only the
+# empty directory.
+_datafiles/**/baubles/*
+!_datafiles/world/dogmud/baubles/.gitkeep
+# The server model key's day's spending (internal/apiframework), shared by
+# the AI companion and bauble naming. Living state.
+_datafiles/**/apiframework
+_datafiles/**/apiframework/**
 _datafiles/**/caravans
 _datafiles/**/caravans/**
 _datafiles/**/foragers

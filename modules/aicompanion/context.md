@@ -18,7 +18,17 @@ Roadmap and phase plan: `docs/aicompanion/`.
 ## Files
 
 - **aicompanion.go**: module registration, `controller`, the mind cache
-  (`getMind`), config/profile loading, save callback, budget counters.
+  (`getMind`), config/profile loading, save callback, the per-owner and passer-by
+  counters. The key, endpoint, server budget and breaker are
+  `internal/apiframework`'s (`apiKey`, `baseURL` read `apiframework.Server()`,
+  the snapshot `onNewRound` and `onLoad` refresh with `RefreshServer`;
+  `endpoint` is a test seam). Budget and breaker calls go through `fw()`,
+  the shared `apiframework.Books` on a server; in tests (`isolateBooks`, set
+  by `frameworkForTests`) each module gets its own, so a call one test left
+  in flight never lands in another's figures. `onLoad` lends the relay to the framework
+  (`apiframework.SetRelay(relayFor{m})`), logs a refused custom endpoint,
+  and warns with the names of settings still read from the old
+  `Modules.aicompanion` place (`ServerSettings.Legacy`).
 - **runtime.go**: the round loop (`sync`): attach/detach, session greeting,
   farewell during `quit`, fall and recovery, initiative after quiet spells,
   mood decay; `dispatch`, `applyResult` (speech, memory, facts, promises,
@@ -124,7 +134,17 @@ Roadmap and phase plan: `docs/aicompanion/`.
   at another player is `describePerson` without `full`: how they are and
   what kind, never their description or gear.
 - **models.go**: model tiers (fast, main, deep) and their routing, the
-  circuit breaker, per-companion budgets, per-tier metrics, decision traces.
+  server key's breakers as the companion sees them (`breakerOpen` is
+  `Blocked(ConsumerCompanion)`, a peek; `breakerResult` hands the call's
+  ticket back with its outcome, or releases it for a refused door, a
+  resting breaker (`errServerResting`) or a cancelled call). Her own
+  consumer breaker counts every failure of hers, exactly as her breaker
+  always did; the provider breaker, shared with baubles, counts only
+  provider-wide failures, so a bauble model the provider refuses never
+  pauses her. Per-companion budgets (`reserveFor` checks the owner and
+  passer-by caps, then `apiframework.Reserve(ConsumerCompanion)`, and keeps
+  the ledger's own hold for `settleHeld`), per-tier metrics, decision
+  traces.
 - **tiers.go**: who pays for a call. `route` picks the owner's own key
   through their browser (`routeRelay`, tier 2, only when
   `playerKeysOffered`: `PlayerKeys` on and `validRelayOrigin`), else the
@@ -133,7 +153,8 @@ Roadmap and phase plan: `docs/aicompanion/`.
   time; `reserveRoute`, `settleRoute` and `routeResult` read that one
   route, so a call settles once, to the ledger it was held against, and
   its outcome reaches the breaker of whoever paid (`relayTable` keeps a
-  per-owner breaker; the global one is the server key's alone).
+  per-owner breaker; the global one is the server key's alone, kept by
+  `apiframework`).
   `reserveRoute` returns a `hold` (route, payer, amount and the budget
   day it was made on) that `settleRoute` takes back; a hold from an
   earlier day gives nothing back to the owner's or passer-by's counts,
@@ -170,7 +191,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   the audited `applyOpinion`, and `opinionWords` (the only form the model
   ever sees).
 - **openai.go**: `callModel`, the blocking call (goroutine only), with a
-  per-call strict JSON schema. Every request passes `admit`, the one door,
+  per-call strict JSON schema. The wire types are `apiframework`'s
+  (`chatMessage` and friends are aliases); the body is
+  `apiframework.Chat.Body()`, the server send is `apiframework.Post` with
+  `doorFor` as its `Admit`, and spend is `apiframework.Charged`. Every request passes `admit`, the one door,
   which refuses (`errNoConsent`) any request whose `OwnerUserId` has not
   agreed, or is 0; only `listModels` (key, no player data) is exempt, as
   `carriesNoPlayerData`. There are two ways out and both call `admit`
@@ -297,7 +321,21 @@ Roadmap and phase plan: `docs/aicompanion/`.
   Its lines are wrapped at 80 columns before sending, since the system
   category is never wrapped for the reader.
 - **primer.txt**: the common-knowledge world primer given to the model.
-- **config.go**: every setting and its default (`buildConfig`). The module
+- **relayfor.go**: `relayFor`, the `apiframework.Relay` the module lends to
+  other features. It answers only for `apiframework.PurposeFinds`, only for
+  an owner whose key page has "Also name things I find while searching"
+  ticked (`relayOwner.finds`, `liveFor`), sends through `sendRelay` with the
+  request's own `Carries`, and feeds that owner's FINDS breaker (`Result`,
+  `relayTable.findsResult`, `relayOwner.findsFailures`/`findsUntil`), never
+  the one she runs on: a bauble request the owner's provider will not serve
+  pauses naming on that key, not her. Tests: `relayfor_test.go`.
+- **config.go**: every setting and its default (`buildConfig`). The API key,
+  base URL, custom endpoint switch and daily token budget are no longer here:
+  they are the `APIFramework` section's. Left in the old place (a server's
+  config.yaml from before), they are still read, with the same meanings and
+  defaults as before, and a warning. `BreakerErrors` and `BreakerSeconds` stay
+  here for each player's relay breaker, and are also the server key's when
+  `APIFramework` sets none. The module
   ships no data-overlay: a plugin overlay overwrites `_datafiles/config.yaml`
   rather than filling in behind it. See docs/aicompanion/settings.md.
 
@@ -319,7 +357,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
 
 One mind file per owner and companion, through the plugin store
 (`WriteStruct`, durable and autosave-queued): identifier
-`mind-<ownerUserId>-<mobId>`. A corrupt file is quarantined by
+`mind-<ownerUserId>-<mobId>`. The server key's day total is in
+`apiframework`'s ledger (`<DataFiles>/apiframework/budget.yaml`); the
+module's own budget file keeps the per-owner and passer-by counts, and an
+old file's server total seeds the ledger once (`SeedTokens`). A corrupt file is quarantined by
 `ReadIntoStruct` and a fresh mind is used. Mechanical state (items, gold,
 skills, health) is never in the mind file; it lives on the owner's
 `CompanionInfo` and on the live mob.
@@ -381,9 +422,17 @@ skills, health) is never in the mind file; it lives on the owner's
   `applyResult` drop everything if it has changed.
 - `controller.cancelInFlight` cancels the HTTP call on logout, pause, reset
   and death. Budgets are reserved at dispatch in one check-and-hold step
-  (`reserveRoute`, which is `tryReserveFor` on the server's key) and
-  settled on return against the same payer and route (`settleRoute`),
-  exactly once. A call a passer-by prompted (`strangerBehind`) is held
+  (`reserveRoute`, which is `reserveFor` on the server's key; `hold.fw` is
+  the ledger's own hold) and settled on return against the same payer and
+  route (`settleRoute`, `settleHeld`), exactly once. On the server's key a
+  logical call takes one breaker ticket (`callModel`: `apiframework.Allow`
+  just before its first send) and keeps it across its retry and tool rounds
+  (`modelCall.ticket`, `modelResult.Ticket`); `routeResult` hands it back.
+  Each of the four model goroutines also releases it last (`ticketOut`), a
+  no-op once recorded, so a panic cannot hold a half-open breaker's probe.
+  A call held back while another probes (`errServerResting`) falls back to
+  set lines and is no error: not counted in the tier stats, `errorsToday`
+  or `lastErr`. A call a passer-by prompted (`strangerBehind`) is held
   against their `StrangerDailyTokens`, what passers-by together may spend
   of that owner's companion (`StrangerTokensPerOwner`, `strangersFor`,
   kept in the budget file; `strangerFits`, `chargeStrangerFor`) and, on
@@ -513,7 +562,7 @@ skills, health) is never in the mind file; it lives on the owner's
 ## Dependencies
 
 From `internal/` (read from `go list -f '{{.Imports}}'`, 2026-09-25):
-`actions`, `characters`, `combatvocab`, `companionai`, `conditions`,
+`actions`, `apiframework`, `characters`, `combatvocab`, `companionai`, `conditions`,
 `configs`, `crafting`, `events`, `factions`, `gametime`, `items`,
 `justice`, `messaging`, `mobcommands`, `mobs`, `mudlog`, `parties`,
 `plugins`, `quests`, `rooms`, `shops`, `skills`, `species`, `spells`,
