@@ -744,3 +744,43 @@ func TestStealAwardsAtTheRevealNotTheRoll(t *testing.T) {
 		t.Fatalf("one award, at the reveal: %d", len(h.thief.awards))
 	}
 }
+
+// A mark asleep at the attempt saw nothing (owner ruling 2026-09-29): a
+// failed roll still wakes it to the loss, but when the thief has walked
+// off by the reveal it cannot say who robbed it, however well lit the
+// theft room was.
+func TestPickpocketSleepingMarkSawNothing(t *testing.T) {
+	h := setupPocket(t, 9621, 7621)
+	seedTheftFaction(t)
+	h.room.Lamp = rooms.LampPtr(90)
+	h.room.AddMob(h.mark.InstanceId)
+	h.mark.MobId = 9721
+	h.mark.Groups = []string{"thornwall_citizens"}
+	elsewhere := newSearchTestRoom(9695)
+	seedPocketRooms(t, h.room, elsewhere)
+	t.Cleanup(seedSleepCondition(t))
+	if err := h.mark.Character.AddCondition(sleepConditionId, true); err != nil {
+		t.Fatal(err)
+	}
+	if !messaging.CanSeeClearly(nil, h.room) || messaging.ParticipantSight(&h.mark.Character, h.room) != messaging.SightFull {
+		t.Fatalf("fixture: the theft room is lit (%d)", h.room.LightLevel())
+	}
+
+	runPocketAttempt = func(p *pocketAttempt) StealResult {
+		h.thief.room = elsewhere
+		return resolvePocketInLine(p)
+	}
+	if res := startPocketAttempt(h.thief, h.mark, false); !res.Detected {
+		t.Fatalf("caught: %+v", res)
+	}
+	got := crimes.AllForFaction("thornwall_citizens", false)
+	if len(got) != 1 {
+		t.Fatalf("one theft recorded: %+v", got)
+	}
+	if got[0].Perpetrator.Type == crimes.PerpPlayer {
+		t.Fatalf("a mark asleep at the attempt names nobody: %+v", *got[0])
+	}
+	if r := knowledge.Get(int(h.mark.MobId), knowledge.PlayerSubject(7621)); r != nil {
+		t.Fatalf("and learns nothing of the thief: %+v", r)
+	}
+}

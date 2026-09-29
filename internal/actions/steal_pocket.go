@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -68,8 +69,8 @@ type pocketAttempt struct {
 	// markSaw is what the mark made out in the theft room at the attempt,
 	// when it felt the hand: a catch away from it (caught) names the thief
 	// by this, not by the room's light at the reveal, which the thief may
-	// have carried off. Optics only (ParticipantSight): a sleeping mark
-	// wakes as it is robbed (theftCrime), so its sleep does not blind it.
+	// have carried off. A mark asleep at the attempt saw nothing, though
+	// it wakes to the loss (owner ruling 2026-09-29; markSight).
 	markSaw messaging.SightDecision
 
 	takeBauble string // the catalog id of a bauble the mark carries, to take
@@ -155,7 +156,7 @@ func startPocketAttempt(actor Actor, m *mobs.Mob, success bool) StealResult {
 		mobInstanceId: m.InstanceId,
 		mobName:       m.Character.Name,
 		success:       success,
-		markSaw:       messaging.ParticipantSight(&m.Character, room),
+		markSaw:       markSight(&m.Character, room),
 		randn:         util.Rand,
 		delay:         PocketDelay(actor.GetCharacter().Stats.Dexterity.ValueAdj),
 		grace:         time.Duration(float64(cfg.BaublePickpocketGraceSecs) * float64(time.Second)),
@@ -346,6 +347,19 @@ func (p *pocketAttempt) resolve() StealResult {
 		markPocketStolen(it, p.userId, room, m)
 	}
 	return takeFromMob(thief, m, extra)
+}
+
+// markSight is what the mark makes out of the thief in room now, judged as
+// crimes.WitnessesInRoom judges a witness: clear, shapes only, or nothing,
+// and nothing at all while it sleeps.
+func markSight(mark *characters.Character, room *rooms.Room) messaging.SightDecision {
+	switch {
+	case messaging.CanSeeClearly(mark, room):
+		return messaging.SightFull
+	case messaging.CanSeeShapes(mark, room):
+		return messaging.SightShapes
+	}
+	return messaging.SightNone
 }
 
 // pocketCrime is the mark's side of a catch away from it: theftCrime in

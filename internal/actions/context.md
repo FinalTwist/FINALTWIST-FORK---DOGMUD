@@ -607,9 +607,11 @@ Pickpockets a target mob or player, or robs an item from a room container.
      `markAttacksThief`, which spares a thief who is dead or downed).
      Away, `theftCrime` runs in the theft's room with the mark its only witness
      (`theftWitnesses`), judged by `pocketAttempt.markSaw`, its sight of the
-     theft room taken at the attempt (`messaging.ParticipantSight`), so a
-     thief who carried the only light off before the reveal is still named;
-     no external witness. A mark that saw clearly learns who robbed it
+     theft room taken at the attempt (`markSight`, judged as
+     `crimes.WitnessesInRoom` judges a witness), so a thief who carried the
+     only light off before the reveal is still named, and a mark asleep at
+     the attempt saw nothing and names nobody (owner ruling 2026-09-29); no
+     external witness. A mark that saw clearly learns who robbed it
      (`knowledge.RecordCrimeWitnessed`, which sets `HasMet`); only the
      last-seen room and round are skipped (`knowledge.RecordMet` is not
      called). Bystanders learn nothing.
