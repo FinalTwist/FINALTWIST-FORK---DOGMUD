@@ -1,7 +1,16 @@
 package baubles
 
 import (
+	"errors"
+	"fmt"
+	"sort"
+	"sync"
 	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // The catalog sweep. A record is only useful while some item points at it,
@@ -88,4 +97,247 @@ func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (refere
 		pruned += n
 	}
 	return referenced, pruned
+}
+
+// LiveWalk visits every item one live store holds. It runs under the mud
+// lock and must only read.
+type LiveWalk func(visit func(*items.Item))
+
+var (
+	liveMu      sync.Mutex
+	liveSources = map[string]LiveWalk{}
+)
+
+// RegisterLiveSource names a store of live items for the sweep; the same
+// name replaces the earlier walk. The core stores are registered by the
+// main package (bauble_sweep.go), the auction house by its module.
+func RegisterLiveSource(name string, walk LiveWalk) {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	liveSources[name] = walk
+}
+
+// LiveSourceNames lists the registered live stores, sorted.
+func LiveSourceNames() []string {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	out := make([]string, 0, len(liveSources))
+	for name := range liveSources {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
+}
+
+type namedWalk struct {
+	name string
+	walk LiveWalk
+}
+
+func liveSourceList() []namedWalk {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	out := make([]namedWalk, 0, len(liveSources))
+	for name, walk := range liveSources {
+		out = append(out, namedWalk{name: name, walk: walk})
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].name < out[b].name })
+	return out
+}
+
+// sweepLock and sweepUnlock hold the world still while the live stores are
+// walked.
+var sweepLock, sweepUnlock = util.LockMud, util.UnlockMud
+
+var errNoLiveSources = errors.New(`no live item sources are registered, so the live world cannot be seen`)
+
+// collectLive walks every live store under the mud lock and returns how
+// long it held the lock. The clock starts once the lock is taken, so time
+// spent waiting for it is not counted: the status line and the boot
+// smoke's 50 ms rule measure the hold, which is what stalls the game.
+func collectLive(add func(id string)) (time.Duration, error) {
+	sources := liveSourceList()
+	if len(sources) == 0 {
+		return 0, errNoLiveSources
+	}
+	sweepLock()
+	defer sweepUnlock()
+	start := time.Now()
+	for _, s := range sources {
+		if err := walkLiveSource(s, add); err != nil {
+			return time.Since(start), err
+		}
+	}
+	return time.Since(start), nil
+}
+
+func walkLiveSource(s namedWalk, add func(id string)) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf(`live source %s: panic: %v`, s.name, r)
+		}
+	}()
+	s.walk(func(it *items.Item) {
+		if it != nil && it.Bauble != `` {
+			add(it.Bauble)
+		}
+	})
+	return nil
+}
+
+// SweepStatus is what the last sweep did, for `bauble status` and the log.
+type SweepStatus struct {
+	At         time.Time     // when it ran; zero if no sweep has run yet
+	OK         bool          // false: it failed closed and applied nothing
+	Err        string        // why it failed
+	Skipped    bool          // the catalog was empty: nothing to look for
+	Records    int           // records in the catalog afterwards
+	Referenced int           // records something still points at
+	Pruned     int           // records it removed
+	Files      int           // data files it read
+	Parsed     int           // of them, files that name a bauble
+	Live       time.Duration // time holding the mud lock (not waiting for it)
+	Disk       time.Duration // time reading data files
+}
+
+var (
+	statusMu   sync.Mutex
+	lastSweep  SweepStatus
+	sweepRunMu sync.Mutex
+)
+
+// LastSweep is what the most recent sweep did.
+func LastSweep() SweepStatus {
+	statusMu.Lock()
+	defer statusMu.Unlock()
+	return lastSweep
+}
+
+// SweepInterval is the time between sweeps (Balance.BaubleSweepHours).
+func SweepInterval() time.Duration {
+	h := int(configs.GetBalanceConfig().BaubleSweepHours)
+	if h < 1 {
+		h = 1
+	}
+	return time.Duration(h) * time.Hour
+}
+
+// RunSweep runs one complete sweep now against DataFiles and returns what
+// it did. It takes the mud lock for the live half, so never call it while
+// holding that lock (a command handler does): StartSweeper runs it on its
+// own goroutine.
+func RunSweep(now time.Time) SweepStatus {
+	return runSweep(now, configs.GetFilePathsConfig().DataFiles.String())
+}
+
+func runSweep(now time.Time, root string) (st SweepStatus) {
+	sweepRunMu.Lock()
+	defer sweepRunMu.Unlock()
+	st.At = now
+	defer func() {
+		if r := recover(); r != nil {
+			st.OK = false
+			st.Err = fmt.Sprintf(`panic: %v`, r)
+		}
+		statusMu.Lock()
+		lastSweep = st
+		statusMu.Unlock()
+		logSweep(st)
+	}()
+
+	st.Records = Count()
+	if st.Records == 0 {
+		st.OK, st.Skipped = true, true
+		return st
+	}
+	refs := map[string]bool{}
+	add := func(id string) { refs[id] = true }
+
+	live, err := collectLive(add)
+	st.Live = live
+	if err != nil {
+		st.Err = err.Error()
+		return st
+	}
+	start := time.Now()
+	st.Files, st.Parsed, err = scanDisk(root, now, add)
+	st.Disk = time.Since(start)
+	if err != nil {
+		st.Err = err.Error()
+		return st
+	}
+	st.Referenced, st.Pruned = applySweep(now, refs, KeepDuration())
+	st.Records = Count()
+	st.OK = true
+	return st
+}
+
+func logSweep(st SweepStatus) {
+	switch {
+	case !st.OK:
+		mudlog.Error(`baubles`, `action`, `sweep`, `result`, `failed; nothing pruned`, `error`, st.Err)
+	case st.Skipped:
+		mudlog.Info(`baubles`, `action`, `sweep`, `result`, `catalog empty`)
+	default:
+		mudlog.Info(`baubles`, `action`, `sweep`, `records`, st.Records, `referenced`, st.Referenced, `pruned`, st.Pruned,
+			`files`, st.Files, `parsed`, st.Parsed, `live`, st.Live.String(), `disk`, st.Disk.String())
+	}
+}
+
+// sweepLoop runs a sweep at once, then again every interval, until stop
+// closes.
+func sweepLoop(stop <-chan struct{}, interval func() time.Duration, run func()) {
+	for {
+		run()
+		t := time.NewTimer(interval())
+		select {
+		case <-stop:
+			t.Stop()
+			return
+		case <-t.C:
+		}
+	}
+}
+
+var (
+	sweeperMu   sync.Mutex
+	sweeperStop chan struct{}
+	sweeperDone chan struct{}
+)
+
+// StartSweeper runs the catalog sweep at once and then every
+// SweepInterval, on its own goroutine. Call once at boot, after the world
+// is loaded and the live sources are registered. A second call does
+// nothing.
+func StartSweeper() {
+	sweeperMu.Lock()
+	defer sweeperMu.Unlock()
+	if sweeperStop != nil {
+		return
+	}
+	stop, done := make(chan struct{}), make(chan struct{})
+	sweeperStop, sweeperDone = stop, done
+	go func() {
+		defer close(done)
+		sweepLoop(stop, SweepInterval, func() { RunSweep(time.Now().UTC()) })
+	}()
+}
+
+// StopSweeper stops the sweeper and waits (up to 30 seconds) for a sweep in
+// progress to finish its writes. Call at shutdown before SaveAll, never
+// while holding the mud lock (a sweep in progress may be waiting on it).
+func StopSweeper() {
+	sweeperMu.Lock()
+	stop, done := sweeperStop, sweeperDone
+	sweeperStop, sweeperDone = nil, nil
+	sweeperMu.Unlock()
+	if stop == nil {
+		return
+	}
+	close(stop)
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		mudlog.Warn(`baubles`, `action`, `stop sweeper`, `result`, `a sweep was still running after 30s; not waiting`)
+	}
 }
