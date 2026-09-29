@@ -127,7 +127,7 @@ func (m *AICompanionModule) answerTool(c *controller, mob *mobs.Mob, owner *user
 		}
 		if t.Kind == `ware` {
 			item := t.Item
-			return fmt.Sprintf(`%s (for sale at %d gold): %s`, t.Name, t.Price, plainText(item.GetLongDescription()))
+			return fmt.Sprintf(`%s (for sale at %d gold): %s`, t.Name, t.Price, plainText(item.ModelDescription()))
 		}
 		return m.lookAt(c, mob, room, t, 0, false).Perceived
 
@@ -223,7 +223,7 @@ func describePerson(ch *characters.Character, full bool) string {
 		var gear []string
 		for _, it := range ch.Equipment.GetAllItems() {
 			if it.ItemId > 0 {
-				gear = append(gear, it.Name())
+				gear = append(gear, it.ModelName())
 			}
 		}
 		if len(gear) > 0 {

@@ -141,3 +141,35 @@ func TestFinderOnlyBaubleMatchesOnlyByItsGenericWords(t *testing.T) {
 		}
 	}
 }
+
+// Player-key text, moderated or not, never goes into a language model's
+// prompt (spec S3): ModelName and ModelDescription show such a bauble as
+// its carrier ("Curious Trinket"), and are Name and GetLongDescription for
+// anything else.
+func TestModelAccessorsKeepPlayerKeyTextOut(t *testing.T) {
+	restore := SeedItemsForTest(map[int]*ItemSpec{
+		BaubleItemId: {ItemId: BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`,
+			Description: `A small curiosity.`, Type: Object, Subtype: Mundane},
+	})
+	defer restore()
+	views := map[string]BaubleView{
+		`player`: {Name: `Painted Wooden Horse`, NameSimple: `horse`, Description: `A child's toy horse.`, PlayerText: true},
+		`server`: {Name: `Tin Soldier`, NameSimple: `soldier`, Description: `A dented tin soldier.`},
+	}
+	SetBaubleResolver(func(id string) (BaubleView, bool) { v, ok := views[id]; return v, ok })
+	defer SetBaubleResolver(nil)
+
+	mine := New(BaubleItemId)
+	mine.Bauble = `player`
+	if mine.ModelName() != `Curious Trinket` || strings.Contains(mine.ModelDescription(), `horse`) {
+		t.Fatalf("player-key text stays out of the prompt: %q %q", mine.ModelName(), mine.ModelDescription())
+	}
+	if mine.Name() != `Painted Wooden Horse` {
+		t.Fatal("players still read moderated player-key text")
+	}
+	server := New(BaubleItemId)
+	server.Bauble = `server`
+	if server.ModelName() != `Tin Soldier` || !strings.Contains(server.ModelDescription(), `tin soldier`) {
+		t.Fatalf("server-key text is the model's to read: %q", server.ModelName())
+	}
+}

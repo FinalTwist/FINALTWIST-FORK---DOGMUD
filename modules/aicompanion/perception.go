@@ -181,7 +181,7 @@ func describeSituation(mob *mobs.Mob, owner *users.UserRecord) string {
 		if it.ItemId < 1 {
 			continue
 		}
-		worn = append(worn, it.Name())
+		worn = append(worn, it.ModelName())
 	}
 	if len(worn) > 0 {
 		fmt.Fprintf(&b, "You have on you: %s.\n", strings.Join(worn, `, `))
@@ -191,7 +191,7 @@ func describeSituation(mob *mobs.Mob, owner *users.UserRecord) string {
 		if it.ItemId < 1 {
 			continue
 		}
-		carried = append(carried, it.Name())
+		carried = append(carried, it.ModelName())
 	}
 	if len(carried) > 0 {
 		fmt.Fprintf(&b, "In your pack: %s.\n", strings.Join(carried, `, `))
@@ -210,7 +210,7 @@ func roomThings(room *rooms.Room) []string {
 		if it.ItemId < 1 {
 			continue
 		}
-		out = append(out, it.Name())
+		out = append(out, it.ModelName())
 	}
 	for _, c := range room.Corpses {
 		if c.CorpseName != `` {
@@ -290,7 +290,7 @@ func ownerLooks(owner *users.UserRecord) string {
 		parts = append(parts, strings.ToLower(sp.Name))
 	}
 	if w := owner.Character.Equipment.Weapon; w.ItemId > 0 {
-		parts = append(parts, `carrying `+w.Name())
+		parts = append(parts, `carrying `+w.ModelName())
 	}
 	if len(parts) == 0 {
 		return ``
