@@ -193,8 +193,10 @@ func Edit(id string, field string, value string, admin string) (Record, error) {
 		r.Value = limited.Reply.Value
 		r.WeightLbs = limited.Reply.WeightLbs
 		r.EditedBy = admin
-		// Hand-written text was never moderated as it now reads.
-		r.Moderated = false
+		// Hand-written text is never promotable (Promote checks
+		// HandEdited). Moderated is left alone: KeptToFinder is PlayerKey
+		// and not Moderated, so clearing it would hide an admin's edit of
+		// a moderated player-key find from everyone but its finder.
 		r.HandEdited = true
 	})
 	if !ok {

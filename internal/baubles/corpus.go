@@ -418,12 +418,20 @@ func (p *corpusPool) candidates(biome string, tier ValueTier, source Source) []c
 	return p.collect([]string{corpusKey(``, tier)}, source)
 }
 
+// collect gathers the entries at keys that pass TooBigFor. Each name (any
+// case) is one candidate, so a name at both a biome key and its group's,
+// or in both the overlay and the seed, is not drawn at double odds: every
+// overlay entry is taken before any seed entry, so the overlay's text wins.
 func (p *corpusPool) collect(keys []string, source Source) []corpusCandidate {
 	var out []corpusCandidate
+	names := map[string]bool{}
 	add := func(key string, e CorpusEntry) {
-		if !TooBigFor(e.reply(), source) {
-			out = append(out, corpusCandidate{key: key, entry: e})
+		n := normKey(e.Name)
+		if names[n] || TooBigFor(e.reply(), source) {
+			return
 		}
+		names[n] = true
+		out = append(out, corpusCandidate{key: key, entry: e})
 	}
 	for _, k := range keys {
 		for _, s := range p.promoted[k] {
@@ -431,6 +439,8 @@ func (p *corpusPool) collect(keys []string, source Source) []corpusCandidate {
 				add(k, s.use)
 			}
 		}
+	}
+	for _, k := range keys {
 		for _, e := range p.seed[k] {
 			add(k, e)
 		}

@@ -385,6 +385,15 @@ func ResetWindow(roomId int)
 - **Runtime data.** `<DataFiles>/baubles/` is gitignored (with a `.gitkeep`)
   and skipped by the messaging surface guard and its Python twin, like
   `warehouses`.
+- **The corpus overlay is decoded whole and strictly** (`corpus.go`,
+  `decodeStrict` with `KnownFields`). One type error (a word where
+  `weight_lbs` wants a number) or one unknown field (a typo such as
+  `valeu:`) anywhere in `baubles/corpus.promoted.yaml` fails the decode of
+  the WHOLE document, not just that entry: the overlay is quarantined
+  (`util.QuarantineCorrupt`, its bytes kept aside unchanged for recovery)
+  and restarts empty. Only an entry that parses but fails `checkEntry` is
+  skipped on its own, and that one is kept and saved again. Fix a hand
+  edit from the quarantined copy, then reload (`ReloadCorpus`).
 - **Windows are in memory**, not in the room's temp data: rooms unload when
   nobody is near, which would reset a room-held window. A restart reopening
   every window is harmless. The map is swept of expired windows once it

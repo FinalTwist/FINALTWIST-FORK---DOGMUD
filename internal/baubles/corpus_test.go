@@ -3,8 +3,10 @@ package baubles
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -451,5 +453,157 @@ func TestMintWithNoResultDrawsFromTheCorpus(t *testing.T) {
 	}
 	if rec.Generator != GeneratorCorpus || rec.Status != StatusReady || rec.Name != `Chipped Clay Marble` || rec.Model != `corpus:dwelling-cheap` {
 		t.Fatalf("record: %+v", rec)
+	}
+}
+
+// A player-key name never reaches a fallback's recent list, like
+// RecentNames: it is its finder's text, never compared for anyone else.
+func TestRecentFallbackNamesSkipsPlayerKeyNames(t *testing.T) {
+	withCatalog(t)
+	_, _ = Create(Record{Name: `Old Cup`, Zone: `ashwick`, Generator: GeneratorOpenAI})
+	_, _ = Create(Record{Name: `Player Written`, Zone: `ashwick`, Generator: GeneratorOpenAI, PlayerKey: true})
+	got := RecentFallbackNames(`ashwick`, 5)
+	if len(got) != 1 || got[0] != `Old Cup` {
+		t.Fatalf("the player-key name is left out: %v", got)
+	}
+}
+
+// The loader keeps the CLEANED entry, seed and overlay alike: markup, ANSI
+// tags and escape sequences stripped, the keyword and material lowercased
+// (an over-long material dropped), and the value clamped into the tier at
+// use.
+func TestLoadCorpusKeepsTheCleanedEntry(t *testing.T) {
+	seed := `groups:
+  interior: dwelling
+entries:
+  interior-cheap:
+    - name: "<b>Bent</b> Tin <ansi fg=\"red\">Thimble</ansi>\e[31m"
+      name_simple: THIMBLE
+      description: "A tin thimble, \e[1mpressed</ansi> a little out of shape."
+      material: POLISHED TIN
+      weight_lbs: 0.1
+      value: 99
+`
+	overlay := `entries:
+  cheap:
+    - name: "Painted <i>Wooden</i> \e[32mSpool"
+      name_simple: Spool
+      description: "A wooden thread spool <ansi fg=\"blue\">painted</ansi> with a band of blue."
+      material: wood that was painted many many times over the years
+      weight_lbs: 0.2
+      value: 500
+      from_record: B0000007
+      promoted_at: 2026-09-28T12:00:00Z
+`
+	_, _, rep := withCorpus(t, seed, overlay)
+	if rep.Seed != 1 || rep.Promoted != 1 || len(rep.Skipped) != 0 {
+		t.Fatalf("report: %+v", rep)
+	}
+	max := TierCheap.Range().Max
+
+	s := Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, nil, first).Reply
+	if s.Name != `Bent Tin Thimble` || s.NameSimple != `thimble` || s.Material != `polished tin` ||
+		s.Description != `A tin thimble, pressed a little out of shape.` || s.Value != max {
+		t.Fatalf("the seed entry is used cleaned: %+v", s)
+	}
+	o := Fallback(Place{}, TierCheap, SourceSearch, nil, first).Reply
+	if o.Name != `Painted Wooden Spool` || o.NameSimple != `spool` || o.Material != `` ||
+		o.Description != `A wooden thread spool painted with a band of blue.` || o.Value != max {
+		t.Fatalf("the overlay entry is used cleaned: %+v", o)
+	}
+}
+
+// One name is one chance: a name at both the biome key and the group key,
+// or in both the overlay and the seed, is drawn once, and the overlay's
+// text wins.
+func TestFallbackDrawsEachNameOnce(t *testing.T) {
+	seed := `groups:
+  interior: dwelling
+entries:
+  interior-cheap:
+    - name: Chipped Clay Marble
+      name_simple: marble
+      description: A clay marble from the interior pool, glazed blue long ago.
+      weight_lbs: 0.1
+      value: 2
+  dwelling-cheap:
+    - name: chipped clay marble
+      name_simple: marble
+      description: A clay marble from the dwelling pool, chipped since.
+      weight_lbs: 0.1
+      value: 2
+    - name: Bent Tin Thimble
+      name_simple: thimble
+      description: A tin thimble, pressed a little out of shape by a careless heel.
+      weight_lbs: 0.1
+      value: 3
+`
+	overlay := `entries:
+  dwelling-cheap:
+    - name: Chipped Clay Marble
+      name_simple: marble
+      description: A clay marble the overlay holds, promoted from a model find.
+      weight_lbs: 0.1
+      value: 2
+      from_record: B0000007
+      promoted_at: 2026-09-28T12:00:00Z
+`
+	withCorpus(t, seed, overlay)
+	descs := map[string]string{}
+	for i := 0; i < 2; i++ {
+		drewFrom := 0
+		res := Fallback(Place{Biome: `interior`}, TierCheap, SourceSearch, nil, func(n int) int { drewFrom = n; return i % n })
+		if drewFrom != 2 {
+			t.Fatalf("two names, two chances: drew from %d", drewFrom)
+		}
+		descs[normKey(res.Reply.Name)] = res.Reply.Description
+	}
+	if len(descs) != 2 || descs[`chipped clay marble`] != `A clay marble the overlay holds, promoted from a model find.` {
+		t.Fatalf("each name once, the overlay's text for the marble: %v", descs)
+	}
+}
+
+// Every key the loader accepts is one some find can draw, and nothing is
+// drawn from a key the loader refused: knownPrefix and candidates agree.
+func TestEveryLoadedKeyIsReachable(t *testing.T) {
+	seed := `groups:
+  interior: dwelling
+  fort: dwelling
+  ruins: ruins
+  crypt: ruins
+entries:
+`
+	keys := []string{`interior-cheap`, `fort-cheap`, `dwelling-cheap`, `ruins-cheap`, `crypt-cheap`, `pocket-cheap`, `cheap`, `castle-cheap`, `water-cheap`}
+	for i, k := range keys {
+		seed += fmt.Sprintf("  %s:\n    - name: Small Plain Find %s\n      name_simple: find\n      description: A small plain find, kept for a reachability test.\n      weight_lbs: 0.1\n      value: 2\n", k, strings.Repeat(`a`, i+1))
+	}
+	withCorpus(t, seed, ``)
+	loaded := map[string]bool{}
+	for k := range corpus.Load().seed {
+		loaded[k] = true
+	}
+	drawn := map[string]bool{}
+	draw := func(biome string, source Source) {
+		for i := 0; i < 8; i++ {
+			res := Fallback(Place{Biome: biome}, TierCheap, source, nil, func(n int) int { return i % n })
+			drawn[strings.TrimPrefix(res.Model, `corpus:`)] = true
+		}
+	}
+	for _, b := range []string{``, `interior`, `fort`, `ruins`, `crypt`, `castle`, `water`, `dwelling`} {
+		draw(b, SourceSearch)
+	}
+	draw(``, SourcePickpocket)
+	for k := range loaded {
+		if !drawn[k] {
+			t.Errorf("%s loads but no find can draw it", k)
+		}
+	}
+	for k := range drawn {
+		if !loaded[k] {
+			t.Errorf("%s was drawn but never loaded", k)
+		}
+	}
+	if loaded[`castle-cheap`] || loaded[`water-cheap`] {
+		t.Errorf("a biome with no group is refused at load: %v", loaded)
 	}
 }

@@ -177,20 +177,25 @@ func TestRestoreReturnsACorpusRecordToReady(t *testing.T) {
 	}
 }
 
-// Edited text was never moderated as written, so an edit clears the flag
-// and marks the record HandEdited (which Promote refuses).
-func TestEditClearsModeratedAndMarksHandEdited(t *testing.T) {
+// An edit marks the record HandEdited (which Promote refuses) and leaves
+// Moderated alone (controller ruling 2026-09-29): KeptToFinder is PlayerKey
+// and not Moderated, so clearing it would hide a moderated player-key
+// record's admin-approved text from everyone but its finder.
+func TestEditKeepsModeratedAndMarksHandEdited(t *testing.T) {
 	withCatalog(t)
-	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, Moderated: true})
+	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, Moderated: true, PlayerKey: true, FoundByUserId: 7})
 	got, err := Edit(r.Id, `name`, `Painted Wooden Pony`, `Admin`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Moderated {
-		t.Fatal("an edit must clear Moderated")
+	if !got.Moderated {
+		t.Fatal("an edit must not clear Moderated")
 	}
 	if !got.HandEdited {
 		t.Fatal("an edit must mark the record HandEdited")
+	}
+	if got.KeptToFinder() || got.View().Name != `Painted Wooden Pony` || got.View().Finder != nil {
+		t.Fatalf("a moderated player-key record stays everyone's after an edit: %+v", got.View())
 	}
 }
 
