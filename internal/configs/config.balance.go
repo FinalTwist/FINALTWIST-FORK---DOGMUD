@@ -905,7 +905,7 @@ type Balance struct {
 	BaubleRevealSeconds        ConfigInt          `yaml:"BaubleRevealSeconds"`        // Least real seconds a find takes to reach the player, so model-named and generic finds arrive at one pace (default 3)
 	BaublePickpocketChancePct  ConfigFloat        `yaml:"BaublePickpocketChancePct"`  // Percent chance a successful pickpocket of an NPC carrying no bauble turns one up (default 50; -1 never)
 	BaublePickpocketMaxWeight  ConfigFloat        `yaml:"BaublePickpocketMaxWeight"`  // Heaviest a pickpocketed bauble may be, in pounds: pocket-sized (default 1.0)
-	BaublePickpocketGraceSecs  ConfigFloat        `yaml:"BaublePickpocketGraceSecs"`  // Real seconds past the pickpocket pause a bauble's naming is waited for before it is a generic trinket (default 5)
+	BaublePickpocketGraceSecs  ConfigFloat        `yaml:"BaublePickpocketGraceSecs"`  // Real seconds past the pickpocket pause a bauble's naming is waited for before it falls back to the corpus (default 5)
 	BaubleExcludedZones        ConfigSliceString  `yaml:"BaubleExcludedZones"`        // Zones where search never finds baubles (default none; instances are always excluded)
 	BaubleTierWeightCheap      ConfigInt          `yaml:"BaubleTierWeightCheap"`      // Relative chance a find is cheap (default 70)
 	BaubleTierWeightAverage    ConfigInt          `yaml:"BaubleTierWeightAverage"`    // Relative chance a find is average (default 25)

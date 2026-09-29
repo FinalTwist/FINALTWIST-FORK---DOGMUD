@@ -1482,7 +1482,7 @@ Balance:
   # once, while the pause runs). -1 = never. Pickpocketed baubles are
   # pocket-sized: named as such, and no heavier than BaublePickpocketMaxWeight
   # pounds. A naming not back this many REAL seconds after the pause ends
-  # is given up, and the bauble is a generic trinket.
+  # is given up, and the bauble's text comes from the fallback corpus.
   BaublePickpocketChancePct: 50
   BaublePickpocketMaxWeight: 1.0
   BaublePickpocketGraceSecs: 5
@@ -2689,7 +2689,8 @@ Modules:
   # A find is named through the finder's OWN key when they ticked "Also name
   # things I find while searching" on the Companion key page (UsePlayerKeys),
   # else through the server's key (APIFramework: its one daily budget and
-  # breaker, shared with the AI companion), else it is a generic "Trinket".
+  # breaker, shared with the AI companion), else its text comes from the
+  # fallback corpus (bauble-corpus.yaml and promoted names).
   # Model, MaxCompletionTokens, MaxConcurrent, UsePlayerKeys, ModerateOutput
   # and ModerationModel are hard-locked: only this file changes them.
   baubles:
@@ -2698,14 +2699,14 @@ Modules:
     Model: "gpt-5-nano"
     ReasoningEffort: "minimal"
     # A find waits for this call (at least Balance.BaubleRevealSeconds), so
-    # keep it short. Failures and timeouts become generic trinkets.
+    # keep it short. Failures and timeouts fall back to the corpus.
     TimeoutSeconds: 15
     MaxCompletionTokens: 800
     RetryTransient: false
-    MaxConcurrent: 4           # server-key calls at once; more are generic
+    MaxConcurrent: 4           # server-key calls at once; more use the corpus
     # Tokens per UTC day one finder's finds may spend, on the server's key
-    # or their own (about 8 to 10 names). Over it, a find is a generic
-    # trinket. `bauble spawn` charges the admin's own allowance, as a find
+    # or their own (about 8 to 10 names). Over it, a find falls back to the
+    # corpus. `bauble spawn` charges the admin's own allowance, as a find
     # does; `bauble regen` charges nobody. 0 is no cap. Takes effect at the
     # next round after a `server set`, with no restart.
     DailyTokensPerUser: 20000

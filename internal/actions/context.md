@@ -595,8 +595,9 @@ Pickpockets a target mob or player, or robs an item from a room container.
      the mark's authored name, never for anyone's companion or former
      companion, whose name a player may have chosen: `pocketBaubleAllowed`,
      `EverCharmed`). A naming not back when the pause ends is waited
-     for up to BaublePickpocketGraceSecs, then given up (a generic
-     trinket). It is minted pocket-sized (`baubles.MaxWeightFor`), marked
+     for up to BaublePickpocketGraceSecs, then given up (from the
+     fallback corpus). It is minted pocket-sized (`baubles.MaxWeightFor`),
+     marked
      stolen (`markPocketStolen`; so is a bauble the random item happens to
      be, unless a player gave it to this mob: `baubles.Record.GivenTo`), and named in the one success line with the rest. A bauble
      named for a lost chance goes into the mark's pocket (`intoPocket`),
@@ -802,8 +803,8 @@ root sight guard watches `baubles.RollFind` and `actions.searchBaubleRoll`. A
 find is NOT handed over on the spot: the player is told they are working
 something loose, `SearchResult.
 BaubleFound` is set, and `StartBaubleFind` hands a `BaubleDelivery` to a
-goroutine. That goroutine names it with `baubles.Generate` (the model, or a
-generic trinket) WITHOUT the mud lock, waits out the rest of
+goroutine. That goroutine names it with `baubles.Generate` (the model, or the
+fallback corpus) WITHOUT the mud lock, waits out the rest of
 `BaubleRevealSeconds`, then takes `util.LockMud()` once to `Mint` and deliver
 (`deliver`): if the room it was found in is a household NOW (`HouseholdResident`:
 indoors, a resident about), or the find was rolled as a household's
@@ -827,9 +828,10 @@ goroutine exists, so a copyover in the same pass of the game loop still
 finds it. `FlushBaubleDeliveries`, called under the mud
 lock by `triggerCopyover` (copyover.go) and the shutdown path (world.go)
 before rooms and players are saved, finishes each one still on its way:
-named if its naming came back, otherwise the generic trinket it would have
-been. It cancels the naming, and the goroutine, which needs the lock the
-flush holds, finds it delivered (`claim`) and stands down. So a player told
+named if its naming came back, otherwise the corpus fallback it would have
+been (`baubles.FallbackFor`). It cancels the naming, and the goroutine,
+which needs the lock the flush holds, finds it delivered (`claim`) and
+stands down. So a player told
 "Something glints..." never loses the find to a copyover. Rules:
 
 - Mobs never roll. Instance/ephemeral rooms, banks, storage and character
@@ -846,8 +848,8 @@ flush holds, finds it delivered (`claim`) and stands down. So a player told
 - In this package's tests the default roll never finds
   (`bauble_testinit_test.go`); bauble tests stub it.
 - A spent window, an excluded room and a failed roll are silent and identical.
-- The minimum wait applies to generic trinkets too, so the timing never tells
-  a player whether the model named their find.
+- The minimum wait applies to corpus and generic finds too, so the timing
+  never tells a player whether the model named their find.
 - `BaubleRequest` copies AUTHORED room text only (title, description, noun
   keys), never signs or anything a player typed.
 - `searchBaubleRoll`, `startBaubleDelivery`, `findBaubleRecipient` and
