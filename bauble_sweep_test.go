@@ -26,6 +26,8 @@ import (
 // nothing else is. The same names are the list the sweep expects at run
 // time (baubleSweepSourceNames): a sweep missing one of them fails closed.
 func TestBaubleSweepSourcesMatchTheGuardedRoots(t *testing.T) {
+	savedSources, savedExpected := baubles.SnapshotSourcesForTest()
+	t.Cleanup(func() { baubles.RestoreSourcesForTest(savedSources, savedExpected) })
 	registerBaubleSweepSources() // the auction house registers itself in its init
 	want := []string{}
 	for _, r := range sweepRoots() {

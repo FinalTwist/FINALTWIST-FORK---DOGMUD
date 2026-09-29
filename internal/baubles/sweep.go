@@ -165,6 +165,32 @@ func LiveSourceNames() []string {
 	return out
 }
 
+// SnapshotSourcesForTest returns the registered live sources and the
+// declared expectations, so a test that calls RegisterLiveSource or
+// ExpectLiveSources can restore them afterwards with RestoreSourcesForTest
+// (typically from t.Cleanup) instead of leaking its own registrations into
+// later tests.
+func SnapshotSourcesForTest() (sources map[string]LiveWalk, expected []string) {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	sources = make(map[string]LiveWalk, len(liveSources))
+	for name, walk := range liveSources {
+		sources[name] = walk
+	}
+	expected = append([]string{}, expectedSources...)
+	return sources, expected
+}
+
+// RestoreSourcesForTest replaces the registered live sources and declared
+// expectations wholesale, undoing whatever a test registered or declared
+// since SnapshotSourcesForTest.
+func RestoreSourcesForTest(sources map[string]LiveWalk, expected []string) {
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	liveSources = sources
+	expectedSources = expected
+}
+
 type namedWalk struct {
 	name string
 	walk LiveWalk
