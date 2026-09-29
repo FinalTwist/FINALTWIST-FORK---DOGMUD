@@ -1,6 +1,8 @@
 package aicompanion
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -85,5 +87,76 @@ func TestCountersRollOnTheLedgersClock(t *testing.T) {
 	if m.callsToday != 0 || m.errorsToday != 0 || m.noticesToday[5] != 0 || m.countersDay != tomorrow.Format(`2006-01-02`) {
 		t.Fatalf("a new ledger day starts them afresh: calls=%d errors=%d notices=%d day=%s",
 			m.callsToday, m.errorsToday, m.noticesToday[5], m.countersDay)
+	}
+}
+
+// Correction 9, owner ruling 12: the companion's own file is the backup of
+// its allowances. A quarantined budget.yaml loses the ledger's counts and
+// its seed marks together, so the next boot seeds them again from that
+// backup: a corrupt file hands nobody a fresh allowance.
+func TestAQuarantinedLedgerReseedsFromTheCompanionsBackup(t *testing.T) {
+	dir := t.TempDir()
+	apiframework.ResetBudgetForTest(dir)
+	t.Cleanup(func() { apiframework.ResetBudgetForTest(``) })
+	cfg := Config{DailyTokensPerCompanion: 100000, StrangerDailyTokens: 100000, StrangerTokensPerOwner: 100000}
+	m := &AICompanionModule{cfg: cfg}
+	m.books.Store(apiframework.Shared())            // the real ledger, on disk in dir
+	m.restoreBudget(budgetState{Day: m.fw().Day()}) // this boot's seed: it marks all three dimensions
+	server := route{kind: routeServer}
+	h1, ok1 := m.reserveRoute(server, 5, 0, 900)
+	h2, ok2 := m.reserveRoute(server, 5, 2, 900)
+	if !ok1 || !ok2 {
+		t.Fatal("fixture: both holds fit")
+	}
+	m.settleRoute(h1, 400)
+	m.settleRoute(h2, 300)
+	backup := m.budgetStateToSave() // what saveBudget writes to the companion's own file
+	if backup.Owners[5] != 400 || backup.Strangers[2] != 300 || backup.StrangersFor[5] != 300 {
+		t.Fatalf("the backup is the ledger's counts: %+v", backup)
+	}
+	apiframework.SaveBudget()
+
+	if err := os.WriteFile(filepath.Join(dir, `budget.yaml`), []byte("day: [unclosed"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	apiframework.ResetBudgetForTest(dir) // the next boot finds budget.yaml corrupt
+	booted := &AICompanionModule{cfg: cfg}
+	booted.books.Store(apiframework.Shared())
+	booted.restoreBudget(backup)
+	if ownerSpent(booted, 5) != 400 || strangerSpent(booted, 2) != 300 || strangersForSpent(booted, 5) != 300 {
+		t.Fatalf("re-seeded from the backup: owner=%d stranger=%d perOwner=%d",
+			ownerSpent(booted, 5), strangerSpent(booted, 2), strangersForSpent(booted, 5))
+	}
+	if serverSpent(booted) != 700 {
+		t.Fatalf("and the companion's share of the day, as SeedTokens always did: %d", serverSpent(booted))
+	}
+}
+
+// A normal same-day restart finds budget.yaml whole, with its seed marks,
+// so the backup is not added a second time.
+func TestASameDayRestartDoesNotSeedTwice(t *testing.T) {
+	dir := t.TempDir()
+	apiframework.ResetBudgetForTest(dir)
+	t.Cleanup(func() { apiframework.ResetBudgetForTest(``) })
+	cfg := Config{DailyTokensPerCompanion: 100000, StrangerDailyTokens: 100000, StrangerTokensPerOwner: 100000}
+	m := &AICompanionModule{cfg: cfg}
+	m.books.Store(apiframework.Shared())
+	m.restoreBudget(budgetState{Day: m.fw().Day(), // the first boot after the move
+		Owners: map[int]int{5: 1200}, Strangers: map[int]int{2: 300}, StrangersFor: map[int]int{5: 300}})
+	h, ok := m.reserveRoute(route{kind: routeServer}, 5, 0, 900)
+	if !ok {
+		t.Fatal("fixture: the hold fits")
+	}
+	m.settleRoute(h, 100)
+	backup := m.budgetStateToSave()
+	apiframework.SaveBudget()
+
+	apiframework.ResetBudgetForTest(dir) // a normal restart: budget.yaml reads back
+	booted := &AICompanionModule{cfg: cfg}
+	booted.books.Store(apiframework.Shared())
+	booted.restoreBudget(backup)
+	if ownerSpent(booted, 5) != 1300 || strangerSpent(booted, 2) != 300 || strangersForSpent(booted, 5) != 300 {
+		t.Fatalf("seeded once, not twice: owner=%d stranger=%d perOwner=%d",
+			ownerSpent(booted, 5), strangerSpent(booted, 2), strangersForSpent(booted, 5))
 	}
 }

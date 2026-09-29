@@ -525,20 +525,50 @@ func TestStrangerTokensPerOwnerCapsThemTogether(t *testing.T) {
 	}
 }
 
-// The day's stranger spend per owner survives a restart with the rest of
-// the budget file.
-func TestStrangersForIsKeptWithTheBudget(t *testing.T) {
-	st := budgetState{Day: `2026-09-25`, StrangersFor: map[int]int{5: 1234}}
-	b, err := yaml.Marshal(&st)
-	if err != nil {
-		t.Fatal(err)
+// R35, R36, R37: the first boot after the move hands the old save's
+// allowances to the ledger once; the save still writes them, from the
+// ledger, as the backup a quarantined budget.yaml re-seeds from.
+func TestFirstBootSeedsTheOldAllowancesOnce(t *testing.T) {
+	m := &AICompanionModule{cfg: Config{}}
+	day := m.fw().Day()
+	old := budgetState{Day: day, Tokens: 900, Calls: 4,
+		Owners: map[int]int{5: 1200}, Strangers: map[int]int{2: 300}, StrangersFor: map[int]int{5: 300},
+		Notices: map[int]int{5: 2}}
+	for boot := 0; boot < 2; boot++ { // a second boot reading the same old file seeds nothing more
+		m.restoreBudget(old)
+		if ownerSpent(m, 5) != 1200 || strangerSpent(m, 2) != 300 || strangersForSpent(m, 5) != 300 || serverSpent(m) != 900 {
+			t.Fatalf("boot %d: owner=%d stranger=%d perOwner=%d server=%d",
+				boot, ownerSpent(m, 5), strangerSpent(m, 2), strangersForSpent(m, 5), serverSpent(m))
+		}
 	}
+	if m.callsToday != 4 || m.noticesToday[5] != 2 || m.countersDay != day {
+		t.Fatalf("the module's own counts: calls=%d notices=%d day=%s", m.callsToday, m.noticesToday[5], m.countersDay)
+	}
+	saved := m.budgetStateToSave()
+	if saved.Owners[5] != 1200 || saved.Strangers[2] != 300 || saved.StrangersFor[5] != 300 {
+		t.Fatalf("the backup is written from the ledger's counts: %+v", saved)
+	}
+	setOwnerSpent(m, 5, 1500)
+	if m.budgetStateToSave().Owners[5] != 1500 {
+		t.Fatal("the backup follows the ledger, not the file it was seeded from")
+	}
+	if saved.Day != day || saved.Calls != 4 || saved.Notices[5] != 2 || saved.Tokens != 900 {
+		t.Fatalf("the rest is still written: %+v", saved)
+	}
+
+	stale := &AICompanionModule{cfg: Config{}}
+	stale.restoreBudget(budgetState{Day: `1999-01-01`, Owners: map[int]int{5: 1}})
+	if ownerSpent(stale, 5) != 0 {
+		t.Fatal("a stale day seeds nothing")
+	}
+
+	// The old file's keys still read (the save before the move wrote them).
 	var back budgetState
-	if err := yaml.Unmarshal(b, &back); err != nil {
+	if err := yaml.Unmarshal([]byte("day: \"2026-09-25\"\nowners:\n  5: 7\nstrangers:\n  2: 8\nstrangers_for:\n  5: 1234\n"), &back); err != nil {
 		t.Fatal(err)
 	}
-	if back.StrangersFor[5] != 1234 {
-		t.Fatalf("strangers_for survives a save: %s", b)
+	if back.Owners[5] != 7 || back.Strangers[2] != 8 || back.StrangersFor[5] != 1234 {
+		t.Fatalf("old keys read: %+v", back)
 	}
 }
 

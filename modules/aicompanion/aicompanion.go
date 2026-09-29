@@ -164,17 +164,14 @@ type AICompanionModule struct {
 	errorsToday int
 	lastErrLog  time.Time
 
-	bonds          bondState             // who has met or turned away a companion
-	consent        consentLedger         // who has agreed, as the model door reads it
-	pendingMeet    map[int]*meetWait     // characters waiting to meet one
-	meetingPlace   map[int]string        // where each first meeting happened
-	models         modelChooser          // automatic model choice per tier
-	stats          map[string]*tierStats // per model tier, since boot
-	ownerTokens    map[int]int           // tokens today per companion owner
-	strangerTokens map[int]int           // tokens today spent on behalf of a passer-by
-	strangersFor   map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
-	noticesToday   map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
-	lastBudgetLog  time.Time
+	bonds         bondState             // who has met or turned away a companion
+	consent       consentLedger         // who has agreed, as the model door reads it
+	pendingMeet   map[int]*meetWait     // characters waiting to meet one
+	meetingPlace  map[int]string        // where each first meeting happened
+	models        modelChooser          // automatic model choice per tier
+	stats         map[string]*tierStats // per model tier, since boot
+	noticesToday  map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
+	lastBudgetLog time.Time
 
 	// endpoint, when set, replaces the server's key and endpoint
 	// (apiframework.Server) for this module only. Tests point it at a fake

@@ -481,9 +481,15 @@ func worstCaseTokens(prompt int, maxTokens int, toolRounds int, retry bool) int 
 	return total
 }
 
-// budgetState is the day's spending, kept on disk so a restart does not
-// hand every companion a fresh allowance. The per-companion and per-asker
-// counters go with it, because they are what the caps are made of.
+// budgetState is the companion's own day on disk: its calls and "you
+// notice" moments. Tokens is the companion's share of the server key's
+// day, still written so a server rolled back to the code before the
+// framework resumes the day where it was. Owners, Strangers and
+// StrangersFor are the ledger's allowances (apiframework Allowances),
+// written here as a backup: every boot hands them to SeedAllowances, which
+// applies once per dimension per day, so they seed the first boot after
+// the move and a boot after budget.yaml was quarantined, and nothing on a
+// normal restart.
 type budgetState struct {
 	Day       string      `yaml:"day"`
 	Tokens    int         `yaml:"tokens"`
@@ -504,29 +510,29 @@ func (m *AICompanionModule) loadBudget() {
 	if err := m.plug.ReadIntoStruct(budgetStateId, &st); err != nil {
 		return // nothing recorded yet, or unreadable: start the day fresh
 	}
+	m.restoreBudget(st)
+}
+
+// restoreBudget takes up a saved day, when it is today on the ledger's
+// clock. Its server total and its allowances are handed to the ledger
+// (SeedTokens, SeedAllowances), which takes them only when it has no day of
+// its own to go on: the first boot after the move to the ledger, or a boot
+// after budget.yaml was quarantined. On a normal restart the ledger's seed
+// marks turn them away, so nothing is counted twice and a corrupt file
+// hands out no second allowance.
+func (m *AICompanionModule) restoreBudget(st budgetState) {
 	if st.Day != m.fw().Day() {
 		return // a stale day is simply a new day
 	}
 	m.countersDay = st.Day
-	// The server's tokens are apiframework's now. A day saved before the
-	// move still counts: it is handed over once, to a fresh day only.
 	m.fw().SeedTokens(apiframework.ConsumerCompanion, st.Day, st.Tokens)
+	m.fw().SeedAllowances(apiframework.DimCompanionOwner, st.Day, st.Owners)
+	m.fw().SeedAllowances(apiframework.DimCompanionStranger, st.Day, st.Strangers)
+	m.fw().SeedAllowances(apiframework.DimCompanionStrangersFor, st.Day, st.StrangersFor)
 	m.callsToday = st.Calls
-	m.ownerTokens = st.Owners
-	m.strangerTokens = st.Strangers
-	m.strangersFor = st.StrangersFor
 	m.noticesToday = st.Notices
-	if m.ownerTokens == nil {
-		m.ownerTokens = map[int]int{}
-	}
-	if m.strangerTokens == nil {
-		m.strangerTokens = map[int]int{}
-	}
 	if m.noticesToday == nil {
 		m.noticesToday = map[int]int{}
-	}
-	if m.strangersFor == nil {
-		m.strangersFor = map[int]int{}
 	}
 }
 
@@ -534,14 +540,22 @@ func (m *AICompanionModule) saveBudget() {
 	if !m.cfg.Enabled {
 		return
 	}
-	m.rollCounters()
 	apiframework.SaveBudget()
-	st := budgetState{Day: m.countersDay, Calls: m.callsToday,
-		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor, Notices: m.noticesToday}
-	// Tokens is no longer read (apiframework keeps the books), but the
-	// companion's share of the server key's day is still written, so a
-	// server rolled back to the code before the framework resumes the day
-	// where it was rather than with a fresh budget.
+	st := m.budgetStateToSave()
+	if err := m.plug.WriteStruct(budgetStateId, &st); err != nil {
+		mudlog.Error(`aicompanion`, `action`, `saveBudget`, `error`, err)
+	}
+}
+
+// budgetStateToSave is the companion's own day as saveBudget writes it,
+// with the ledger's allowances copied in as the backup restoreBudget seeds
+// from.
+func (m *AICompanionModule) budgetStateToSave() budgetState {
+	m.rollCounters()
+	st := budgetState{Day: m.countersDay, Calls: m.callsToday, Notices: m.noticesToday,
+		Owners:       m.fw().Allowances(apiframework.DimCompanionOwner),
+		Strangers:    m.fw().Allowances(apiframework.DimCompanionStranger),
+		StrangersFor: m.fw().Allowances(apiframework.DimCompanionStrangersFor)}
 	if u := m.fw().Today(); u.Day == m.countersDay {
 		for _, c := range u.ByConsumer {
 			if c.Consumer == apiframework.ConsumerCompanion {
@@ -549,7 +563,5 @@ func (m *AICompanionModule) saveBudget() {
 			}
 		}
 	}
-	if err := m.plug.WriteStruct(budgetStateId, &st); err != nil {
-		mudlog.Error(`aicompanion`, `action`, `saveBudget`, `error`, err)
-	}
+	return st
 }
