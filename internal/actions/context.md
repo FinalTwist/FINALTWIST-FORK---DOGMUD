@@ -578,11 +578,11 @@ Pickpockets a target mob or player, or robs an item from a room container.
      the thief and the mark both still in the theft room, `caughtByMob` as
      below; otherwise, or offline, the mark cries thief in its own room and
      `theftCrime` records the crime against the thief in the theft room, away
-     mode (through the `pocketCrime` seam). The mark attacks only when it and
-     the thief have both left the theft room and are together again
-     (`markAttacksThief`); the bystanders there witness nothing. An online
-     thief is told and trained on the loss. A mark that is gone or dead catches nobody. A
-     SUCCESSFUL roll whose thief has left the room, gone offline, started
+     mode (through the `pocketCrime` seam). The mark reveals and attacks
+     only when it and the thief have both left the theft room and are
+     together again (`markAttacksThief`); the bystanders there witness
+     nothing. An online thief is told and trained on the loss. A mark that
+     is gone or dead catches nobody. A SUCCESSFUL roll whose thief has left the room, gone offline, started
      fighting or come under attack by then, or whose mark has moved, died or
      gone, loses the chance ("You lose your chance at X's pocket."): nothing
      taken, nothing trained.

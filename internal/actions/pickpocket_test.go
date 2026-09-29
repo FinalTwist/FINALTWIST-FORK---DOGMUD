@@ -19,6 +19,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -533,11 +534,15 @@ func TestPickpocketCaughtTogetherElsewhereIsNotInTheAct(t *testing.T) {
 		h.room.RemoveMob(h.mark.InstanceId)
 		h.mark.Character.RoomId = elsewhere.RoomId
 		elsewhere.AddMob(h.mark.InstanceId)
+		hideRhetoricActor(t, h.thief.GetCharacter()) // hid during the pause
 		return resolvePocketInLine(p)
 	}
 	res := startPocketAttempt(h.thief, h.mark, false)
 	if !res.Detected || said(h.thief, "catches you in the act") != 0 || said(h.thief, "felt your hand") != 1 {
 		t.Fatalf("caught, but not in the act: %+v %q", res, h.thief.sent)
+	}
+	if h.thief.GetCharacter().Awareness.State() == awareness.Hidden {
+		t.Fatal("the mark beside the thief reveals them before it attacks")
 	}
 	got := crimes.AllForFaction("thornwall_citizens", false)
 	if len(got) != 1 {

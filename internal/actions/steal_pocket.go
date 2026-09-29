@@ -19,6 +19,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -43,9 +45,10 @@ import (
 // 2026-09-29): with the thief and the mark both still in the theft room,
 // in the act; otherwise, or offline, the mark cries thief in its room and
 // the crime is recorded in the theft room, with the mark its only witness;
-// the mark attacks only a thief it is beside now (caught). A successful roll whose thief has left the room, logged off or
-// started fighting by then, or whose mark has gone, loses the chance:
-// nothing is taken. A bauble already named for it stays in the mark's pocket, to be
+// the mark reveals and attacks only a thief it is beside now (caught). A
+// successful roll whose thief has left the room, logged off or started
+// fighting by then, or whose mark has gone, loses the chance: nothing is
+// taken. A bauble already named for it stays in the mark's pocket, to be
 // found by the next attempt. Pickpocketed baubles are pocket-sized: the
 // prompt says so (modules/baubles, size_rule) and the catalog clamps their
 // weight (baubles.MaxWeightFor).
@@ -348,8 +351,8 @@ func (p *pocketAttempt) resolve() StealResult {
 // pocketCrime is the mark's side of a catch away from it: theftCrime in
 // the room the theft happened in, in away mode (the mark the only witness;
 // it learns who robbed it, but no last-seen room or round; bystanders
-// learn nothing), judged by what the mark saw at the attempt (markSaw). A variable so tests can see it raised without the faction
-// books.
+// learn nothing), judged by what the mark saw at the attempt (markSaw). A
+// variable so tests can see it raised without the faction books.
 var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room, markSaw messaging.SightDecision) {
 	theftCrime(userId, m, theftRoom, true, markSaw)
 }
@@ -360,10 +363,10 @@ var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room, markSaw m
 // the crime, the attack). Anywhere else, or offline, the mark felt the hand
 // all the same: it cries thief in its own room, and the theft is recorded
 // against the thief in the room it happened in (pocketCrime), where only
-// the mark witnessed it. The mark attacks only a thief it is beside now
-// (both having left the theft room and met again); the bystanders there
-// saw no theft. An online thief is told and trained on the loss. An online
-// thief with no room (GetRoom nil) is away.
+// the mark witnessed it. The mark reveals and attacks only a thief it is
+// beside now (both having left the theft room and met again); the
+// bystanders there saw no theft. An online thief is told and trained on
+// the loss. An online thief with no room (GetRoom nil) is away.
 //
 // The locals are named actor (the thief) and room (the mark's room) so the
 // repo-root narration guard, which recognises viewpoints by receiver name,
@@ -394,6 +397,11 @@ func (p *pocketAttempt) caught(actor Actor, online bool, m *mobs.Mob) StealResul
 		pocketCrime(p.userId, m, theftRoom, p.markSaw)
 	}
 	if together {
+		// Beside the thief, the mark reveals them as the catch in the act
+		// does (thiefCaught); harmless if already revealed.
+		_ = actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
+			Trigger: awareness.TriggerSkullduggeryFailed,
+		})
 		markAttacksThief(actor, m)
 	}
 	return StealResult{Detected: true, DefenderName: p.mobName, Reason: `detected`}
