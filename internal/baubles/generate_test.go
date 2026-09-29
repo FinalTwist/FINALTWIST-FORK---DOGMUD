@@ -151,6 +151,22 @@ func TestRefusedFindsAreLoggedOnceAMinute(t *testing.T) {
 		t.Fatalf("a minute later, one more line: %d", n)
 	}
 
+	// With a corpus loaded, a refused find draws from it rather than falling
+	// all the way to a generic trinket, and the throttled log names the
+	// corpus, not "local" (review finding 7: the two checks above only ever
+	// exercised the no-corpus path).
+	withCorpus(t, testSeed, ``)
+	clock = clock.Add(time.Minute)
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return GenResult{}, allowance })
+	for i := 0; i < 5; i++ {
+		if res := Generate(context.Background(), GenRequest{Tier: TierCheap}, nil); res.Generator != GeneratorCorpus {
+			t.Fatalf("a refused find with a corpus loaded draws from it: %+v", res)
+		}
+	}
+	if tee.count(`generator="corpus"`) == 0 {
+		t.Fatalf("the throttled refusal log must name the corpus when that is what the fallback used: %v", tee.lines)
+	}
+
 	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return GenResult{}, errors.New(`boom`) })
 	for i := 0; i < 3; i++ {
 		_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)

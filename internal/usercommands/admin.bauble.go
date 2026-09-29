@@ -126,13 +126,23 @@ func baubleSpawn(args []string, user *users.UserRecord, room *rooms.Room) (bool,
 	// delivered to your pack after at least BaubleRevealSeconds.
 	actions.StartBaubleFind(user.UserId, room, tier, baubles.SourceAdmin)
 
-	how := `from the fallback corpus (no model is set up)`
-	if info, ok := baubles.CurrentGenerator(); ok {
-		how = fmt.Sprintf(`named by %s %s`, info.Name, info.Model)
-	}
 	user.SendText(messaging.CategorySystem,
-		fmt.Sprintf(`You conjure a %s bauble from this room. It will arrive in your pack shortly, %s.`, tier, how))
+		fmt.Sprintf(`You conjure a %s bauble from this room. It will arrive in your pack shortly, %s.`, tier, baubleSpawnHow()))
 	return true, nil
+}
+
+// baubleSpawnHow says what will actually name a spawned find, matching
+// bauble status's own line: the model when one is set up, otherwise the
+// fallback corpus when it has anything at all, otherwise a plain Trinket
+// (with nothing in the corpus that is genuinely all a fallback can be).
+func baubleSpawnHow() string {
+	if info, ok := baubles.CurrentGenerator(); ok {
+		return fmt.Sprintf(`named by %s %s`, info.Name, info.Model)
+	}
+	if seedN, promotedN := baubles.CorpusCounts(); seedN == 0 && promotedN == 0 {
+		return `a plain Trinket (no model is set up and the fallback corpus is empty)`
+	}
+	return `from the fallback corpus (no model is set up)`
 }
 
 // baubleStatus says what names baubles now, and how search is set up.
@@ -547,31 +557,16 @@ func baubleCorpus(args []string, user *users.UserRecord) (bool, error) {
 		user.SendText(messaging.CategorySystem, usage)
 		return true, nil
 	}
-	var b strings.Builder
 	switch strings.ToLower(args[0]) {
 	case `list`:
-		if len(args) > 1 {
-			key := strings.ToLower(args[1])
-			l := baubles.CorpusList(key)
-			fmt.Fprintf(&b, "%s: %d seed, %d promoted.\r\n", key, len(l.Seed), len(l.Promoted))
-			for _, e := range l.Seed {
-				fmt.Fprintf(&b, "  seed  %s (%s, %s, %.1f lb, %d gold)\r\n", e.Name, e.NameSimple, e.Material, e.WeightLbs, e.Value)
-			}
-			for i, e := range l.Promoted {
-				fmt.Fprintf(&b, "  promoted  %s (%s, %.1f lb, %d gold) from %s, zone %s, promoted %s",
-					e.Name, e.NameSimple, e.WeightLbs, e.Value, e.FromRecord, e.Zone, e.PromotedAt.Format(`2006-01-02`))
-				if why := l.Unused[i+1]; why != `` {
-					fmt.Fprintf(&b, " <ansi fg=\"red\">NOT USED: %s</ansi>", why)
-				}
-				b.WriteString("\r\n")
-			}
-			break
-		}
-		seedN, promotedN := baubles.CorpusCounts()
-		fmt.Fprintf(&b, "Fallback corpus: %d seed and %d promoted entries in use.\r\n", seedN, promotedN)
-		for _, c := range baubles.CorpusKeys() {
-			fmt.Fprintf(&b, "  %-26s seed %3d  promoted %3d\r\n", c.Key, c.Seed, c.Promoted)
-		}
+		baubleCorpusList(args[1:], user)
+		return true, nil
+	case `export`:
+		baubleCorpusExport(user)
+		return true, nil
+	}
+	var b strings.Builder
+	switch strings.ToLower(args[0]) {
 	case `remove`:
 		if len(args) < 3 {
 			b.WriteString(`Usage: bauble corpus remove <key> <name or record id>. "bauble corpus list <key>" shows both.`)
@@ -605,21 +600,88 @@ func baubleCorpus(args []string, user *users.UserRecord) (bool, error) {
 			}
 			fmt.Fprintf(&b, "  skipped: %s\r\n", s)
 		}
-	case `export`:
-		if _, promotedN := baubles.CorpusCounts(); promotedN == 0 {
-			b.WriteString(`No promoted entries to export.`)
-			break
-		}
-		out, err := baubles.ExportPromoted()
-		if err != nil {
-			fmt.Fprintf(&b, `Could not export: %s.`, err)
-			break
-		}
-		b.WriteString("Promoted entries in the seed's format (copy them under entries: in bauble-corpus.yaml and wrap the descriptions):\r\n")
-		b.WriteString(strings.ReplaceAll(out, "\n", "\r\n"))
 	default:
 		b.WriteString(usage)
 	}
 	user.SendText(messaging.CategorySystem, b.String())
 	return true, nil
+}
+
+// baubleCorpusList handles "bauble corpus list" and "bauble corpus list
+// <key>". Sent raw (baubleSendRaw), the way corpus export is: this is a
+// table, not prose, and the messaging normalizer would capitalize the
+// lowercase pool key that starts a per-key listing and append a stray
+// period to whatever character ends the last row (review finding 2).
+func baubleCorpusList(args []string, user *users.UserRecord) {
+	var b strings.Builder
+	if len(args) > 0 {
+		key := strings.ToLower(args[0])
+		l := baubles.CorpusList(key)
+		if !l.Known {
+			fmt.Fprintf(&b, "%q is not a biome, group, pocket or tier key; \"bauble corpus list\" shows the ones with entries.\r\n", key)
+			baubleSendRaw(user, b.String())
+			return
+		}
+		fmt.Fprintf(&b, "%s: %d seed, %d promoted.\r\n", key, len(l.Seed), len(l.Promoted))
+		for _, e := range l.Seed {
+			fmt.Fprintf(&b, "  seed  %s (%s, %s, %.1f lb, %d gold)\r\n", e.Name, e.NameSimple, e.Material, e.WeightLbs, e.Value)
+		}
+		for i, e := range l.Promoted {
+			fmt.Fprintf(&b, "  promoted  %s (%s, %.1f lb, %d gold) from %s, zone %s, promoted %s",
+				e.Name, e.NameSimple, e.WeightLbs, e.Value, e.FromRecord, e.Zone, e.PromotedAt.Format(`2006-01-02`))
+			if why := l.Unused[i+1]; why != `` {
+				fmt.Fprintf(&b, " <ansi fg=\"red\">NOT USED: %s</ansi>", why)
+			}
+			b.WriteString("\r\n")
+		}
+		baubleSendRaw(user, b.String())
+		return
+	}
+	seedN, promotedN := baubles.CorpusCounts()
+	fmt.Fprintf(&b, "Fallback corpus: %d seed and %d promoted entries in use.\r\n", seedN, promotedN)
+	for _, c := range baubles.CorpusKeys() {
+		// CorpusCounts (the header above) counts only entries in use; a key
+		// can hold an overlay entry that is loaded but withdrawn or
+		// unusable (CorpusList's Unused says why). Rather than let the two
+		// totals disagree with no explanation, a key with any such entries
+		// labels how many (review finding 5).
+		if c.Unused > 0 {
+			fmt.Fprintf(&b, "  %-26s seed %3d  promoted %3d (%d not in use)\r\n", c.Key, c.Seed, c.Promoted, c.Unused)
+		} else {
+			fmt.Fprintf(&b, "  %-26s seed %3d  promoted %3d\r\n", c.Key, c.Seed, c.Promoted)
+		}
+	}
+	baubleSendRaw(user, b.String())
+}
+
+// baubleCorpusExport handles "bauble corpus export". Sent raw (review
+// finding 1): the output is pasted verbatim into the tracked seed file, and
+// the messaging normalizer would capitalize its first letter, rewrite "a"
+// to "an" before a vowel, collapse a repeated word, and append a stray
+// period, corrupting the YAML an admin is told to paste in. print.go's
+// Print command sends a message the same way.
+func baubleCorpusExport(user *users.UserRecord) {
+	if _, promotedN := baubles.CorpusCounts(); promotedN == 0 {
+		user.SendText(messaging.CategorySystem, `No promoted entries to export.`)
+		return
+	}
+	out, err := baubles.ExportPromoted()
+	if err != nil {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`Could not export: %s.`, err))
+		return
+	}
+	header := "Promoted entries in the seed's format. The output already carries its own " +
+		"entries: line and indentation; merge it into bauble-corpus.yaml's entries: map, " +
+		"then wrap the descriptions:\r\n"
+	baubleSendRaw(user, header+strings.ReplaceAll(out, "\n", "\r\n"))
+}
+
+// baubleSendRaw sends text to user exactly as given, bypassing the
+// messaging normalizer, the way print.go's Print command does
+// (events.AddToQueue directly). For output that is a table or is meant to
+// be pasted elsewhere verbatim, where capitalizing the first letter,
+// rewriting "a" to "an" before a vowel, collapsing a repeated word, or
+// appending a period would corrupt it.
+func baubleSendRaw(user *users.UserRecord, text string) {
+	events.AddToQueue(events.Message{UserId: user.UserId, Text: text})
 }

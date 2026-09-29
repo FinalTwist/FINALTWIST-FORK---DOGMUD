@@ -20,6 +20,7 @@ var rawEventsMessageAllowed = map[string]string{
 	"internal/rooms/rooms.go":                "the pipeline's own fan-out: Room sends queue per-recipient Messages after rendering",
 	"internal/users/userrecord.go":           "UserRecord.SendText itself, the end of the per-user pipeline",
 	"internal/usercommands/print.go":         "the print debug command, which echoes its raw argument by purpose",
+	"internal/usercommands/admin.bauble.go":  "bauble corpus list/export: a table and a YAML paste target the normalizer would corrupt (capitalize, a/an, dup-word collapse, a stray period)",
 	"internal/hooks/hooks.go":                "listener registration: events.Message{} is a type key, not a send",
 	"internal/hooks/Message_SendMessages.go": "the listener; the match is its comment naming direct events.Message{RoomId} constructions",
 }

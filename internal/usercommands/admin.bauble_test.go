@@ -172,6 +172,20 @@ func adminSaid(t *testing.T, cmd string, admin *users.UserRecord, room *rooms.Ro
 	return strings.Join(strings.Fields(strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), " ")), " ")
 }
 
+// adminSaidRaw is adminSaid without the whitespace fold, for output whose
+// exact bytes matter: a table (bauble corpus list) or an export meant to be
+// pasted verbatim into a tracked YAML file (bauble corpus export). Folding
+// would hide exactly the corruption these review findings are about: a
+// capitalized pool key, a rewritten "a"/"an", a collapsed repeated word, or
+// a stray trailing period.
+func adminSaidRaw(t *testing.T, cmd string, admin *users.UserRecord, room *rooms.Room) string {
+	t.Helper()
+	events.DrainQueuedMessagesForTest(admin.UserId)
+	_, err := Bauble(cmd, admin, room, 0)
+	require.NoError(t, err, cmd)
+	return strings.Join(events.DrainQueuedMessagesForTest(admin.UserId), "")
+}
+
 // bauble promote and bauble corpus (slice C): promote puts a record's text
 // in the overlay under its biome and tier; remove takes it out again by
 // name; every subcommand says what it did.
@@ -209,12 +223,23 @@ func TestAdminBauble_PromoteAndCorpus(t *testing.T) {
 	out = adminSaid(t, "corpus list", admin, room)
 	assert.Contains(t, out, "Fallback corpus: 0 seed and 1 promoted entries in use.")
 	assert.Contains(t, out, "interior-cheap seed 0 promoted 1")
-	out = adminSaid(t, "corpus list interior-cheap", admin, room)
-	// Capitalized: messaging's normalize stage capitalizes the start of every
-	// CategorySystem message (pipeline.go), and here the pool key is that
-	// first character.
-	assert.Contains(t, out, "Interior-cheap: 0 seed, 1 promoted.")
-	assert.Contains(t, out, "Painted Wooden Spool (spool, 0.2 lb, 4 gold) from "+rec.Id+", zone ashwick")
+	overviewRaw := adminSaidRaw(t, "corpus list", admin, room)
+	assert.False(t, strings.HasSuffix(strings.TrimRight(overviewRaw, "\r\n"), "."),
+		"the last row's trailing digit must not get a stray period: %q", overviewRaw)
+	// Sent raw (review finding 2): the messaging normalizer would otherwise
+	// capitalize the lowercase pool key that starts the line and append a
+	// stray period to the last row (whatever character it happens to end
+	// with), corrupting a table that is meant to be read verbatim.
+	outRaw := adminSaidRaw(t, "corpus list interior-cheap", admin, room)
+	assert.True(t, strings.HasPrefix(outRaw, "interior-cheap: 0 seed, 1 promoted."), "the pool key is not capitalized: %q", outRaw)
+	assert.Contains(t, outRaw, "Painted Wooden Spool (spool, 0.2 lb, 4 gold) from "+rec.Id+", zone ashwick")
+	assert.False(t, strings.HasSuffix(strings.TrimRight(outRaw, "\r\n"), "."), "no stray period appended to the last row: %q", outRaw)
+
+	// A key that does not parse, or names no pool the loaded corpus
+	// recognizes, says so instead of silently reading "0 seed, 0 promoted".
+	assert.Contains(t, adminSaid(t, "corpus list nonsense", admin, room), `"nonsense" is not a biome, group, pocket or tier key`)
+	assert.NotContains(t, adminSaid(t, "corpus list nonsense", admin, room), "0 seed, 0 promoted")
+
 	out = adminSaid(t, "corpus export", admin, room)
 	assert.Contains(t, out, "Promoted entries in the seed's format")
 	assert.Contains(t, out, "name: Painted Wooden Spool")
@@ -309,4 +334,83 @@ func TestAdminBauble_EditAndRetireReportCorpusCleanup(t *testing.T) {
 	assert.Contains(t, out, "the fallback corpus entries promoted from it could not be removed")
 	got, _ = baubles.Get(stuck.Id)
 	assert.Equal(t, baubles.StatusRetired, got.Status, "retire still retires despite the cleanup failure")
+
+	// Review finding 5: the overview header counts entries in use
+	// (CorpusCounts), and the stuck retire above left one overlay entry
+	// loaded but unused. The per-key row used to count every overlay entry
+	// regardless, disagreeing with the header with no explanation; it now
+	// labels the difference instead.
+	out = adminSaid(t, "corpus list", admin, room)
+	assert.Contains(t, out, "interior-cheap seed 0 promoted 0 (1 not in use)")
+}
+
+// bauble spawn tells the admin what will actually name the find: the model
+// when one is set up, otherwise the fallback corpus when it has anything for
+// this pool, otherwise a plain Trinket, matching what an empty corpus
+// actually produces (review finding 4: the old text always claimed the
+// fallback corpus, even with nothing in it).
+func TestBaubleSpawnHow_MatchesWhatNamesTheFind(t *testing.T) {
+	defer baubles.ClearCorpusForTest()
+
+	baubles.ClearCorpusForTest()
+	assert.Equal(t, `a plain Trinket (no model is set up and the fallback corpus is empty)`, baubleSpawnHow(),
+		"nothing loaded: the find can only be a generic trinket")
+
+	dir := t.TempDir()
+	seedPath := filepath.Join(dir, "bauble-corpus.yaml")
+	require.NoError(t, os.WriteFile(seedPath, []byte(
+		"groups:\n  interior: dwelling\nentries:\n  cheap:\n    - name: Knotted Twine Bracelet\n"+
+			"      name_simple: bracelet\n      description: A bracelet of knotted brown twine, frayed where a wrist rubbed it.\n"+
+			"      weight_lbs: 0.1\n      value: 3\n"), 0o644))
+	baubles.LoadCorpusFrom(seedPath, filepath.Join(dir, "corpus.promoted.yaml"))
+	assert.Equal(t, `from the fallback corpus (no model is set up)`, baubleSpawnHow(),
+		"a corpus with entries: the find comes from it")
+}
+
+// bauble corpus export (review finding 1): the output is meant to be pasted
+// verbatim into the tracked seed file, so it must go out exactly as
+// ExportPromoted built it, never through the messaging normalizer, which
+// would capitalize its first letter, rewrite "a" to "an" before a vowel,
+// collapse a repeated word, and append a stray period.
+func TestAdminBaubleCorpusExport_SendsRawUnnormalizedBytes(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreItems := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket",
+			Type: items.Object, Subtype: items.Mundane, Weight: 0.2, Value: 1, NotSalable: true},
+	})
+	defer restoreItems()
+	dir := t.TempDir()
+	baubles.SetDirForTest(dir)
+	defer items.SetBaubleResolver(nil)
+	seedPath := filepath.Join(dir, "bauble-corpus.yaml")
+	require.NoError(t, os.WriteFile(seedPath, []byte("groups:\n  interior: dwelling\nentries: {}\n"), 0o644))
+	baubles.LoadCorpusFrom(seedPath, filepath.Join(dir, "corpus.promoted.yaml"))
+	defer baubles.ClearCorpusForTest()
+
+	admin, room := getTestUserAndRoom(t)
+	// The description carries the two constructs the normalizer mangles:
+	// "a" before a vowel word, and a word repeated back to back.
+	rec, err := baubles.Create(baubles.Record{
+		Name: "Scratched Copper Whistle", NameSimple: "whistle", Tier: baubles.TierCheap, Value: 5, WeightLbs: 0.3,
+		Description: "A trinket that grants a useful trick, though that that vendor once used it for luck.",
+		Status:      baubles.StatusReady, Generator: baubles.GeneratorOpenAI, Moderated: true,
+		Source: baubles.SourceSearch, Biome: "interior", Zone: "ashwick",
+	})
+	require.NoError(t, err)
+	_, err = baubles.Promote(rec.Id)
+	require.NoError(t, err)
+
+	wantExport, err := baubles.ExportPromoted()
+	require.NoError(t, err)
+	wantHeader := "Promoted entries in the seed's format. The output already carries its own " +
+		"entries: line and indentation; merge it into bauble-corpus.yaml's entries: map, " +
+		"then wrap the descriptions:\r\n"
+	want := wantHeader + strings.ReplaceAll(wantExport, "\n", "\r\n")
+
+	got := adminSaidRaw(t, "corpus export", admin, room)
+	assert.Equal(t, want, got)
+	assert.Contains(t, got, "a useful", `"a" must not become "an" before a vowel`)
+	assert.NotContains(t, got, "an useful")
+	assert.Contains(t, got, "that that", "a repeated word must not be collapsed")
 }

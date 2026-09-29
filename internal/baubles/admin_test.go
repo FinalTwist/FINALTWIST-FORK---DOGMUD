@@ -22,15 +22,20 @@ func TestCatalogStats(t *testing.T) {
 	seedRecord(t, Record{Name: `A`, Tier: TierCheap, Value: 3, Status: StatusFallback, Generator: GeneratorLocal, Region: `Marches`})
 	seedRecord(t, Record{Name: `B`, Tier: TierRare, Value: 90, Status: StatusReady, Generator: GeneratorOpenAI, Region: `Marches`, Tokens: 200})
 	seedRecord(t, Record{Name: `C`, Tier: TierAverage, Value: 12, Status: StatusSold, Generator: GeneratorOpenAI, Region: `Thornwall`, Tokens: 150, EditedBy: `admin`})
+	// A corpus record (review finding 7): CatalogStats must count it under
+	// its own generator, not silently fold it into local or drop it, since
+	// "bauble stats" reads st.ByGenerator[GeneratorCorpus] for its "from the
+	// corpus" figure.
+	seedRecord(t, Record{Name: `D`, Tier: TierCheap, Value: 4, Status: StatusReady, Generator: GeneratorCorpus, Region: `Marches`})
 
 	st := CatalogStats()
-	if st.Total != 3 || st.ByStatus[StatusSold] != 1 || st.ByGenerator[GeneratorOpenAI] != 2 || st.ByTier[TierRare] != 1 {
+	if st.Total != 4 || st.ByStatus[StatusSold] != 1 || st.ByGenerator[GeneratorOpenAI] != 2 || st.ByGenerator[GeneratorCorpus] != 1 || st.ByTier[TierRare] != 1 {
 		t.Fatalf("counts: %+v", st)
 	}
-	if st.Unsold != 2 || st.UnsoldValue != 93 || st.Tokens != 350 || st.Edited != 1 {
+	if st.Unsold != 3 || st.UnsoldValue != 97 || st.Tokens != 350 || st.Edited != 1 {
 		t.Fatalf("totals: %+v", st)
 	}
-	if len(st.TopRegions) != 2 || st.TopRegions[0] != (RegionCount{`Marches`, 2}) {
+	if len(st.TopRegions) != 2 || st.TopRegions[0] != (RegionCount{`Marches`, 3}) {
 		t.Fatalf("regions: %+v", st.TopRegions)
 	}
 }

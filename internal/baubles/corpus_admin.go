@@ -304,11 +304,18 @@ func removePromotedFromLocked(recordId string) (int, error) {
 	return count, nil
 }
 
-// CorpusKeyCount is one row of CorpusKeys.
+// CorpusKeyCount is one row of CorpusKeys. Promoted is the same "in use"
+// count CorpusCounts totals across every key; Unused is how many more sit
+// in the overlay file but are not used (withdrawn or unusable: CorpusList's
+// Unused says why for a given key). The two used to disagree silently: the
+// overview header (CorpusCounts) counted only entries in use while this row
+// counted every overlay entry, so a withdrawn-but-unremoved entry made the
+// header and the per-key row show different totals with no explanation.
 type CorpusKeyCount struct {
 	Key      string
 	Seed     int
-	Promoted int // every overlay entry, used or not
+	Promoted int
+	Unused   int
 }
 
 // CorpusKeys lists every key with entries, sorted.
@@ -330,7 +337,14 @@ func CorpusKeys() []CorpusKeyCount {
 		get(k).Seed = len(list)
 	}
 	for k, slots := range p.promoted {
-		get(k).Promoted = len(slots)
+		c := get(k)
+		for _, s := range slots {
+			if s.ok {
+				c.Promoted++
+			} else {
+				c.Unused++
+			}
+		}
 	}
 	out := make([]CorpusKeyCount, 0, len(counts))
 	for _, c := range counts {
@@ -342,6 +356,12 @@ func CorpusKeys() []CorpusKeyCount {
 
 // CorpusListing is one key's entries.
 type CorpusListing struct {
+	// Known is false when key does not parse as <biome-or-group>-<tier>,
+	// pocket-<tier> or a bare tier, or when the loaded corpus recognizes no
+	// such biome or group. Such a key can only ever list empty, so an admin
+	// typo ("bauble corpus list nonsense") is told it is not a real key
+	// instead of reading a silent "0 seed, 0 promoted".
+	Known    bool
 	Seed     []CorpusEntry
 	Promoted []PromotedEntry // in overlay order
 	Unused   map[int]string  // position in Promoted, from 1 -> why it is not used
@@ -355,6 +375,9 @@ func CorpusList(key string) CorpusListing {
 		return out
 	}
 	k := normKey(key)
+	if prefix, _, ok := parseCorpusKey(k); ok && p.knownPrefix(prefix) {
+		out.Known = true
+	}
 	out.Seed = append(out.Seed, p.seed[k]...)
 	for i, s := range p.promoted[k] {
 		out.Promoted = append(out.Promoted, s.raw)
