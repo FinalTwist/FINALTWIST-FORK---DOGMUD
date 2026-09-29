@@ -191,6 +191,11 @@ func NewMobById(mobId MobId, homeRoomId int, forceStatPool int) *Mob {
         mob.Character.Stamina = mob.Character.StaminaMax.Value
         mob.Character.Conviction = mob.Character.ConvictionMax.Value
 
+        // Movement parity 4b: settle action points full at the current turn.
+        // Nothing else ever set a mob's points; every live mob held 0 before
+        // this. See internal/characters/context.md's ActionPoints gotcha.
+        mob.Character.SettleActionPoints(util.GetTurnCount())
+
         // Apply permanent conditions
         mob.Character.SetPermanentConditions(mob.ConditionIds)
 
@@ -339,6 +344,16 @@ func (m *Mob) HasAttackedPlayer(userId int) bool {
 The old package-level group hostility map (`MakeHostile`, `IsHostile`,
 `ReduceHostility`) is gone.
 
+### Pack followers and movement parity (`pack_roaming.go`, movement parity 4b)
+
+`MovePackFollowers(alphaMob *Mob, exitName string, oldRoomMobIds []int,
+canStep func(*Mob) bool)` took a fourth parameter in this slice: `canStep`
+gates each follower's own step, the same quote-before-issue rule every other
+mob walker now follows (`mobcommands.wander.go` passes a closure that calls
+`actions.QuoteMobStep`). A follower `canStep` refuses is left behind for that
+tick rather than dragged into a step it cannot pay for; it is not counted a
+wander failure.
+
 ## Conversation System Integration
 
 Mob to mob conversations live in `internal/conversations`, not on `Mob`: the
@@ -369,6 +384,17 @@ func (p *PathQueue) Next() PathRoom {
     p.currentRoom = p.roomQueue[0]
     p.roomQueue = p.roomQueue[1:]
     return p.currentRoom
+}
+
+// Peek (movement parity 4b) returns the next step WITHOUT advancing the
+// queue, or nil when empty. The path walker (internal/hooks) quotes a step
+// with actions.QuoteMove before taking it; a step it cannot afford yet must
+// stay queued rather than being consumed by a look-ahead.
+func (p PathQueue) Peek() PathRoom {
+    if len(p.roomQueue) == 0 {
+        return nil
+    }
+    return p.roomQueue[0]
 }
 
 // Get remaining waypoints

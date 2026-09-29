@@ -320,6 +320,130 @@ wrappers that render the outcome.
 
 ---
 
+## Movement (`move.go`, movement parity 4b)
+
+Before this slice a mob's walk was free (no action points, no stamina) and
+rolled no hidden-detection contest either way; a player's walk paid both and
+rolled detection twice (as the sneaking mover and as the newcomer). Every
+live mob also held 0 action points, because nothing ever set or regenerated
+them (`internal/mobs/context.md`, `internal/characters/context.md`). Now a
+player and a mob pay the same price for the same step and run the same
+detection contests, through this file. `usercommands.Go` and
+`mobcommands.Go` keep their own lock gates, narration and Search roll
+placement and call these bodies once, right before relocating.
+`move_wrapper_guard_test.go` (repo root) greps both wrapper files for a
+second price or detection implementation.
+
+**Cost:**
+
+```go
+type MoveRefusal int
+const (
+	MoveOK MoveRefusal = iota
+	MoveRefuseEncumbered
+	MoveRefuseTired
+	MoveRefuseExhausted
+)
+
+type MoveCharge struct {
+	Refusal     MoveRefusal
+	ActionCost  int     // 10, or 50 over carry capacity
+	StaminaCost float64 // fractional stamina price, banked through the carry
+	Winded      bool    // paid, and stamina is now under a quarter of its reachable max
+	Never       bool    // refused, and this actor could not pay the step even fully rested
+}
+func (m MoveCharge) OK() bool
+
+func MovePrice(c *characters.Character, dest *rooms.Room) (actionCost int, staminaCost float64)
+func QuoteMove(actor Actor, dest *rooms.Room) MoveCharge  // prices, spends nothing
+func ChargeMove(actor Actor, dest *rooms.Room) MoveCharge // pays, or refunds AP on a stamina refusal
+func QuoteMobStep(mob *mobs.Mob, exitName string) MoveCharge // quotes a mob's next step by exit name; a step that does not resolve quotes as affordable
+func TrainSearchOnMove(actor Actor) // the rare Search training a completed step earns
+```
+
+`MovePrice` reads the destination biome by NAME (`rooms.GetBiome(dest.Biome)`)
+and multiplies by `FlightMoveStaminaMult` when the mover is flying. The
+action-point price is the hardcoded 10 (50 over carry capacity), not a knob.
+`QuoteMove` and `ChargeMove` both settle a MOB'S action points first
+(`SettleActionPoints`, see `internal/characters/context.md`) and never settle
+a player's: the per-turn hook (`hooks.ActionPoints`) already credits players,
+and settling here too would double-credit the same turns. `Never` is true
+when the actor could not pay the step even fully rested (pool max below the
+price), so a walker can tell "wait, it will recover" from "give up, it never
+will" (spec deviation: added beyond the spec's plain refusal).
+**`ChargeMove` must run AFTER a wrapper's lock gate and any exit-message
+requeue**, so a door that stays locked costs nothing and a requeued step is
+charged once, not twice.
+
+**Detection:**
+
+```go
+type EntryDetectionResult struct {
+	StillSneaking bool // false once a sneaking mover has been spotted
+}
+func EntryDetection(mover Actor, dest *rooms.Room, sneaking bool) EntryDetectionResult
+```
+
+(Spec deviation: the spec names both a function and its result type
+`EntryDetection`; Go forbids that, so the result type is
+`EntryDetectionResult`.) Symmetric for a player or a mob mover (owner ruling
+3): a sneaking mover rolls against every player observer first (the one who
+spots it is told) then every mob observer (silent), skipping the mover's own
+party (`alliesOf`, the mob-party twin of the player exclusion). Once the
+mover is not sneaking, whether it never was or was just spotted, it rolls
+against every hidden occupant of `dest` and calls `mover.AwardResolved` on
+BOTH outcomes (U10b-2), win or lose, because a search roll happened either
+way. Moved from `usercommands.Go`, unchanged in shape; a mob mover's lines
+differ only in name colour (`moverName`).
+
+**The rare Search roll** (`movementTrainsSearch`, `TrainSearchOnMove`) is
+unchanged in mechanism from before this slice, moved here so a mob's
+completed step can earn it too. The full rationale, moved verbatim from
+`usercommands.movementTrainsSearch`:
+
+> U7 prices movement partly on the actor's search rank, so travelling has to
+> be able to earn that discount -- today movement trains nothing at all,
+> which leaves nearly every live character at rank one with no way to
+> improve it by walking. But walking must stay the SLOW road: search is
+> already easy to raise through forage, search and track, and it should
+> never be the case that the best way to become a tracker is to pace back
+> and forth.
+>
+> The rarity is in whether the use is RECORDED, not in the odds attached to
+> it.
+>
+> NOTE: the original reason no longer holds. CheckSkillProgression derived
+> its decay from the use count (virtualRank = useCount / UsesPerRank), so
+> recording a use per step would have buried the counter and devalued
+> forage, search and track. Since U10b-0 Phase C the rank IS the skill
+> level, so frequency no longer exhausts the curve and UsesPerRank drives
+> nothing.
+>
+> The gate stays anyway, on the simpler ground below: a roll now happens on
+> every recorded use, so recording one per room step would make walking the
+> fastest route to a search rank regardless of how the curve decays. Scaling
+> the odds down instead is not equivalent -- it would still pay out steadily
+> for an activity that costs the player nothing.
+>
+> STALE FIGURES, kept for intent only: at the shipped 1-in-200 gate this was
+> reckoned at roughly 7,700 room moves to search rank 10 and around 33,000
+> to rank 35, against roughly 8,300 moves to rank 35 at a 1-in-50 gate.
+> Those numbers were computed under the retired useCount/UsesPerRank model
+> and have NOT been recomputed against the level-keyed curve or the Phase D
+> multipliers. The intent they encode still stands -- "an eye for the road
+> picked up over a very long time", not a training strategy -- but do not
+> quote the counts.
+>
+> Second-order effect, and deliberate: search also feeds hidden-creature
+> detection on room entry (Perception + Search against Dex + Skullduggery)
+> and foraging yields. So a well-travelled character slowly grows harder to
+> sneak up on and slightly better at living off the land. That is the
+> intended flavour of the change -- please do not "fix" it.
+>
+> A zero or negative `MovementSearchTrainChance` switches the feature off.
+
+---
+
 ## Naming and aiming in the dark (follow-up slice A)
 
 - **`ResolveTargetOptions.Viewer`**: every player command that names a creature

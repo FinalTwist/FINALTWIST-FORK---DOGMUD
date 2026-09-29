@@ -668,8 +668,39 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   indirect emitters (`ApplyHealthChange` via `Validate`, and `Life_Cascades`'
   respawn set) are deliberate.
 - **ActionPoints is a fourth pool and is NOT in `Pool`.** It is an inherited
-  GoMud movement throttle, redundant with stamina movement costs, and a deletion
-  candidate. Movement is a two-pool transaction with a hand-rolled refund.
+  GoMud movement throttle, redundant with stamina movement costs. Movement is
+  a two-pool transaction with a hand-rolled refund (`actions.ChargeMove`).
+  A player's points are credited per turn by `hooks.ActionPoints`
+  (`NewTurn_ActionPoints.go`), which loops `users.GetAllActiveUsers()` only.
+  **A mob's are never looped or credited that way** (movement parity 4b):
+  every live mob held 0 action points before this slice, because spawn never
+  set them and nothing regenerated them. `(*Character).SettleActionPoints(turn
+  uint64)` (`action_points.go`) is the fix: it brings a MOB's points up to
+  date lazily, adding one point per elapsed turn (the player rate) up to
+  `ActionPointsMax.Value`, and stamps `ActionPointsSettled` /
+  `ActionPointsSettledTurn` so a same-turn re-settle mints nothing and a
+  turn-counter restart (the counter is 0 on reboot) refills rather than reads
+  as a debt. **NEVER call it for a player**: the per-turn hook already
+  credits them, and settling here too would double-credit the same turns.
+  Only `actions.QuoteMove` and `actions.ChargeMove` call it, and only for a
+  non-player `Actor`. `mobs.NewMobById` settles a spawn full at the current
+  turn so a fresh mob is never frozen at 0.
+
+  `CanAffordCostFloat(pool Pool, amount float64) bool` (`pools.go`, after
+  `ApplyCostFloatOrRefuse`) is the read-only twin of
+  `ApplyCostFloatOrRefuse`: it reports the same verdict, against the same
+  private `costCarry`, without writing anything. It exists because a caller
+  deciding whether to ISSUE a step it will charge later (a mob's path walker
+  choosing whether to take its next step) needs the charge's own verdict, and
+  `QuoteActionCost` cannot price a step, whose cap applies after the hidden
+  and mutation multipliers `costs.Calc` cannot express.
+
+  **Only `actions.ChargeMove` spends action points.** The repo-root
+  `move_wrapper_guard_test.go` fails `go test .` if `usercommands/go.go` or
+  `mobcommands/go.go` call `DeductActionPoints` themselves, and a second test
+  in the same file walks every non-test `.go` file under `internal/` and
+  `modules/` (excluding `internal/actions` and `internal/characters`
+  themselves) for a second `DeductActionPoints(` call site.
 - **Legacy deductors no longer exist.** Registered actions use
   `QuoteActionCost` and `CommitCost`. Autoattack prices its pre-resolution swing
   plan once; defence quotes every candidate and commits only the winner; flee
