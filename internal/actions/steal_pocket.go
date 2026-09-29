@@ -346,9 +346,9 @@ func (p *pocketAttempt) resolve() StealResult {
 }
 
 // pocketCrime is the mark's side of a catch away from it: theftCrime in
-// the room the theft happened in, in away mode (the mark the only witness,
-// no meeting recorded), judged by what the mark saw at the attempt
-// (markSaw). A variable so tests can see it raised without the faction
+// the room the theft happened in, in away mode (the mark the only witness;
+// it learns who robbed it, but no last-seen room or round; bystanders
+// learn nothing), judged by what the mark saw at the attempt (markSaw). A variable so tests can see it raised without the faction
 // books.
 var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room, markSaw messaging.SightDecision) {
 	theftCrime(userId, m, theftRoom, true, markSaw)

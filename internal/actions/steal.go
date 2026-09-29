@@ -687,8 +687,11 @@ func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away boo
 // who has left or logged out. away is a pickpocket's failed roll revealed
 // after the thief walked away (steal_pocket.go, pocketCrime): the mark is
 // the only witness (theftWitnesses), judged by markSaw, its sight at the
-// attempt, and nobody records meeting the thief.
-// thiefCaught runs it in the act.
+// attempt. A mark that saw clearly still learns who robbed it
+// (knowledge.RecordCrimeWitnessed makes a record with HasMet set); it only
+// gets no last-seen room or round (RecordMet is skipped), since it did not
+// see where the thief went. Bystanders learn nothing. thiefCaught runs it
+// in the act.
 func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool, markSaw messaging.SightDecision) {
 	// Chunk 3.3: failed theft wakes a sleeping victim.
 	if m.Character.HasConditionFlag(conditions.Sleeping) {
@@ -723,7 +726,9 @@ func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool, markSaw me
 					for _, crimeId := range crimeIds {
 						knowledge.RecordCrimeWitnessed(int(w.MobId), subject, crimeId)
 					}
-					// Away, the mark felt a hand; it met nobody.
+					// Away, the mark knows who robbed it (the record above,
+					// HasMet included) but not where the thief was last
+					// seen: it felt the hand after they had gone.
 					if !away {
 						knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
 							knowledge.SourceWitnessed)
