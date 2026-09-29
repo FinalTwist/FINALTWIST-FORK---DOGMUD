@@ -3,6 +3,7 @@ package actions
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -18,6 +20,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/shops"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -366,14 +369,67 @@ func TestStolenBauble_NoRecognitionWithoutCause(t *testing.T) {
 // In dim light an owner who sees only shapes still knows its own bauble on
 // a figure (the crime is then recorded against an unknown perpetrator by
 // thiefCaught's witness count, like any theft seen only as shapes).
+//
+// The real thiefCaught runs, so the crime is read back from the log: its
+// perpetrator is unknown. A clear-sighted observer (nightvision) reads the
+// room line exactly as sent, so "a figure" there comes from the owner's
+// dim sight, not from the observer's own.
 func TestStolenBauble_RecognisedInDimLight(t *testing.T) {
+	const observerId = 7401
+	const nightEyes = 7402
 	h := setupRecognition(t, true)
+	configureStagedAdmissionFaction(t) // the thornwall_citizens faction, temp crime log
+	merchantInstance().Groups = []string{`thornwall_citizens`}
+	stolenCaught = func(a Actor, m *mobs.Mob, r *rooms.Room) {
+		h.caught = append(h.caught, m)
+		thiefCaught(a, m, r)
+	}
+
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		nightEyes: {
+			ConditionId: nightEyes,
+			Name:        "Test Night Eyes",
+			Flags:       []conditions.Flag{conditions.NightVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectNightVisionStrength: {Literal: 30}},
+		},
+	}))
+	observer := users.NewTestUser(observerId, "watcher", "Watcher", 97401)
+	observer.Character.RoomId = 1
+	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{observerId: observer}))
+	require.True(t, observer.Character.Conditions.AddCondition(nightEyes, true))
+	h.room.AddPlayer(observerId)
+	t.Cleanup(func() { h.room.RemovePlayer(observerId) })
+	events.DrainQueuedMessagesForTest(observerId)
+
 	h.room.SkyLight, h.room.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(30)
-	require.Equal(t, messaging.SightShapes, messaging.ParticipantSight(&merchantInstance().Character, h.room), "fixture: shapes only")
+	require.Equal(t, messaging.SightShapes, messaging.ParticipantSight(&merchantInstance().Character, h.room), "fixture: the owner sees shapes only")
+	require.Equal(t, messaging.SightFull, messaging.ParticipantSight(observer.Character, h.room), "fixture: the observer sees clearly")
+
 	it := stolenBauble(t, "Bone Dice", "dice", 12, 2, 1, stolenTestNow.Add(-time.Hour))
 	require.True(t, h.thief.GetCharacter().StoreItem(it))
 	recognizeIn(h.room, 1, 0)
-	assert.Len(t, h.caught, 1)
+	require.Len(t, h.caught, 1)
+
+	thefts := 0
+	for _, c := range crimes.AllForFaction(`thornwall_citizens`, true) {
+		if c.Kind != crimes.KindTheft {
+			continue
+		}
+		thefts++
+		assert.Equal(t, crimes.PerpUnknown, c.Perpetrator.Type,
+			"an owner who sees only shapes cannot name the thief: %+v", c.Perpetrator)
+	}
+	assert.Equal(t, 1, thefts, "the recognition is recorded as one theft")
+
+	var line string
+	for _, l := range events.DrainQueuedMessagesForTest(observerId) {
+		if strings.Contains(l, `That's mine! Thief!`) {
+			line = l
+		}
+	}
+	require.NotEmpty(t, line, "the observer hears the owner")
+	assert.Contains(t, line, `points at a figure.`, "the owner names nobody")
+	assert.NotContains(t, line, h.thief.GetCharacter().Name, "nor the thief's name")
 }
 
 // A household's bauble taken with nobody watching belongs to the whole
