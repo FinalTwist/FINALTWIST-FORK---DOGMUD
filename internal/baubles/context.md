@@ -231,7 +231,7 @@ func PreviewPrompt(req GenRequest) ([]string, bool)
 func LooksLikeId(s string) bool
 func SalesSince(t time.Time) (count int, gold int)
 
-type FindOpts struct{ Place Place; UserId int; SkillFactor float64; Feature string; Household bool; Randn func(n int) int; Now time.Time }
+type FindOpts struct{ Place Place; UserId int; SkillFactor float64; SightPenalty float64; Feature string; Household bool; Randn func(n int) int; Now time.Time }
 func RollFind(o FindOpts) (tier ValueTier, found bool)
 func BaseChance(biome string) float64
 func ChanceFor(biome string, skillFactor float64) float64
@@ -273,6 +273,10 @@ func ResetWindow(roomId int)
   real time, from the window's
   first roll), shared by the room unless `BaubleWindowPerPlayer`. Every roll
   spends the window, found or not.
+- `FindOpts.SightPenalty` (0 is none, clamped to 0..1 by `clampUnit`)
+  multiplies the chance by `1 - SightPenalty` after the nothing-here check
+  and before the window roll, so a search in the dark spends its roll as
+  one in the light does; callers pass `1 - messaging.SightMult`.
 - Feature windows: a feature (`search bookshelf`) gives ONE bauble roll per
   `BaubleFeatureWindowMinutes` (60), shared by the room unless
   `BaubleWindowPerPlayer`. The limit is on the bauble roll only: the search

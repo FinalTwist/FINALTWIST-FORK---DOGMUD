@@ -17,7 +17,7 @@ you steal -- you grab whatever you can get your hands on.
 
 Being hidden improves your chances. On failure, your cover
 is blown and the target may attack. Cannot be used on
-other players.
+other players, or on anyone's companion, your own included.
 
 Requires <ansi fg="skill">skullduggery</ansi> rank 2.
 
@@ -26,7 +26,9 @@ Requires <ansi fg="skill">skullduggery</ansi> rank 2.
 Stealing from an NPC takes a moment. Your fingers are in the
 pocket before you know whether you were seen, and quick hands
 (<ansi fg="yellow">Dexterity</ansi>) make the moment shorter. Walk away or get into a
-fight before it is done, and you lose your chance. Now and then
+fight before it is done, and you lose your chance, but only if
+your hands were quick enough: if the mark felt them, walking away
+does not help, and they cry thief all the same. Now and then
 a pocket holds a small curiosity of its own, worth a coin or two
 to the right merchant, and often more than the odds and ends
 people leave lying about.

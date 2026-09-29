@@ -556,8 +556,10 @@ Pickpockets a target mob or player, or robs an item from a room container.
 **Three paths:**
 
 1. **Mob pickpocket** (`opts.TargetMobInstanceId` set; `stealFromMob`):
-   - Refused for non-combatant or player-attack-immune mobs, and below
-     skullduggery rank 2.
+   - Refused for any companion (charmed, the thief's own included, or bonded to
+     the AI companion: "X is someone's companion. You can't steal from them.",
+     reason `companion`), then for non-combatant or player-attack-immune mobs
+     (`mobs.CheckPlayerHarm`), and below skullduggery rank 2.
    - One contest (`combat.RunContest`): the thief's Dexterity +
      skullduggery x SkillWeight (+ StealHiddenBonus when hidden) against
      `stealVictimScore` (the mob's Perception + skullduggery x
@@ -568,15 +570,19 @@ Pickpockets a target mob or player, or robs an item from a room container.
      (`pocketPending`: "Your hand is still in someone's pocket.").
    - A MOB thief's outcome is at once. A PLAYER's is held back for a pause
      (`steal_pocket.go`, `startPocketAttempt`): "You attempt to pick X's
-     pocket...", then after `PocketDelay` (StealPocketSeconds at Dexterity
-     100, scaled by 100/Dexterity, kept between StealPocketMinSeconds and
+     pocket...", then after `PocketDelay` (StealPocketSeconds at Dexterity 100,
+     scaled by 100/Dexterity, kept between StealPocketMinSeconds and
      StealPocketMaxSeconds) the outcome is revealed under the mud lock
-     (`resolve`). `StealResult.Pending` is set meanwhile. A thief who has
-     left the room, gone offline, started fighting or come under attack by
-     then, or a mark that has moved, died or gone, loses the chance ("You
-     lose your chance at X's pocket."): nothing taken, nothing caught,
-     nothing trained. The thief learns nothing before the reveal, so
-     walking off only ever forfeits.
+     (`resolve`). `StealResult.Pending` is set meanwhile. A FAILED roll is
+     caught however the pause ends (owner ruling 2026-09-29; `caught`): beside
+     the mark, `caughtByMob` as below; away from it or offline, the mark cries
+     thief in its own room and `theftCrime` records the crime against the thief
+     (through the `pocketCrime` seam), with no attack; an online thief is told
+     and trained on the loss. A mark that is gone or dead catches nobody. A
+     SUCCESSFUL roll whose thief has left the room, gone offline, started
+     fighting or come under attack by then, or whose mark has moved, died or
+     gone, loses the chance ("You lose your chance at X's pocket."): nothing
+     taken, nothing trained.
    - Success (`takeFromMob`): 75 to 100% of the mob's gold, one random item,
      and, for a player, a bauble: the one the mark carries
      (`carriedBauble`), or, when it carries none,
@@ -593,7 +599,10 @@ Pickpockets a target mob or player, or robs an item from a room container.
      named for a lost chance goes into the mark's pocket (`intoPocket`),
      for the next attempt.
    - Failure (`caughtByMob`): "X catches you in the act!", the room sees it,
-     then `thiefCaught` (revealed, a sleeper wakes, the crime, the attack).
+     then `thiefCaught` (revealed, then `theftCrime` in the act: a sleeper
+     wakes, the crime with every faction witness in the room; then the attack).
+     Away, `theftCrime` runs in the theft's room with the mark its only witness
+     (`theftWitnesses`), no external witness and no meeting recorded.
    - Every pause is tracked (`pendingPockets`); copyover and shutdown call
      `FlushPocketAttempts` under the lock before saving, which reveals each
      at once. Tests resolve in line (`runPocketAttempt`, `pocketThief`,
@@ -777,9 +786,11 @@ contested tier, a PLAYER's search takes a bauble roll (`baubles.RollFind`): a
 chance set by the room's biome (`BaubleBiomeChancePct`: buildings 5%, streets
 2 to 2.5%, wilderness 0.25%) and raised by the searcher's search skill
 (`BaubleSkillFactor`, up to `BaubleSkillMaxBonus`), rationed to
-`BaubleRollsPerWindow` rolls per
-room per `BaubleWindowMinutes` of real time. A find is NOT handed over on the
-spot: the player is told they are working something loose, `SearchResult.
+`BaubleRollsPerWindow` rolls per room per `BaubleWindowMinutes` of real time.
+Both bauble rolls pass `SightPenalty: 1 - messaging.SightMult(char, room)`; the
+root sight guard watches `baubles.RollFind` and `actions.searchBaubleRoll`. A
+find is NOT handed over on the spot: the player is told they are working
+something loose, `SearchResult.
 BaubleFound` is set, and `StartBaubleFind` hands a `BaubleDelivery` to a
 goroutine. That goroutine names it with `baubles.Generate` (the model, or a
 generic trinket) WITHOUT the mud lock, waits out the rest of
@@ -924,6 +935,9 @@ Selling is `sell_bauble.go`'s (above); storage (`usercommands/storage.go`,
   (`baubles.MarkGiven`).
 - Seams: `stolenNow`, `recognitionRoll`, `stolenCarriers`, `stolenCaught`,
   `returnRepBump`, `ownerFactions`, `theftCatches`.
+
+The owner's "points at" line and the household "caught trying to pocket" line
+(`steal.go`) go through `SendTextVisualHidingNames` with the player's name.
 
 **Household baubles (`household_bauble.go`).** A find in a household is left
 in the room and belongs to it (`items.Item.BaubleHousehold` = the room id).
@@ -1549,7 +1563,7 @@ the rest are ordinary verbs.
 | Flee | `flee.go`, `relocate_mob.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `search_bauble.go` (roll and delayed delivery), `search_feature.go` (`search <feature>`), `scan.go`, `track.go`, `steal.go`, `steal_pocket.go` (a player's pickpocket pause and bauble) |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `stolen_bauble.go` (heat, recognition, returns), `remove_equip.go`, `shop_sight.go`, `drink.go` |
+| Items & economy | `get.go` (`GetItemFromFloor` refuses a household's bauble (`BaubleBelongsTo`) with `ErrHouseholdBauble`, the item found and nothing moved, for every taker: a player's `get`, a mob's, a companion's, a scavenger's (owner ruling 2026-09-29); its gates sit in one early-return block), `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `stolen_bauble.go` (heat, recognition, returns), `remove_equip.go`, `shop_sight.go`, `drink.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |

@@ -72,7 +72,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   the scene and the live world, applies the loot arrangement, answers
   `look_at` and `consider` itself (the same information a player gets), or
   issues one ordinary mob command; `verifyPending` judges the outcome from
-  what changed.
+  what changed. A `get` of a household's bauble is refused before any
+  command is issued ("it belongs to the household here"):
+  `actions.GetItemFromFloor` would refuse it anyway, silently, and she
+  would keep trying.
 - **autonomy.go**: `perceive` (runs each round: settles the last action,
   notices new rooms and new things, offers quiet moments to act),
   `handleIdle` (owns the idle tick: first aid, idle gestures), impressions of
