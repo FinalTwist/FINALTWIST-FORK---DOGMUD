@@ -93,7 +93,9 @@ Roadmap and phase plan: `docs/aicompanion/`.
   with `stepQuote` (`actions.QuoteMobStep(mob, exitName)`, a variable so
   tests can pin it) before issuing it. Too tired to pay: the companion
   pauses, adds one mind line (`tooTiredLine`, "You are too tired to go on,
-  and stop to catch your breath.") the first round it happens, and re-quotes
+  and stop to catch your breath.") the first time she rests on a trip (once
+  per trip, not once per rest, so a companion whose steps outrun her regen
+  does not fill working memory with it), and re-quotes
   next round without starting the step-timeout clock. A quote that says
   `Never` (she could not pay even fully rested) ends the trip through
   `endTooWeak`, which calls `endTravel` like any failed trip, with its mind

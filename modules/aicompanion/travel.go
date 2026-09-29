@@ -34,7 +34,7 @@ type travelPlan struct {
 	TriedKey   bool   // a locked way on this step has already had the key tried
 	Authorized bool   // the owner asked for this errand
 	Errand     string // what she set out to do there, in her own words
-	Resting    bool   // already told her mind she stopped to rest on this step
+	Resting    bool   // already told her mind she stopped to rest on this trip
 }
 
 const (
@@ -222,8 +222,9 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 		return
 	}
 	// Movement parity 4b: quote before issuing. Tired, she waits without
-	// starting the step clock and tells her mind once. A step she could not
-	// pay for even fully rested ends the trip instead of waiting forever.
+	// starting the step clock and tells her mind once per trip (a new trip is
+	// a new plan, so the flag starts clear). A step she could not pay for
+	// even fully rested ends the trip instead of waiting forever.
 	if q := stepQuote(mob, st.Exit); !q.OK() {
 		if q.Never {
 			m.endTooWeak(c)
@@ -236,7 +237,6 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 		}
 		return
 	}
-	p.Resting = false
 	mob.Command(`go ` + util.EscapeAnsiTags(st.Exit))
 	p.FromRoom = cur
 	p.Issued = round

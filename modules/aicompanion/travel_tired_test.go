@@ -130,3 +130,33 @@ func TestNeverAffordableStepEndsTheTrip(t *testing.T) {
 		})
 	}
 }
+
+// A companion whose steps cost more than a round's regen rests before most
+// steps. She tells her mind she is resting once per trip, not once per rest,
+// so the line does not crowd her working memory.
+func TestTiredLineIsWrittenOncePerTrip(t *testing.T) {
+	w := newConsentWorld(t, true)
+	here := w.her.Character.RoomId
+	w.c.travel = &travelPlan{Dest: 10, DestName: `the mill`, Purpose: `errand`,
+		Steps: []step{{Exit: `north`, To: 9}, {Exit: `north`, To: 10}}, FromRoom: here}
+	t.Cleanup(func() {
+		events.DrainQueuedInputsForTest(w.her.InstanceId)
+		w.her.Character.RoomId = here
+	})
+
+	withStepAffordable(t, false)
+	w.m.advanceTravel(w.c, w.her, w.owner, 50) // rests before step one
+	withStepAffordable(t, true)
+	w.m.advanceTravel(w.c, w.her, w.owner, 51) // takes step one
+	events.DrainQueuedInputsForTest(w.her.InstanceId)
+	w.her.Character.RoomId = 9
+	withStepAffordable(t, false)
+	w.m.advanceTravel(w.c, w.her, w.owner, 52) // arrives, rests before step two
+
+	if w.c.travel == nil || w.c.travel.Next != 1 {
+		t.Fatalf("expected her resting before the second step: %+v", w.c.travel)
+	}
+	if n := tiredLines(w.c); n != 1 {
+		t.Fatalf("two rests in one trip wrote the resting line %d times, want 1", n)
+	}
+}
