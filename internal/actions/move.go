@@ -189,9 +189,10 @@ type EntryDetectionResult struct {
 //
 // A sneaking mover is rolled against every observer in dest, players first
 // (the one who spots it is told) and then mobs (silent), skipping the mover's
-// own party. Once it is not sneaking, whether it never was or was just
-// spotted, the mover rolls to spot every hidden player and mob in dest and
-// earns a Search award on BOTH outcomes (U10b-2).
+// allies (alliesOf). Once it is not sneaking, whether it never was or was just
+// spotted, the mover rolls to spot every hidden player and mob in dest (a mob
+// mover skipping its allies) and earns a Search award on BOTH outcomes
+// (U10b-2).
 //
 // Moved from usercommands.Go. The contests keep their shape exactly; lines to
 // players go through each player's own actor and room lines through
@@ -229,12 +230,33 @@ func moverName(mover Actor) string {
 	return fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mover.GetName())
 }
 
-// moverAllies is the mover's party: allies do not expose a sneaker.
+// moverAllies is the mover's side: allies do not expose a sneaker, and a mob
+// newcomer does not roll to spot them.
 type moverAllies struct {
 	users map[int]bool
 	mobs  map[int]bool
 }
 
+// addParty marks every member of p, players and mobs.
+func (a moverAllies) addParty(p *parties.Party) {
+	if p == nil {
+		return
+	}
+	for _, uid := range p.GetMembers() {
+		a.users[uid] = true
+	}
+	for _, member := range p.Members {
+		if member.IsPlayer() {
+			a.users[member.GetUserId()] = true
+		} else if id := member.GetMobInstanceId(); id != 0 {
+			a.mobs[id] = true
+		}
+	}
+}
+
+// alliesOf is a player mover's party (players only, as on master), or a mob
+// mover's side: its NPC party, and when charmed its owner, the owner's party
+// and the owner's other charmed mobs and companions.
 func alliesOf(mover Actor) moverAllies {
 	a := moverAllies{users: map[int]bool{}, mobs: map[int]bool{}}
 	if mover.IsPlayer() {
@@ -245,9 +267,15 @@ func alliesOf(mover Actor) moverAllies {
 		}
 		return a
 	}
-	if p := parties.GetByMobInstanceId(mover.GetMobInstanceId()); p != nil {
-		for _, member := range p.Members {
-			if id := member.GetMobInstanceId(); id != 0 {
+	a.addParty(parties.GetByMobInstanceId(mover.GetMobInstanceId()))
+	if ownerId := mover.GetCharacter().GetCharmedUserId(); ownerId > 0 {
+		a.users[ownerId] = true
+		// parties.Get also returns a party the owner is only invited to.
+		if p := parties.Get(ownerId); p != nil && p.IsMember(ownerId) {
+			a.addParty(p)
+		}
+		if owner := users.GetByUserId(ownerId); owner != nil {
+			for _, id := range owner.Character.GetCharmIds() {
 				a.mobs[id] = true
 			}
 		}
@@ -298,14 +326,21 @@ func sneakerSpotted(mover Actor, dest *rooms.Room, light messaging.RoomVisibilit
 }
 
 // newcomerSpots rolls the arriving mover to spot every hidden player and mob
-// in dest. Neither side learns a name it cannot see.
+// in dest. Neither side learns a name it cannot see. A mob mover skips its
+// allies (alliesOf), so a pet or party member following a hidden leader never
+// reveals it or trains Search on it. A player mover skips only itself, as on
+// master.
 func newcomerSpots(mover Actor, dest *rooms.Room, light messaging.RoomVisibility) {
 	mc := mover.GetCharacter()
 	// The newcomer now stands in dest: that is the light their eyes meet.
 	observerScore := CalcDetectionScore(mc, dest)
+	allies := moverAllies{}
+	if !mover.IsPlayer() {
+		allies = alliesOf(mover)
+	}
 
 	for _, pId := range dest.GetPlayers() {
-		if pId == mover.GetUserId() {
+		if pId == mover.GetUserId() || allies.users[pId] {
 			continue
 		}
 		hiddenP := users.GetByUserId(pId)
@@ -343,7 +378,7 @@ func newcomerSpots(mover Actor, dest *rooms.Room, light messaging.RoomVisibility
 	}
 
 	for _, mId := range dest.GetMobs(rooms.FindAll) {
-		if mId == mover.GetMobInstanceId() {
+		if mId == mover.GetMobInstanceId() || allies.mobs[mId] {
 			continue
 		}
 		m := mobs.GetInstance(mId)

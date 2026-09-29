@@ -388,12 +388,16 @@ func EntryDetection(mover Actor, dest *rooms.Room, sneaking bool) EntryDetection
 `EntryDetection`; Go forbids that, so the result type is
 `EntryDetectionResult`.) Symmetric for a player or a mob mover (owner ruling
 3): a sneaking mover rolls against every player observer first (the one who
-spots it is told) then every mob observer (silent), skipping the mover's own
-party (`alliesOf`, the mob-party twin of the player exclusion). Once the
-mover is not sneaking, whether it never was or was just spotted, it rolls
-against every hidden occupant of `dest` and calls `mover.AwardResolved` on
-BOTH outcomes (U10b-2), win or lose, because a search roll happened either
-way. Moved from `usercommands.Go`, unchanged in shape; a mob mover's lines
+spots it is told) then every mob observer (silent), skipping the mover's
+allies (`alliesOf`). For a player that is its player party, as on master; for
+a mob it is its NPC party and, when charmed, its owner, the owner's party and
+the owner's other charmed mobs and companions. Once the mover is not
+sneaking, whether it never was or was just spotted, it rolls against every
+hidden occupant of `dest` and calls `mover.AwardResolved` on BOTH outcomes
+(U10b-2), win or lose, because a search roll happened either way. A mob
+newcomer skips its `alliesOf` side there too, so a pet or party member
+following a hidden leader never reveals it or trains Search on it; a player
+newcomer skips only itself, exactly as on master. Moved from `usercommands.Go`, unchanged in shape; a mob mover's lines
 differ only in name colour (`moverName`).
 
 **The rare Search roll** (`movementTrainsSearch`, `TrainSearchOnMove`) is
