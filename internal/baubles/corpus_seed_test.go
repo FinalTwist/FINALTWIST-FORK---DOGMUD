@@ -2,6 +2,7 @@ package baubles
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -156,5 +157,40 @@ func TestEveryFindableBiomeHasACorpusGroup(t *testing.T) {
 	}
 	if checked == 0 {
 		t.Fatal(`no biome with a chance above zero: the check ran on nothing`)
+	}
+}
+
+// The seed has every pool the lookup can reach, about ten entries per group
+// pool and about five per bare-tier pool, and each pool's average value
+// sits near its tier's midpoint, so a corpus find pays what a generic one
+// did on average (owner ruling 8).
+func TestShippedCorpusSeedIsComplete(t *testing.T) {
+	_, doc := readShippedSeed(t, shippedWorld(t))
+	want := map[string]int{}
+	for _, g := range []string{`dwelling`, `street`, `underground`, `ruins`, `waterside`, `wild`, pocketPrefix} {
+		for _, tier := range Tiers() {
+			want[corpusKey(g, tier)] = 8
+		}
+	}
+	for _, tier := range Tiers() {
+		want[corpusKey(``, tier)] = 4
+	}
+	for _, key := range sortedKeys(want) {
+		list := doc.Entries[key]
+		if len(list) < want[key] {
+			t.Errorf(`%s has %d entries, want at least %d`, key, len(list), want[key])
+			continue
+		}
+		_, tier, _ := parseCorpusKey(key)
+		r := tier.Range()
+		sum := 0
+		for _, e := range list {
+			sum += tier.ClampValue(e.Value)
+		}
+		mean := float64(sum) / float64(len(list))
+		mid := float64(r.Min+r.Max) / 2
+		if tol := 0.15 * float64(r.Max-r.Min); math.Abs(mean-mid) > tol {
+			t.Errorf(`%s: average value %.2f, want within %.2f of the %s midpoint %.1f`, key, mean, tol, tier, mid)
+		}
 	}
 }
