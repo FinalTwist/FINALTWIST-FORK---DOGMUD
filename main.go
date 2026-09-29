@@ -1660,6 +1660,13 @@ func loadAllDataFiles(isReload bool) {
 			mudlog.Error("baubles.Load", "error", err)
 		}
 	}
+	// Baubles: the fallback corpus (bauble-corpus.yaml, plus the promoted
+	// overlay in baubles/). After items, because every entry is checked
+	// against the authored item names, and after the catalog, whose
+	// directory holds the overlay. On a data reload too, so an edit to the
+	// seed takes effect. It never fails: a broken seed is logged at ERROR
+	// and a corrupt overlay is quarantined.
+	baubles.LoadCorpus()
 	// Pinnacle Stage 1: sentient item voices. Must load AFTER items so the
 	// voice_id cross-validation can see every item's ItemSpec.
 	itemvoices.LoadDataFiles()
