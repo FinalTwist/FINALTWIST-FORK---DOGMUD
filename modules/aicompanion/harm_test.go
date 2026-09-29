@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -321,5 +322,23 @@ func TestBattleLinesRespectMute(t *testing.T) {
 	owner.Muted = true
 	if n := spoke(); n != 0 {
 		t.Fatalf("muted, she says none: %d", n)
+	}
+}
+
+// A household's bauble is not hers to take (slice H, 14a): the get is
+// refused before any command is issued, with a reason she is told, so she
+// does not keep trying a pickup that would quietly fail.
+func TestHouseholdBaubleIsRefusedUpFront(t *testing.T) {
+	owner, _, room, her := harmWorld(t, configs.PVPDisabled)
+	b := items.Item{ItemId: items.BaubleItemId, Bauble: `b0000001`, BaubleHousehold: room.RoomId}
+	room.Items = append(room.Items, b)
+	m, c, _ := strangerModule()
+	sc := &scene{RoomId: room.RoomId, byRef: map[string]*thing{}}
+	sc.byRef[`t1`] = &thing{Ref: `t1`, Kind: `item`, Name: `Trinket`, Item: b, HasItem: true}
+
+	out := m.performAction(c, her, owner, sc, ActionProposal{Verb: `get`, Ref: `t1`},
+		[]stimulus{{Kind: `heard`, FromOwner: true}}, 0, 0)
+	if out.Issued || out.Refused != `it belongs to the household here` {
+		t.Fatalf("refused up front, with the reason: %+v", out)
 	}
 }

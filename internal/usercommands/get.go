@@ -1,6 +1,7 @@
 package usercommands
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -637,20 +638,21 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				user.SendText(messaging.CategorySystem, `You can't pick that up, it's about to explode!`)
 				return true, nil
 			}
-			// A bauble found in this household belongs to it. `get` never
-			// commits a crime: it refuses and names the steal command, which
-			// is the theft (actions/steal.go, stealHouseholdBauble).
-			if peekFound && !getFromStash && peekItem.BaubleBelongsTo(room.RoomId) {
-				user.SendText(messaging.CategorySystem, fmt.Sprintf(
-					`The <ansi fg="itemname">%s</ansi> belongs to this household. To take it anyway, <ansi fg="command">steal %s</ansi>.`,
-					peekItem.DisplayName(), stealWord(peekItem)))
-				return true, nil
-			}
 			if peekFound {
 				result := actions.GetItemFromFloor(&actions.UserActor{User: user, Room: room}, rest, getFromStash)
 				if result.Found {
 					matchItem = result.Item
 					found = true
+					if errors.Is(result.Err, actions.ErrHouseholdBauble) {
+						// A bauble found in this household belongs to it.
+						// `get` never commits a crime: the shared pickup
+						// refuses it for every taker, and this names the
+						// steal command, which is the theft.
+						user.SendText(messaging.CategorySystem, fmt.Sprintf(
+							`The <ansi fg="itemname">%s</ansi> belongs to this household. To take it anyway, <ansi fg="command">steal %s</ansi>.`,
+							matchItem.DisplayName(), stealWord(matchItem)))
+						return true, nil
+					}
 					if result.Err != nil {
 						// Capacity exceeded — item was rolled back to floor
 						user.SendText(messaging.CategorySystem,
