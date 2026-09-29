@@ -466,12 +466,23 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if corpse, corpseFound := room.FindCorpse(rest); corpseFound {
 
 			corpseColor := `mob-corpse`
+			// A player corpse is named "<name> corpse" inside a user-corpse
+			// tag, which Anonymize does not strip, so the dead player's name
+			// is hidden from a shapes-only observer by name. The observer
+			// line calls it "the corpse of <name>" so the hidden form reads
+			// "the corpse of a figure" (not "the a figure corpse").
+			hidden := []string{user.Character.Name}
+			observedCorpse := corpse.DisplayName()
 			if corpse.UserId > 0 {
 				corpseColor = `user-corpse`
+				if corpse.CorpseName == "" {
+					observedCorpse = `corpse of ` + corpse.Character.Name
+				}
+				hidden = append(hidden, corpse.Character.Name)
 			}
 
 			user.SendText(messaging.CategoryRoomDescription, fmt.Sprintf(`You look at the <ansi fg="%s">%s</ansi>.`, corpseColor, corpse.DisplayName()))
-			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="%s">%s</ansi>.`, user.Character.Name, corpseColor, corpse.DisplayName()), []string{user.Character.Name}, user.UserId)
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="%s">%s</ansi>.`, user.Character.Name, corpseColor, observedCorpse), hidden, user.UserId)
 
 			if corpse.CorpseDescription != "" {
 				user.SendText(messaging.CategoryRoomDescription, corpse.CorpseDescription)
