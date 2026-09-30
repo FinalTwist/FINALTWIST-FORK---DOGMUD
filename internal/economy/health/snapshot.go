@@ -63,6 +63,7 @@ type ShopSnapshot struct {
 	RoomId           int             `yaml:"room_id"            json:"room_id"`
 	Name             string          `yaml:"name"               json:"name"`
 	CraftSupport     string          `yaml:"craft_support"      json:"craft_support"`
+	Fence            bool            `yaml:"fence,omitempty"    json:"fence,omitempty"` // a fence's shop (its mob template's IsFence); see Type
 	Gold             int             `yaml:"gold"               json:"gold"`
 	StartingGold     int             `yaml:"starting_gold"      json:"starting_gold"`
 	LastRestockRound uint64          `yaml:"last_restock_round" json:"last_restock_round"`
@@ -85,6 +86,17 @@ type ShopSnapshot struct {
 	MedianTtRCommons       uint64 `yaml:"median_ttr_commons,omitempty"       json:"median_ttr_commons"`
 	MedianTtRRares         uint64 `yaml:"median_ttr_rares,omitempty"         json:"median_ttr_rares"`
 	CurrentlyDepletedCount int    `yaml:"currently_depleted_count,omitempty" json:"currently_depleted_count"`
+}
+
+// Type is the kind of shop the dashboard groups by: "fence" for a fence's
+// shop (baubles slice D), else its craft_support. A snapshot saved before
+// Fence existed decodes with it false and falls back to CraftSupport, and a
+// fence's real craft_support stays in history.
+func (s ShopSnapshot) Type() string {
+	if s.Fence {
+		return "fence"
+	}
+	return s.CraftSupport
 }
 
 // StockSnapshot is a per-item entry. Bucket comes from economy.BucketFor().

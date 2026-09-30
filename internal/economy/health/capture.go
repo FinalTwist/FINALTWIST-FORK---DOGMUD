@@ -56,6 +56,10 @@ func captureShops() []ShopSnapshot {
 			Stock:            make([]StockSnapshot, 0, len(inv.Stock)),
 			Name:             lookupShopMobName(inv.MobId, inv.RoomId),
 		}
+		// A fence's shop is typed "fence" on the dashboard. The template
+		// decides (always loaded at boot): an instance's groups can change.
+		tmpl := mobs.GetMobSpec(mobs.MobId(inv.MobId))
+		ss.Fence = tmpl != nil && tmpl.IsFence()
 		for _, e := range inv.Stock {
 			ss.Stock = append(ss.Stock, StockSnapshot{
 				ItemId:     e.ItemId,
