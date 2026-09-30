@@ -14,6 +14,9 @@ import (
 // RelocateMob is the mob's move with no gate and no charge: walking (after
 // its gates and, from 4b, its charge) and a successful flee both end in it.
 func TestRelocateMob_MovesTheMobBetweenRooms(t *testing.T) {
+	// Room.AddMob queues a RoomChange event as a side effect; nothing here
+	// drains it, so it would otherwise leak into whatever test runs next.
+	t.Cleanup(func() { events.DrainAllQueuedEventsForTest() })
 	const from, to, instId = 99411, 99412, 98411
 	cleanup := rooms.SeedRoomsForTest(map[int]*rooms.Room{
 		from: {RoomId: from, Zone: "test", Exits: map[string]exit.RoomExit{"north": {RoomId: to}}},
@@ -56,6 +59,12 @@ func TestRelocateMob_MovesTheMobBetweenRooms(t *testing.T) {
 // it, and toWatcher never was its target).
 func relocateWatchers(t *testing.T, sneaking bool) (fromMsgs, toMsgs, exitMsgs []string) {
 	t.Helper()
+	// Room.AddMob (below, and inside RelocateMob's move to dest) queues a
+	// RoomChange event as a side effect. Nothing in this file calls
+	// events.ProcessEvents to drain it, so left alone it sits in the shared
+	// global queue and leaks into whatever test runs next (mirrors
+	// hooks.newShadowScene's cleanup for the same reason).
+	t.Cleanup(func() { events.DrainAllQueuedEventsForTest() })
 	const from, to, instId = 99421, 99422, 98421
 	const fromWatcher, toWatcher = 99431, 99432
 	const exitRoom, exitWatcher = 99423, 99433

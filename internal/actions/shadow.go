@@ -90,14 +90,14 @@ func Shadow(actor Actor, opts ShadowOptions) ShadowResult {
 	}
 
 	if opts.TargetMobInstanceId > 0 {
-		return shadowMob(actor, opts.TargetMobInstanceId, cfg)
+		return shadowMob(actor, opts.TargetMobInstanceId)
 	}
 
-	return shadowPlayer(actor, opts.TargetUserId, cfg)
+	return shadowPlayer(actor, opts.TargetUserId)
 }
 
 // shadowMob handles the mob-target shadow path.
-func shadowMob(actor Actor, mobInstanceId int, cfg configs.Balance) ShadowResult {
+func shadowMob(actor Actor, mobInstanceId int) ShadowResult {
 	m := mobs.GetInstance(mobInstanceId)
 	if m == nil {
 		actor.SendText(messaging.CategorySystem, "They seem to have vanished.")
@@ -143,7 +143,7 @@ func shadowMob(actor Actor, mobInstanceId int, cfg configs.Balance) ShadowResult
 // shadowPlayer handles the player-target shadow path. The target makes the
 // initial sense roll (ShadowSenseRoll); the shadow begins either way, and
 // Detected reports the roll.
-func shadowPlayer(actor Actor, targetUserId int, cfg configs.Balance) ShadowResult {
+func shadowPlayer(actor Actor, targetUserId int) ShadowResult {
 	targetUser := users.GetByUserId(targetUserId)
 	if targetUser == nil {
 		actor.SendText(messaging.CategorySystem, "They seem to have vanished.")
