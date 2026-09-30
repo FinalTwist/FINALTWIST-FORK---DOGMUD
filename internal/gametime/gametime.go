@@ -343,7 +343,8 @@ func (g GameDate) Add(adjustHours int, adjustDays int, adjustYears int) GameDate
 // Example:
 // gd := gametime.GetDate()
 // nextPeriodRound := gd.AddPeriod(`10 days`)
-// Accepts: x years, x months, x weeks, x days, x hours, x rounds
+// Accepts: x years, x months, x weeks, x days, x hours, x minutes, x seconds, x rounds
+// Seconds round up to a whole round, on either clock.
 // If `IRL` or `real` are in the mix, such as `x irl days` or `x days irl`, then it will use real world time
 func (g GameDate) AddPeriod(periodStr string) uint64 {
 
@@ -472,6 +473,17 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 			}
 
 			return g.RoundNumber + uint64(math.Floor(float64(qty)*(float64(g.RoundsPerDay)/24/60)))
+
+		} else if strShort == `sec` { // if timeStr == `second` || timeStr == `seconds` || timeStr == `secs`
+
+			// Both clocks round UP to a whole round, and so to at least one:
+			// a round is the shortest wait the engine can measure, and a wait
+			// that ends early breaks the promise its config makes.
+			if realTime {
+				return g.RoundNumber + uint64(configs.GetTimingConfig().SecondsToRounds(qty))
+			}
+
+			return g.RoundNumber + uint64(math.Ceil(float64(qty)*(float64(g.RoundsPerDay)/24/60/60)))
 
 		} else if strShort == `noo` { // if timeStr == `noon` || timeStr == `noons` {
 

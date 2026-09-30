@@ -95,7 +95,7 @@ func ValidateSpawnEntry(s SpawnInfo, v SpawnValidators) error {
 // failover and yields ONE round, roughly four seconds. A typo'd respawn rate
 // is therefore not a loud failure but a spawn that returns almost instantly.
 // Checking the vocabulary is the only way to catch it.
-var periodUnitPrefixes = []string{"yea", "mon", "wee", "day", "dai", "hou", "min", "noo", "mid", "rou"}
+var periodUnitPrefixes = []string{"yea", "mon", "wee", "day", "dai", "hou", "min", "sec", "noo", "mid", "rou"}
 
 // periodModifiers are the words AddPeriod accepts between quantity and unit.
 var periodModifiers = map[string]bool{"real": true, "irl": true, "game": true, "gametime": true}

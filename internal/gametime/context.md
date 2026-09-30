@@ -56,7 +56,18 @@ lands on, measured from the receiver's round.
 Accepted forms:
 
 - `"10 days"` — quantity + unit. Units: `years`, `months`, `weeks`, `days`,
-  `hours`, `rounds`.
+  `hours`, `minutes`, `seconds`, `rounds`. The unit is matched on its first
+  three letters, so `second`, `seconds` and `secs` all work.
+- Seconds round UP to a whole round on either clock, so the shortest seconds
+  period is one round and a wait never ends before the time it names:
+  `"60 real seconds"` is 15 rounds at `RoundSeconds: 4`, `"1 real second"` is
+  1. Real seconds go through `Timing.SecondsToRounds`. Before 2026-09-30 there
+  was no seconds branch, and `"60 real seconds"` fell through to the rounds
+  failover as 60 ROUNDS (four minutes).
+- An unknown unit does not fail: it falls through to a failover that reads the
+  quantity as rounds (`"7 flurbles"` is 7 rounds). `rooms.RealPeriodOK` keeps
+  a copy of the unit vocabulary to catch typos in spawn data; add any new unit
+  there too.
 - bare period names such as `daily`, `weekly`, `noon`, `midnight`, `sunrise`,
   `sunset`.
 - `"2 irl days"` / `"2 real days"` — real-world time, converted through
