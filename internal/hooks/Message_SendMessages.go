@@ -26,7 +26,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 		if user := users.GetByUserId(message.UserId); user != nil {
 
 			// If they are deafened, they cannot hear user communications
-			if message.IsCommunication && user.Deafened {
+			if message.HiddenFromDeafened(user.Deafened) {
 				return events.Continue
 			}
 
@@ -80,7 +80,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 			if user := users.GetByUserId(userId); user != nil {
 
 				// If they are deafened, they cannot hear user communications
-				if message.IsCommunication && user.Deafened {
+				if message.HiddenFromDeafened(user.Deafened) {
 					continue
 				}
 
