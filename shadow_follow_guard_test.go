@@ -144,6 +144,38 @@ func TestOneShadowFollowSite(t *testing.T) {
 	}
 }
 
+// shadowTargetReaders is every production file that may read a shadow target.
+// TestOneShadowFollowSite only sees a follow written in one file; a lookup in
+// one hooks file handing off to a dispatch in another would slip past it. So
+// a new reader anywhere fails here and must be reviewed before it is added.
+var shadowTargetReaders = map[string]string{
+	"internal/actions/shadow.go":                         "the shared bodies",
+	"internal/hooks/RoomChange_ShadowFollow.go":          "the one follow site",
+	"internal/hooks/MobDeath_TrackingCleanup.go":         "clears shadows on a dead quarry (ClearShadow)",
+	"internal/hooks/PlayerDespawn_TrackingCleanup.go":    "clears shadows on a departed quarry (ClearShadow)",
+	"internal/usercommands/skill.skullduggery.shadow.go": "shadow stop (EndShadow)",
+}
+
+func TestShadowTargetReadersArePinned(t *testing.T) {
+	pattern := regexp.MustCompile(`ShadowTargetOf\(`)
+	seen := map[string]bool{}
+	shadowGuardWalk(t, func(rel, code string) {
+		if !pattern.MatchString(code) {
+			return
+		}
+		if _, ok := shadowTargetReaders[rel]; !ok {
+			t.Errorf("%s reads a shadow target; shadow following lives in internal/hooks/RoomChange_ShadowFollow.go alone. If this reader is not a follow, add it to shadowTargetReaders with its reason", rel)
+			return
+		}
+		seen[rel] = true
+	})
+	for rel, why := range shadowTargetReaders {
+		if !seen[rel] {
+			t.Errorf("shadowTargetReaders lists %s (%s) but it no longer reads a shadow target; remove it", rel, why)
+		}
+	}
+}
+
 // The forked follow and end logic this slice deleted stays deleted.
 func TestDeletedShadowForksStayDeleted(t *testing.T) {
 	pattern := regexp.MustCompile(`\bshadowIsTargetingUser\b|\bshadowDetectionRoll\b|\binlineShadowEnd\b|\bendShadow\(|\bMobRoomChangeShadowFollow\b|\bgetShadowTargetUserId\b`)
