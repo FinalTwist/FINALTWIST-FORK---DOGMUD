@@ -267,14 +267,76 @@ func (r *Room) SendText(cat messaging.Category, txt string, excludeUserIds ...in
 // is computed via messaging.CanSeeClearly / CanSeeShapes; infrared
 // observers get an anonymized render.
 func (r *Room) SendTextVisual(cat messaging.Category, txt string, excludeUserIds ...int) {
-	r.sendTextVisualJudgedBy(r, cat, txt, nil, excludeUserIds...)
+	r.sendTextVisualJudgedBy(r, cat, txt, nil, false, excludeUserIds...)
 }
 
 // SendTextVisualHidingNames is SendTextVisual for a line that names the
 // parties to an event: an observer who makes out shapes only reads each of
 // names as "a figure". It is the observer half of messaging.SendTrio.
 func (r *Room) SendTextVisualHidingNames(cat messaging.Category, txt string, names []string, excludeUserIds ...int) {
-	r.sendTextVisualJudgedBy(r, cat, txt, names, excludeUserIds...)
+	r.sendTextVisualJudgedBy(r, cat, txt, names, false, excludeUserIds...)
+}
+
+// SendVisualCommunicationHidingNames is SendTextVisualHidingNames for a
+// player's free text that is seen rather than heard (a free-form emote): the
+// same sight gate and name hiding, with every message marked IsCommunication
+// so the Deafened moderation filter spares a deafened player. Only the shared
+// bodies in internal/actions call it (speech_wrapper_guard_test.go).
+func (r *Room) SendVisualCommunicationHidingNames(cat messaging.Category, txt string, names []string, excludeUserIds ...int) {
+	r.sendTextVisualJudgedBy(r, cat, txt, names, true, excludeUserIds...)
+}
+
+// SendTextHidingNames is SendText for an authored line that names who made
+// it (a rally, a howl, an NPC's speech): heard by everyone in the room
+// whatever they can see, with each of names hidden per listener by hide at
+// that listener's messaging.ParticipantSight. hide is messaging.HideNames
+// for a sound ("Something lets out a roar!") and messaging.HideSpeakerNames
+// for speech ("Someone says, ..."). There is no lit-room shortcut, which is
+// how the deleted mobcommands.sendAudioRoomText named a speaker to a blinded
+// listener. Never deafen-filtered: NPC lines are authored content (owner
+// ruling 6, sight gates slice 5b).
+func (r *Room) SendTextHidingNames(cat messaging.Category, txt string, names []string, hide messaging.NameHider, excludeUserIds ...int) {
+	r.sendAudioHidingNames(cat, txt, names, hide, false, excludeUserIds...)
+}
+
+// SendCommunicationHidingNames is a player's speech to the room: every
+// listener hears the words, the speaker's name hidden by
+// messaging.HideSpeakerNames at that listener's sight, and every message is
+// marked IsCommunication so the Deafened moderation filter still applies.
+// Only the shared bodies in internal/actions call it
+// (speech_wrapper_guard_test.go).
+func (r *Room) SendCommunicationHidingNames(cat messaging.Category, txt string, names []string, excludeUserIds ...int) {
+	r.sendAudioHidingNames(cat, txt, names, messaging.HideSpeakerNames, true, excludeUserIds...)
+}
+
+// sendAudioHidingNames is the one delivery path of the two audio senders
+// above: per listener, hide the names at that listener's sight, render on the
+// audio channel (category colour, normalize and wrap, no sight gate), and
+// queue a per-user Message carrying the communication flag.
+func (r *Room) sendAudioHidingNames(cat messaging.Category, txt string, names []string, hide messaging.NameHider, communication bool, excludeUserIds ...int) {
+	for _, uid := range r.GetPlayers() {
+		if excluded(uid, excludeUserIds) {
+			continue
+		}
+		u := users.GetByUserId(uid)
+		if u == nil {
+			continue
+		}
+		rendered := messaging.RenderForRecipient(messaging.RenderInput{
+			Category:  cat,
+			Text:      hide(txt, names, messaging.ParticipantSight(u.Character, r)),
+			Channel:   messaging.ChannelAudio,
+			LineWidth: u.GetLineWidth(),
+		})
+		if rendered == "" {
+			continue
+		}
+		events.AddToQueue(events.Message{
+			UserId:          u.UserId,
+			Text:            rendered + "\n",
+			IsCommunication: communication,
+		})
+	}
 }
 
 // ParticipantSight is messaging.ParticipantSight for a user in this room. An
@@ -297,7 +359,7 @@ func (r *Room) ParticipantSight(userId int) messaging.SightDecision {
 //
 // It is still a sight line: blinded and sleeping observers get nothing.
 func (r *Room) SendTextVisualAsLit(cat messaging.Category, txt string, excludeUserIds ...int) {
-	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, nil, excludeUserIds...)
+	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, nil, false, excludeUserIds...)
 }
 
 // SendTextVisualAsLitHidingNames is SendTextVisualAsLit for a line that names
@@ -311,7 +373,7 @@ func (r *Room) SendTextVisualAsLit(cat messaging.Category, txt string, excludeUs
 // there rather than newly missing. TestConditionEndRoomText_LightPathHasNoShapesTier
 // pins the reason.
 func (r *Room) SendTextVisualAsLitHidingNames(cat messaging.Category, txt string, names []string, excludeUserIds ...int) {
-	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, names, excludeUserIds...)
+	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, names, false, excludeUserIds...)
 }
 
 // litRoom is a messaging.RoomVisibility test stand-in that always reports a
@@ -326,8 +388,10 @@ func (litRoom) LightLevel() int { return 60 }
 // sendTextVisualJudgedBy is SendTextVisual with the lighting it judges sight
 // against passed in, so SendTextVisualAsLit shares one delivery path. names,
 // when given, are hidden from an observer who makes out shapes only, including
-// bare names Anonymize cannot see.
-func (r *Room) sendTextVisualJudgedBy(lighting messaging.RoomVisibility, cat messaging.Category, txt string, names []string, excludeUserIds ...int) {
+// bare names Anonymize cannot see. communication marks every message as player
+// chatter for the Deafened filter; only SendVisualCommunicationHidingNames
+// sets it.
+func (r *Room) sendTextVisualJudgedBy(lighting messaging.RoomVisibility, cat messaging.Category, txt string, names []string, communication bool, excludeUserIds ...int) {
 	for _, uid := range r.GetPlayers() {
 		if excluded(uid, excludeUserIds) {
 			continue
@@ -362,8 +426,9 @@ func (r *Room) sendTextVisualJudgedBy(lighting messaging.RoomVisibility, cat mes
 			continue
 		}
 		events.AddToQueue(events.Message{
-			UserId: u.UserId,
-			Text:   rendered + "\n",
+			UserId:          u.UserId,
+			Text:            rendered + "\n",
+			IsCommunication: communication,
 		})
 	}
 }

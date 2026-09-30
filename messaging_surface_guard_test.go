@@ -894,7 +894,11 @@ func narrationRecognizeCall(call *ast.CallExpr) (narrationCallViewpoint, bool) {
 				return viewpointObserver, true
 			}
 		case "SendTextVisual", "SendTextVisualHidingNames",
-			"SendTextVisualAsLit", "SendTextVisualWithAudio":
+			"SendTextVisualAsLit", "SendTextVisualWithAudio",
+			// Sight gates slice 5b: the name-hiding room senders, audio and
+			// visual, are room broadcasts too.
+			"SendTextHidingNames", "SendCommunicationHidingNames",
+			"SendVisualCommunicationHidingNames":
 			// 📌 FILED, deliberately NOT fixed here: this family is declared
 			// ONLY on *rooms.Room, so the receiver IS a room whatever the
 			// local is called, and the `recv.Name == "room"` test below is
