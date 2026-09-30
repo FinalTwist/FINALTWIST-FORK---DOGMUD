@@ -192,3 +192,17 @@ func TestStealCooldown_AnAttemptArmsItForTheConfiguredSeconds(t *testing.T) {
 		assert.Equal(t, 15, actor.char.GetCooldown(stealKey()))
 	})
 }
+
+// An unwatched container plant is an uncontested attempt, not a refusal, so
+// it spends the cooldown too. The score must be read (and the cooldown
+// armed) even when no observer is there to contest it.
+func TestStealCooldown_AnUnwatchedContainerPlantArmsIt(t *testing.T) {
+	pinStealCooldown(t)
+	actor := newPlantPlayerActor(200, 8)
+	actor.room.Containers = map[string]rooms.Container{"chest": {}}
+	seedPlantItem(actor)
+	res := Plant(actor, PlantOptions{ContainerNoun: "chest", ItemNoun: "!1"})
+	require.True(t, res.Succeeded, "an unwatched plant succeeds: %+v", res)
+	assert.Equal(t, 15, actor.char.GetCooldown(stealKey()),
+		"an unwatched container plant arms the 60-second cooldown")
+}
