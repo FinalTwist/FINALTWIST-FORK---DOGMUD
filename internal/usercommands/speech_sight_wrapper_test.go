@@ -73,3 +73,15 @@ func TestSay_DeafenedListenerIsSpared(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, speechWrapperHeard(2))
 }
+
+func TestShout_BlindedListenerHearsTheWordsNotTheName(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	alice, bob, room := speechWrapperScene(t)
+	blindForSpeechTest(t, bob)
+
+	_, err := Shout("help", alice, room, 0)
+	require.NoError(t, err)
+	require.Equal(t, []string{`Someone shouts, "HELP"`}, speechWrapperHeard(2))
+	require.Equal(t, []string{`You shout, "HELP"`}, speechWrapperHeard(1))
+}

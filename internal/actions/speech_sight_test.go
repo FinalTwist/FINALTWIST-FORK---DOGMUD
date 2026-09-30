@@ -291,3 +291,60 @@ func TestSay_PerListener(t *testing.T) {
 			shapes: `A figure says, "hello there"`, dark: `Someone says, "hello there"`})
 	})
 }
+
+func TestShout_PerListener(t *testing.T) {
+	t.Run("player", func(t *testing.T) {
+		sc := newSpeechScene(t)
+		checkSpeech(t, sc, true, func(a Actor) { Shout(a, "HELP") }, speechWant{
+			clear: `Kesh shouts, "HELP"`, blind: `Someone shouts, "HELP"`, deaf: "",
+			shapes: `A figure shouts, "HELP"`, dark: `Someone shouts, "HELP"`})
+	})
+	t.Run("mob", func(t *testing.T) {
+		sc := newSpeechScene(t)
+		checkSpeech(t, sc, false, func(a Actor) { Shout(a, "HELP") }, speechWant{
+			clear: `Grel shouts, "HELP"`, blind: `Someone shouts, "HELP"`, deaf: `Grel shouts, "HELP"`,
+			shapes: `A figure shouts, "HELP"`, dark: `Someone shouts, "HELP"`})
+	})
+}
+
+func TestShout_NextDoorHearsTheWordsAndNoName(t *testing.T) {
+	sc := newSpeechScene(t)
+
+	Shout(sc.speaker(true, sc.lit), "HELP")
+	far := events.DrainQueuedRoomMessagesForTest(speechNextRoom)
+	require.Len(t, far, 1, "a player's shout reaches next door once")
+	require.Equal(t, `Someone shouts from the south direction, "HELP"`,
+		strings.TrimSpace(speechTag.ReplaceAllString(far[0].Text, "")))
+	require.True(t, far[0].IsCommunication, "a player's shout next door is still player chatter")
+
+	sc.drain()
+	Shout(sc.speaker(false, sc.lit), "HELP")
+	msgs := events.DrainQueuedMessageEventsForTest(speechNextId)
+	require.Len(t, msgs, 1, "a mob's shout next door now carries its words")
+	require.Equal(t, `Someone shouts from the south direction, "HELP"`,
+		strings.TrimSpace(speechTag.ReplaceAllString(msgs[0].Text, "")))
+	require.False(t, msgs[0].IsCommunication, "an NPC's shout is never deafen-filtered")
+}
+
+// Rider 5: a hidden mob that shouts is revealed, as a player is.
+func TestShout_RevealsAHiddenMob(t *testing.T) {
+	sc := newSpeechScene(t)
+	hideRhetoricActor(t, &sc.mob.Character)
+
+	res := Shout(sc.speaker(false, sc.lit), "HELP")
+	require.False(t, sc.mob.Character.IsHidden(), "shouting reveals a hidden mob")
+	require.False(t, res.IsSneaking)
+	speechExpectOne(t, "clear", speechHeard(t, speechClearId), `Grel shouts, "HELP"`)
+}
+
+func TestShout_WakesTheRoom(t *testing.T) {
+	for _, player := range []bool{true, false} {
+		sc := newSpeechScene(t)
+		sleeper := users.GetByUserId(speechClearId).Character
+		require.True(t, sleeper.Conditions.AddCondition(speechSleepCond, false))
+		require.True(t, sleeper.HasConditionFlag(conditions.Sleeping))
+
+		Shout(sc.speaker(player, sc.lit), "WAKE UP")
+		require.False(t, sleeper.HasConditionFlag(conditions.Sleeping), "player speaker %v", player)
+	}
+}

@@ -73,3 +73,14 @@ func TestMobSay_ReachesADeafenedPlayer(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{`Skeleton says, "hello there"`}, mobSpeechHeard(1))
 }
+
+func TestMobShout_BlindedListenerHearsTheWordsNotTheName(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, room := mobSpeechRoom(t)
+
+	_, err := Shout("intruders!", mob, room)
+	require.NoError(t, err)
+	require.Equal(t, []string{`Skeleton shouts, "intruders!"`}, mobSpeechHeard(1))
+	require.Equal(t, []string{`Someone shouts, "intruders!"`}, mobSpeechHeard(2))
+}
