@@ -132,10 +132,7 @@ func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			return true, nil
 		}
 
-		sneaking := mob.Character.IsHidden()
-		if flag, ok := mob.Character.GetMiscData(`sneaking`).(bool); ok && flag {
-			sneaking = true
-		}
+		sneaking := actions.MobIsSneaking(mob)
 
 		actions.RelocateMob(mob, room, exitName, destRoom, sneaking)
 

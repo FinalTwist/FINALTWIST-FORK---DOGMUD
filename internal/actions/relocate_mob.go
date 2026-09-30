@@ -83,10 +83,11 @@ func ClearRoomAggroOnDeparture(room *rooms.Room, departingInstanceId int) {
 // their leader.
 //
 // sneaking is the mover's sneaking state, read by the caller before the move
-// (as usercommands.Go reads a player's). A sneaking mob sends no exit line, no
-// entry line and nothing to the neighbouring rooms, as a sneaking player
-// never has (parity slice 6, owner ruling D1); the movement sounds play for
-// both, as they do on the player path.
+// via MobIsSneaking (mirroring the derivation usercommands.Go reads a
+// player's with). A sneaking mob sends no exit line, no entry line and
+// nothing to the neighbouring rooms, as a sneaking player never has (parity
+// slice 6, owner ruling D1); the movement sounds play for both, as they do
+// on the player path.
 func RelocateMob(mob *mobs.Mob, from *rooms.Room, exitName string, dest *rooms.Room, sneaking bool) {
 	enterFrom := `somewhere`
 	if back := dest.FindExitTo(from.RoomId); back != `` {
