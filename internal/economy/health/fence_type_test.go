@@ -74,3 +74,20 @@ func TestShopSnapshot_PreFenceYAMLTypesByCraftSupport(t *testing.T) {
 		t.Errorf("json: a fence's snapshot says so as fence: %s", js)
 	}
 }
+
+// Fences group under "fence" whatever their craft_support, in the rollup
+// and on the per-shop rows (baubles slice D).
+func TestScore_FenceIsItsOwnType(t *testing.T) {
+	snap := health.Snapshot{Shops: []health.ShopSnapshot{
+		{CraftSupport: "general", Fence: true, Stock: []health.StockSnapshot{{RestockQty: 1, Current: 2, Max: 10}}}, // 20
+		{CraftSupport: "general", Stock: []health.StockSnapshot{{RestockQty: 1, Current: 6, Max: 10}}},              // 60
+	}}
+	scores := health.PerCraftSupportScores(snap)
+	if scores["fence"] < 19.99 || scores["fence"] > 20.01 || scores["general"] < 59.99 || scores["general"] > 60.01 {
+		t.Errorf("rollup: %v, want fence 20 and general 60", scores)
+	}
+	rows := health.ScoreWithConfig(&snap, nil, testScoringCfg).PerShop
+	if rows[0].CraftSupport != "fence" || rows[1].CraftSupport != "general" {
+		t.Errorf("per-shop types: %q %q, want fence general", rows[0].CraftSupport, rows[1].CraftSupport)
+	}
+}
