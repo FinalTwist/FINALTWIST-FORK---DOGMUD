@@ -61,20 +61,24 @@ func TestAddPeriod_RealSecondsConvertByRoundSeconds(t *testing.T) {
 	}
 }
 
-// Game-clock seconds run at the game clock's pace, like game minutes, and
-// round up to at least one round.
-func TestAddPeriod_GameSecondsRoundUpOnTheGameClock(t *testing.T) {
+// Seconds always mean real seconds, with or without "real" or "irl", and even
+// under a "game" modifier. On the game clock (900 rounds a day at RoundSeconds
+// 4) "30 seconds" used to be ceil(30*900/86400) = 1 round, so a respawn written
+// "30 seconds" came back in about four real seconds.
+func TestAddPeriod_SecondsAreAlwaysRealSeconds(t *testing.T) {
 	pinRoundSeconds(t, 4)
 	gd := GetDate(1000)
-	// 900 rounds per game day: 86400 game seconds is 900 rounds, so 96 game
-	// seconds is exactly one round and 97 is two.
 	for _, tc := range []struct {
 		period string
 		rounds uint64
 	}{
-		{"96 seconds", 1},
-		{"97 game seconds", 2},
+		{"30 seconds", 8}, // 7.5 rounds, rounded up
+		{"60 seconds", 15},
+		{"60 secs", 15},
+		{"30 game seconds", 8},
+		{"30 seconds gametime", 8},
 		{"1 second", 1},
+		{"0 seconds", 1}, // a quantity below one is one, as for every unit
 	} {
 		if got := gd.AddPeriod(tc.period) - gd.RoundNumber; got != tc.rounds {
 			t.Errorf("AddPeriod(%q) = %d rounds, want %d", tc.period, got, tc.rounds)
