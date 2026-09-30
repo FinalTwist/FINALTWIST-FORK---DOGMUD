@@ -30,21 +30,26 @@ var speechWrapperFiles = []string{
 	"internal/usercommands/emote.go", "internal/mobcommands/emote.go",
 }
 
-var speechWrapperForbidden = regexp.MustCompile(`SendTextCommunication|sendAudioRoomText|HideNames|HideSpeakerNames|ParticipantSight|TransitionToRevealing|ForEachAdjacentRoom|OnSleeperWoken|SendTextVisualHidingNames|room\.SendText\(|room\.SendTextVisual\(`)
+var speechWrapperForbidden = regexp.MustCompile(`SendTextCommunication|sendAudioRoomText|HideNames|HideSpeakerNames|ParticipantSight|TransitionToRevealing|ForEachAdjacentRoom|OnSleeperWoken|HidingNames|room\.SendText\(|room\.SendTextVisual\(`)
 
-// speechWrapperRequired is the shared body each wrapper must call, so a
-// wrapper that simply stops sending a room line fails too.
-var speechWrapperRequired = map[string]*regexp.Regexp{
-	"internal/usercommands/say.go":    regexp.MustCompile(`actions\.Say\(`),
-	"internal/mobcommands/say.go":     regexp.MustCompile(`actions\.Say\(`),
-	"internal/usercommands/shout.go":  regexp.MustCompile(`actions\.Shout\(`),
-	"internal/mobcommands/shout.go":   regexp.MustCompile(`actions\.Shout\(`),
-	"internal/usercommands/rally.go":  regexp.MustCompile(`actions\.SendHeard\(`),
-	"internal/mobcommands/rally.go":   regexp.MustCompile(`actions\.SendHeard\(`),
-	"internal/usercommands/warcry.go": regexp.MustCompile(`actions\.SendHeard\(`),
-	"internal/mobcommands/warcry.go":  regexp.MustCompile(`actions\.SendHeard\(`),
-	"internal/usercommands/emote.go":  regexp.MustCompile(`actions\.SendSeen\(`),
-	"internal/mobcommands/emote.go":   regexp.MustCompile(`actions\.SendSeen\(`),
+// speechWrapperRequired is the shared body each wrapper must call, and how
+// many times: one call per room line the wrapper sends. A file-level match
+// alone would stay green if one branch (emote's free-form line, say) stopped
+// sending while a sibling branch still called the body.
+var speechWrapperRequired = map[string]struct {
+	call  *regexp.Regexp
+	count int
+}{
+	"internal/usercommands/say.go":    {regexp.MustCompile(`actions\.Say\(`), 1},
+	"internal/mobcommands/say.go":     {regexp.MustCompile(`actions\.Say\(`), 1},
+	"internal/usercommands/shout.go":  {regexp.MustCompile(`actions\.Shout\(`), 1},
+	"internal/mobcommands/shout.go":   {regexp.MustCompile(`actions\.Shout\(`), 1},
+	"internal/usercommands/rally.go":  {regexp.MustCompile(`actions\.SendHeard\(`), 2},
+	"internal/mobcommands/rally.go":   {regexp.MustCompile(`actions\.SendHeard\(`), 1},
+	"internal/usercommands/warcry.go": {regexp.MustCompile(`actions\.SendHeard\(`), 2},
+	"internal/mobcommands/warcry.go":  {regexp.MustCompile(`actions\.SendHeard\(`), 1},
+	"internal/usercommands/emote.go":  {regexp.MustCompile(`actions\.SendSeen\(`), 3},
+	"internal/mobcommands/emote.go":   {regexp.MustCompile(`actions\.SendSeen\(`), 2},
 }
 
 // speechGuardCode is path's Go source with every comment removed: parsed
@@ -74,8 +79,10 @@ func TestSpeechWrappersDoNotReFork(t *testing.T) {
 			t.Errorf("%s handles speech sight or delivery itself (%q); call the shared body in internal/actions instead",
 				path, code[loc[0]:loc[1]])
 		}
-		if !speechWrapperRequired[path].MatchString(code) {
-			t.Errorf("%s no longer calls %s", path, speechWrapperRequired[path])
+		want := speechWrapperRequired[path]
+		if got := len(want.call.FindAllStringIndex(code, -1)); got != want.count {
+			t.Errorf("%s calls %s %d times, want %d: one per room line it sends",
+				path, want.call, got, want.count)
 		}
 	}
 }
