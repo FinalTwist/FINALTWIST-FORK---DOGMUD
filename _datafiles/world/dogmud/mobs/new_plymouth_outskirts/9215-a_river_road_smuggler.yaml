@@ -6,7 +6,7 @@ itemdropchance: 0
 hostile: false
 charm_immune: true
 non_combatant: true
-maxwander: 1
+maxwander: 0
 groups:
   - humanoid
   - new_plymouth_outskirts_folk
@@ -44,6 +44,9 @@ character:
   speciesid: 1
   level: 1
   gold: 1000
+  equipment:
+    light:
+      itemid: 40038
   stats:
     perception:
       base: 110

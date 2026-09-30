@@ -1,5 +1,6 @@
 mobid: 273
 zone: Thornwall City
+craft_support: general
 behavior_archetype: noncombat_shopkeeper
 statpool: 80
 itemdropchance: 0
@@ -38,7 +39,10 @@ character:
     your face and you cannot see theirs. This is probably intentional.
   speciesid: 1
   level: 1
-  gold: 500
+  gold: 1000
+  equipment:
+    light:
+      itemid: 40038
   stats:
     perception:
       base: 115
@@ -46,3 +50,7 @@ character:
       base: 110
     dexterity:
       base: 108
+  shop:
+    - itemid: 33
+    - itemid: 36
+    - itemid: 20097
