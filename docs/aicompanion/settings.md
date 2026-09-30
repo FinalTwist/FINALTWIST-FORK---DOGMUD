@@ -355,8 +355,9 @@ way it is held to plain ASCII letters and simple punctuation (text that is
 not goes to the server's key instead, without counting against the
 player's key), never passed to another find's prompt or the companion's,
 and its value is rolled by the server. Unticked, their finds use the
-server's key, or stay generic trinkets when there is none. The relay page
-refuses the bauble request shape from a key whose box is not ticked.
+server's key, or take hand-written text from the fallback corpus when
+there is none. The relay page refuses the bauble request shape from a key
+whose box is not ticked.
 
 `AllowCustomEndpoint` off accepts exactly `api.openai.com` and Azure OpenAI
 resources (`*.openai.azure.com`). Azure's AI Services hosts

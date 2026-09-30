@@ -83,14 +83,24 @@ was stolen, and how its text was generated.
   (the top-level `items` list in `rooms.instances/`) a find untaken past
   `UntakenLimit()` is not a reference; `rooms.LoadRoomInstance` removes such
   finds on load. Stash and container finds always count.
-- **fallback.go**: `GenericTrinket`, what every find is when the model does
-  not name it: "Trinket", a simple description, value and weight at random
-  within the tier.
+- **fallback.go**: `GenericTrinket`, the last resort when neither the model
+  nor the corpus names a find: "Trinket", a simple description, value and
+  weight at random within the tier.
+- **corpus.go**: the fallback corpus. `CorpusEntry`, `PromotedEntry`,
+  `CorpusReport`, `LoadCorpus`, `LoadCorpusFrom`, `ReloadCorpus` (the seed
+  `<DataFiles>/bauble-corpus.yaml` and the overlay
+  `<DataFiles>/baubles/corpus.promoted.yaml`), `Fallback`, `FallbackFor`,
+  `GroupOf`, `CorpusCounts`, `ClearCorpusForTest`.
+- **corpus_admin.go**: `Promote` and its `ErrPromote*` refusals,
+  `RemoveCorpusEntry`, `CorpusKeys`, `CorpusList`, `ExportPromoted`,
+  `ErrOverlayBroken`, `ErrCorpusCleanup`, and the overlay clean-up that
+  `Retire`, `Edit` and `ApplyRegenerated` call.
 - **generate.go**: the generator seam (`SetGenerator`, `CurrentGenerator`),
-  `GenRequest`, `GenResult`, `Generate`, `RecentNames`. `Generate` refuses a
-  `PlayerKey` result that fails `CheckPlayerKeyText`, or is neither
-  `Moderated` nor `FinderOnly` with a finder, and any `FinderOnly` result
-  that is not `PlayerKey`; `RecentNames` skips `PlayerKey` records. A
+  `GenRequest`, `GenResult`, `Generate`, `RecentNames`, `RecentFallbackNames`.
+  `Generate` refuses a `PlayerKey` result that fails `CheckPlayerKeyText`, or
+  is neither `Moderated` nor `FinderOnly` with a finder, and any
+  `FinderOnly` result that is not `PlayerKey`; `RecentNames` skips
+  `PlayerKey` records. A
   generator error that is a ledger refusal (`apiframework.RefusedBy`: a
   spent day, share or finder allowance) is logged by `noteRefusal`, naming
   the counter, at most once a minute (the AI companion's
@@ -229,12 +239,37 @@ func (r Record) GivenTo(mobId int) bool
 func CatalogStats() Stats
 func Retire(id string, admin string) error
 func Restore(id string, admin string) error
-func Edit(id string, field string, value string, admin string) (Record, error) // EditFields
-func ApplyRegenerated(id string, res GenResult, admin string) (Record, error)
+func Edit(id string, field string, value string, admin string) (Record, int, error) // EditFields; int: corpus entries removed
+func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, int, error)
 func SetPromptPreview(f PromptPreview)
 func PreviewPrompt(req GenRequest) ([]string, bool)
 func LooksLikeId(s string) bool
 func SalesSince(t time.Time) (count int, gold int)
+
+const GeneratorCorpus Generator = `corpus`
+func (g Generator) Named() bool // openai or corpus: a ready record
+func RecentFallbackNames(zone string, n int) []string
+// Record.HandEdited: set only by Edit, cleared by ApplyRegenerated; Promote refuses it
+
+type CorpusEntry struct{ Name, NameSimple, Description, Material string; WeightLbs float64; Value int }
+type PromotedEntry struct{ CorpusEntry; FromRecord, Zone, Biome, Model string; PromptVersion int; PromotedAt time.Time }
+type CorpusReport struct{ Seed, Promoted int; Skipped []string; SeedErr error; SeedKept bool; Quarantined string; OverlayBroken bool }
+func LoadCorpus() CorpusReport // boot and data reload, after items and Load
+func LoadCorpusFrom(seedPath, overlayPath string) CorpusReport
+func ReloadCorpus() CorpusReport
+func ClearCorpusForTest()
+func Fallback(place Place, tier ValueTier, source Source, recent []string, randn func(n int) int) GenResult
+func FallbackFor(req GenRequest, randn func(n int) int) GenResult
+func GroupOf(biome string) (string, bool)
+func CorpusCounts() (seed int, promoted int)
+
+func Promote(id string) (string, error) // ErrNoCorpus, ErrOverlayBroken, ErrNoRecord, ErrPromote*
+func RemoveCorpusEntry(key, which string) (PromotedEntry, error) // which: the entry's name or its FromRecord id
+type CorpusKeyCount struct{ Key string; Seed, Promoted, Unused int }
+func CorpusKeys() []CorpusKeyCount
+type CorpusListing struct{ Known bool; Seed []CorpusEntry; Promoted []PromotedEntry; Unused map[int]string }
+func CorpusList(key string) CorpusListing
+func ExportPromoted() (string, error)
 
 type FindOpts struct{ Place Place; UserId int; SkillFactor float64; SightPenalty float64; Feature string; Household bool; Randn func(n int) int; Now time.Time }
 func RollFind(o FindOpts) (tier ValueTier, found bool)
@@ -309,8 +344,8 @@ func ResetWindow(roomId int)
   `Edit` and `ApplyRegenerated`; and `Generate` refuses a naming the model
   itself weighed over that, or whose name is a thing no pocket holds
   (`TooBigFor`, `notPocketSized`: urn, vase, candlestick, lantern, jug,
-  book...): its text would name that thing, so it is a generic trinket
-  instead of a clamped strongbox.
+  book...): its text would name that thing, so it falls back to the
+  corpus's pocket pool instead of being a clamped strongbox.
 - An unknown or missing tier is always treated as cheap, never as dearer.
 - One record per bauble, never shared, never reused. Ids are `B` plus seven
   digits and only ever go up; the ids of a shard that could not be read are
@@ -330,6 +365,35 @@ func ResetWindow(roomId int)
   `TestEveryItemHolderIsASweepRootOrTransient` (repo root) fail when a store
   of items is not walked; a new store needs a `WalkItems`, a live source in
   `bauble_sweep.go` and a root in `item_walker_guard_test.go`.
+- **Fallback corpus** (slice C of the 2026-09-28 hardening design). A find
+  no model names takes its text from the corpus (`FallbackFor`, called by
+  `Generate`, `Mint`, `FlushBaubleDeliveries` and the pickpocket reveal):
+  one pool merging the promoted overlay and the seed at `<biome>-<tier>` and
+  `<group>-<tier>` (an empty or unmapped biome skips both), then the bare
+  `<tier>` only when that pool is empty. A pickpocketed find uses
+  `pocket-<tier>` then `<tier>`, filtered by `TooBigFor`. Names the zone
+  found lately (`RecentFallbackNames`) are avoided; when every entry is
+  recent the least recent is taken, never a broader key. Values are clamped
+  into the tier and weights limited (`ApplyLimitsFor`) at use. Nothing
+  fits: a generic trinket. Records say `Generator` `corpus` and `Model`
+  `corpus:<key>`, and are `ready`.
+- **Promotion.** `Promote` copies a model name (`GeneratorOpenAI`, not
+  `PlayerKey`, `Moderated`, not `HandEdited`, not retired; sold is fine)
+  into the overlay under its exact `<biome>-<tier>` or `pocket-<tier>` key,
+  with provenance, unless its pool (the key and, for a biome, its group's
+  key) already has an entry by that name. `HandEdited` is set only by
+  `Edit` and cleared by `ApplyRegenerated`; `EditedBy` does not bar
+  promotion, because `Retire`, `Restore` and regen set it without writing
+  text. `Retire`, `Edit` and `ApplyRegenerated` remove the record's overlay
+  entries (the last two return how many; `ErrCorpusCleanup` means the
+  record changed but the entries could not be removed). `RemoveCorpusEntry`
+  takes an entry's name or record id, never a position. The /build queue
+  will call the same functions.
+- **A broken overlay is never written.** When the overlay cannot be read
+  and cannot be quarantined either, the pool is marked broken and every
+  overlay writer returns `ErrOverlayBroken` until a reload succeeds (a save
+  would replace entries the pool never saw). A reload whose seed cannot be
+  read keeps the seed already in use (`SeedKept`).
 
 ## Gotchas
 
@@ -355,9 +419,22 @@ func ResetWindow(roomId int)
 - **`Generate` blocks.** Call it only on a goroutine without the mud lock;
   mint and deliver under the lock afterwards (`actions/search_bauble.go`).
   It never fails: no generator, an error, a timeout or text that fails
-  `CleanReply` all give a generic trinket.
-- **No API key means generic trinkets, always.** `modules/baubles` installs a
-  generator only when it is enabled and finds a key.
+  `CleanReply` all fall back through `FallbackFor` (the corpus, else a
+  generic trinket).
+- **No API key means corpus finds.** `modules/baubles` installs a generator
+  only when it is enabled and finds a key; without one every find comes
+  from the fallback corpus, and a generic trinket only when the corpus has
+  nothing that fits (an empty corpus behaves exactly as before).
+- **Two corpus layers, two rules.** The seed is authored content: a broken
+  file logs ERROR and the corpus runs without it (CI:
+  `TestShippedCorpusSeed`, which loads items first). The overlay is living
+  state: `util.ReadLivingState`, quarantine on corruption, `util.Save`,
+  persist before publish; an overlay entry that fails its checks is kept on
+  every save and never used. The overlay sits in the catalog's directory,
+  which is safe because the catalog loader reads only `catalog-*` files.
+- **Load order.** `LoadCorpus` runs after `items.LoadDataFiles` (entries are
+  checked against authored item names, `CleanReply`) and after `Load`, and
+  also on a data reload, unlike the catalog.
 - **Keywords.** `CleanReply` refuses a keyword that a real item answers to:
   the fixed `reservedNouns` (key, sword, potion, token, ring...) and every
   loaded item's own keyword and every word of its name (so a bauble keyed
@@ -385,6 +462,15 @@ func ResetWindow(roomId int)
 - **Runtime data.** `<DataFiles>/baubles/` is gitignored (with a `.gitkeep`)
   and skipped by the messaging surface guard and its Python twin, like
   `warehouses`.
+- **The corpus overlay is decoded whole and strictly** (`corpus.go`,
+  `decodeStrict` with `KnownFields`). One type error (a word where
+  `weight_lbs` wants a number) or one unknown field (a typo such as
+  `valeu:`) anywhere in `baubles/corpus.promoted.yaml` fails the decode of
+  the WHOLE document, not just that entry: the overlay is quarantined
+  (`util.QuarantineCorrupt`, its bytes kept aside unchanged for recovery)
+  and restarts empty. Only an entry that parses but fails `checkEntry` is
+  skipped on its own, and that one is kept and saved again. Fix a hand
+  edit from the quarantined copy, then reload (`ReloadCorpus`).
 - **Windows are in memory**, not in the room's temp data: rooms unload when
   nobody is near, which would reset a room-held window. A restart reopening
   every window is harmless. The map is swept of expired windows once it
@@ -407,16 +493,17 @@ func ResetWindow(roomId int)
 
 ## Consumers
 
-- `main.go` (`Load` at boot, `StartSweeper` before Server Ready,
-  `StopSweeper` then `SaveAll` at shutdown), `bauble_sweep.go`
-  (`RegisterLiveSource`), `copyover.go` (`SaveAll`; the sweeper is not
-  stopped there, see the comment).
+- `main.go` (`Load` at boot, `LoadCorpus` at boot and data reload,
+  `StartSweeper` before Server Ready, `StopSweeper` then `SaveAll` at
+  shutdown), `bauble_sweep.go` (`RegisterLiveSource`), `copyover.go`
+  (`SaveAll`; the sweeper is not stopped there, see the comment).
 - `modules/auctions` (`RegisterLiveSource` for the auction house).
-- `internal/usercommands/admin.bauble.go` (`bauble spawn|show|list`;
-  `bauble status` reads `LastSweep`, `SweepInterval`),
-  `appraise.go` (free bauble appraisal).
+- `internal/usercommands/admin.bauble.go`
+  (`bauble spawn|show|list|promote|corpus`; `bauble status` reads
+  `LastSweep`, `SweepInterval`), `appraise.go` (free bauble appraisal).
 - `internal/actions/sell_bauble.go` (`Get`, `MarkSold`).
 - `internal/actions/search_bauble.go` (`RollFind`, `Generate`, `Mint`,
   `RevealDelay`, `RecentNames`).
+- `internal/actions/search_bauble.go` and `steal_pocket.go` (`FallbackFor`).
 - `modules/baubles` (`SetGenerator`, `ReplySchema`, `ParseReply`,
   `PromptLine`, `WeightGuidance`, `PlainText`).

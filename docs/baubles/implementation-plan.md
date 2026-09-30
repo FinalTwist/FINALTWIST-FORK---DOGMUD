@@ -928,6 +928,29 @@ The owner's review list, less items 2, 4, 6 and 8 (the owner's to do).
   (`stashFence`, `BaubleBuyersInRoom`) is gone; bauble sales, `offer` and
   `appraise` ask the room's merchants only.
 
+### Phase 6e: Fallback corpus (hardening slice C) (written)
+
+Design: `docs/superpowers/specs/2026-09-28-baubles-hardening-and-corpus-design.md`,
+slice C. Plan: `docs/superpowers/plans/2026-09-28-slice-c-bauble-corpus.md`.
+
+- **No key no longer means "Trinket".** A find no model names takes
+  hand-written text from the fallback corpus, chosen by where it was found:
+  the biome and its group (dwelling, street, underground, ruins, waterside,
+  wild) and the tier, `pocket` for pickpocketed finds, then the tier alone.
+  A generic "Trinket" is left only for when nothing fits.
+- Two layers: the tracked seed `_datafiles/world/dogmud/bauble-corpus.yaml`
+  (234 entries, reviewed by the owner) and the living-state overlay
+  `_datafiles/world/dogmud/baubles/corpus.promoted.yaml`, filled by
+  `bauble promote <bauble>` from moderated model names made on the
+  server's key and never edited by hand. Retiring, editing or regenerating
+  a record takes its promoted text out again.
+- Values are clamped into the tier when used; each seed pool's average sits
+  near its tier's midpoint, so a corpus find pays what a generic one did.
+  A known name hinting at its price is accepted (owner ruling 8).
+- Admin: `bauble promote`, `bauble corpus list|remove|reload|export`. The
+  logic is `baubles.Promote` and `baubles.RemoveCorpusEntry`, so the /build
+  queue (web builder rework arc) can call the same functions.
+
 ### Phase 7: Optional
 
 Pre-generated pool per region, identify-on-appraise, collectors and region

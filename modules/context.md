@@ -26,7 +26,7 @@ and rebuilding. There is no dynamic loading and no sandbox.
 | [`achievements`](achievements/context.md) | Event wiring, unlock recording, and the web page for `internal/achievements` |
 | [`aicompanion`](aicompanion/context.md) | Bonded AI companions: conversation, memory and mood through a language model, acting only through ordinary mob commands |
 | [`auctions`](auctions/context.md) | The global auction house, including the NPC bidder panel |
-| [`baubles`](baubles/context.md) | Names the trinkets `search` finds with an OpenAI model, from the room they were found in; without a key every find is a generic trinket |
+| [`baubles`](baubles/context.md) | Names the trinkets `search` finds with an OpenAI model, from the room they were found in; without a key every find takes hand-written text from the engine's fallback corpus |
 | [`cleanup`](cleanup/context.md) | `trash` and `bury`, in user and mob variants |
 | [`follow`](follow/context.md) | `follow` for players and mobs, plus every link-breaking listener |
 | [`gmcp`](gmcp/context.md) | The GMCP protocol layer — the web client's entire data feed |

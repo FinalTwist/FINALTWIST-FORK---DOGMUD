@@ -141,11 +141,30 @@ func TestRefusedFindsAreLoggedOnceAMinute(t *testing.T) {
 	if n := tee.count(`action="generate"`); n != 1 {
 		t.Fatalf("ten refused finds inside one minute are one log line, got %d", n)
 	}
+	if tee.count(`generator="local"`) == 0 {
+		t.Fatalf("the throttled refusal log must still name the generator the fallback used: %v", tee.lines)
+	}
 	clock = clock.Add(time.Minute)
 	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
 	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
 	if n := tee.count(`action="generate"`); n != 2 {
 		t.Fatalf("a minute later, one more line: %d", n)
+	}
+
+	// With a corpus loaded, a refused find draws from it rather than falling
+	// all the way to a generic trinket, and the throttled log names the
+	// corpus, not "local" (review finding 7: the two checks above only ever
+	// exercised the no-corpus path).
+	withCorpus(t, testSeed, ``)
+	clock = clock.Add(time.Minute)
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return GenResult{}, allowance })
+	for i := 0; i < 5; i++ {
+		if res := Generate(context.Background(), GenRequest{Tier: TierCheap}, nil); res.Generator != GeneratorCorpus {
+			t.Fatalf("a refused find with a corpus loaded draws from it: %+v", res)
+		}
+	}
+	if tee.count(`generator="corpus"`) == 0 {
+		t.Fatalf("the throttled refusal log must name the corpus when that is what the fallback used: %v", tee.lines)
 	}
 
 	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) { return GenResult{}, errors.New(`boom`) })
@@ -168,6 +187,49 @@ func TestGenerateCapsTheWait(t *testing.T) {
 	res := Generate(ctx, GenRequest{Tier: TierCheap}, nil)
 	if time.Since(start) > 2*time.Second || res.Generator != GeneratorLocal {
 		t.Fatalf("a cancelled call returns promptly with a generic trinket: %+v", res)
+	}
+}
+
+// Each of Generate's fallback logs (an error, an unusable or player-key
+// reply, and too big for a pocket) names the generator the fallback
+// actually used (corpus or local), as the pickpocket log does
+// (steal_pocket.go).
+func TestFallbackLogsNameTheGeneratorUsed(t *testing.T) {
+	tee := &logTee{}
+	mudlog.SetupLogger(tee, "", "", false)
+	t.Cleanup(func() { mudlog.SetupLogger(nil, "", "", false) })
+
+	// No corpus loaded: the fallback is a generic trinket, generator local.
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{}, errors.New(`boom`)
+	})
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap}, nil)
+	if tee.count(`generator="local"`) == 0 {
+		t.Fatalf("the error-path fallback must name its generator: %v", tee.lines)
+	}
+
+	// A corpus loaded and matching: the fallback draws from it, and the log
+	// names it, for the unusable-reply path and the too-big-for-a-pocket one.
+	withCorpus(t, testSeed, ``)
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		r := goodReply()
+		r.Name = `Horse 3000` // digits: unusable
+		return GenResult{Reply: r}, nil
+	})
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap, Place: Place{Biome: `interior`}}, first)
+	if tee.count(`generator="corpus"`) == 0 {
+		t.Fatalf("the unusable-reply fallback must name the corpus: %v", tee.lines)
+	}
+
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{Reply: Reply{Name: `Bronze Funeral Urn`, NameSimple: `urn`,
+			Description: `A small bronze urn with a chipped lid, heavier than it looks.`,
+			WeightLbs:   0.3, Value: 3}, Model: `m`}, nil
+	})
+	_ = Generate(context.Background(), GenRequest{Tier: TierCheap, Source: SourcePickpocket, Place: Place{Biome: `interior`}}, first)
+	if tee.count(`generator="corpus"`) < 2 {
+		t.Fatalf("the too-big-for-a-pocket fallback must name the corpus too: %v", tee.lines)
 	}
 }
 
@@ -449,6 +511,29 @@ func TestGenerateHoldsPlayerKeyTextToItsRules(t *testing.T) {
 	}
 }
 
+// A player-key call whose text fails validation falls back cleanly: the
+// fallback is nobody's key, unmoderated, and a record minted from it is
+// never kept to its finder.
+func TestFailedPlayerKeyCallFallsBackCleanly(t *testing.T) {
+	withCatalog(t)
+	odd := goodReply()
+	odd.Name = "P\U00000430inted Wooden Horse" // not plain: fails CheckPlayerKeyText
+	installGenerator(t, func(ctx context.Context, req GenRequest) (GenResult, error) {
+		return GenResult{Reply: odd, PlayerKey: true, Moderated: true}, nil
+	})
+	res := Generate(context.Background(), GenRequest{Tier: TierAverage, FinderUserId: 7}, nil)
+	if res.PlayerKey || res.Moderated {
+		t.Fatalf("the fallback is nobody's key: %+v", res)
+	}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Place: NewPlace(1, `z`, ``, `city`), FinderUserId: 7, Tier: TierAverage, Result: &res})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.PlayerKey || rec.Moderated || rec.KeptToFinder() {
+		t.Fatalf("the record is never kept to a finder: %+v", rec)
+	}
+}
+
 // A player's own key proposes a value the server does not trust, even
 // clamped: Mint rolls it in the tier instead, keeping the proposal for the
 // record (spec S3). A server-key value is kept, clamped.
@@ -490,11 +575,25 @@ func TestFinderOnlyReachesTheRecordAndRegenClearsIt(t *testing.T) {
 	if !rec.KeptToFinder() || rec.FoundByUserId != 7 || rec.View().Finder == nil {
 		t.Fatalf("finder-only, kept to user 7: %+v", rec)
 	}
-	got, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
+	got, _, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.KeptToFinder() || got.PlayerKey || got.View().Finder != nil {
 		t.Fatalf("named again on the server's key: everyone's: %+v", got)
+	}
+}
+
+// A find drawn from the corpus is named text: Mint marks it ready and keeps
+// its generator and pool.
+func TestMintMarksACorpusResultReady(t *testing.T) {
+	withCatalog(t)
+	res := GenResult{Reply: Reply{Name: `Chipped Clay Marble`, NameSimple: `marble`, Description: `A small clay marble, glazed blue long ago.`, WeightLbs: 0.1, Value: 2}, Generator: GeneratorCorpus, Model: `corpus:street-cheap`}
+	_, rec, err := Mint(MintOpts{Source: SourceSearch, Tier: TierCheap, Result: &res})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Status != StatusReady || rec.Generator != GeneratorCorpus || rec.Model != `corpus:street-cheap` || rec.Moderated || rec.PlayerKey {
+		t.Fatalf("corpus record: %+v", rec)
 	}
 }

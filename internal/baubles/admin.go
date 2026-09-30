@@ -92,15 +92,19 @@ var ErrNoRecord = errors.New(`no such bauble record`)
 
 // Retire withdraws a record's text: every item pointing at it shows a plain
 // "Trinket" until it is restored. Value, weight and provenance are kept.
-// For a name or description that should not be in the game.
+// For a name or description that should not be in the game, which is why
+// any corpus entry promoted from it goes too.
 func Retire(id string, admin string) error {
-	if _, ok := Update(id, func(r *Record) {
-		r.Status = StatusRetired
-		r.EditedBy = admin
-	}); !ok {
+	_, ok, _, err := withdrawRecord(id, func() (Record, bool) {
+		return Update(id, func(r *Record) {
+			r.Status = StatusRetired
+			r.EditedBy = admin
+		})
+	})
+	if !ok {
 		return ErrNoRecord
 	}
-	return nil
+	return err
 }
 
 // Restore undoes Retire. A sold record stays sold.
@@ -110,7 +114,7 @@ func Restore(id string, admin string) error {
 			return
 		}
 		r.Status = StatusFallback
-		if r.Generator == GeneratorOpenAI {
+		if r.Generator.Named() {
 			r.Status = StatusReady
 		}
 		if r.SoldValue > 0 {
@@ -130,11 +134,13 @@ var EditFields = []string{`name`, `keyword`, `desc`, `material`, `value`, `weigh
 // checks as a model's answer (CleanReply), so an edit cannot put markup in a
 // name or a real item's keyword on a bauble. Value is clamped to the tier;
 // changing the tier re-clamps the value into the new one. The record is
-// marked as edited by admin.
-func Edit(id string, field string, value string, admin string) (Record, error) {
+// marked as edited by admin. Entries promoted into the fallback corpus from
+// the record are removed; the int is how many. ErrCorpusCleanup means the
+// record changed but they could not be.
+func Edit(id string, field string, value string, admin string) (Record, int, error) {
 	rec, ok := Get(id)
 	if !ok {
-		return Record{}, ErrNoRecord
+		return Record{}, 0, ErrNoRecord
 	}
 	value = strings.TrimSpace(value)
 	reply := Reply{
@@ -159,93 +165,112 @@ func Edit(id string, field string, value string, admin string) (Record, error) {
 	case `value`:
 		n, err := strconv.Atoi(value)
 		if err != nil {
-			return Record{}, fmt.Errorf(`value must be a whole number of gold`)
+			return Record{}, 0, fmt.Errorf(`value must be a whole number of gold`)
 		}
 		reply.Value = n
 	case `weight`:
 		w, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return Record{}, fmt.Errorf(`weight must be a number of pounds`)
+			return Record{}, 0, fmt.Errorf(`weight must be a number of pounds`)
 		}
 		reply.WeightLbs = w
 	case `tier`:
 		t, ok := ParseTier(strings.ToLower(value))
 		if !ok {
-			return Record{}, fmt.Errorf(`tier must be cheap, average or rare`)
+			return Record{}, 0, fmt.Errorf(`tier must be cheap, average or rare`)
 		}
 		tier = t
 	default:
-		return Record{}, fmt.Errorf(`field must be one of: %s`, strings.Join(EditFields, `, `))
+		return Record{}, 0, fmt.Errorf(`field must be one of: %s`, strings.Join(EditFields, `, `))
 	}
 
 	cleaned, err := CleanReply(reply)
 	if err != nil {
-		return Record{}, err
+		return Record{}, 0, err
 	}
 	limited := ApplyLimitsFor(cleaned, tier, rec.Source)
 
-	updated, ok := Update(id, func(r *Record) {
-		r.Name = limited.Reply.Name
-		r.NameSimple = limited.Reply.NameSimple
-		r.Description = limited.Reply.Description
-		r.Material = limited.Reply.Material
-		r.Tier = limited.Tier
-		r.Value = limited.Reply.Value
-		r.WeightLbs = limited.Reply.WeightLbs
-		r.EditedBy = admin
+	// Text promoted from this record no longer matches it: withdrawRecord
+	// removes it in the same step.
+	updated, ok, removed, err := withdrawRecord(id, func() (Record, bool) {
+		return Update(id, func(r *Record) {
+			r.Name = limited.Reply.Name
+			r.NameSimple = limited.Reply.NameSimple
+			r.Description = limited.Reply.Description
+			r.Material = limited.Reply.Material
+			r.Tier = limited.Tier
+			r.Value = limited.Reply.Value
+			r.WeightLbs = limited.Reply.WeightLbs
+			r.EditedBy = admin
+			// Hand-written text is never promotable (Promote checks
+			// HandEdited). Moderated is left alone: KeptToFinder is
+			// PlayerKey and not Moderated, so clearing it would hide an
+			// admin's edit of a moderated player-key find from everyone
+			// but its finder.
+			r.HandEdited = true
+		})
 	})
 	if !ok {
-		return Record{}, ErrNoRecord
+		return Record{}, 0, ErrNoRecord
 	}
-	return updated, nil
+	return updated, removed, err
 }
 
 // ApplyRegenerated replaces a record's text and numbers with a fresh model
 // answer (the admin `bauble regen` command). Provenance, status history and
-// the theft fields are kept. It refuses a generic trinket: regenerating is
+// the theft fields are kept. It refuses a fallback (corpus or generic): regenerating is
 // for getting a NEW model name, and a failed call must not wipe one.
 //
 // randn picks a player-key find's rolled value, mirroring Mint (spec S3): a
 // value a player's own key proposed is never trusted, even clamped, so the
 // server rolls it instead and keeps the proposal in ValueProposed. Pass
 // util.Rand in production, nil for the deterministic midpoint, a fixed
-// function in tests.
-func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, error) {
+// function in tests. Entries promoted into the fallback corpus from the
+// record are removed; the int is how many. ErrCorpusCleanup means the
+// record changed but they could not be.
+func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, int, error) {
 	if res.Generator != GeneratorOpenAI {
-		return Record{}, errors.New(`the model did not answer; the record is unchanged`)
+		return Record{}, 0, errors.New(`the model did not answer; the record is unchanged`)
 	}
 	rec, ok := Get(id)
 	if !ok {
-		return Record{}, ErrNoRecord
+		return Record{}, 0, ErrNoRecord
 	}
 	limited := ApplyLimitsFor(res.Reply, rec.Tier, rec.Source)
 	if res.PlayerKey {
 		limited.Reply.Value = limited.Tier.RollValue(randn)
 	}
-	updated, ok := Update(id, func(r *Record) {
-		r.Name = limited.Reply.Name
-		r.NameSimple = limited.Reply.NameSimple
-		r.Description = limited.Reply.Description
-		r.Material = limited.Reply.Material
-		r.Value = limited.Reply.Value
-		r.ValueProposed = limited.ProposedValue
-		r.WeightLbs = limited.Reply.WeightLbs
-		r.WeightProposed = limited.ProposedWeight
-		r.Generator = GeneratorOpenAI
-		r.Model = res.Model
-		r.PromptVersion = res.PromptVersion
-		r.Tokens += res.Tokens
-		r.Moderated = res.Moderated
-		r.PlayerKey = res.PlayerKey
-		if r.Status == StatusFallback || r.Status == StatusRetired {
-			r.Status = StatusReady
-		}
-		r.EditedBy = admin + ` (regen)`
+	// Text promoted from this record no longer matches it: withdrawRecord
+	// removes it in the same step, so a Promote of the new text cannot land
+	// between the two and be deleted.
+	updated, ok, removed, err := withdrawRecord(id, func() (Record, bool) {
+		return Update(id, func(r *Record) {
+			r.Name = limited.Reply.Name
+			r.NameSimple = limited.Reply.NameSimple
+			r.Description = limited.Reply.Description
+			r.Material = limited.Reply.Material
+			r.Value = limited.Reply.Value
+			r.ValueProposed = limited.ProposedValue
+			r.WeightLbs = limited.Reply.WeightLbs
+			r.WeightProposed = limited.ProposedWeight
+			r.Generator = GeneratorOpenAI
+			r.Model = res.Model
+			r.PromptVersion = res.PromptVersion
+			r.Tokens += res.Tokens
+			r.Moderated = res.Moderated
+			r.PlayerKey = res.PlayerKey
+			if r.Status == StatusFallback || r.Status == StatusRetired {
+				r.Status = StatusReady
+			}
+			r.EditedBy = admin + ` (regen)`
+			// The text is the model's again, as moderation passed it.
+			r.HandEdited = false
+		})
 	})
 	if !ok {
-		return Record{}, ErrNoRecord
+		return Record{}, 0, ErrNoRecord
 	}
-	return updated, nil
+	return updated, removed, err
 }
 
 // PromptPreview renders the messages a request would send, one string per

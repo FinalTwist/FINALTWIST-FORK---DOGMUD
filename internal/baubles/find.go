@@ -242,7 +242,7 @@ func RollFind(o FindOpts) (tier ValueTier, found bool) {
 
 // RevealDelay is the least time between a find and the bauble reaching the
 // player, whatever names it: the search keeps going for a moment, so a find
-// named by the model and a generic trinket arrive at the same pace.
+// named by the model and a fallback one arrive at the same pace.
 func RevealDelay() time.Duration {
 	return time.Duration(configs.GetBalanceConfig().BaubleRevealSeconds) * time.Second
 }

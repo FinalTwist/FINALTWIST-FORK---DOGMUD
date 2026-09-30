@@ -745,6 +745,20 @@ func TestStealAwardsAtTheRevealNotTheRoll(t *testing.T) {
 	}
 }
 
+// A pocket bauble whose naming never came back is drawn from the corpus's
+// pocket pool.
+func TestPickpocketUnnamedBaubleDrawsFromTheCorpus(t *testing.T) {
+	loadTestCorpus(t)
+	p := &pocketAttempt{
+		req:   baubles.GenRequest{Tier: baubles.TierCheap, Source: baubles.SourcePickpocket, Place: baubles.Place{Zone: "nowhere"}},
+		randn: func(int) int { return 0 },
+	}
+	res, named := p.naming()
+	if named || res.Generator != baubles.GeneratorCorpus || res.Reply.Name != "Brass Snuff Spoon" {
+		t.Fatalf("got %+v (named %v)", res, named)
+	}
+}
+
 // A mark asleep at the attempt saw nothing (owner ruling 2026-09-29): a
 // failed roll still wakes it to the loss, but when the thief has walked
 // off by the reveal it cannot say who robbed it, however well lit the

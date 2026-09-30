@@ -10,8 +10,9 @@ installs the namer with `baubles.SetGenerator`. Every request goes through
 
 Off by default twice over: `Balance.BaublesEnabled` (no finds at all) and
 `Modules.baubles.Enabled` (no naming). With naming off, or no key to name a
-find with, every find is a generic "Trinket" (value and weight random within
-the tier). With naming on, each find is named, described, weighed and priced
+find with, every find takes its text from the engine's fallback corpus
+(`baubles.FallbackFor`; a generic "Trinket" only when nothing fits). With
+naming on, each find is named, described, weighed and priced
 from the room it was found in.
 
 ## Files
@@ -91,7 +92,7 @@ from the room it was found in.
    answering.
    A model or request the provider refuses (400, 404) pauses baubles' own
    breaker only; only provider-wide failures reach the companion's.
-5. Neither route: `errNoRoute`, a generic trinket.
+5. Neither route: `errNoRoute`; the engine falls back to the corpus.
 6. `baubles.ParseReply` and `CleanReply` (the cleaned text is kept). Then
    `moderate`, on the name, keyword, description and material, through the
    server key, reading the server settings and the clock once. Server-key
@@ -107,7 +108,7 @@ from the room it was found in.
    find is `FinderOnly`: its finder reads it, everyone else the generic
    trinket (owner ruling 2026-09-29).
 7. The engine (`baubles.Generate`) then runs `CleanReply` and
-   `ApplyLimits`; any failure anywhere is a generic trinket.
+   `ApplyLimits`; any failure anywhere falls back to the corpus.
 
 ## Config (`Modules.baubles` in config.yaml)
 

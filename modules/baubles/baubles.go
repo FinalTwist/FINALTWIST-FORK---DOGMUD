@@ -7,10 +7,10 @@
 // and one breaker, and the companion's key relay for a finder who allowed
 // their own key to name their finds.
 //
-// Off by default. Switched off, it installs nothing and every bauble is a
-// generic trinket. Switched on, a find is named through the finder's own
-// key when they allowed it, else the server's key, else it is a generic
-// trinket.
+// Off by default. Switched off, it installs nothing and every bauble takes
+// its text from the engine's fallback corpus. Switched on, a find is named
+// through the finder's own key when they allowed it, else the server's key,
+// else it falls back to the corpus (baubles.FallbackFor).
 package baubles
 
 import (
@@ -104,7 +104,7 @@ func (m *BaublesModule) configure(cfg Config) {
 
 	if !cfg.Enabled {
 		baubles.SetGenerator(nil, nil)
-		mudlog.Info(`baubles`, `naming`, `generic trinkets`, `reason`, `Modules.baubles.Enabled is false`)
+		mudlog.Info(`baubles`, `naming`, `fallback corpus`, `reason`, `Modules.baubles.Enabled is false`)
 		return
 	}
 	baubles.SetGenerator(m.generate, m.info)
@@ -121,8 +121,8 @@ func (m *BaublesModule) snapshot() Config {
 }
 
 // takeServerSlot takes one of the server key's MaxConcurrent slots, or
-// reports none free. A find beyond them is not queued: it is a generic
-// trinket.
+// reports none free. A find beyond them is not queued: it falls back to
+// the corpus.
 func (m *BaublesModule) takeServerSlot() (release func(), ok bool) {
 	m.mu.Lock()
 	slots := m.slots
@@ -196,7 +196,7 @@ func (m *BaublesModule) info() baubles.GeneratorInfo {
 	detail := `Today: ` + itoa(server) + ` named on the server's key, ` + itoa(player) + ` on finders' own keys, ` + itoa(failures) + ` failed. ` +
 		`Server key tokens: ` + itoa(u.Tokens) + ` of ` + limitWords(u.Limit) + ` (baubles ` + itoa(mine) + `; one budget for every feature).`
 	if !s.HasKey() {
-		detail += ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find is a generic trinket.`
+		detail += ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find comes from the fallback corpus.`
 	} else if !cfg.ModerateOutput {
 		detail += ` ModerateOutput is off: server-key finds are shown to everyone with no check (the operator's choice)`
 		if cfg.UsePlayerKeys {

@@ -51,7 +51,8 @@ func MaxWeightFor(s Source) float64 {
 // For a pickpocketed find: a weight the model proposed over the pocket
 // limit (MaxWeightFor), or a name whose words are things no pocket holds
 // (notPocketSized). Its text would name such a thing, so Generate refuses
-// it (a generic, small trinket) rather than only clamping the number.
+// it (a fallback from the corpus's pocket pool) rather than only clamping
+// the number.
 func TooBigFor(r Reply, s Source) bool {
 	if s != SourcePickpocket {
 		return false

@@ -11,8 +11,8 @@ its name (<ansi fg="cyan">bauble show doll</ansi>).
 
 <ansi fg="command">bauble status</ansi>
   Whether finds are on (Balance.BaublesEnabled, off by default),
-  what names them (a finder's own key, the server key, or generic
-  trinkets), the shared token budget, and the search settings.
+  what names them (a finder's own key, the server key, or the
+  fallback corpus), the shared token budget, and the search settings.
 
 <ansi fg="command">bauble stats</ansi>
   Counts by status, tier and namer; unsold value; sales in the
@@ -46,6 +46,35 @@ its name (<ansi fg="cyan">bauble show doll</ansi>).
   its value kept. For a name that should not be in the game.
 <ansi fg="command">bauble restore <bauble></ansi>
   Undo retire.
+
+<ansi fg="command">bauble promote <bauble></ansi>
+  Copy a good model name into the fallback corpus, so finds made
+  with no model can use its text. Only a find the model named on
+  the server's key, passed by moderation and never changed by hand
+  can be promoted, and only a name its pool does not have yet; a
+  sold, restored or regenerated one can. A find made in a biome
+  with no corpus group is refused too: it has no pool to join.
+  Retiring, editing or regenerating it later removes it from the
+  corpus again.
+
+<ansi fg="yellow-bold">Fallback corpus:</ansi>
+
+<ansi fg="command">bauble corpus list [key]</ansi>
+  Every pool and its size, or one pool's entries. A key is a biome
+  or a group and a tier (<ansi fg="cyan">interior-cheap</ansi>, <ansi fg="cyan">dwelling-rare</ansi>),
+  <ansi fg="cyan">pocket-average</ansi> for pickpocketed finds, or a tier alone. One
+  key's list shows only its own entries; a find made in that biome
+  also draws from its group's key, which this does not merge in.
+<ansi fg="command">bauble corpus remove <key> <entry></ansi>
+  Remove a promoted entry from a pool, named by its name or by the
+  bauble it was promoted from (<ansi fg="cyan">B0000012</ansi>). Seed entries are
+  changed in bauble-corpus.yaml.
+<ansi fg="command">bauble corpus reload</ansi>
+  Read bauble-corpus.yaml and the promoted file again.
+<ansi fg="command">bauble corpus export</ansi>
+  Print the promoted entries in the seed file's format. The output
+  already has its own <ansi fg="cyan">entries:</ansi> line and indentation; merge it
+  into bauble-corpus.yaml's own entries: map, then wrap the text.
 
 <ansi fg="yellow-bold">Testing:</ansi>
 
@@ -91,6 +120,10 @@ its name (<ansi fg="cyan">bauble show doll</ansi>).
   - Players refer to a bauble by any word of its name, in order
     (<ansi fg="cyan">get doll</ansi>, <ansi fg="cyan">look childs doll</ansi>), or by <ansi fg="cyan">bauble</ansi> / <ansi fg="cyan">trinket</ansi>.
   - Records live under <ansi fg="cyan">_datafiles/world/dogmud/baubles/</ansi>.
+  - With no model, a find takes its text from the fallback corpus:
+    <ansi fg="cyan">bauble-corpus.yaml</ansi> (tracked) and <ansi fg="cyan">baubles/corpus.promoted.yaml</ansi>
+    (promoted names), by biome, biome group and tier. A plain
+    Trinket only when nothing there fits.
   - General stores and jewellers buy baubles for their value times
     ShopBuyRatio; other shops refuse. Sold baubles leave the world.
   - Merchants appraise baubles for free.

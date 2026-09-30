@@ -16,7 +16,8 @@ import (
 //
 // The model is reached through a seam: modules/baubles installs a
 // GeneratorFunc at boot when it is enabled AND an OpenAI API key is present.
-// With nothing installed, every bauble is a generic trinket (fallback.go).
+// With nothing installed, every bauble comes from the fallback corpus
+// (corpus.go), or is a generic trinket (fallback.go) when nothing fits.
 //
 // ⚠️ Generate BLOCKS for as long as the model takes. It must only run on a
 // goroutine that does not hold util.LockMud(); the caller takes the lock
@@ -87,7 +88,7 @@ type installedGenerator struct {
 var generator atomic.Pointer[installedGenerator]
 
 // SetGenerator installs the model-backed namer. nil uninstalls it, after
-// which every bauble is a generic trinket. info may be nil.
+// which every bauble comes from the fallback corpus. info may be nil.
 func SetGenerator(fn GeneratorFunc, info func() GeneratorInfo) {
 	if fn == nil {
 		generator.Store(nil)
@@ -96,8 +97,8 @@ func SetGenerator(fn GeneratorFunc, info func() GeneratorInfo) {
 	generator.Store(&installedGenerator{fn: fn, info: info})
 }
 
-// CurrentGenerator reports what names baubles now: false means generic
-// trinkets.
+// CurrentGenerator reports what names baubles now: false means the fallback
+// corpus, or a generic trinket where nothing in it fits.
 func CurrentGenerator() (GeneratorInfo, bool) {
 	g := generator.Load()
 	if g == nil {
@@ -122,8 +123,9 @@ var refusalLog struct {
 // most once a minute, the companion's pattern (aicompanion's
 // logBudgetRefusal): a finder over their allowance who keeps searching is
 // one line a minute, not one a find. Every other failure is logged each
-// time.
-func noteRefusal(refusedBy string, err error) {
+// time. fb is the fallback actually used, named in the log line as the
+// pickpocket log names its generator (steal_pocket.go).
+func noteRefusal(refusedBy string, err error, fb GenResult) {
 	refusalLog.mu.Lock()
 	now := time.Now()
 	if refusalLog.now != nil {
@@ -135,7 +137,7 @@ func noteRefusal(refusedBy string, err error) {
 	}
 	refusalLog.last = now
 	refusalLog.mu.Unlock()
-	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `refusedBy`, refusedBy, `error`, err)
+	mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `refusedBy`, refusedBy, `error`, err)
 }
 
 // MaxGenerateTime is the hard ceiling on one Generate call, whatever the
@@ -144,16 +146,20 @@ const MaxGenerateTime = 30 * time.Second
 
 // Generate names one find. It returns the model's answer when a generator
 // is installed and its answer is usable (validated and clamped), and a
-// generic trinket otherwise. It never fails. randn picks a generic
-// trinket's value and weight: pass util.Rand in production (nil gives the
-// deterministic midpoint, for tests).
+// fallback otherwise (FallbackFor: the corpus, else a generic trinket). It
+// never fails. randn picks the fallback: pass util.Rand in production (nil
+// gives the first entry, or the deterministic midpoint, for tests).
 func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenResult {
 	tier := req.Tier
 	if !tier.Valid() {
 		tier = TierCheap
 	}
+	// A find the model does not name comes from the fallback corpus, or is
+	// a generic trinket when the corpus has nothing that fits.
 	generic := func() GenResult {
-		return GenResult{Reply: GenericTrinket(tier, randn), Generator: GeneratorLocal}
+		r := req
+		r.Tier = tier
+		return FallbackFor(r, randn)
 	}
 
 	g := generator.Load()
@@ -168,12 +174,13 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 
 	res, err := g.fn(ctx, req)
 	if err != nil {
+		fb := generic()
 		if refusedBy := apiframework.RefusedBy(err); refusedBy != `` {
-			noteRefusal(refusedBy, err)
+			noteRefusal(refusedBy, err, fb)
 		} else {
-			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
+			mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `error`, err)
 		}
-		return generic()
+		return fb
 	}
 	cleaned, err := CleanReply(res.Reply)
 	if err == nil && (res.PlayerKey || res.FinderOnly) {
@@ -194,15 +201,17 @@ func Generate(ctx context.Context, req GenRequest, randn func(n int) int) GenRes
 		}
 	}
 	if err != nil {
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, err)
-		return generic()
+		fb := generic()
+		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `error`, err)
+		return fb
 	}
 	if TooBigFor(cleaned, req.Source) {
 		// The model's own weight, or the thing its name names, says it
 		// described something no pocket holds, whatever its weight would be
-		// clamped to. A generic (small) trinket instead.
-		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `generic trinket`, `error`, `too big for a pocket`, `weight`, cleaned.WeightLbs)
-		return generic()
+		// clamped to. A fallback instead (the corpus's pocket pool, or a small trinket).
+		fb := generic()
+		mudlog.Warn(`baubles`, `action`, `generate`, `result`, `fallback`, `generator`, string(fb.Generator), `model`, fb.Model, `error`, `too big for a pocket`, `weight`, cleaned.WeightLbs)
+		return fb
 	}
 	res.Reply = cleaned
 	if res.Generator == `` {
@@ -232,5 +241,30 @@ func RecentNames(zone string, n int) []string {
 		out = append(out, r.Name)
 	}
 	cat.mu.RUnlock()
+	return out
+}
+
+// RecentFallbackNames returns up to n names of named finds in the zone
+// (model or corpus), newest first: what a corpus fallback avoids
+// repeating. A promoted entry shares its model record's name, so both
+// count. Like RecentNames, a player-key name is never counted: it never
+// reaches another prompt or fallback.
+func RecentFallbackNames(zone string, n int) []string {
+	cat.mu.RLock()
+	defer cat.mu.RUnlock()
+	recs := make([]*Record, 0, 32)
+	for _, r := range cat.records {
+		if r.Zone == zone && r.Generator.Named() && !r.PlayerKey {
+			recs = append(recs, r)
+		}
+	}
+	sort.Slice(recs, func(a, b int) bool { return recs[a].Id > recs[b].Id })
+	out := []string{}
+	for _, r := range recs {
+		if len(out) >= n {
+			break
+		}
+		out = append(out, r.Name)
+	}
 	return out
 }

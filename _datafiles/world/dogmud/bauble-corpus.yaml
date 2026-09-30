@@ -1,0 +1,1991 @@
+# Bauble fallback corpus: the seed (docs/baubles/implementation-plan.md,
+# Phase 6e). When no model names a find, its text comes from here, or from
+# names an admin promoted (baubles/corpus.promoted.yaml, living state).
+#
+# groups: the corpus group of each biome. A biome with no group (water and
+# ether, where nothing is ever found) goes straight to the tier pool.
+# entries: pools of finds, keyed "<group or biome>-<tier>", "pocket-<tier>"
+# for pickpocketed finds, or a bare tier as the last resort.
+#
+# Every entry is checked like a model's answer when it loads: no digits in
+# the name, a keyword no real item answers to, a weight in tenths of a pound
+# from 0.1 to 25. Values stay inside the tier (cheap 1 to 6, average 10 to
+# 15, rare 40 to 200 gold) and each pool's average sits near the middle.
+# Pocket and bare-tier entries weigh at most 1 lb and name nothing too big
+# for a pocket. Write for players: wrap at 80 columns, no numbers in the
+# text, plain words. TestShippedCorpusSeed checks all of it.
+groups:
+  interior: dwelling
+  fort: dwelling
+  city_backstreet: street
+  city_thoroughfare: street
+  sewer: underground
+  dungeon: underground
+  cave: underground
+  ruins: ruins
+  road: waterside
+  shore: waterside
+  river: waterside
+  farmland: waterside
+  land: waterside
+  forest: wild
+  dense_forest: wild
+  plains: wild
+  swamp: wild
+  cliffs: wild
+  mountains: wild
+  desert: wild
+  snow: wild
+  spiderweb: wild
+entries:
+  dwelling-cheap:
+    - name: Bent Tin Thimble
+      name_simple: thimble
+      material: tin
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A tin thimble, pressed a little out of shape. The dimples on its top
+        are worn smooth from years of pushing needles through heavy cloth.
+    - name: Cracked Wax Seal
+      name_simple: seal
+      material: wax
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A round wax seal, cracked down the middle. The mark it once
+        pressed into paper is too worn to make out now.
+    - name: Bent Iron Wall Peg
+      name_simple: peg
+      material: iron
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A small iron peg, bent out of shape. It once held something on
+        a wall, but the bend keeps it from sitting flat now.
+    - name: Faded Cloth Patch
+      name_simple: patch
+      material: cloth
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A square patch of cloth, its color faded pale. Small stitches
+        run along one edge, as if it was sewn onto something larger.
+    - name: Small Wooden Bobbin
+      name_simple: bobbin
+      material: wood
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A wooden bobbin with no thread left on it. Grooves are worn
+        into the wood from years of turning.
+    - name: Chipped Porcelain Sliver
+      name_simple: sliver
+      material: porcelain
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A curved sliver of white porcelain, chipped from something
+        larger. A thin blue line still shows a painted pattern.
+    - name: Worn Bone Toggle
+      name_simple: toggle
+      material: bone
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A small toggle carved from bone, its edges worn smooth. A loop
+        of cord still passes through the hole at its center.
+    - name: Cracked Clay Bead
+      name_simple: bead
+      material: clay
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A round bead of fired clay, cracked across one side. Faint
+        grooves circle it, pressed in before the clay hardened.
+    - name: Bent Copper Clasp
+      name_simple: clasp
+      material: copper
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A slender clasp of bent copper, its catch broken off. It once
+        held two pieces of cloth together, but not anymore.
+    - name: Frayed Wool Fringe
+      name_simple: fringe
+      material: wool
+      weight_lbs: 0.2
+      value: 4
+      description: >-
+        A strip of wool fringe, frayed along both edges. Faded dye
+        still shows a pattern of small diamonds.
+    - name: Tarnished Brass Buckle
+      name_simple: buckle
+      material: brass
+      weight_lbs: 0.2
+      value: 6
+      description: >-
+        A brass buckle gone dark with tarnish. The prong that once
+        held it closed is missing.
+  dwelling-average:
+    - name: Small Brass Hand Bell
+      name_simple: bell
+      material: brass
+      weight_lbs: 0.4
+      value: 11
+      description: >-
+        A small brass bell with a short wooden handle. The clapper
+        still swings inside, though its ring has gone dull.
+    - name: Carved Antler Comb
+      name_simple: comb
+      material: antler
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A comb carved from antler, its teeth still even and smooth.
+        A row of small notches decorates the top edge.
+    - name: Enameled Copper Locket
+      name_simple: locket
+      material: copper
+      weight_lbs: 0.2
+      value: 13
+      description: >-
+        A small copper locket, its enamel chipped at one corner. The
+        clasp still opens, but the hinge is a little loose.
+    - name: Cut Glass Paperweight
+      name_simple: paperweight
+      material: glass
+      weight_lbs: 0.6
+      value: 14
+      description: >-
+        A dome of cut glass, heavy for its size. Light catches in the
+        facets and scatters in small points across a table.
+    - name: Carved Ivory Pawn
+      name_simple: pawn
+      material: ivory
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A single game piece carved from ivory, worn smooth from
+        handling. It stands alone now, its set long since scattered.
+    - name: Small Bronze Hand Mirror
+      name_simple: mirror
+      material: bronze
+      weight_lbs: 0.5
+      value: 13
+      description: >-
+        A small bronze hand mirror, its polished face dulled with
+        age. Faint scrollwork traces the rim around the glass.
+    - name: Gilt Wood Wall Plaque
+      name_simple: plaque
+      material: gilt wood
+      weight_lbs: 0.5
+      value: 12
+      description: >-
+        A small wooden plaque with a thin layer of gilt along its
+        edge. The center is blank, as if something was once fixed
+        there.
+    - name: Small Soapstone Carving
+      name_simple: carving
+      material: soapstone
+      weight_lbs: 0.2
+      value: 11
+      description: >-
+        A small carving of soapstone, shaped into a curled animal
+        form. Years of handling have polished it smooth all over.
+    - name: Tarnished Silver Chain Fob
+      name_simple: fob
+      material: silver
+      weight_lbs: 0.2
+      value: 14
+      description: >-
+        A short length of silver chain ending in a small fob. The
+        metal has gone dark with tarnish, though the links still
+        move freely.
+    - name: Brass Regimental Insignia
+      name_simple: insignia
+      material: brass
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A brass insignia shaped like a spread eagle, meant to be
+        pinned to a coat. The pin on the back is bent flat.
+  dwelling-rare:
+    - name: Amethyst Silver Brooch
+      name_simple: brooch
+      material: silver
+      weight_lbs: 0.2
+      value: 130
+      description: >-
+        A silver brooch set with a single purple amethyst. The pin on
+        the back still opens and closes smoothly.
+    - name: Carved Jade Medallion
+      name_simple: medallion
+      material: jade
+      weight_lbs: 0.2
+      value: 110
+      description: >-
+        A round medallion carved from pale green jade. One face shows
+        a coiled dragon, worn smooth by careful handling.
+    - name: Gilded Ivory Fan
+      name_simple: fan
+      material: ivory
+      weight_lbs: 0.3
+      value: 135
+      description: >-
+        A folding fan with ivory ribs and a gilded edge. The cloth
+        between the ribs is painted with a garden scene.
+    - name: Chased Silver Hair Ornament
+      name_simple: ornament
+      material: silver
+      weight_lbs: 0.3
+      value: 120
+      description: >-
+        A silver hair ornament worked with a chased leaf pattern. Its
+        long pin is straight and its surface still shines.
+    - name: Gold Enamel Cufflink
+      name_simple: cufflink
+      material: gold
+      weight_lbs: 0.1
+      value: 90
+      description: >-
+        A single gold cufflink with a panel of deep blue enamel. Its
+        match is nowhere to be found.
+    - name: Diamond Chip Gold Stickpin
+      name_simple: stickpin
+      material: gold
+      weight_lbs: 0.1
+      value: 150
+      description: >-
+        A slender gold stickpin topped with a cluster of tiny diamond
+        chips. The point is still sharp and true.
+    - name: Gilt Bronze Standard Finial
+      name_simple: finial
+      material: bronze
+      weight_lbs: 0.4
+      value: 140
+      description: >-
+        A bronze finial shaped like a raised fist, gilded along its
+        surface. A broken socket shows it once topped a pole.
+    - name: Enameled Officer Rank Crest
+      name_simple: crest
+      material: enamel
+      weight_lbs: 0.2
+      value: 113
+      description: >-
+        A small enameled crest marking an officer's rank, meant to be
+        pinned to a collar. The colors are still bright and clear.
+    - name: Filigree Gold Hairpin
+      name_simple: hairpin
+      material: gold
+      weight_lbs: 0.1
+      value: 105
+      description: >-
+        A gold hairpin worked into fine, curling filigree. The point
+        is straight, and the metal still catches the light.
+    - name: Carved Pearl Hair Slide
+      name_simple: slide
+      material: pearl
+      weight_lbs: 0.2
+      value: 105
+      description: >-
+        A hair slide carved from a single large pearl, polished to a
+        soft shine. Its clasp still holds firm.
+  street-cheap:
+    - name: Chipped Clay Marble
+      name_simple: marble
+      material: clay
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A small clay marble, glazed blue a long time ago. One side is
+        chipped flat, as if a cart wheel rolled over it.
+    - name: Dull Brass Buckle
+      name_simple: buckle
+      material: brass
+      weight_lbs: 0.2
+      value: 4
+      description: >-
+        A small buckle of tarnished brass, gone dark and dull with age.
+        One prong is bent out of shape from long wear.
+    - name: Cracked Bone Dice
+      name_simple: dice
+      material: bone
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A pair of bone dice, yellowed with age and worn smooth at the
+        corners. A long crack runs across the face of one die.
+    - name: Snapped Leather Bootlace
+      name_simple: bootlace
+      material: leather
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A leather bootlace, snapped clean through near one end. The
+        leather has gone dark and stiff with old wear.
+    - name: Chipped Porcelain Knob
+      name_simple: knob
+      material: porcelain
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A small white porcelain knob, once fitted to a cabinet or a
+        drawer. Its round face is chipped, and a thin crack runs
+        through the glaze.
+    - name: Bent Copper Hairpin
+      name_simple: hairpin
+      material: copper
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A copper hairpin bent slightly out of true. Its surface has
+        dulled to a soft brown from years of handling.
+    - name: Broken Red Wax Seal
+      name_simple: seal
+      material: wax
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A round disc of red wax, cracked down the middle and pressed
+        with a faint, worn design. It has broken free from whatever it
+        once sealed.
+    - name: Faded Ribbon Scrap
+      name_simple: scrap
+      material: silk
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A short scrap of ribbon, once bright but faded to a pale,
+        uneven color. One edge is frayed where it tore free.
+    - name: Scratched Glass Bead
+      name_simple: bead
+      material: glass
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A round bead of clouded glass, scratched deeply across one
+        side. Light passes through it only faintly now.
+    - name: Threadbare Wool Mitten
+      name_simple: mitten
+      material: wool
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A single wool mitten, worn thin at the palm and coming apart
+        at the cuff. The other mitten of the pair is missing.
+    - name: Dented Tin Soldier
+      name_simple: soldier
+      material: tin
+      weight_lbs: 0.3
+      value: 5
+      description: >-
+        A small toy soldier cast in tin, dented across the chest. Most
+        of its painted colors have worn away to bare metal.
+  street-average:
+    - name: Painted Wooden Fan
+      name_simple: fan
+      material: wood
+      weight_lbs: 0.4
+      value: 11
+      description: >-
+        A folding fan of painted wood, showing part of a garden scene.
+        Two of its ribs are cracked, and the paint has faded at the
+        edges.
+    - name: Brass Filigree Brooch
+      name_simple: brooch
+      material: brass
+      weight_lbs: 0.2
+      value: 13
+      description: >-
+        A round brooch of brass filigree, twisted into a looping
+        pattern. One of the loops has snapped and hangs loose from the
+        rest.
+    - name: Enamelled Hair Clasp
+      name_simple: clasp
+      material: enamelled brass
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A hair clasp of white enamel over brass, painted with small
+        blue flowers. The enamel has chipped away along one side.
+    - name: Brass Pocket Mirror
+      name_simple: mirror
+      material: brass
+      weight_lbs: 0.5
+      value: 14
+      description: >-
+        A small round mirror set in a brass frame, meant to be carried
+        in a pocket. The glass is clouded, and the frame has lost most
+        of its shine.
+    - name: Braided Wicker Anklet
+      name_simple: anklet
+      material: wicker
+      weight_lbs: 0.1
+      value: 10
+      description: >-
+        A slender anklet braided from thin strips of wicker. The weave
+        has loosened in places but still holds its shape.
+    - name: Small Brass Bell
+      name_simple: bell
+      material: brass
+      weight_lbs: 0.3
+      value: 11
+      description: >-
+        A small bell of dull brass, meant to be sewn onto a coat or a
+        cap. Its clapper still rings with a clear, thin note.
+    - name: Beaded Copper Armband
+      name_simple: armband
+      material: copper
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A wide armband of copper wire strung with small colored beads.
+        Several beads are missing, leaving gaps along its length.
+    - name: Painted Tin Locket
+      name_simple: locket
+      material: tin
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A round locket of painted tin, its lid showing a faded country
+        scene. The hinge is stiff, and the paint has worn thin at the
+        edges.
+    - name: Stitched Velvet Sachet
+      name_simple: sachet
+      material: velvet
+      weight_lbs: 0.4
+      value: 14
+      description: >-
+        A small sachet of stitched velvet, the kind carried among
+        folded linens. Its scent has faded, but the stitching still
+        holds firm.
+    - name: Beaded Ivory Tassel
+      name_simple: tassel
+      material: ivory
+      weight_lbs: 0.3
+      value: 15
+      description: >-
+        A tassel of twisted cord finished with small beads of carved
+        ivory. The cord has frayed near the top, where it once hung
+        from something else.
+  street-rare:
+    - name: Enamelled Guild Medallion
+      name_simple: medallion
+      material: bronze
+      weight_lbs: 0.5
+      value: 125
+      description: >-
+        A heavy medallion on a broken chain, enamelled green and gold with
+        the mark of a merchant guild. The enamel is chipped at one edge.
+    - name: Gilded Merchant Seal
+      name_simple: seal
+      material: gilt bronze
+      weight_lbs: 0.6
+      value: 130
+      description: >-
+        A heavy merchant's stamp seal, cast in bronze and finished
+        with a layer of gold. Its face is engraved with a guild mark,
+        cut with fine, careful lines.
+    - name: Silver Filigree Earring
+      name_simple: earring
+      material: silver
+      weight_lbs: 0.1
+      value: 90
+      description: >-
+        A single earring of fine silver filigree, twisted into a
+        delicate spiral. Small beads of polished stone hang from its
+        lowest curve.
+    - name: Jewelled Silver Hatpin
+      name_simple: hatpin
+      material: silver
+      weight_lbs: 0.1
+      value: 85
+      description: >-
+        A long hatpin of polished silver, topped with a cluster of
+        small colored stones. The silver is worked in a fine, twisting
+        pattern along its length.
+    - name: Ivory Handled Fan
+      name_simple: fan
+      material: ivory
+      weight_lbs: 0.6
+      value: 150
+      description: >-
+        A folding fan with a handle carved from pale ivory and ribs of
+        fine silk. Every rib is carved with the same delicate leaf
+        pattern.
+    - name: Gem Studded Buckle
+      name_simple: buckle
+      material: silver
+      weight_lbs: 0.4
+      value: 140
+      description: >-
+        A heavy belt buckle of solid silver, set with a row of small,
+        bright gems. The silverwork around each stone is fine and
+        precisely cut.
+    - name: Gilt Bronze Chain Fob
+      name_simple: fob
+      material: gilt bronze
+      weight_lbs: 0.3
+      value: 75
+      description: >-
+        A short chain fob of gilt bronze, ending in a small carved
+        disc. The chain is finely linked, and the gilding still shows
+        its shine.
+    - name: Leafwork Amethyst Brooch
+      name_simple: brooch
+      material: silver
+      weight_lbs: 0.3
+      value: 160
+      description: >-
+        A round brooch of polished silver, set with a large cut
+        amethyst at its center. The silverwork forms a fine ring of
+        leaves around the stone.
+    - name: Gold Threaded Ribbon
+      name_simple: ribbon
+      material: silk
+      weight_lbs: 0.1
+      value: 60
+      description: >-
+        A length of fine silk ribbon woven through with real gold
+        thread. The weave is tight and even, with no sign of fraying
+        along its edges.
+    - name: Carved Jade Cameo
+      name_simple: cameo
+      material: jade
+      weight_lbs: 0.3
+      value: 135
+      description: >-
+        A cameo carved from pale green jade, showing the profile of a
+        woman's face. The carving is fine and precise, with every
+        small detail still sharp.
+    - name: Gilt Silver Mirror
+      name_simple: mirror
+      material: silver
+      weight_lbs: 0.8
+      value: 175
+      description: >-
+        A hand mirror with a silver frame finished in gold, showing
+        vines worked around its edge. The glass is clear and bright,
+        with only a faint scratch near one corner.
+  underground-cheap:
+    - name: Corroded Copper Button
+      name_simple: button
+      material: copper
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A copper button gone green with damp. Two thread holes still show,
+        and a scrap of dark wool is caught in one of them.
+    - name: Corroded Iron Buckle
+      name_simple: buckle
+      material: iron
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A small iron buckle covered in orange rust. The pin still moves,
+        but one loop has rusted almost shut.
+    - name: Mildewed Leather Tassel
+      name_simple: tassel
+      material: leather
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A leather tassel gone soft and dark with damp. The braided strands
+        are starting to fray at the tip.
+    - name: Scratched Slate Marker
+      name_simple: marker
+      material: slate
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A flat piece of grey slate, worn smooth along one edge. Someone
+        scratched a row of small marks across its face.
+    - name: Rusted Copper Clasp
+      name_simple: clasp
+      material: copper
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A copper clasp bent out of shape by years in damp air. Green
+        flakes come away at the lightest touch.
+    - name: Guttered Wax Stub
+      name_simple: stub
+      material: wax
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A short stub of tallow candle, its wick burned black. Wax has
+        dripped down one side into a hard ridge.
+    - name: Worn Bone Die
+      name_simple: die
+      material: bone
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A single die carved from old bone, its dots worn almost smooth.
+        One corner is chipped away to a soft curve.
+    - name: Dinted Tin Roundel
+      name_simple: roundel
+      material: tin
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A flat tin roundel, hammered thin and round. A faint stamped
+        pattern still shows on one side.
+    - name: Grimy Glass Bead
+      name_simple: bead
+      material: glass
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A single glass bead, clouded grey with grime. Light barely passes
+        through its cracked surface.
+    - name: Twisted Twine Knot
+      name_simple: knot
+      material: twine
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A short length of twine, knotted many times over. The fibers are
+        stiff with dirt and old mildew.
+    - name: Pitted Pewter Medal
+      name_simple: medal
+      material: pewter
+      weight_lbs: 0.3
+      value: 6
+      description: >-
+        A round pewter medal, its face worn smooth and hard to read. A
+        small loop at the top once held a cord that is now gone.
+  underground-average:
+    - name: Coiled Leaf Silver Brooch
+      name_simple: brooch
+      material: silver
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A silver brooch shaped like a coiled leaf, its shine dulled to
+        grey. The clasp on the back still holds firm.
+    - name: Carved Stone Talisman
+      name_simple: talisman
+      material: stone
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A flat stone talisman carved with a simple spiral. A cord once
+        ran through the small hole at the top, but the cord is missing
+        now.
+    - name: Polished Bone Hairpin
+      name_simple: hairpin
+      material: bone
+      weight_lbs: 0.1
+      value: 11
+      description: >-
+        A hairpin carved from smooth bone, its point still sharp. A
+        small flower shape is cut into the wide end.
+    - name: Engraved Pewter Locket
+      name_simple: locket
+      material: pewter
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A pewter locket engraved with a ring of small leaves. It opens
+        on a stiff hinge, and the inside is empty.
+    - name: Chipped Green Glass Teardrop
+      name_simple: teardrop
+      material: green glass
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A teardrop of green glass, chipped along one edge. A small loop
+        at the top once held a chain that is now missing.
+    - name: Small Bronze Idol
+      name_simple: idol
+      material: bronze
+      weight_lbs: 0.6
+      value: 14
+      description: >-
+        A small bronze idol shaped like a seated figure with folded
+        hands. Green streaks run down from its shoulders where the metal
+        has aged.
+    - name: Frayed Velvet Ribbon
+      name_simple: ribbon
+      material: velvet
+      weight_lbs: 0.1
+      value: 10
+      description: >-
+        A length of velvet ribbon, its color faded to a dull grey. The
+        cut ends are frayed and soft with handling.
+    - name: Cracked Bronze Bell
+      name_simple: bell
+      material: bronze
+      weight_lbs: 0.5
+      value: 13
+      description: >-
+        A small bronze bell with a hairline crack down one side. When
+        shaken, it makes only a dull sound instead of a clear ring.
+    - name: Weathered Coral Fragment
+      name_simple: coral
+      material: coral
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A piece of pale coral, its branching shape worn smooth by water.
+        Tiny holes cover its surface where sea creatures once lived.
+    - name: Scratched Silver Cufflink
+      name_simple: cufflink
+      material: silver
+      weight_lbs: 0.2
+      value: 13
+      description: >-
+        A single silver cufflink with a scratched oval face. Its post is
+        bent, and the match to it is missing.
+  underground-rare:
+    - name: Gilt Silver Reliquary
+      name_simple: reliquary
+      material: silver
+      weight_lbs: 0.4
+      value: 130
+      description: >-
+        A small silver reliquary shaped like a tiny shrine, its hinge
+        stiff with age. Traces of gold leaf still cling inside the empty
+        compartment.
+    - name: Carved Ivory Figurine
+      name_simple: figurine
+      material: ivory
+      weight_lbs: 0.3
+      value: 110
+      description: >-
+        A figurine carved from aged ivory, showing a robed figure with
+        hands raised. Fine cracks spread across the surface in a
+        delicate pattern.
+    - name: Jeweled Gold Hatpin
+      name_simple: hatpin
+      material: gold
+      weight_lbs: 0.2
+      value: 135
+      description: >-
+        A gold hatpin topped with a cluster of small red stones. The pin
+        itself is still straight and holds its point well.
+    - name: Gilded Bronze Ornament
+      name_simple: ornament
+      material: bronze
+      weight_lbs: 0.6
+      value: 120
+      description: >-
+        A bronze ornament cast in the shape of a coiled serpent, meant
+        to hang from a chain. The gilding has worn away along the raised
+        scales.
+    - name: Chased Silver Statuette
+      name_simple: statuette
+      material: silver
+      weight_lbs: 0.5
+      value: 125
+      description: >-
+        A small silver statuette of a seated animal, its details cut by
+        hand. One paw has broken away and is missing.
+    - name: Sapphire-Set Silver Earring
+      name_simple: earring
+      material: silver
+      weight_lbs: 0.1
+      value: 140
+      description: >-
+        A single silver earring set with a small blue stone. Its hook is
+        bent slightly out of shape.
+    - name: Enameled Gold Miniature
+      name_simple: miniature
+      material: gold
+      weight_lbs: 0.2
+      value: 115
+      description: >-
+        A tiny gold frame holding a painted miniature portrait, its
+        colors faded almost to nothing. The frame is edged with a
+        twisted metal border.
+    - name: Jade Devotion Carving
+      name_simple: carving
+      material: jade
+      weight_lbs: 0.4
+      value: 145
+      description: >-
+        A flat piece of jade carved with a spiral pattern. Its edges are
+        worn smooth from years of quiet prayer.
+    - name: Ornate Gold Filigree Cameo
+      name_simple: cameo
+      material: gold
+      weight_lbs: 0.2
+      value: 128
+      description: >-
+        A gold cameo worked in fine filigree, showing a woman's profile
+        in pale stone. The pin on the back is bent but still holds.
+    - name: Polished Onyx Beetle
+      name_simple: beetle
+      material: onyx
+      weight_lbs: 0.3
+      value: 122
+      description: >-
+        A beetle carved from polished black onyx, its wing cases marked
+        with fine lines. It was likely worn as a small charm on a cord.
+  waterside-cheap:
+    - name: Tarnished Harness Bell
+      name_simple: bell
+      material: brass
+      weight_lbs: 0.2
+      value: 4
+      description: >-
+        A small bell that once hung from the harness of a farm horse. Green
+        tarnish covers the brass, and the clapper no longer rings.
+    - name: Cracked Wagon Spoke
+      name_simple: spoke
+      material: oak
+      weight_lbs: 0.6
+      value: 3
+      description: >-
+        A short length of oak, broken away from a cart wheel. One end is
+        still curved to fit the rim, worn smooth by years on the road.
+    - name: Faded Ribbon Knot
+      name_simple: ribbon
+      material: silk
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A knot of ribbon, once bright red, now pale from sun and rain. It
+        may have marked a gate post or tied shut a farm gate.
+    - name: Stray Horseshoe Nail
+      name_simple: nail
+      material: iron
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A bent iron nail, pulled loose from a horseshoe. Its head is worn
+        flat from years of striking stones on the road.
+    - name: Chipped Clay Whistle
+      name_simple: whistle
+      material: clay
+      weight_lbs: 0.2
+      value: 5
+      description: >-
+        A small clay whistle shaped like a bird, missing part of its tail.
+        It once called children in from the fields at the end of the day.
+    - name: Snapped Leather Buckle
+      name_simple: buckle
+      material: tin
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A small buckle, snapped from a leather strap on a farm harness. The
+        tin plating has worn through in patches, showing dull metal beneath.
+    - name: Sunbleached Gull Feather
+      name_simple: feather
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A long white feather from a gull, bleached pale by sun and salt
+        spray. The shaft is smooth, though one edge has gone ragged.
+    - name: Pressed Four-Leaf Clover
+      name_simple: clover
+      material: glass
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A four-leaf clover pressed flat and sealed under a small disk of
+        glass. Farm children once carried these for luck on a long trip.
+    - name: Cracked Terracotta Bead
+      name_simple: bead
+      material: terracotta
+      weight_lbs: 0.1
+      value: 5
+      description: >-
+        A round bead of fired clay, cracked along one side. It likely fell
+        from a string worn by a farmhand or a river trader.
+    - name: Sun-Worn Gate Latch
+      name_simple: latch
+      material: iron
+      weight_lbs: 0.3
+      value: 6
+      description: >-
+        A small iron latch, taken from a farm gate long ago. Rust covers
+        most of its hinge, but the hook end still holds its shape.
+  waterside-average:
+    - name: Driftwood Heron Carving
+      name_simple: heron
+      material: driftwood
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A heron carved from pale driftwood, standing on one leg. The water
+        has rubbed it smooth, but the long beak is still sharp.
+    - name: Brass Weathervane Rooster
+      name_simple: rooster
+      material: brass
+      weight_lbs: 1.5
+      value: 13
+      description: >-
+        A small brass rooster that once spun on top of a farmhouse roof.
+        One wing is bent, but the metal still shines where rain washed it.
+    - name: Carved River Otter Figure
+      name_simple: otter
+      material: walnut
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A small otter carved from dark walnut wood, curled as if asleep.
+        Someone shaped every whisker with a careful, patient hand.
+    - name: Polished River Stone Keepsake
+      name_simple: keepsake
+      material: stone
+      weight_lbs: 0.2
+      value: 11
+      description: >-
+        A flat river stone, drilled through and strung on a leather cord.
+        Its surface is banded in grey and white like slow moving water.
+    - name: Woven Wheat Braid
+      name_simple: braid
+      material: straw
+      weight_lbs: 0.3
+      value: 10
+      description: >-
+        A braid of wheat stalks, woven tight at the harvest for luck. The
+        straw has dried pale gold, and a few stalks are starting to crumble.
+    - name: Small Brass Shepherd Horn
+      name_simple: horn
+      material: brass
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A tiny brass horn worn on a cord, small enough to fit in one hand.
+        It once called sheep and cattle in from the open pasture.
+    - name: River Glass Cluster Brooch
+      name_simple: brooch
+      material: glass
+      weight_lbs: 0.2
+      value: 14
+      description: >-
+        A brooch set with pieces of glass, worn smooth and rounded by
+        running water. The metal pin on the back is bent but still closes.
+    - name: Small Bronze Ship Figurehead
+      name_simple: figurehead
+      material: bronze
+      weight_lbs: 1.0
+      value: 13
+      description: >-
+        A miniature figurehead, broken from the front of a river boat. It
+        is shaped like a leaping fish, worn smooth by wind and spray.
+    - name: Tarnished Silver Harness Emblem
+      name_simple: emblem
+      material: silver
+      weight_lbs: 0.3
+      value: 14
+      description: >-
+        A round silver ornament once stitched to a parade harness for farm
+        horses. Tiny grooves once held colored thread, now long faded.
+    - name: Weathered Wooden Cane Knob
+      name_simple: knob
+      material: ash
+      weight_lbs: 0.4
+      value: 15
+      description: >-
+        A round wooden knob, carved to cap the end of a herding cane. Years
+        of gripping hands have worn it smooth and dark.
+    - name: Etched Pewter Boundary Marker
+      name_simple: marker
+      material: pewter
+      weight_lbs: 0.3
+      value: 11
+      description: >-
+        A small pewter marker, etched with a faint boundary line for a farm
+        field. One edge is worn thin from years in a coat pocket.
+  waterside-rare:
+    - name: Silver-Chased Harness Fitting
+      name_simple: fitting
+      material: silver
+      weight_lbs: 0.8
+      value: 60
+      description: >-
+        A silver-chased fitting that once decorated a parade harness for a
+        noble rider. Fine scrollwork still catches the light along one edge.
+    - name: Gilded Weathervane Falcon
+      name_simple: falcon
+      material: gilded bronze
+      weight_lbs: 2.0
+      value: 70
+      description: >-
+        A gilded falcon that once turned on top of a manor roof. Its wings
+        are spread wide, and gold leaf still clings to the tail.
+    - name: Fine Ivory Fish Carving
+      name_simple: carving
+      material: ivory
+      weight_lbs: 0.3
+      value: 80
+      description: >-
+        A small fish carved from pale ivory, its scales cut in fine, even
+        rows. It was made by a patient hand with a very sharp blade.
+    - name: Sapphire-Set Bridle Stud
+      name_simple: stud
+      material: silver
+      weight_lbs: 0.2
+      value: 90
+      description: >-
+        A silver stud from a ceremonial bridle, set with a small blue
+        sapphire. The pin on the back is still sharp and unbent.
+    - name: Engraved Silver Ferry Plaque
+      name_simple: plaque
+      material: silver
+      weight_lbs: 0.4
+      value: 100
+      description: >-
+        A small silver plaque, engraved with a leaping fish and a ferry
+        crest. One corner is bent where it was pried free.
+    - name: Gold-Threaded Road Cloak Clip
+      name_simple: clip
+      material: gold
+      weight_lbs: 0.1
+      value: 120
+      description: >-
+        A cloak clip worked with fine gold thread, lost somewhere along a
+        well traveled road. The clasp still springs shut when pressed.
+    - name: Amber-Eyed Bronze Fox
+      name_simple: fox
+      material: bronze
+      weight_lbs: 1.2
+      value: 140
+      description: >-
+        A bronze fox with eyes of polished amber, cast for the mantel of a
+        wealthy farmhouse. The tail curls neatly around its own hind legs.
+    - name: Filigree Silver Horseshoe
+      name_simple: horseshoe
+      material: silver
+      weight_lbs: 0.3
+      value: 160
+      description: >-
+        A tiny silver horseshoe, worked with fine filigree wire and carried
+        for luck on a long road. Two of the nail holes are still open.
+    - name: Painted Porcelain Milkmaid Figure
+      name_simple: milkmaid
+      material: porcelain
+      weight_lbs: 0.6
+      value: 180
+      description: >-
+        A painted porcelain figure of a milkmaid carrying two pails. The
+        glaze is smooth and bright, without a single crack.
+    - name: Gilt Bronze Barge Dragon Finial
+      name_simple: finial
+      material: bronze
+      weight_lbs: 2.5
+      value: 200
+      description: >-
+        A gilt bronze dragon that once crowned the front of a wealthy
+        trading barge. Its scales are finely worked, tooth by tooth.
+  ruins-cheap:
+    - name: Cracked Stone Tracery
+      name_simple: tracery
+      material: stone
+      weight_lbs: 0.3
+      value: 3
+      description: >-
+        A curved piece of carved stone tracery, broken from a window or a
+        screen. The pattern of loops and points is still sharp along one
+        edge, but crumbles away at the other.
+    - name: Tarnished Bronze Hinge
+      name_simple: hinge
+      material: bronze
+      weight_lbs: 0.2
+      value: 4
+      description: >-
+        A small bronze hinge, its metal gone dark and dull with age. The
+        pin still turns, though nothing is left for it to hold shut.
+    - name: Chipped Terracotta Flake
+      name_simple: flake
+      material: terracotta
+      weight_lbs: 0.2
+      value: 2
+      description: >-
+        A curved flake of terracotta, broken from a jar or a roof tile
+        long ago. Its outer face still carries a faint ridge pattern
+        pressed into the clay.
+    - name: Bent Iron Hairpin
+      name_simple: hairpin
+      material: iron
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A thin iron hairpin, bent into a shallow curve. Rust has spread
+        along its length, but the small loop at one end still holds its
+        shape.
+    - name: Faded Fresco Sliver
+      name_simple: sliver
+      material: plaster
+      weight_lbs: 0.3
+      value: 5
+      description: >-
+        A thin sliver of old plaster, painted with the faded edge of a
+        larger scene. Only a trace of blue paint and part of a hand
+        remain visible.
+    - name: Splintered Wooden Peg
+      name_simple: peg
+      material: wood
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A short wooden peg, worn smooth and split along one side. It once
+        held two heavy timbers together in a wall or a floor.
+    - name: Corroded Bronze Clasp
+      name_simple: clasp
+      material: bronze
+      weight_lbs: 0.2
+      value: 4
+      description: >-
+        A bronze clasp shaped to close a cloak or a small chest, now
+        crusted with green corrosion. The hinge pin is frozen in place
+        and will not move.
+    - name: Weathered Roof Finial
+      name_simple: finial
+      material: stone
+      weight_lbs: 0.6
+      value: 5
+      description: >-
+        A carved stone finial that once topped a roof ridge, its edges
+        rounded by rain and wind. A crack runs through its base where it
+        broke free.
+    - name: Chipped Plaster Cornice
+      name_simple: cornice
+      material: plaster
+      weight_lbs: 0.5
+      value: 4
+      description: >-
+        A short length of decorative plaster, molded with a row of
+        shallow ridges. One end is chipped away, showing the coarse
+        plaster beneath the painted surface.
+    - name: Weathered Stone Baluster
+      name_simple: baluster
+      material: stone
+      weight_lbs: 0.8
+      value: 4
+      description: >-
+        A short stone post from an old railing, its surface pitted by
+        weather. It is too worn now to show whatever pattern was once
+        carved into it.
+  ruins-average:
+    - name: Faded Mosaic Tile
+      name_simple: tile
+      material: fired clay
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A square tile from an old floor, painted with half of a red bird.
+        The glaze is cracked, and grey mortar still clings to its back.
+    - name: Cracked Bronze Temple Bell
+      name_simple: bell
+      material: bronze
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A small bronze bell, cracked along one side so it can no longer
+        ring true. A worn cord still hangs from the loop at its top.
+    - name: Chipped Alabaster Figurine
+      name_simple: figurine
+      material: alabaster
+      weight_lbs: 0.4
+      value: 13
+      description: >-
+        A pale alabaster figure of a kneeling woman, her hands broken
+        away at the wrist. The stone has gone smooth and slightly yellow
+        with age.
+    - name: Tarnished Silver Brooch
+      name_simple: brooch
+      material: silver
+      weight_lbs: 0.1
+      value: 14
+      description: >-
+        A round silver brooch with a plain pin on its back, the surface
+        gone dark and dull. A thin band of leaves is etched around its
+        edge.
+    - name: Weathered Sandstone Relief
+      name_simple: relief
+      material: sandstone
+      weight_lbs: 0.6
+      value: 11
+      description: >-
+        A flat piece of sandstone carved with part of a marching figure,
+        worn shallow by wind and rain. Only the legs and the hem of a
+        robe remain clear.
+    - name: Cracked Terracotta Storage Jar
+      name_simple: jar
+      material: terracotta
+      weight_lbs: 0.5
+      value: 10
+      description: >-
+        A small terracotta jar with a wide crack down one side, empty and
+        dry inside. Its neck is chipped, and the clay has faded to a pale
+        orange.
+    - name: Faded Tapestry Scrap
+      name_simple: scrap
+      material: wool
+      weight_lbs: 0.1
+      value: 11
+      description: >-
+        A torn scrap of woven cloth, its colors faded to soft browns and
+        greys. A few threads of what was once a bright pattern still show
+        along one edge.
+    - name: Chipped Marble Corbel
+      name_simple: corbel
+      material: marble
+      weight_lbs: 0.7
+      value: 13
+      description: >-
+        A block of marble carved to support a beam that is long gone,
+        chipped along its lower edge. The stone still carries the faint
+        shape of a leaf pattern.
+    - name: Weathered Copper Roundel
+      name_simple: roundel
+      material: copper
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A round copper disc stamped with a worn design, its surface
+        pitted with age. A small hole near the rim shows where it was
+        once fixed to something larger.
+    - name: Tarnished Pewter Locket
+      name_simple: locket
+      material: pewter
+      weight_lbs: 0.1
+      value: 15
+      description: >-
+        A small pewter locket shaped like an oval, its clasp rusted shut.
+        The front is engraved with a pattern too worn to make out
+        clearly.
+    - name: Cracked Sandstone Gargoyle Head
+      name_simple: gargoyle
+      material: sandstone
+      weight_lbs: 1.0
+      value: 14
+      description: >-
+        A weathered sandstone head with a broken snout, carved in the
+        shape of a snarling animal. Deep grooves once channeled
+        rainwater through its open mouth.
+  ruins-rare:
+    - name: Gilded Bronze Reliquary
+      name_simple: reliquary
+      material: bronze
+      weight_lbs: 2.5
+      value: 170
+      description: >-
+        A small bronze box covered in a thin layer of gold, made to hold
+        something sacred that is long gone. Its hinged lid no longer
+        closes all the way, and the gold has worn away at the corners.
+    - name: Carved Ivory Devotional Panel
+      name_simple: panel
+      material: ivory
+      weight_lbs: 1.5
+      value: 120
+      description: >-
+        A flat panel of pale ivory, carved with the outline of a robed
+        figure raising both hands. A crack runs through the middle,
+        splitting the figure almost in two.
+    - name: Engraved Silver Diadem
+      name_simple: diadem
+      material: silver
+      weight_lbs: 0.3
+      value: 150
+      description: >-
+        A thin silver band meant to sit across the brow, engraved with a
+        row of small leaves. One end is bent outward, and the metal has
+        dulled from years underground.
+    - name: Gold Filigree Torque
+      name_simple: torque
+      material: gold
+      weight_lbs: 0.3
+      value: 95
+      description: >-
+        A narrow band of gold twisted into a torque, meant to sit around
+        the neck. One end has come loose from its twist, leaving a short
+        length hanging straight.
+    - name: Antique Bronze Ceremonial Seal
+      name_simple: seal
+      material: bronze
+      weight_lbs: 0.2
+      value: 75
+      description: >-
+        A round bronze seal with a carved face on one side, once pressed
+        into wax to mark a document. The handle is worn smooth, and the
+        carved design has faded at its edges.
+    - name: Carved Jade Ceremonial Plaque
+      name_simple: plaque
+      material: jade
+      weight_lbs: 1.0
+      value: 110
+      description: >-
+        A small plaque of green jade, carved with rows of narrow lines in
+        an old pattern. One corner has broken away, showing the lighter
+        stone underneath.
+    - name: Gold-Threaded Temple Stole
+      name_simple: stole
+      material: silk
+      weight_lbs: 0.4
+      value: 75
+      description: >-
+        A narrow strip of cloth worked with threads of gold, worn thin
+        and frayed along both edges. Part of the pattern has come apart,
+        leaving loose gold thread hanging free.
+    - name: Carved Alabaster Votive Statuette
+      name_simple: statuette
+      material: alabaster
+      weight_lbs: 1.2
+      value: 140
+      description: >-
+        A small alabaster figure of a kneeling worshipper, its stone
+        smooth and pale enough to glow faintly in bright light. The head
+        has broken off and been lost, leaving only the seated body.
+    - name: Gilded Ebony Prayer Icon
+      name_simple: icon
+      material: ebony
+      weight_lbs: 0.8
+      value: 180
+      description: >-
+        A small panel of dark ebony wood, edged with a thin band of gold
+        leaf. It is carved with a simple standing figure, worn soft at
+        the edges from years of handling.
+    - name: Gold-Banded Marble Urn Sherd
+      name_simple: sherd
+      material: marble
+      weight_lbs: 0.6
+      value: 60
+      description: >-
+        A curved piece of white marble, broken from a large urn, with a
+        thin band of gold pressed into its rim. The stone is cool and
+        heavy, and one edge is sharp where it broke away.
+  wild-cheap:
+    - name: Sun-Faded Pine Cone
+      name_simple: cone
+      material: pine
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A small pine cone, dried out and split open at the tip. Its scales
+        have turned pale gray after many seasons in the open air.
+    - name: Frayed Hawk Feather
+      name_simple: feather
+      material: feather
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A brown hawk feather with a frayed, uneven edge. Its shaft is bent
+        from being carried a long way.
+    - name: Sun-Bleached Grass Braid
+      name_simple: braid
+      material: grass
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A short braid of dry grass, tied off at both ends. The blades have
+        faded from green to a dull straw color.
+    - name: Mud-Cracked Clay Bead
+      name_simple: bead
+      material: clay
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A round bead of hardened clay, cracked with dried mud. A faint
+        thumbprint is pressed into one side.
+    - name: Salt-Etched Chalk Sliver
+      name_simple: sliver
+      material: chalk
+      weight_lbs: 0.2
+      value: 5
+      description: >-
+        A thin sliver of white chalk, worn smooth along one edge. Fine
+        lines are scratched across its flat face.
+    - name: Frost-Cracked Slate Chip
+      name_simple: chip
+      material: slate
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A flat chip of gray slate, split clean along one side. Frost has
+        left a rough, pitted edge along the break.
+    - name: Sun-Cracked Clay Chunk
+      name_simple: chunk
+      material: clay
+      weight_lbs: 0.2
+      value: 3
+      description: >-
+        A hard chunk of sun-cracked clay, the color of dust. Deep cracks
+        run across its surface in every direction.
+    - name: Frost-Glazed Birch Twig
+      name_simple: twig
+      material: birch
+      weight_lbs: 0.1
+      value: 5
+      description: >-
+        A short birch twig, coated in a thin layer of frost. The bark has
+        peeled back to show pale wood underneath.
+    - name: Silk-Wrapped Beetle Husk
+      name_simple: husk
+      material: silk
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A hollow beetle husk, wrapped tight in fine spider silk. Its legs
+        are still curled in against its body.
+    - name: Weathered Oak Gall
+      name_simple: gall
+      material: oak
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A round, woody gall pulled from an oak branch. Its surface is
+        rough and dotted with small round scars.
+  wild-average:
+    - name: Polished Agate Pebble
+      name_simple: agate
+      material: agate
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A pebble of banded agate, red and cream, polished smooth by a
+        stream. Held up to the light, its stripes glow like a sunset.
+    - name: Carved Wooden Owl
+      name_simple: owl
+      material: wood
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A small owl carved from a block of pale wood. Its round eyes are
+        two shallow circles cut into the grain.
+    - name: Polished Antler Toggle
+      name_simple: toggle
+      material: antler
+      weight_lbs: 0.1
+      value: 13
+      description: >-
+        A toggle carved from a piece of antler, polished smooth. A narrow
+        groove runs around its middle where a cord once sat.
+    - name: Braided Wheatstraw Knot
+      name_simple: knot
+      material: wheatstraw
+      weight_lbs: 0.2
+      value: 11
+      description: >-
+        A tight knot of braided wheat straw, bound with thin twine. The
+        straw has dried to a golden color.
+    - name: Carved Cypress Frog
+      name_simple: frog
+      material: cypress
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A small frog carved from a block of cypress wood. Its back is
+        marked with rows of shallow carved dots.
+    - name: Wind-Carved Driftwood Gull
+      name_simple: gull
+      material: driftwood
+      weight_lbs: 0.4
+      value: 13
+      description: >-
+        A gull shaped from a piece of driftwood by wind and salt. One
+        wing is worn thinner than the other.
+    - name: Hammered Tin Bell
+      name_simple: bell
+      material: tin
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A small bell hammered from a sheet of tin, dented on one side.
+        Its clapper is missing, so it makes no sound.
+    - name: Painted Clay Scarab
+      name_simple: scarab
+      material: clay
+      weight_lbs: 0.2
+      value: 14
+      description: >-
+        A scarab beetle shaped from fired clay, painted a faded blue.
+        Fine lines are scratched across its back to mark the wings.
+    - name: Frost-Carved Antler Snowflake
+      name_simple: snowflake
+      material: antler
+      weight_lbs: 0.2
+      value: 12
+      description: >-
+        A small snowflake shape carved from antler, with six thin points.
+        One point has broken off close to the center.
+    - name: Web-Silk Bound Talisman
+      name_simple: talisman
+      material: wood
+      weight_lbs: 0.3
+      value: 15
+      description: >-
+        A small wooden talisman, wrapped round and round in fine spider
+        silk thread. A faint pattern is carved into the wood beneath it.
+    - name: Painted Birchbark Fan
+      name_simple: fan
+      material: birchbark
+      weight_lbs: 0.2
+      value: 11
+      description: >-
+        A small fan folded from a strip of birch bark, painted with faded
+        red lines. One edge is torn where the bark has dried and cracked.
+  pocket-cheap:
+    - name: Cracked Glass Bead
+      name_simple: bead
+      material: glass
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A small glass bead, colored deep blue and cracked through the
+        middle. It once hung on a plain string along with several others.
+    - name: Frayed Wool Ribbon
+      name_simple: ribbon
+      material: wool
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A short length of wool ribbon, dyed pale green and frayed at both
+        ends. It is soft to the touch and could still tie into a small bow.
+    - name: Dented Brass Buckle
+      name_simple: buckle
+      material: brass
+      weight_lbs: 0.2
+      value: 5
+      description: >-
+        A small brass buckle, dented on one side as if stepped on. The
+        tongue still moves, though the shine on the metal is long gone.
+    - name: Bent Tin Hair Clip
+      name_simple: clip
+      material: tin
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A tin hair clip shaped like a leaf, bent slightly out of true. The
+        thin paint on it has worn away along both edges.
+    - name: Tarnished Iron Clasp
+      name_simple: clasp
+      material: iron
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        An iron clasp from a cloak or a bag, dark all over with tarnish.
+        The small hinge still opens and closes with a soft click.
+    - name: Cracked Clay Bell
+      name_simple: bell
+      material: clay
+      weight_lbs: 0.2
+      value: 5
+      description: >-
+        A small clay bell with a hairline crack down one side. It gives a
+        dull, flat sound instead of a clear ring.
+    - name: Faded Cloth Tassel
+      name_simple: tassel
+      material: cloth
+      weight_lbs: 0.1
+      value: 2
+      description: >-
+        A tassel of faded red cloth, once bright and now dull with age.
+        Loose threads hang free from its worn end.
+    - name: Chipped Pewter Button
+      name_simple: button
+      material: pewter
+      weight_lbs: 0.1
+      value: 5
+      description: >-
+        A round pewter button, chipped along one edge. A faint pattern of
+        leaves can still be seen pressed into its face.
+    - name: Carved Bone Hairpin
+      name_simple: hairpin
+      material: bone
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A hairpin carved from bone, smooth and plain along its length. The
+        tip has gone round and soft from years of use.
+    - name: Bent Copper Tiepin
+      name_simple: tiepin
+      material: copper
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A slim copper tiepin, bent slightly near the clasp end. Its
+        surface has dulled from bright copper to a soft brown.
+  pocket-average:
+    - name: Engraved Brass Locket
+      name_simple: locket
+      material: brass
+      weight_lbs: 0.3
+      value: 11
+      description: >-
+        A brass locket shaped like a small oval, engraved with a simple
+        flower. The clasp is stiff, and the inside sits empty.
+    - name: Filigree Silver Brooch
+      name_simple: brooch
+      material: silver
+      weight_lbs: 0.3
+      value: 14
+      description: >-
+        A silver brooch worked into curling wire, in the shape of a small
+        leaf. One curl near the pin has been pressed flat.
+    - name: Twisted Silver Earring
+      name_simple: earring
+      material: silver
+      weight_lbs: 0.1
+      value: 12
+      description: >-
+        A single silver earring, twisted into a simple spiral. Its hook is
+        thin and bent slightly out of shape.
+    - name: Stamped Brass Cufflink
+      name_simple: cufflink
+      material: brass
+      weight_lbs: 0.1
+      value: 11
+      description: >-
+        A single brass cufflink, stamped with a plain diamond pattern. The
+        back post is loose but still holds firm.
+    - name: Painted Tin Snuffbox
+      name_simple: snuffbox
+      material: tin
+      weight_lbs: 0.4
+      value: 13
+      description: >-
+        A small tin snuffbox with a hinged lid, painted with a faded
+        country scene. The hinge creaks but still opens smoothly.
+    - name: Plain Silver Stud
+      name_simple: stud
+      material: silver
+      weight_lbs: 0.1
+      value: 10
+      description: >-
+        A plain silver stud, round and smooth, made for a collar or a
+        cuff. It carries no mark or pattern anywhere on its face.
+    - name: Painted Paper Fan
+      name_simple: fan
+      material: paper
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A folding fan of painted paper, showing a row of thin mountains.
+        Two of its thin wooden ribs are cracked near the base.
+    - name: Dyed Feather Plume
+      name_simple: plume
+      material: feather
+      weight_lbs: 0.1
+      value: 13
+      description: >-
+        A plume of dyed feathers, once meant for a fine hat. The color has
+        faded from deep purple to a soft gray.
+    - name: Carved Shell Cameo
+      name_simple: cameo
+      material: shell
+      weight_lbs: 0.3
+      value: 15
+      description: >-
+        A cameo carved from pale shell, showing the calm profile of a
+        face. A thin crack runs along the lower edge.
+    - name: Embroidered Cloth Sachet
+      name_simple: sachet
+      material: cloth
+      weight_lbs: 0.2
+      value: 14
+      description: >-
+        A small cloth sachet, embroidered with a ring of tiny flowers.
+        Dried petals shift softly inside when it is turned.
+  pocket-rare:
+    - name: Garnet Hair Comb
+      name_simple: comb
+      material: silver
+      weight_lbs: 0.2
+      value: 140
+      description: >-
+        A silver comb for pinning up hair, set with a row of small, dark red
+        garnets. A few fine hairs are still caught between its teeth.
+    - name: Etched Gold Locket
+      name_simple: locket
+      material: gold
+      weight_lbs: 0.2
+      value: 100
+      description: >-
+        A gold locket etched with a fine spiral pattern around its edge.
+        Inside, a tiny painted portrait has faded to soft colors.
+    - name: Garnet Cluster Brooch
+      name_simple: brooch
+      material: garnet
+      weight_lbs: 0.3
+      value: 140
+      description: >-
+        A brooch set with a tight cluster of small dark red garnets. The
+        silver mount around them is worked into fine leaf shapes.
+    - name: Matched Pearl Earring
+      name_simple: earring
+      material: pearl
+      weight_lbs: 0.1
+      value: 90
+      description: >-
+        A single pearl earring, the pearl round and evenly colored. Its
+        silver wire hook is delicate but not bent.
+    - name: Engraved Silver Cufflink
+      name_simple: cufflink
+      material: silver
+      weight_lbs: 0.1
+      value: 80
+      description: >-
+        A silver cufflink engraved with tight, careful lines in a wave
+        pattern. The metal is heavy and holds a bright polish.
+    - name: Fine Ivory Cameo
+      name_simple: cameo
+      material: ivory
+      weight_lbs: 0.2
+      value: 110
+      description: >-
+        A cameo carved from pale ivory, showing a face turned in profile
+        with fine detail. The carving is deep and shows real skill.
+    - name: Chased Silver Bangle
+      name_simple: bangle
+      material: silver
+      weight_lbs: 0.4
+      value: 120
+      description: >-
+        A silver bangle worked all around with a chased pattern of vines.
+        It is heavy for its size and gives a soft ring when it moves.
+    - name: Silver Bell Anklet
+      name_simple: anklet
+      material: silver
+      weight_lbs: 0.3
+      value: 100
+      description: >-
+        A silver anklet strung with a row of tiny bells, each one finely
+        cast. The chain between them is thin but strong.
+    - name: Ornate Gold Clasp
+      name_simple: clasp
+      material: gold
+      weight_lbs: 0.2
+      value: 130
+      description: >-
+        An ornate gold clasp, shaped like two hands held together. The
+        craftsmanship is fine, down to each carved finger.
+    - name: Carved Ivory Comb
+      name_simple: comb
+      material: ivory
+      weight_lbs: 0.3
+      value: 150
+      description: >-
+        A comb carved from a single piece of ivory, its handle shaped like
+        a wave. The teeth are fine and even, cut with real skill.
+    - name: Jeweled Gold Tiepin
+      name_simple: tiepin
+      material: gold
+      weight_lbs: 0.1
+      value: 180
+      description: >-
+        A gold tiepin topped with a small bright gem, set in a fine claw
+        mount. The gold is soft and heavy, marked with tiny hammer strokes.
+  wild-rare:
+    - name: Spiral Snail Fossil
+      name_simple: fossil
+      material: stone
+      weight_lbs: 1.2
+      value: 95
+      description: >-
+        A stone the size of a palm, split open to show a coiled snail shell
+        inside. It turned to stone long before any town was built.
+    - name: Silver Oak-Leaf Clasp
+      name_simple: clasp
+      material: silver
+      weight_lbs: 0.2
+      value: 110
+      description: >-
+        A clasp shaped like an oak leaf, cast in solid silver. Fine veins
+        are etched into the metal from stem to tip.
+    - name: Frost-Silver Fox Figurine
+      name_simple: figurine
+      material: silver
+      weight_lbs: 0.4
+      value: 130
+      description: >-
+        A small fox figurine cast in bright silver, sitting with its tail
+        curled around its feet. Its fur is rendered in tiny engraved lines.
+    - name: Gilded Wheat Sheaf Brooch
+      name_simple: brooch
+      material: gilded bronze
+      weight_lbs: 0.2
+      value: 100
+      description: >-
+        A brooch shaped like a bundle of wheat, cast in bronze and
+        covered in gold leaf. Each stalk is finely detailed down to its
+        small grains.
+    - name: Carved Jade Frog Idol
+      name_simple: idol
+      material: jade
+      weight_lbs: 0.6
+      value: 140
+      description: >-
+        A squat frog idol carved from a solid block of green jade. Its
+        eyes are two smooth, polished domes set deep in the stone.
+    - name: Polished Opal Cliff Swallow
+      name_simple: swallow
+      material: opal
+      weight_lbs: 0.3
+      value: 115
+      description: >-
+        A small swallow carved from a piece of polished opal, its wings
+        swept back. Bands of blue and green shift across the stone in
+        the light.
+    - name: Engraved Silver Ibex Horn
+      name_simple: horn
+      material: silver
+      weight_lbs: 0.5
+      value: 150
+      description: >-
+        A short ibex horn capped and banded in engraved silver. The
+        silver bands are cut with a pattern of running mountain goats.
+    - name: Polished Sunstone Falcon
+      name_simple: falcon
+      material: sunstone
+      weight_lbs: 0.3
+      value: 125
+      description: >-
+        A falcon carved from a piece of polished sunstone, wings folded
+        tight. Tiny flecks in the stone catch the light like scattered
+        sparks.
+    - name: Carved Ivory Snow Rabbit
+      name_simple: rabbit
+      material: ivory
+      weight_lbs: 0.4
+      value: 105
+      description: >-
+        A small rabbit carved from smooth ivory, ears laid flat along its
+        back. Its surface has been polished until it shines like glass.
+    - name: Silver-Wrapped Spider Sigil
+      name_simple: sigil
+      material: silver
+      weight_lbs: 0.3
+      value: 160
+      description: >-
+        A flat wooden disk wrapped tightly in fine silver wire, shaped
+        like a spider. Eight thin wire legs curl out from its edges.
+    - name: Carved Jet Mountain Goat
+      name_simple: goat
+      material: jet
+      weight_lbs: 0.5
+      value: 75
+      description: >-
+        A mountain goat carved from a block of polished black jet. Its
+        horns curve back in two sharp, matching arcs.
+  cheap:
+    - name: Worn Iron Hairpin
+      name_simple: hairpin
+      material: iron
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A hairpin of plain iron, bent slightly out of its straight line. One
+        end is worn round and smooth from long use.
+    - name: Faded Velvet Ribbon
+      name_simple: ribbon
+      material: velvet
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A ribbon of velvet, faded from red to a pale pink. The ends are
+        frayed, as if tied and untied many times.
+    - name: Cloudy Blue Glass Bead
+      name_simple: bead
+      material: glass
+      weight_lbs: 0.1
+      value: 3
+      description: >-
+        A round bead of cloudy glass, scratched along one side. Held up to
+        the light, it shows a faint swirl of blue inside.
+    - name: Tarnished Silver Clasp
+      name_simple: clasp
+      material: silver
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A small clasp of tarnished silver, shaped like a curling leaf. The
+        pin still closes with a firm, steady click.
+    - name: Tarnished Tin Toggle
+      name_simple: toggle
+      material: tin
+      weight_lbs: 0.1
+      value: 4
+      description: >-
+        A toggle of tin, made for closing a coat that is long gone. A short
+        twist of cord still hangs from the loop at its back.
+  average:
+    - name: Faded Garden Locket
+      name_simple: locket
+      material: tin
+      weight_lbs: 0.3
+      value: 12
+      description: >-
+        A tin locket painted with a faded garden scene, hinged along one
+        edge. Inside, the frame that once held a portrait sits empty.
+    - name: Etched Pewter Buckle
+      name_simple: buckle
+      material: pewter
+      weight_lbs: 0.4
+      value: 12
+      description: >-
+        A pewter buckle etched with a running vine, its tongue loose in
+        the keeper. The edge is worn smooth from years on a leather strap.
+    - name: Beaded Copper Brooch
+      name_simple: brooch
+      material: copper
+      weight_lbs: 0.3
+      value: 13
+      description: >-
+        A brooch of copper wire wound around three glass beads, dulled but
+        not broken. The pin on the back still holds firm.
+    - name: Polished Horn Hatpin
+      name_simple: hatpin
+      material: horn
+      weight_lbs: 0.2
+      value: 13
+      description: >-
+        A hatpin of polished horn, topped with a small carved bird. The
+        point has grown dull from years of pinning felt.
+    - name: Beaded Glass Bangle
+      name_simple: bangle
+      material: glass
+      weight_lbs: 0.4
+      value: 13
+      description: >-
+        A bangle of glass beads strung on wire, their colors dulled by
+        years of wear. One bead is cracked, but none have come loose.
+  rare:
+    - name: Carved Ivory Cameo
+      name_simple: cameo
+      material: ivory
+      weight_lbs: 0.3
+      value: 130
+      description: >-
+        A cameo carved from ivory, showing a woman's face in raised
+        outline. It sits in a silver frame, worn smooth but never chipped.
+    - name: Gold Filigree Hairclip
+      name_simple: hairclip
+      material: gold
+      weight_lbs: 0.2
+      value: 120
+      description: >-
+        A hairclip of gold wire, twisted into a fine, lacy pattern. Every
+        curl is unbroken, and the gold still shines bright.
+    - name: Pearl Drop Earring
+      name_simple: earring
+      material: pearl
+      weight_lbs: 0.1
+      value: 120
+      description: >-
+        A single earring set with a round pearl, its gold hook bent a
+        little from its original shape. Its matching earring is missing.
+    - name: Garnet Silver Cufflink
+      name_simple: cufflink
+      material: silver
+      weight_lbs: 0.2
+      value: 115
+      description: >-
+        A single cufflink of silver, centered on a deep red garnet. The
+        catch on the back still turns smoothly on its pin.
+    - name: Braided Gold Anklet
+      name_simple: anklet
+      material: gold
+      weight_lbs: 0.3
+      value: 130
+      description: >-
+        An anklet of fine gold wire, braided into a tight, rope-like
+        pattern. The clasp is a small hinged loop, stiff but unbroken.
