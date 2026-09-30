@@ -436,3 +436,23 @@ func TestAdminBauble_ShowKeepsTheLastSaleAfterABuyback(t *testing.T) {
 	assert.Contains(t, out, "[ready]", "the header shows where it is now")
 	assert.Contains(t, out, "last sold: 6 gold", "the sale stays visible")
 }
+
+// "Was sold" is read from SoldAt, the field SalesSince reads, not from the
+// gold: a sale for nothing is still a sale, and a record never sold shows no
+// sold line.
+func TestAdminBauble_ShowReadsTheSaleFromSoldAt(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+	admin, room := getTestUserAndRoom(t)
+
+	rec, err := baubles.Create(baubles.Record{Name: "Bone Dice", NameSimple: "dice", Tier: baubles.TierAverage,
+		Value: 12, WeightLbs: 0.2, Description: "A pair of yellowed bone dice.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI})
+	require.NoError(t, err)
+	assert.NotContains(t, adminSaid(t, "show "+rec.Id, admin, room), "last sold", "never sold: no sold line")
+
+	require.True(t, baubles.MarkSold(rec.Id, 0, 7))
+	assert.Contains(t, adminSaid(t, "show "+rec.Id, admin, room), "last sold: 0 gold", "sold for nothing is still sold")
+}

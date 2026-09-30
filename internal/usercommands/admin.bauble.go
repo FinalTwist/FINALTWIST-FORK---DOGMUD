@@ -247,7 +247,8 @@ func baubleShow(args []string, user *users.UserRecord, room *rooms.Room) (bool, 
 	}
 	// The last sale stays visible after a buyback puts the record back in a
 	// pack (baubles slice D); the [status] header says where it is now.
-	if rec.SoldValue > 0 {
+	// SoldAt says whether it was sold, as in baubles.SalesSince.
+	if !rec.SoldAt.IsZero() {
 		fmt.Fprintf(&b, "  last sold:   %d gold, %s\r\n", rec.SoldValue, rec.SoldAt.Format(`2006-01-02 15:04 MST`))
 	}
 	fmt.Fprintf(&b, "  description: %s\r\n", rec.Description)
