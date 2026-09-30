@@ -175,19 +175,21 @@ default is live.
    never a light (no sneak beacon).
 9. **Tests and gates** as in "Testing and gates". Out of scope as listed.
 
-## Where the design needs a decision
+## Owner rulings on the source findings (binding, 2026-09-30)
 
 Nine items. D1, D2, D3 and D8 change the shape of the work; the rest are
-small. Each carries a recommendation; the rules below are written as if every
-recommendation is taken.
+small. The owner took the recommendation as written for D1, D2, D3, D4, D5,
+D6, D7 and D9. D8 is ruled AGAINST its recommendation: all shapes count as
+seeing for a mob's decisions, not infravision shapes alone. The rules that
+follow are written to these rulings.
 
 **D1. The record model has no polarity (R1, R3, R7, R11 to R13).** A light
 record is "a spec that declares `light_strength`", a literal of 0 or less is
 refused at load, and seven readers key on `IsLightSource()` / `LightSources()`,
 including `EmitsLight`. A `darkens` flag on a `light_strength` record would
 make every one of them count darkness as light unless each is patched, and one
-missed reader makes the dark a sneak beacon (owner item 8). **Recommend:** a
-NEW effect kind `darkness_strength` (`EffectDarknessStrength`), in
+missed reader makes the dark a sneak beacon (owner item 8). **Ruled (owner,
+2026-09-30):** a NEW effect kind `darkness_strength` (`EffectDarknessStrength`), in
 `AllEffectKinds` and `ScaledKinds`, sharing the record's `LightTrim`,
 `LightOutput` and `ResetLight` state. `IsLightSource()` stays light-only, so
 `EmitsLight`, `hood`, the as-lit end line and every other light reader exclude
@@ -203,20 +205,20 @@ light `L` AND the other darkness `D_others`, two numbers. The linear Darkens
 branch has no production caller (L6). Note what the algebra gives: keeping the
 room at or above `floor` means `Combine(D_others, d) <= L - floor`, which is
 the light solve exactly, with `others = D_others` and `target = L - floor`.
-**Recommend:** delete the linear branch and the `Polarity` argument (its only
+**Ruled (owner, 2026-09-30):** delete the linear branch and the `Polarity` argument (its only
 reader is `Trim`), keep `Trim(step, others, max, target)` as the one solve, and
 add NEW `TrimDarkness(step, light, otherDark, max, floor float64) float64`:
 Absent light reads 0; `budget := light - floor`; `budget <= 0` returns
 Absent (the room is already at or below the floor, so this source is not
 needed); otherwise `Trim(step, otherDark, max, budget)`. This is L5's
 caller-side floor, applied once. One solve serves both polarities, so arc
-ruling 1 ("one adjustment function") holds. Alternative: keep `Polarity` and
-give `Trim` a `light` parameter only Darkens reads; every light caller would
-pass an unused argument.
+ruling 1 ("one adjustment function") holds. Rejected alternative: keep
+`Polarity` and give `Trim` a `light` parameter only Darkens reads; every
+light caller would pass an unused argument.
 
 **D3. The light trim must see darkness too (L8, L9, L11).** `TrimLightFor`
 solves against `Raw`. With darkness in the room, `Raw` is net light, and
-`Combine(net, s)` is the wrong algebra. **Recommend:** `LightTerms` gains NEW
+`Combine(net, s)` is the wrong algebra. **Ruled (owner, 2026-09-30):** `LightTerms` gains NEW
 `Light float64` (the combined light, Absent when none) and `Dark float64`
 (the combined darkness, Absent when none) and `Darkened bool`; `Raw` becomes
 the net value `Level` rounds (`Light` read as 0, minus `Dark`). The light
@@ -227,12 +229,12 @@ does. Finishing this sibling path is in scope, not a follow-up.
 **D4. Band notices would blame the eyes (N1, N2).** A darkness arriving or
 lapsing moves no current term, so `attribute` falls to `CauseEyes` ("your
 sight changed"), and `carried`'s lines ("The carried light is gone") are wrong
-for it. **Recommend:** NEW `CauseDarkness = "darkness"`, checked first among
+for it. **Ruled (owner, 2026-09-30):** NEW `CauseDarkness = "darkness"`, checked first among
 the terms (`a.Darkened != b.Darkened` or `Dark` moved), with a NEW
 `narration/light-notices/darkness.yaml` authoring all six transitions;
 `light_notices.golden` re-recorded with the new pool only.
 
-**D5. `help darkness` opens `light` today (H1).** **Recommend:** remove
+**D5. `help darkness` opens `light` today (H1).** **Ruled (owner, 2026-09-30):** remove
 `darkness` from `light`'s aliases, add the `darkness` topic under `general:`
 with aliases `umbral`, `pall`; `dark` stays with `light`.
 
@@ -240,12 +242,12 @@ with aliases `umbral`, `pall`; `dark` stays with `light`.
 spell condition's start observer line is judged after the record lands, so
 observers the darkness has just blinded miss "a pall gathers around X"; the
 equip line for the Umbral Lantern likewise. This is the mirror of the light
-end-line problem R16 already solves. **Recommend:** a darkness source's start
+end-line problem R16 already solves. **Ruled (owner, 2026-09-30):** a darkness source's start
 room line, and the equip room line of an item whose worn condition is a
 darkness source, are judged as lit (`SendTextVisualAsLitHidingNames` /
 `SendTextVisualAsLit`). End lines need nothing: the room is lighter by then.
 
-**D7. No GMCP field exists (G1 to G3).** **Recommend:** a NEW package
+**D7. No GMCP field exists (G1 to G3).** **Ruled (owner, 2026-09-30):** a NEW package
 `Char.Sight` with one field, `{"band": "dark" | "shapes" | "faces" |
 "dazzled"}` (`Band.String()`), built from `messaging.LightBand` in
 `GetCharNode` and included in the full `Char` payload. `lightnotice.Check`,
@@ -261,15 +263,47 @@ Phantom reads SHAPES by heat, so `players_in_room` fails and its signature
 ambush (M4) never fires; it would fight only when attacked. Today, in its lair
 at 0 with no infravision, the same gate is false too, and the ambush fires
 only when players carry at least 50 of light in. After 5d the players would
-need 100, so the ambush is dead for good. **Recommend:** `mobCanSee` also
-returns true when the mob reads shapes through infravision (`InfraReach() > 0`,
-the natural window reads none, `light >= -reach`); natural dim shapes stay
-not-seeing, as slice F ruled. This also wakes the five condition-85 mobs
-(I4) in dark rooms, which is the parent's "infravision is the
-darkness weapon" and 5c's stated expectation. Alternative: accept a passive
-Phantom.
+need 100, so the ambush is dead for good.
 
-**D9. Details the design left open.** **Recommend:** spell `targeting:
+**Ruled (owner, 2026-09-30): NOT the recommendation.** ALL shapes count as
+seeing for a mob's decisions: `mobCanSee` returns true at `SightShapes` from
+ANY cause, natural dim light or infravision, not infravision alone. This
+overturns slice F's own ruling, that a mob's sight is `SightFull` only and
+infravision shapes are not seeing for it
+(`specs/completed/2026-09-11-followup-slice-f-mobs-perceive-darkness-design.md`),
+and it overturns this spec's own recommendation above, which would have kept
+natural dim shapes not-seeing.
+
+`mobCanSee`'s callers, verified by grep (no non-test caller exists outside
+these three): `condPlayersInRoom`
+(`internal/behaviortree/conditions_player.go:118`, target acquisition for the
+ambusher archetype, the bandit leader and the Phantom), the enemy count at
+`conditions_player.go:196`, and the party-engage aggro check at
+`internal/behaviortree/actions_party.go:238`. All three now fire on shapes,
+so every behaviour they gate shifts. Consequences: the Phantom ambushes under
+its own darkness (M4); the five condition-85 mobs (I4) in dark rooms engage,
+which is the parent's "infravision is the darkness weapon" and 5c's stated
+expectation; AND, because the rule is now shapes from any cause, every mob
+everywhere in a DIM room (the shapes band, S2, S4) with a player present now
+acts on the figure it can make out, for ambush, aggro and targeting alike,
+whether or not either side has infravision. That is a broad, balance-visible
+change across every dim room in the world, not one scoped to the Phantom or
+to infravision.
+
+The fix must land in `behaviortree/sight.go`'s `mobCanSee`, not in
+`messaging.CanSeeSightImpairedOnly`, which it calls today. That function is
+shared with combat: `internal/hooks/NewRound_DoCombat_resolution.go:98,111`
+and `internal/hooks/NewRound_DoCombat_unified.go:565,568` read it to gate
+`Balance.DarknessCombatPenalty` on each side of a fight, and its own doc
+comment warns that widening it "would hand every infrared character a silent
+balance change", the concern behind the 2026-09-20 owner ruling that infrared
+takes a REDUCED, not a zero, combat penalty
+(`specs/completed/2026-09-20-messaging-m4d-send-path-design.md`, ruling 6).
+So `mobCanSee` must call `messaging.ParticipantSight` directly and accept
+`SightFull` or `SightShapes` there, leaving `CanSeeSightImpairedOnly` and the
+combat darkness penalty untouched; only mob decisions widen.
+
+**D9. Details the design left open.** **Ruled (owner, 2026-09-30):** spell `targeting:
 single` (glow's; cast on another, it trims to that holder's eyes, P5), `cost:
 50` (between Night Vision 45 and Heat Sight 80), `waitrounds: 3`, school
 mental. Knob yaml names keep the `Light` family prefix, `LightDarknessSpell*`,
@@ -446,6 +480,11 @@ non-light record).
   floor, -50, which in a cave is still full.
 - Another darkness brought in pushes the lair below -50 and blinds it: a
   second darkness 50 makes -58.
+- Under D8's ruling `mobCanSee` accepts `SightShapes` from any cause, so the
+  Phantom reading shapes at its own reach 50 passes `players_in_room` and its
+  ambush fires (M4). The fix lives in `mobCanSee`
+  (`internal/behaviortree/sight.go`), not in `messaging.CanSeeSightImpairedOnly`,
+  which combat's darkness penalty also reads (D8).
 
 ### Rule 7: the Game-window border (owner item 6, D7)
 
@@ -495,6 +534,14 @@ and the text already tells them, so no room contents reach GMCP.
   heavy light in (a torch leaves it at 6, still dark to normal eyes); a
   Heat Sight caster reads shapes, at reach 50 with no penalty. With D8 the
   Phantom ambushes from the dark.
+- **Every dim room's mobs now act on what they can make out.** D8 is ruled
+  against its recommendation: `mobCanSee` accepts `SightShapes` from ANY
+  cause, natural dim light or infravision, not infravision alone. A mob does
+  not need infravision, and a player does not need to be seen clearly, for
+  `players_in_room`, enemy counting or party aggro to fire; the shapes band
+  (S2, S4) is enough everywhere, not only in the Phantom's lair. This is a
+  broad, balance-visible change, overturning slice F's ruling that a mob's
+  sight is `SightFull` only.
 - **A new drop.** The Umbral Lantern, one in four kills.
 - **The Game window's border** shows how well you can see.
 - **Unchanged by construction:** sight gates, the shapes and blind tiers,
@@ -511,6 +558,7 @@ and the text already tells them, so no room contents reach GMCP.
 | Parent 5a out of scope: "Mobs deliberately carrying lights: no content" | The Phantom carries a darkness in its light slot |
 | 5a `Trim` Darkens: a linear cut (L5) | The darkness combine solved by the same log solve (D2) |
 | 5a `LightTerms.Raw` is the light combine | `Raw` is net light; `Light` and `Dark` carry the two combines (D3) |
+| Slice F ruling: a mob's sight is `SightFull` only, infravision shapes are not seeing for it (`specs/completed/2026-09-11-followup-slice-f-mobs-perceive-darkness-design.md`) | `mobCanSee` accepts `SightShapes` from any cause, natural dim light or infravision (owner ruling, D8, 2026-09-30, NOT this spec's own recommendation) |
 
 ## Testing and gates
 
@@ -542,7 +590,14 @@ and the text already tells them, so no room contents reach GMCP.
 - **The Phantom's lair**: load the shipped world, spawn 272 in 508, assert
   level -50, its `InfraReach()` 50, `LightBand` shapes for it and dark for a
   normal player, the lantern in its light slot with drop chance 25; with D8,
-  `mobCanSee` true for it and false for a normal-eyed mob there.
+  `mobCanSee` true for it and false for a normal-eyed mob there (at -50 a
+  normal-eyed mob is still below `windowFloor`, so D8's widening does not
+  reach it).
+- **D8's widened `mobCanSee`**: a mob in a DIM (shapes-band) room with a
+  player present now passes `mobCanSee` / `condPlayersInRoom`, regardless of
+  infravision on either side; a mob in a genuinely dark room, below the
+  shapes floor, with no infravision still does not. Proven able to fail by
+  reverting `mobCanSee` to `SightFull` only.
 - **Notices and GMCP**: the darkness cause fires on a cast and on expiry, not
   `eyes`; `Char.Sight` is queued on a band change and not on a repeat.
 - **Goldens**: `light_notices.golden` and the conditions snapshot gain only
