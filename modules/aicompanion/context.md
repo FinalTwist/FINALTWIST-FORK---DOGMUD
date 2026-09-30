@@ -52,8 +52,9 @@ Roadmap and phase plan: `docs/aicompanion/`.
   her, `ask`, an emote, a gift, healing) is heard and remembered as usual
   but queued only if `strangerMayAsk` passes (their daily allowance,
   then what passers-by together may spend of this owner's companion,
-  then a per-companion cooldown that trying spends; `cooldownFor` turns
-  its seconds into the rounds a character cooldown counts), called once
+  then a per-companion cooldown that trying spends, passed to the
+  cooldown as `N real seconds`, which the period parser rounds up to
+  whole rounds), called once
   per thing, just before the push. Their stimuli carry `AskerUserId`.
   With strangers off she still hears them and answers with set lines,
   paced by the same cooldown, but `strangerMayPrompt` stops any call they
@@ -116,7 +117,15 @@ Roadmap and phase plan: `docs/aicompanion/`.
   fit, skill rank words and rank-change detection.
 - **inventory.go**: supplies and shortfalls, carrying load, protected items.
 - **economy.go**: `browse` (priced as `list` prices), shop and price
-  memory, the money rules for buying.
+  memory, the money rules for buying. Since baubles slice D, `browseShops`
+  also appends a living shop's listed secondhand shelf after its stock
+  (`ShopInventory.ListedIndexes(shops.ShelfNow())`, shelf order, never a
+  held entry) as `ware` rows with `Secondhand` set, each named with
+  `items.Item.ModelName()` so no player-written bauble text reaches the
+  model. `describeListing` shows those rows with no item reference, and
+  `rememberShop` skips them, because a shelf row shares its `ItemId` with
+  regular stock (every bauble is item 900). So she can see shelf goods but
+  cannot buy them.
 - **loot.go**: the module's own mob commands `companion-loot` (owner's loot
   rights only) and `companion-takeout` (unhidden, unlocked containers).
 - **cooking.go**: `craftableHere(mob, p, room)` lists what she knows, has the

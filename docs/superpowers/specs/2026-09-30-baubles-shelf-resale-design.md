@@ -459,8 +459,14 @@ Owner rulings of 2026-09-30.
    This stops twelve value-1 trinkets evicting shelved gear and closes the
    bauble Bartering loop (sections 2, 13).
 6. **The backroom is capped at the shelf cap (12).** A shop holding that
-   many refuses another hot bauble, in the fences' voice. Held entries
-   count against the held cap, not the listed cap (section 2).
+   many refuses another hot bauble. A fence says so in its own voice
+   (`baubleSayBackroomFull`, "I can't move any more hot goods right now.
+   Come back once some of what I'm sitting on has cooled."); an honest shop
+   refuses in a neutral voice of its own (`baubleSayNoRoom`, "I'm afraid
+   I've no room for more of those right now."), added by controller
+   decision during plan review, since an honest merchant would not talk
+   about hot goods. Held entries count against the held cap, not the listed
+   cap (section 2).
 7. **Only a player's sale shelves a bauble.** A mob's sale destroys it,
    because the shop never pays a mob (section 2).
 8. **Give-back after a buyback is intended.** It costs about 40% of value

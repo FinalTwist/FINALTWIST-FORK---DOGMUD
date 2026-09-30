@@ -883,6 +883,7 @@ type Balance struct {
 	ShopOverstockDecayQty       ConfigInt   `yaml:"ShopOverstockDecayQty,omitempty"`    // Units removed per decay fire (default 1)
 	BarterMaxDiscount           ConfigFloat `yaml:"BarterMaxDiscount,omitempty"`        // Max fractional price reduction a player can get via bartering (default 0.15)
 	BarterMaxBonus              ConfigFloat `yaml:"BarterMaxBonus,omitempty"`           // Max fractional sell-price bonus a player can get via bartering (default 0.15)
+	ShopAffixedStockCap         ConfigInt   `yaml:"ShopAffixedStockCap"`                // Max listed entries on a shop's secondhand shelf (AffixedStock: bought-back affixed gear, average and rare baubles); over it the one listed earliest goes. Also the most hot baubles a shop holds out of sight (default 12)
 	StorageFeePerItem           ConfigInt   `yaml:"StorageFeePerItem"`                  // Gold charged per stored item per game month (default 1)
 	StorageSeizureMinValue      ConfigInt   `yaml:"StorageSeizureMinValue"`             // Min aggregate stack value (spec.Value*Count) for a seized slot to be auctioned vs. disposed (default 250). Set very high to disable seizure-auction (dispose all).
 	MailSendCooldownRounds      ConfigInt   `yaml:"MailSendCooldownRounds"`             // Rounds a player must wait between sending mail (anti-spam; default 10). Set to 1 for effectively no cooldown.
@@ -945,9 +946,8 @@ type Balance struct {
 	WarehouseAccrualHours ConfigInt `yaml:"WarehouseAccrualHours,omitempty"` // Game-hours between ambient accrual ticks (default 2)
 
 	// ── LOOT ──────────────────────────────────────────────────────────────────
-	LootBudgetScalar    ConfigFloat `yaml:"LootBudgetScalar"`    // Multiplier for sqrt(goldPaid) loot budget (default 7.0)
-	GoldPerAffixPoint   ConfigFloat `yaml:"GoldPerAffixPoint"`   // Gold value per affix cost-point on instance/affixed loot (default 3.0)
-	ShopAffixedStockCap ConfigInt   `yaml:"ShopAffixedStockCap"` // Max per-instance affixed items a shop resells before evicting oldest (default 8)
+	LootBudgetScalar  ConfigFloat `yaml:"LootBudgetScalar"`  // Multiplier for sqrt(goldPaid) loot budget (default 7.0)
+	GoldPerAffixPoint ConfigFloat `yaml:"GoldPerAffixPoint"` // Gold value per affix cost-point on instance/affixed loot (default 3.0)
 
 	// ── INSTANCES ────────────────────────────────────────────────────────────
 	InstanceStatPoolCap ConfigInt `yaml:"InstanceStatPoolCap"` // Max stat pool per mob in instances (default 50000, 0=uncapped)

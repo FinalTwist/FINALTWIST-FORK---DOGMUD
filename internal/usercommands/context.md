@@ -70,7 +70,12 @@ The `internal/usercommands` package implements the complete command system for p
 - **Crafting**: Various skill-based creation and modification commands
 
 #### **Economic Commands**
-- **Trading**: `buy`, `sell`, `list`, `offer`, `appraise` - Commerce mechanics
+- **Trading**: `buy`, `sell`, `list`, `offer`, `appraise` - Commerce mechanics.
+  `list` shows a living shop's secondhand shelf as a second table,
+  "Secondhand goods" (`renderShelfListing` over `buildShelfRows`: the
+  listed entries in shelf order, each in the lister's own view, a
+  finder-view site in the root guard), trims the listed cap lazily and
+  saves; "nothing to sell" fires only when both tables are empty.
 - **Banking**: `bank` - Financial management
 - **Services**: `train` - Character development
 

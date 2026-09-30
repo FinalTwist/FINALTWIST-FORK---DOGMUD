@@ -125,5 +125,8 @@ its name (<ansi fg="cyan">bauble show doll</ansi>).
     (promoted names), by biome, biome group and tier. A plain
     Trinket only when nothing there fits.
   - General stores and jewellers buy baubles for their value times
-    ShopBuyRatio; other shops refuse. Sold baubles leave the world.
+    ShopBuyRatio; other shops refuse. An average or rare bauble a
+    player sells to a living shop goes on its secondhand shelf (held
+    out of sight while hot); the rest leave the world. Buying one back
+    makes its record unsold again; bauble show keeps the last sale.
   - Merchants appraise baubles for free.

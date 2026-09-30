@@ -6,10 +6,15 @@ import (
 	"unicode/utf8"
 )
 
+// ansiOpenTagExpr matches one <ansi …> open tag with any attribute set
+// (fg, bg, or combinations). Shared by ansiTagPattern here and by the
+// a/an stage in normalize.go, which looks through a run of them.
+const ansiOpenTagExpr = `<ansi[^>]*>`
+
 // ansiTagPattern matches <ansi …> (any attribute set, including fg,
 // bg, or combinations) or </ansi>. Only used for scanning;
 // replacement uses the literal strings.
-var ansiTagPattern = regexp.MustCompile(`<ansi[^>]*>|</ansi>`)
+var ansiTagPattern = regexp.MustCompile(ansiOpenTagExpr + `|</ansi>`)
 
 // WrapAnsi wraps text at maxWidth display columns. ANSI escape
 // sequences (<ansi …> / </ansi> tags) don't count toward width.

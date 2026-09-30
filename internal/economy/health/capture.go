@@ -44,6 +44,9 @@ func captureShops() []ShopSnapshot {
 	all := shops.AllShops()
 	out := make([]ShopSnapshot, 0, len(all))
 	for _, inv := range all {
+		// One template copy per shop: it names an unspawned shopkeeper and
+		// decides whether the shop is a fence.
+		tmpl := mobs.GetMobSpec(mobs.MobId(inv.MobId))
 		ss := ShopSnapshot{
 			Zone:             inv.Zone,
 			MobId:            inv.MobId,
@@ -54,8 +57,11 @@ func captureShops() []ShopSnapshot {
 			LastRestockRound: inv.LastRestock,
 			Round:            currentRound,
 			Stock:            make([]StockSnapshot, 0, len(inv.Stock)),
-			Name:             lookupShopMobName(inv.MobId, inv.RoomId),
+			Name:             lookupShopMobName(inv.MobId, inv.RoomId, tmpl),
 		}
+		// A fence's shop is typed "fence" on the dashboard. The template
+		// decides (always loaded at boot): an instance's groups can change.
+		ss.Fence = tmpl != nil && tmpl.IsFence()
 		for _, e := range inv.Stock {
 			ss.Stock = append(ss.Stock, StockSnapshot{
 				ItemId:     e.ItemId,
@@ -479,9 +485,10 @@ func territoryFor(mobId int) string {
 
 // lookupShopMobName resolves a shop's display name by walking live
 // mob instances for one matching mobId+roomId. If the mob is not
-// currently spawned, falls back to the mob template (always loaded at
-// boot). Returns "" only if neither live instance nor template exists.
-func lookupShopMobName(mobId, roomId int) string {
+// currently spawned, falls back to tmpl, the mob template (always loaded
+// at boot), which the caller has already fetched (GetMobSpec copies the
+// whole mob). Returns "" only if neither live instance nor template exists.
+func lookupShopMobName(mobId, roomId int, tmpl *mobs.Mob) string {
 	for _, instId := range mobs.GetAllMobInstanceIds() {
 		m := mobs.GetInstance(instId)
 		if m == nil {
@@ -492,8 +499,8 @@ func lookupShopMobName(mobId, roomId int) string {
 		}
 	}
 	// Fallback: template (always loaded at boot).
-	if t := mobs.GetMobSpec(mobs.MobId(mobId)); t != nil {
-		return t.Character.Name
+	if tmpl != nil {
+		return tmpl.Character.Name
 	}
 	return ""
 }

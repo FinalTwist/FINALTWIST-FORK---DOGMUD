@@ -2,6 +2,7 @@ package shops
 
 import (
 	"slices"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/economy"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -72,7 +73,9 @@ type StockEvent struct {
 type AffixedStockEntry struct {
 	Item       items.Item `yaml:"item"`
 	Price      int        `yaml:"price"`                 // relist price (AffixValue x 1.0)
-	AddedRound uint64     `yaml:"added_round,omitempty"` // for age-based clutter eviction
+	AddedRound uint64     `yaml:"added_round,omitempty"` // game round when shelved (kept for the record; eviction reads ListedAt)
+	AddedAt    time.Time  `yaml:"added_at,omitempty"`    // wall clock when shelved: heat is real time, rounds stop while the server is down
+	HoldUntil  time.Time  `yaml:"hold_until,omitempty"`  // held out of sight until then (a bauble hot when shelved); zero: listed at once
 }
 
 // StockEntry represents one item type in a shop's inventory.
@@ -136,19 +139,21 @@ type ShopInventory struct {
 	RoomId int    `yaml:"-"`
 }
 
-// AddAffixedStock appends a bought-back affixed item at relist price, evicting
-// the oldest entry (FIFO) when the list is at cap. cap <= 0 means no cap.
-func (si *ShopInventory) AddAffixedStock(item items.Item, price, cap int) {
+// AddAffixedStock shelves an item at its relist price: appended with the
+// round, the wall clock (AddedAt: now) and the end of any hold (holdUntil,
+// zero to list it at once), then EnforceAffixedCap(limit, now) trims the
+// listed entries (limit <= 0: no cap). It does not enforce the held cap:
+// every caller asks BackroomFull before it gets here (the bauble sale's
+// offer in internal/actions, the auction shopkeeper's Receive).
+func (si *ShopInventory) AddAffixedStock(item items.Item, price, limit int, holdUntil, now time.Time) {
 	si.AffixedStock = append(si.AffixedStock, AffixedStockEntry{
 		Item:       item,
 		Price:      price,
 		AddedRound: util.GetRoundCount(),
+		AddedAt:    now,
+		HoldUntil:  holdUntil,
 	})
-	if cap > 0 {
-		for len(si.AffixedStock) > cap {
-			si.AffixedStock = si.AffixedStock[1:] // drop oldest
-		}
-	}
+	si.EnforceAffixedCap(limit, now)
 }
 
 // RemoveAffixedStock removes and returns the entry at idx (e.g. on purchase).

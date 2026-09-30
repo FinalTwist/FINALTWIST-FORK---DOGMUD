@@ -132,11 +132,11 @@ func PerShopScoreOpt(s ShopSnapshot) (float64, bool) {
 	return 100 * weightedSum / totalWeight, true
 }
 
-// PerCraftSupportScores returns mean per-shop score grouped by the
-// craft discipline each shop supports. Shops with empty CraftSupport
-// roll into key "", shown in the UI as "(uncategorized)". Startup
-// validation allows that only for a fence's shop, which buys no
-// ordinary loot (shops.ValidateShopMobTags).
+// PerCraftSupportScores returns mean per-shop score grouped by each shop's
+// Type(): "fence" for a fence's shop (baubles slice D), else the craft
+// discipline it supports. A shop with an empty CraftSupport that is not
+// flagged a fence (a snapshot saved before Fence existed) rolls into key
+// "", shown in the UI as "(uncategorized)".
 func PerCraftSupportScores(snap Snapshot) map[string]float64 {
 	type bucket struct {
 		sum   float64
@@ -148,10 +148,10 @@ func PerCraftSupportScores(snap Snapshot) map[string]float64 {
 		if !ok {
 			continue
 		}
-		b, exists := buckets[s.CraftSupport]
+		b, exists := buckets[s.Type()]
 		if !exists {
 			b = &bucket{}
-			buckets[s.CraftSupport] = b
+			buckets[s.Type()] = b
 		}
 		b.sum += score
 		b.count++
@@ -822,7 +822,7 @@ func ScoreWithConfig(cur *Snapshot, history []*Snapshot, cfg ScoringConfig) Scor
 			MobId:           s.MobId,
 			RoomId:          s.RoomId,
 			Name:            s.Name,
-			CraftSupport:    s.CraftSupport,
+			CraftSupport:    s.Type(),
 			Score:           stockScore, // back-compat alias
 			StockScore:      stockScore,
 			ThroughputScore: thrScore,

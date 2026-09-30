@@ -311,7 +311,7 @@
         var byDisc = {};
         for (var i = 0; i < d.snapshot.shops.length; i++) {
             var s = d.snapshot.shops[i];
-            var disc = s.craft_support || "(uncategorized)";
+            var disc = s.fence ? "fence" : (s.craft_support || "");
             if (!byDisc[disc]) byDisc[disc] = [];
             byDisc[disc].push(s);
         }
@@ -324,7 +324,7 @@
             var score = d.scores.PerCraftSupport[disc] || 0;
             var gold = totalGold(shops);
             discHtml += tr([
-                disc,
+                disc || "(uncategorized)",
                 shops.length,
                 raw(fmtScore(score, score > 0)),
                 gold

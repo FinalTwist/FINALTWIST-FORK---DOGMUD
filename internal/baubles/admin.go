@@ -113,10 +113,7 @@ func Restore(id string, admin string) error {
 		if r.Status != StatusRetired {
 			return
 		}
-		r.Status = StatusFallback
-		if r.Generator.Named() {
-			r.Status = StatusReady
-		}
+		r.Status = r.unsoldStatus()
 		if r.SoldValue > 0 {
 			r.Status = StatusSold
 		}
@@ -125,6 +122,16 @@ func Restore(id string, admin string) error {
 		return ErrNoRecord
 	}
 	return nil
+}
+
+// unsoldStatus is the status of a record not sold, or bought back: ready
+// when the model or the corpus named it, fallback for a generic trinket.
+// Restore and MarkBought share it (baubles slice D, ruling 2).
+func (r Record) unsoldStatus() Status {
+	if r.Generator.Named() {
+		return StatusReady
+	}
+	return StatusFallback
 }
 
 // EditFields are the fields an admin may change by hand.

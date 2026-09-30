@@ -350,32 +350,49 @@ func GetMatchNumber(input string) (string, int) {
 	return input, 1
 }
 
+// FindMatchIn returns the full match and the close match for searchName
+// among items, by name: FindMatchIndexIn's answer, named. Either is "" when
+// there is none.
 func FindMatchIn(searchName string, items ...string) (match string, closeMatch string) {
+	matchIdx, closeIdx := FindMatchIndexIn(searchName, items...)
+	if matchIdx >= 0 {
+		match = items[matchIdx]
+	}
+	if closeIdx >= 0 {
+		closeMatch = items[closeIdx]
+	}
+	return match, closeMatch
+}
 
+// FindMatchIndexIn is the one matching algorithm, by position: the index in
+// items of the full match and of the close match, -1 for none. Two entries
+// with the same name are told apart this way (`buy 2.trinket` takes the
+// second of two trinkets, baubles slice D). FindMatchIn wraps it.
+func FindMatchIndexIn(searchName string, items ...string) (match int, closeMatch int) {
+	match, closeMatch = -1, -1
 	if searchName == `` {
-		return ``, `` // No match
+		return match, closeMatch // No match
 	}
 
 	searchName, searchNumber := GetMatchNumber(searchName)
 
-	var matchCt int = 0
-	var closeMatchCt int = 0
+	matchCt, closeMatchCt := 0, 0
 
-	for _, i := range items {
+	for idx, i := range items {
 
 		part, full := stringMatch(searchName, i, false)
 
 		if part {
 			closeMatchCt++
 			if closeMatchCt == searchNumber {
-				closeMatch = i
+				closeMatch = idx
 			}
 		}
 
 		if full {
 			matchCt++
 			if matchCt == searchNumber {
-				match = i
+				match = idx
 				break
 			}
 		}
@@ -384,15 +401,15 @@ func FindMatchIn(searchName string, items ...string) (match string, closeMatch s
 
 	// If no "starts with" or "exact" matches are found, try and find the first item that contain the supplied name
 	// Note: Can't have an exact match if there was never a close match
-	if len(closeMatch) == 0 {
+	if closeMatch < 0 {
 		closeMatchCt = 0
-		for _, i := range items {
+		for idx, i := range items {
 			part, _ := stringMatch(searchName, i, true)
 
 			if part {
 				closeMatchCt++
 				if closeMatchCt == searchNumber {
-					closeMatch = i
+					closeMatch = idx
 					break
 				}
 			}

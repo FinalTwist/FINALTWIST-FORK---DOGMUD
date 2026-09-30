@@ -52,7 +52,18 @@ var (
 	// support backreferences, so the doc-comment shorthand
 	// `\b(\w+) \1\b` is implemented manually below).
 	wordRunPattern = regexp.MustCompile(`\w+`)
-	aBeforeVowel   = regexp.MustCompile(`\b([aA]) ([aeiouAEIOU])`)
+
+	// aBeforeVowel finds an article "a"/"A" followed by one space, then
+	// zero or more <ansi …> open tags, then a vowel. The tags are looked
+	// through because names arrive wrapped ("a <ansi fg="itemname">Ivory
+	// Handled Fan</ansi>"), which once hid the vowel. Only the article
+	// byte is rewritten; the tags are kept byte for byte. Idempotent: an
+	// "an" never matches, since the article must be followed by a space.
+	//
+	// Known limitation: the test is by letter, not sound, so "a useful"
+	// becomes "an useful" and "a hour" stays "a hour". That predates the
+	// tag look-through and is out of scope here.
+	aBeforeVowel = regexp.MustCompile(`\b([aA]) (?:` + ansiOpenTagExpr + `)*[aeiouAEIOU]`)
 )
 
 // Normalize runs the five style-normalization stages on text. Stages
@@ -78,7 +89,8 @@ func Normalize(cat Category, text string) string {
 	// 2. a/an agreement.
 	if skip&stageAAnAgreement == 0 {
 		text = aBeforeVowel.ReplaceAllStringFunc(text, func(match string) string {
-			// match is `[aA] [aeiouAEIOU]`. Preserve the original case.
+			// match is `[aA] <tags…>[aeiouAEIOU]`. Rewrite only the
+			// article byte, preserve its case, keep the rest verbatim.
 			article := match[:1]
 			rest := match[1:]
 			if article == "A" {

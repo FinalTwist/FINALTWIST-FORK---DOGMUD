@@ -159,8 +159,10 @@ name, name_simple, description, material, weight_lbs (number), value (integer)
   `sellOneToMerchant`, and `baubleOfferFor` for `resolveMerchant`. Price =
   catalog value × `ShopBuyRatio`, rounded up, min 1 (the affixed-loot
   spread: no scarcity curve, no barter bonus). Merchant gold and the
-  living-economy reserve are respected. Never stocked or resold; the record
-  is marked sold. Unknown records are refused with a spoken line.
+  living-economy reserve are respected. The record is marked sold. Unknown
+  records are refused with a spoken line. (Since slice D, Phase 6f, an
+  average or rare bauble a player sells to a living shop is shelved for
+  resale; the rest are destroyed.)
 - Who buys: living-economy shops with `craft_support` general or
   jewelcrafting, and every legacy merchant. (Owner question 4, answered
   provisionally; the list moves to `config.yaml` in Phase 3.)
@@ -177,8 +179,8 @@ name, name_simple, description, material, weight_lbs (number), value (integer)
 - Player help for `sell` and `appraise`, admin help for `bauble`, updated.
 - Exit: `go test ./internal/actions/... ./internal/baubles/...`; in game,
   `bauble spawn average`, `get bauble`, `appraise bauble` and
-  `sell bauble` at a general store pay 5 to 8 gold and leave nothing on the
-  shelf.
+  `sell bauble` at a general store pay 5 to 8 gold and (before slice D)
+  left nothing on the shelf. Since Phase 6f the store shelves it.
 
 ### Phase 3: Search integration (local names only) (written)
 
@@ -874,7 +876,7 @@ catch.
   fence. `TestStolenBauble_AFenceShopRefusesOrdinaryLootButBuysBaubles`
   checks such a shop refuses an ordinary item it stocks and still buys a
   bauble.
-  Resale of bought baubles is slice D (the owner's), not here.
+  Resale of bought baubles is slice D: Phase 6f.
 
 ### Phase 6d: The owner's fix round on PR #175 (written)
 
@@ -951,6 +953,30 @@ slice C. Plan: `docs/superpowers/plans/2026-09-28-slice-c-bauble-corpus.md`.
   logic is `baubles.Promote` and `baubles.RemoveCorpusEntry`, so the /build
   queue (web builder rework arc) can call the same functions.
 
+### Phase 6f: Shelf resale (slice D) (written)
+
+Design: `docs/superpowers/specs/2026-09-30-baubles-shelf-resale-design.md`.
+Plan: `docs/superpowers/plans/2026-09-30-baubles-shelf-resale.md`.
+
+- **Sold baubles can come back.** A player's sale of an average or rare,
+  non-retired bauble to a living-economy shop puts it on the shop's
+  secondhand shelf (`AffixedStock`) at its catalog value. A mob's sale, a
+  legacy merchant, a cheap bauble (so a dozen value-1 trinkets cannot evict
+  shelved gear) and a retired one are still destroyed.
+- **Hot goods wait in the back room.** A bauble hot anywhere when shelved
+  is held out of sight until `StolenAt + HeatDuration()`. A shop holds at
+  most `ShopAffixedStockCap` of those and refuses more: a fence in its own
+  voice, an honest shop with a plain "no room".
+- **`list` and `buy`.** `list` shows a "Secondhand goods" table in shelf
+  order, per viewer (a finder-only bauble reads Trinket to others). `buy`
+  selects by position (`buy 2.trinket`), matches a bauble in the buyer's own
+  view, and a buyback returns the record to its unsold status
+  (`MarkBought`); `SalesSince` counts by `SoldAt`, so the sale still counts.
+- **Cap.** `ShopAffixedStockCap` rises from 8 to 12 and gains a
+  `config.yaml` key in SHOP ECONOMY; over it the entry listed earliest goes.
+- **Elsewhere.** The dashboard types a fence's shop `fence`; the AI
+  companion's `browse` shows the shelf in the model's view.
+
 ### Phase 7: Optional
 
 Pre-generated pool per region, identify-on-appraise, collectors and region
@@ -964,7 +990,9 @@ quests, achievements, auctions, companion awareness, SQLite store, web admin.
 3. Tier weights (the 70/25/5 above is a placeholder).
 4. Which merchants buy baubles.
 5. Model and daily token cap.
-6. Sold baubles destroyed (recommended) or resold as curios.
+6. Sold baubles destroyed (recommended) or resold as curios. Answered by
+   slice D (Phase 6f): average and rare ones a player sells to a living
+   shop are resold; the rest are destroyed.
 
 ## 6. Patch process
 

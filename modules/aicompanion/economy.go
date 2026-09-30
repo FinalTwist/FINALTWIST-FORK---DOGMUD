@@ -58,10 +58,11 @@ func (p Purse) largeShare() float64 {
 
 // ware is one item a merchant in the room has for sale right now.
 type ware struct {
-	ItemId int
-	Name   string
-	Price  int
-	Qty    int
+	ItemId     int
+	Name       string
+	Price      int
+	Qty        int
+	Secondhand bool // a one-of-a-kind shelf row (baubles slice D): shown, never remembered
 }
 
 // shopListing is one merchant's stock as a player's `list` would show it.
@@ -83,7 +84,8 @@ func browseShops(room *rooms.Room) []shopListing {
 			continue
 		}
 		l := shopListing{MerchantName: m.Character.Name, MerchantMobId: int(m.MobId), MerchantInstanceId: id}
-		if inv := shops.GetShopInventory(m.Zone, int(m.MobId), m.HomeRoomId); inv != nil {
+		inv := shops.GetShopInventory(m.Zone, int(m.MobId), m.HomeRoomId)
+		if inv != nil {
 			for _, entry := range inv.Stock {
 				if entry.Current <= 0 {
 					continue
@@ -114,6 +116,17 @@ func browseShops(room *rooms.Room) []shopListing {
 			}
 		}
 		sort.Slice(l.Wares, func(i, j int) bool { return l.Wares[i].Name < l.Wares[j].Name })
+		// The secondhand shelf, after the stock as list shows it (baubles
+		// slice D), in shelf order, never a held entry. ModelName, never the
+		// finder's view: these names reach the model, so a bauble whose text
+		// a player's key wrote reads as its carrier. Read only: the lazy cap
+		// trim is left to list and buy.
+		if inv != nil {
+			for _, idx := range inv.ListedIndexes(shops.ShelfNow()) {
+				e := &inv.AffixedStock[idx]
+				l.Wares = append(l.Wares, ware{ItemId: e.Item.ItemId, Name: e.Item.ModelName(), Price: e.Price, Qty: 1, Secondhand: true})
+			}
+		}
 		out = append(out, l)
 	}
 	return out
@@ -133,6 +146,9 @@ func (m *Mind) rememberShop(l shopListing, roomId int, nowUnix int64) {
 	old := rec.Wares
 	rec.Wares = map[int]*WareRecord{}
 	for _, w := range l.Wares {
+		if w.Secondhand {
+			continue // one of a kind, and its ItemId is shared: never a price to remember
+		}
 		wr := &WareRecord{Name: w.Name, Price: w.Price, Qty: w.Qty, SeenUnix: nowUnix}
 		if prev, ok := old[w.ItemId]; ok {
 			wr.SoldFor = prev.SoldFor
@@ -155,6 +171,11 @@ func describeListing(l shopListing, refs map[int]string) string {
 	}
 	var parts []string
 	for _, w := range l.Wares {
+		if w.Secondhand {
+			// No ref: refs are keyed by ItemId, which a shelf row shares.
+			parts = append(parts, fmt.Sprintf(`%s for %d gold (secondhand)`, w.Name, w.Price))
+			continue
+		}
 		ref := ``
 		if r, ok := refs[w.ItemId]; ok {
 			ref = `[` + r + `] `

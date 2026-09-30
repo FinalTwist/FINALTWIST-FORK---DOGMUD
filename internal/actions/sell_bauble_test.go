@@ -181,14 +181,18 @@ func TestSell_Bauble_LivingShopByCraftSupport(t *testing.T) {
 	assert.Equal(t, SellStopRejected, res.Reason)
 	assert.Equal(t, 1000, si.Gold)
 
-	// A general store does, from its own gold, and shelves nothing.
+	// A general store does, from its own gold, and puts it on its shelf at
+	// its catalog value (baubles slice D).
 	si.CraftSupport = shops.CraftSupportGeneral
 	res = Sell(seller, SellOptions{ItemName: "horse", Quantity: 1})
 	require.Equal(t, 1, res.Sold, "res=%+v", res)
 	assert.Equal(t, 6, char.Gold)
 	assert.Equal(t, 994, si.Gold, "a living-economy sale drains the shop's gold")
 	assert.Nil(t, si.GetStock(items.BaubleItemId), "the carrier is never stocked")
-	assert.Len(t, si.AffixedStock, 0, "baubles are not resold like affixed loot")
+	require.Len(t, si.AffixedStock, 1, "an average bauble a player sells is shelved")
+	assert.Equal(t, b.Bauble, si.AffixedStock[0].Item.Bauble)
+	assert.Equal(t, 12, si.AffixedStock[0].Price, "relisted at its catalog value")
+	assert.True(t, si.AffixedStock[0].HoldUntil.IsZero(), "an honest bauble is listed at once")
 }
 
 func TestSell_Bauble_LivingShopReserveRefuses(t *testing.T) {
@@ -250,4 +254,72 @@ func TestSell_Bauble_ASoldRecordSellsAgain(t *testing.T) {
 	assert.Equal(t, 6, char.Gold, "paid from the catalog, as for any bauble")
 	rec, _ := baubles.Get(b.Bauble)
 	assert.True(t, rec.SoldAt.After(longAgo), "the new sale is recorded")
+}
+
+// Only a player's sale of a shelvable bauble to a living shop shelves it
+// (baubles slice D, spec test 7): a mob's sale (ruling 7: the shop paid
+// nothing), a cheap bauble (ruling 5) and a retired one (ruling 1) are
+// destroyed, and each record is still marked sold.
+func TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, CraftSupport: shops.CraftSupportGeneral})
+
+	mob := newSellerActor(t, false)
+	mob.GetCharacter().Stats.Strength.ValueAdj = 100 // a bare mob fixture has no carrying capacity
+	fromMob := newBauble(t, "Painted Wooden Horse", "horse", 12, baubles.StatusReady)
+	require.True(t, mob.GetCharacter().StoreItem(fromMob))
+	res := Sell(mob, SellOptions{ItemName: "horse", Quantity: 1})
+	require.Equal(t, 1, res.Sold, "res=%+v", res)
+
+	player := newSellerActor(t, true)
+	cheap := newBauble(t, "Chipped Clay Cup", "cup", 4, baubles.StatusReady)
+	retired := newBauble(t, "Rude Carving", "carving", 12, baubles.StatusRetired)
+	require.True(t, player.GetCharacter().StoreItem(cheap))
+	require.True(t, player.GetCharacter().StoreItem(retired))
+	require.Equal(t, 1, Sell(player, SellOptions{ItemName: "cup", Quantity: 1}).Sold)
+	require.Equal(t, 1, Sell(player, SellOptions{ItemName: "trinket", Quantity: 1}).Sold, "a retired bauble reads Trinket")
+
+	assert.Empty(t, si.AffixedStock, "none of the three is shelved")
+	for _, it := range []items.Item{fromMob, cheap, retired} {
+		rec, _ := baubles.Get(it.Bauble)
+		assert.Equal(t, baubles.StatusSold, rec.Status, "%s: the sale is recorded", it.Bauble)
+	}
+}
+
+// The cheap-tier boundary (owner ruling 5, baubleShelvable): a bauble worth
+// exactly the cheap tier's max is still cheap and must not be shelved; one
+// worth one gold more crosses into average and must be. The boundary is read
+// from the tier config, never hardcoded, so this pins the `>` in
+// baubleShelvable against a `>=` regression.
+func TestSell_Bauble_CheapTierBoundaryIsPinned(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, CraftSupport: shops.CraftSupportGeneral})
+
+	max := baubles.TierCheap.Range().Max
+
+	player := newSellerActor(t, true)
+	atMax := newBauble(t, "Chipped Clay Cup", "cup", max, baubles.StatusReady)
+	require.True(t, player.GetCharacter().StoreItem(atMax))
+	require.Equal(t, 1, Sell(player, SellOptions{ItemName: "cup", Quantity: 1}).Sold)
+	assert.Empty(t, si.AffixedStock, "a bauble worth exactly the cheap tier max must not be shelved")
+
+	aboveMax := newBauble(t, "Painted Wooden Horse", "horse", max+1, baubles.StatusReady)
+	require.True(t, player.GetCharacter().StoreItem(aboveMax))
+	require.Equal(t, 1, Sell(player, SellOptions{ItemName: "horse", Quantity: 1}).Sold)
+	require.Len(t, si.AffixedStock, 1, "a bauble one gold above the cheap tier max must be shelved")
+	assert.Equal(t, aboveMax.Bauble, si.AffixedStock[0].Item.Bauble)
 }

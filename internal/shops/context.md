@@ -17,6 +17,15 @@ change (forager deliveries, NPC sells, player purchases) lives in
 - **shopinventory.go**: `ShopInventory` struct + `StockEntry`; `GetStock`,
   `AddStock`, `AddStockAtRound` stock-mutation helpers; `CraftSupport` tag
   constants; `StockEvent` depletion/refill event type.
+- **shelf.go** (baubles slice D): the secondhand shelf over `AffixedStock`.
+  `ShelfNow` (the one clock list, buy and the sale read), `(AffixedStockEntry)
+  Held(now)` and `ListedAt()`, `(*ShopInventory) HeldCount(now)`,
+  `ListedIndexes(now)` (THE shelf order), `EnforceAffixedCap(limit, now)`
+  (earliest `ListedAt` first, held never evicted, lazy: on add, `list`,
+  `buy`), `RestoreAffixedStock(idx, e)` (buy's rollback) and
+  `BackroomFull(holdUntil, now, limit)` (the one backroom rule: the bauble
+  sale's offer and the auction shopkeeper's `Receive` both ask it before
+  shelving a hot item).
 - **persistence.go**: Disk I/O (`GetShopInventory`, `SaveShop`); in-memory
   shop cache; prewarm helpers.
 - **pricing.go**: Dynamic pricing (`GetSellPrice`), `PricingConfig`,
@@ -93,7 +102,12 @@ change (forager deliveries, NPC sells, player purchases) lives in
   `ceil(baseValue * BuyRatio * ScarcityMultiplier)`, floored at 1.
 - **`EvaluateBuyRules(item, si, crafterSkill, buysGeneral, cfg, worn) BuyOffer`**:
   Determines whether the merchant will buy an item and at what price. Returns
-  `offer.Price > 0` when the merchant accepts.
+  `offer.Price > 0` when the merchant accepts. A stocked item is priced by
+  `CalcBuyPrice`; an item the shop does not stock by the flat
+  `ceil(Value * BuyRatio)`, floored at 1. Every price a merchant pays a
+  player rounds UP to the next gold (owner ruling 2026-09-30): this, and in
+  `internal/actions` the affixed, bauble and fence prices. The flat price
+  truncated until then, so a 3-gold item at 0.5 paid 1 instead of 2.
 - **`ApplyBarterSellDiscount(price int, discount float64) int`**: Applies a
   caller-supplied fractional discount to a sell price (buyer side).
 - **`ApplyBarterBuyBonus(price int, bonus float64) int`**: Applies a
@@ -107,7 +121,7 @@ Declared in `internal/configs/config.balance.go`; defaulted/validated in
 config value when it is non-zero, otherwise it keeps
 `DefaultPricingConfig()`'s value. For all five live knobs below, the shipped
 value and the Go default are identical, so this fallback never actually
-triggers in production today.
+triggers in production today. The same holds for every live knob below.
 
 **Live** (read by `pricing.go` / `buyrules.go`):
 - **`ShopBuyRatio`**: shipped `0.50`, Go default `0.50`. Feeds
@@ -123,6 +137,15 @@ triggers in production today.
   directly (not through `PricingConfig`) by `buyrules.go`'s
   `EvaluateBuyRules` and by `modules/auctions/npc_buyers.go`. Fraction of a
   shop's gold pool held back before it will buy from a seller.
+- **`BarterMaxDiscount`**: shipped `0.15`, Go default `0.15`. Read by
+  `internal/actions` `tryPurchaseFromInventory` (through `barterDiscount`,
+  which also folds in sight): the buy-side cap at Bartering 50.
+- **`BarterMaxBonus`**: shipped `0.15`, Go default `0.15`. Read by
+  `sellOneToMerchant`: the sell-side cap at Bartering 50.
+- **`ShopAffixedStockCap`**: shipped `12`, Go default `12`
+  (`config.balance.shops.go`). Not a price: the most entries the secondhand
+  shelf lists, and the most hot baubles a shop holds out of sight (see
+  "The secondhand shelf" below).
 
 **Dead** (declared, defaulted, validated, shipped with an explanatory
 comment in `config.yaml`, but consumed by nothing outside
@@ -131,15 +154,6 @@ comment in `config.yaml`, but consumed by nothing outside
   claims "units of each material a crafter mob reserves before selling";
   no code reads the field, so a crafter mob does not actually reserve
   anything against this knob.
-- **`BarterMaxDiscount`**: shipped `0.15`, Go default `0.15`. The buy-side
-  barter cap that actually ships is a **hard-coded literal** `0.15` in
-  `internal/actions/buy.go` (`discount := skill/50.0 * 0.15`); this config
-  field is never read. The shipped value only *looks* load-bearing because
-  it happens to match the hard-coded number.
-- **`BarterMaxBonus`**: shipped `0.15`, Go default `0.15`. Same story on
-  the sell side: `internal/actions/sell.go` hard-codes
-  `bonus := skill/50.0 * 0.15` (then re-clamps to `0.15` in the same
-  function) and never reads this field.
 
 ### Overstock Decay (chunk 5.4)
 - **`TickOverstockDecay(si *ShopInventory, round uint64) []DecayedUnit`**:
@@ -289,12 +303,10 @@ type ShopInventory struct {
 
 ## Gotchas
 
-- **`BarterMaxDiscount` and `BarterMaxBonus` look tunable and are not.**
-  Both the buy-side and sell-side barter caps are hard-coded `0.15` literals
-  in `internal/actions/buy.go` and `internal/actions/sell.go`; editing these
-  two `config.yaml` knobs changes nothing at runtime. Same dead pattern as
-  the salvage knobs elsewhere in the codebase: check for a consumer before
-  trusting a knob's comment.
+- **Check for a consumer before trusting a knob's comment.**
+  `ShopMaterialReserve` is declared, shipped and read by nothing. (The
+  barter caps `BarterMaxDiscount` and `BarterMaxBonus` were once hard-coded
+  literals too; `buy.go` and `sell.go` read the knobs now.)
 - **`ShopAbundanceThreshold` is a ratio of `restockQty`, not an absolute
   stock count.** Two items can both be "abundant" (priced at `PriceFloor`)
   at wildly different absolute `Current` values if their `RestockQty`
@@ -353,3 +365,23 @@ type ShopInventory struct {
 
 `(*ShopInventory).WalkItems` walks `AffixedStock`, the only per-instance
 items a shop holds; stock entries are counts of an item id.
+
+## The secondhand shelf (shelf.go)
+
+`AffixedStock` holds unique items a shop bought from players and resells:
+affix-scaled gear and, since baubles slice D, average and rare baubles a
+player sold to a living shop. `AffixedStockEntry` carries `AddedRound`
+(kept for the record), `AddedAt` (wall clock when shelved) and `HoldUntil`
+(zero: listed at once). Both times are `omitempty`, so a shop file written
+before them loads listed and earliest in eviction order.
+
+An entry is held while `now < HoldUntil` (a bauble still hot when shelved,
+`baubles.ShelfHoldUntil`): `list` does not show it and `buy` does not offer
+it. `AddAffixedStock(item, price, limit, holdUntil, now)` appends and trims
+the listed entries to `Balance.ShopAffixedStockCap` (12, SHOP ECONOMY);
+held entries never count against that cap and are never evicted, and
+`BackroomFull(holdUntil, now, limit)` is the one rule a caller asks before
+shelving a hot item: the bauble sale's offer in `internal/actions` refuses
+with it, and the auction shopkeeper's `Receive` skips the shelve and lets
+the item leave the world instead. Every mutation runs in a command or a
+sale under the mud lock; a caller that changes a living shop saves it.

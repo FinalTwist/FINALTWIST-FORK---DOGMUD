@@ -14,7 +14,7 @@ type Status string
 const (
 	StatusReady    Status = `ready`    // named by the model, or drawn from the fallback corpus
 	StatusFallback Status = `fallback` // a generic trinket: nothing named it and the corpus had nothing that fit
-	StatusSold     Status = `sold`     // sold to a merchant; the item is gone
+	StatusSold     Status = `sold`     // sold to a merchant; destroyed, or on its shelf
 	StatusRetired  Status = `retired`  // text withdrawn by an admin; shows generic text
 )
 
@@ -143,6 +143,17 @@ type Record struct {
 // to the corpus either way (slice C takes only server-key moderated text).
 func (r Record) KeptToFinder() bool {
 	return r.PlayerKey && !r.Moderated
+}
+
+// Shelvable reports whether a sold or won bauble goes on a shop's
+// secondhand shelf rather than leaving the world (baubles slice D): worth
+// more than the cheap tier (owner ruling 5, so a dozen value-1 trinkets
+// cannot evict shelved gear, and the bauble Bartering loop stays closed),
+// and not retired (ruling 1: its withdrawn text would be listed once the
+// record is marked sold). The one rule both the player-sale path
+// (internal/actions) and the auction win path (modules/auctions) apply.
+func (r Record) Shelvable() bool {
+	return r.Status != StatusRetired && r.Value > TierCheap.Range().Max
 }
 
 // Text shown for a bauble whose text an admin has withdrawn.

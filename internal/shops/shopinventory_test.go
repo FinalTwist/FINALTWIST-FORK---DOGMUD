@@ -2,6 +2,7 @@ package shops
 
 import (
 	"testing"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/stretchr/testify/assert"
@@ -456,8 +457,8 @@ func TestAffixedStock_AddListRemove(t *testing.T) {
 	a := items.Item{ItemId: 10, Affixed: true, Spec: &items.ItemSpec{Value: 400, Name: "Keen Torc"}}
 	b := items.Item{ItemId: 11, Affixed: true, Spec: &items.ItemSpec{Value: 300, Name: "Warding Ring"}}
 
-	si.AddAffixedStock(a, 200, 100)
-	si.AddAffixedStock(b, 150, 100)
+	si.AddAffixedStock(a, 200, 100, time.Time{}, shelfT0)
+	si.AddAffixedStock(b, 150, 100, time.Time{}, shelfT0)
 	if len(si.AffixedStock) != 2 {
 		t.Fatalf("want 2 affixed entries, got %d", len(si.AffixedStock))
 	}
@@ -475,7 +476,7 @@ func TestAffixedStock_CapEvictsOldest(t *testing.T) {
 	si := &ShopInventory{}
 	for i := 0; i < 5; i++ {
 		si.AddAffixedStock(items.Item{ItemId: 100 + i, Affixed: true,
-			Spec: &items.ItemSpec{Value: 100}}, 50, 3)
+			Spec: &items.ItemSpec{Value: 100}}, 50, 3, time.Time{}, shelfT0)
 	}
 	if len(si.AffixedStock) != 3 {
 		t.Fatalf("cap 3: want 3 entries, got %d", len(si.AffixedStock))
@@ -493,7 +494,7 @@ func TestAffixedStock_CapEvictsOldest(t *testing.T) {
 func TestAffixedStock_YAMLRoundTrip(t *testing.T) {
 	si := ShopInventory{Gold: 500}
 	si.AddAffixedStock(items.Item{ItemId: 10, Affixed: true,
-		Spec: &items.ItemSpec{Value: 400, PhysicalMitigation: 5}}, 200, 8)
+		Spec: &items.ItemSpec{Value: 400, PhysicalMitigation: 5}}, 200, 8, time.Time{}, shelfT0)
 
 	data, err := yaml.Marshal(&si)
 	if err != nil {

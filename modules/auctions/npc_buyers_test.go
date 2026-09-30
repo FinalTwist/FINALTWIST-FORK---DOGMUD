@@ -2,8 +2,12 @@ package auctions
 
 import (
 	"testing"
+	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/shops"
 )
 
@@ -279,6 +283,106 @@ func TestShopkeeper_ReceiveNoBoundIsNoOp(t *testing.T) {
 	sk.Receive(item)                                // must not panic
 	if sk.bound != nil {
 		t.Errorf("bound should remain nil, got %+v", sk.bound)
+	}
+}
+
+// The backroom rule holds wherever something is shelved (baubles slice D,
+// shops.BackroomFull): a won bauble that would be held is not shelved in a
+// shop whose backroom is full, and one that would list at once is.
+func TestShopkeeper_ReceiveRespectsAFullBackroom(t *testing.T) {
+	mudlog.SetupLogger(nil, "", "", false) // the catalog logs each theft
+	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket", Value: 1},
+	})
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+
+	cfg := configs.GetConfig()
+	cfg.Balance.ShopAffixedStockCap = 1
+	configs.SetConfigForTest(t, cfg)
+	now := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
+	origNow := shops.ShelfNow
+	shops.ShelfNow = func() time.Time { return now }
+	defer func() { shops.ShelfNow = origNow }()
+	orig := saveShopFn
+	saveShopFn = func(zone string, mobId, roomId int) error { return nil }
+	defer func() { saveShopFn = orig }()
+
+	bauble := func(stolen bool) items.Item {
+		rec, err := baubles.Create(baubles.Record{Name: "Silver Reliquary", NameSimple: "reliquary", Tier: baubles.TierRare, Value: 150, Status: baubles.StatusReady})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stolen {
+			baubles.MarkStolen(rec.Id, baubles.Theft{ByUserId: 1, FromMob: 2, Zone: "Thornwall City"}, now.Add(-time.Hour))
+		}
+		it := items.New(items.BaubleItemId)
+		it.Bauble = rec.Id
+		return it
+	}
+	shop := &shops.ShopInventory{AffixedStock: []shops.AffixedStockEntry{
+		{Item: items.New(items.BaubleItemId), Price: 150, AddedAt: now, HoldUntil: now.Add(time.Hour)},
+	}}
+
+	sk := &shopkeeper{name: "The Merchants' Guild", bound: shop}
+	sk.Receive(bauble(true))
+	if len(shop.AffixedStock) != 1 {
+		t.Fatalf("a hot bauble went into a full backroom: %d entries, want 1", len(shop.AffixedStock))
+	}
+
+	sk.bound = shop
+	sk.Receive(bauble(false))
+	if len(shop.AffixedStock) != 2 {
+		t.Fatalf("an honest bauble lists at once and is shelved: %d entries, want 2", len(shop.AffixedStock))
+	}
+}
+
+// A bauble won at auction shelves by the same rule as a player's sale
+// (baubles.Record.Shelvable, owner ruling 5, baubles slice D): a cheap one
+// must not be shelved, an average one must. A non-bauble item is unaffected
+// by this rule and keeps today's behaviour (TestShopkeeper_WinRelistsIntoBoundShop).
+func TestShopkeeper_ReceiveGatesBaublesByShelvability(t *testing.T) {
+	mudlog.SetupLogger(nil, "", "", false) // the catalog logs each sale
+	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket", Value: 1},
+	})
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+
+	orig := saveShopFn
+	saveShopFn = func(zone string, mobId, roomId int) error { return nil }
+	defer func() { saveShopFn = orig }()
+
+	max := baubles.TierCheap.Range().Max
+	bauble := func(value int) items.Item {
+		rec, err := baubles.Create(baubles.Record{
+			Name: "Chipped Clay Cup", NameSimple: "cup", Tier: baubles.TierAverage,
+			Value: value, Status: baubles.StatusReady,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		it := items.New(items.BaubleItemId)
+		it.Bauble = rec.Id
+		return it
+	}
+
+	shop := &shops.ShopInventory{}
+	sk := &shopkeeper{name: "The Merchants' Guild", bound: shop}
+	sk.Receive(bauble(max))
+	if len(shop.AffixedStock) != 0 {
+		t.Fatalf("a cheap bauble won at auction must not be shelved: %d entries, want 0", len(shop.AffixedStock))
+	}
+	if shop.BuysCount != 1 {
+		t.Errorf("BuysCount=%d want 1: the shop still paid for it", shop.BuysCount)
+	}
+
+	sk.bound = shop
+	sk.Receive(bauble(max + 1))
+	if len(shop.AffixedStock) != 1 {
+		t.Fatalf("an average bauble won at auction must be shelved: %d entries, want 1", len(shop.AffixedStock))
 	}
 }
 
