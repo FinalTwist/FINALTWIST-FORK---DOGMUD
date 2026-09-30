@@ -77,7 +77,8 @@ The hooks system is built around several key categories:
 events.RegisterListener(events.NewRound{}, InactivePlayers)       // Handle AFK players
 events.RegisterListener(events.NewRound{}, UpdateZoneMutators)    // Update zone effects
 events.RegisterListener(events.NewRound{}, CheckNewDay)           // Day/night cycle
-events.RegisterListener(events.NewRound{}, SpawnLootGoblin)       // Special mob spawning
+events.RegisterListener(events.NewRound{}, SpawnLootGoblin)       // Special mob spawning (retired: LootGoblin.RoomId ships 0)
+events.RegisterListener(events.NewRound{}, DecayFloors)           // Daily floor decay outside the scavengers' rounds (NewRound_FloorDecay.go)
 events.RegisterListener(events.NewRound{}, UserRoundTick)         // Player round processing
 events.RegisterListener(events.NewRound{}, MobRoundTick)          // NPC round processing
 events.RegisterListener(events.NewRound{}, HandleRespawns)        // Mob respawning

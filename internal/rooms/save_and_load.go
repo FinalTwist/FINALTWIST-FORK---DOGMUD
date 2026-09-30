@@ -138,6 +138,16 @@ func loadRoomInstanceFromDisk(roomId int) *Room {
 	if room == nil {
 		return nil
 	}
+	// What the template itself lays on the floor is content, not litter
+	// (floor_decay.go). Read it here, before any instance overlay replaces
+	// Items with the saved floor; the deferred copy covers the overlay's
+	// scratch room, which replaces room below.
+	authored := authoredFloorItemIds(room)
+	defer func() {
+		if room != nil {
+			room.authoredItemIds = authored
+		}
+	}()
 
 	filename := roomManager.GetFilePath(roomId)
 

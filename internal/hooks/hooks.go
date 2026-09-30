@@ -49,6 +49,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.NewRound{}, CheckStorageFees)
 	events.RegisterListener(events.NewRound{}, CheckAchievements)
 	events.RegisterListener(events.NewRound{}, SpawnLootGoblin)
+	events.RegisterListener(events.NewRound{}, DecayFloors)
 	events.RegisterListener(events.NewRound{}, UserRoundTick)
 	events.RegisterListener(events.NewRound{}, MobRoundTick)
 	events.RegisterListener(events.NewRound{}, HandleRespawns)
