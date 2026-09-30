@@ -22,18 +22,18 @@ func TestCanonicalRank_WeaponBeatsOffhand(t *testing.T) {
 	}
 }
 
-func TestCompatibleSlotsFor_OneHandedWeapon(t *testing.T) {
+func TestCompatibleSlotsFor_OneHandedWeaponIsTheSlotWearFills(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Weapon, Hands: items.OneHanded}
-	got := compatibleSlotsFor(spec, newTestChar())
-	want := []SlotName{SlotWeapon, SlotOffhand}
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, newTestChar())
+	want := []SlotName{SlotWeapon}
 	if !slotsEqual(got, want) {
-		t.Errorf("1H weapon slots = %v, want %v", got, want)
+		t.Errorf("1H weapon slots (empty hands: Wear fills the main hand) = %v, want %v", got, want)
 	}
 }
 
 func TestCompatibleSlotsFor_TwoHandedWeapon(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Weapon, Hands: items.TwoHanded}
-	got := compatibleSlotsFor(spec, newTestChar())
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, newTestChar())
 	want := []SlotName{SlotWeapon}
 	if !slotsEqual(got, want) {
 		t.Errorf("2H weapon slots = %v, want %v", got, want)
@@ -42,8 +42,8 @@ func TestCompatibleSlotsFor_TwoHandedWeapon(t *testing.T) {
 
 func TestCompatibleSlotsFor_Ring(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Ring}
-	got := compatibleSlotsFor(spec, newTestChar())
-	want := []SlotName{SlotRing, SlotRing2}
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, newTestChar())
+	want := []SlotName{SlotRing}
 	if !slotsEqual(got, want) {
 		t.Errorf("Ring slots = %v, want %v", got, want)
 	}
@@ -52,7 +52,7 @@ func TestCompatibleSlotsFor_Ring(t *testing.T) {
 func TestCompatibleSlotsFor_NonEquippable(t *testing.T) {
 	// Use an item type string that isn't a valid equipment slot.
 	spec := items.ItemSpec{Type: items.ItemType("consumable")}
-	got := compatibleSlotsFor(spec, newTestChar())
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, newTestChar())
 	if len(got) != 0 {
 		t.Errorf("consumable slots = %v, want empty", got)
 	}
@@ -60,7 +60,7 @@ func TestCompatibleSlotsFor_NonEquippable(t *testing.T) {
 
 func TestCompatibleSlotsFor_TailRequiresMutation(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Tail}
-	got := compatibleSlotsFor(spec, newTestChar())
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, newTestChar())
 	if len(got) != 0 {
 		t.Errorf("Tail without mutation: %v, want empty", got)
 	}
@@ -70,7 +70,7 @@ func TestCompatibleSlotsFor_TailWithMutation(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Tail}
 	char := newTestChar()
 	char.Mutations["tail"] = 1
-	got := compatibleSlotsFor(spec, char)
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, char)
 	want := []SlotName{SlotTail}
 	if !slotsEqual(got, want) {
 		t.Errorf("Tail with mutation: %v, want %v", got, want)
@@ -80,32 +80,36 @@ func TestCompatibleSlotsFor_TailWithMutation(t *testing.T) {
 func TestCompatibleSlotsFor_WristWithExtraArms(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Wrist}
 	char := newTestChar()
-	char.Mutations["extra-arms"] = 2
-	got := compatibleSlotsFor(spec, char)
-	want := []SlotName{SlotWrist1, SlotWrist2, SlotExtraWrist1, SlotExtraWrist2}
+	char.ExtraArms = 2
+	char.Equipment.Wrist1 = items.Item{ItemId: 5}
+	char.Equipment.Wrist2 = items.Item{ItemId: 6}
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, char)
+	want := []SlotName{SlotExtraWrist1}
 	if !slotsEqual(got, want) {
-		t.Errorf("Wrist with 2 extra arms: %v, want %v", got, want)
+		t.Errorf("Wrist with 2 extra arms, Wrist1/2 full: %v, want %v", got, want)
 	}
 }
 
 func TestCompatibleSlotsFor_WristWithMaxExtraArms(t *testing.T) {
 	spec := items.ItemSpec{Type: items.Wrist}
 	char := newTestChar()
-	char.Mutations["extra-arms"] = 4
-	got := compatibleSlotsFor(spec, char)
-	want := []SlotName{
-		SlotWrist1, SlotWrist2,
-		SlotExtraWrist1, SlotExtraWrist2,
-		SlotExtraWrist3, SlotExtraWrist4,
-	}
+	char.ExtraArms = 4
+	char.Equipment.Wrist1 = items.Item{ItemId: 5}
+	char.Equipment.Wrist2 = items.Item{ItemId: 6}
+	char.Equipment.ExtraWrist1 = items.Item{ItemId: 7}
+	char.Equipment.ExtraWrist2 = items.Item{ItemId: 8}
+	char.Equipment.ExtraWrist3 = items.Item{ItemId: 9}
+	got := compatibleSlotsFor(items.Item{ItemId: 1, Spec: &spec}, char)
+	want := []SlotName{SlotExtraWrist4}
 	if !slotsEqual(got, want) {
-		t.Errorf("Wrist with 4 extra arms: %v, want %v", got, want)
+		t.Errorf("Wrist with 4 extra arms, all but ExtraWrist4 full: %v, want %v", got, want)
 	}
 }
 
 func TestDisplacedItemsForSlot_EmptySlot(t *testing.T) {
 	char := newTestChar()
-	got := displacedItemsForSlot(char, SlotBody, items.ItemSpec{Type: items.Body})
+	spec := items.ItemSpec{Type: items.Body}
+	got := displacedItemsForSlot(char, SlotBody, items.Item{ItemId: 99, Spec: &spec})
 	if len(got) != 0 {
 		t.Errorf("empty body slot: displaced = %v, want empty", got)
 	}
@@ -114,7 +118,8 @@ func TestDisplacedItemsForSlot_EmptySlot(t *testing.T) {
 func TestDisplacedItemsForSlot_OccupiedSlot(t *testing.T) {
 	char := newTestChar()
 	char.Equipment.Body = items.Item{ItemId: 42}
-	got := displacedItemsForSlot(char, SlotBody, items.ItemSpec{Type: items.Body})
+	spec := items.ItemSpec{Type: items.Body}
+	got := displacedItemsForSlot(char, SlotBody, items.Item{ItemId: 99, Spec: &spec})
 	if len(got) != 1 || got[0].ItemId != 42 {
 		t.Errorf("occupied body slot: displaced = %v, want [{ItemId:42}]", got)
 	}
@@ -125,23 +130,23 @@ func TestDisplacedItemsForSlot_TwoHandedDisplacesBoth(t *testing.T) {
 	char.Equipment.Weapon = items.Item{ItemId: 1}
 	char.Equipment.Offhand = items.Item{ItemId: 2}
 	spec := items.ItemSpec{Type: items.Weapon, Hands: items.TwoHanded}
-	got := displacedItemsForSlot(char, SlotWeapon, spec)
+	got := displacedItemsForSlot(char, SlotWeapon, items.Item{ItemId: 99, Spec: &spec})
 	if len(got) != 2 {
 		t.Fatalf("2H displaced count = %d, want 2", len(got))
 	}
 }
 
+// The helper swaps the two-hander in the main hand: a one-handed candidate
+// offered at Offhand (via the chooser, this is really the Weapon slot) comes
+// back displacing exactly the 2H weapon.
 func TestDisplacedItemsForSlot_OffhandWithTwoHandedWeapon(t *testing.T) {
 	char := newTestChar()
-	char.Equipment.Weapon = items.Item{ItemId: 1}
-	char.Equipment.Offhand = items.Item{ItemId: 2}
-	// The weapon spec is irrelevant to this test; what matters is that
-	// the CURRENT weapon in Slot is 2H. We check displacedItemsForSlot's
-	// GetSpec() call on the current weapon, which reads from the global
-	// item registry. This test can only pass if ItemId 1 maps to a 2H weapon.
-	// For now, skip this test as it requires item registry population.
-	// The logic is correct in the implementation (line 238-241 of delta.go).
-	t.Skip("requires global item registry; logic verified in code review")
+	char.Equipment.Weapon = items.Item{ItemId: 1, Spec: &items.ItemSpec{ItemId: 1, Type: items.Weapon, Hands: items.TwoHanded}}
+	spec := items.ItemSpec{Type: items.Weapon, Hands: items.OneHanded}
+	got := displacedItemsForSlot(char, SlotWeapon, items.Item{ItemId: 99, Spec: &spec})
+	if len(got) != 1 || got[0].ItemId != 1 {
+		t.Errorf("1H over a 2H main hand: displaced = %v, want [{ItemId:1}]", got)
+	}
 }
 
 func TestPlacementBonus_TwoHandedAlwaysApplies(t *testing.T) {

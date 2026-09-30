@@ -32,37 +32,43 @@ var canonicalSlotOrder = []SlotName{
 	SlotLight,
 }
 
-// extraArmsLevel returns the active level of the Extra Arms
-// mutation on the character (0..4). 0 means no mutation.
-//
-// Adapted from plan: extra-arms is a single mutation with
-// level 1-4, not separate per-level mutations.
-func extraArmsLevel(char *characters.Character) int {
-	lvl := mutations.GetMutationLevel(char.Mutations, "extra-arms")
-	if lvl > 4 {
-		lvl = 4 // cap at 4 per spec
-	}
-	return lvl
-}
-
 // hasTailMutation reports whether the character has the Tail
 // mutation active.
 func hasTailMutation(char *characters.Character) bool {
 	return mutations.HasMutation(char.Mutations, "tail")
 }
 
-// compatibleSlotsFor returns the list of SlotNames where the
-// candidate could be placed, respecting character mutations.
-// Returns nil/empty list when the item is not equippable.
-func compatibleSlotsFor(spec items.ItemSpec, char *characters.Character) []SlotName {
-	switch spec.Type {
-	case items.Weapon:
-		if spec.Hands == items.TwoHanded {
-			return []SlotName{SlotWeapon}
+// chooserSlotName maps an AllSlots key to its SlotName, for the four item
+// types whose slot Character.ChooseWornSlot picks.
+var chooserSlotName = map[string]SlotName{
+	`weapon`: SlotWeapon, `offhand`: SlotOffhand,
+	`extraarm1`: SlotExtraArm1, `extraarm2`: SlotExtraArm2, `extraarm3`: SlotExtraArm3, `extraarm4`: SlotExtraArm4,
+	`wrist1`: SlotWrist1, `wrist2`: SlotWrist2,
+	`extrawrist1`: SlotExtraWrist1, `extrawrist2`: SlotExtraWrist2, `extrawrist3`: SlotExtraWrist3, `extrawrist4`: SlotExtraWrist4,
+	`ring`: SlotRing, `ring2`: SlotRing2,
+}
+
+// usesChooser is true for the item types whose slot Wear picks through
+// Character.ChooseWornSlot (slice 5a): the scorer asks the same helper, so a
+// scored upgrade is exactly the swap Wear makes, for any arm count.
+func usesChooser(t items.ItemType) bool {
+	return t == items.Weapon || t == items.Offhand || t == items.Ring || t == items.Wrist
+}
+
+// compatibleSlotsFor returns the list of SlotNames where the candidate could
+// be placed. For weapons, shields, rings and wrists that is the one slot
+// Character.ChooseWornSlot picks (nothing when it refuses); for every other
+// type, the type's own slot. Returns nil when the item is not equippable.
+func compatibleSlotsFor(candidate items.Item, char *characters.Character) []SlotName {
+	spec := candidate.GetSpec()
+	if usesChooser(spec.Type) {
+		choice, refusal := char.ChooseWornSlot(candidate, 0)
+		if refusal != `` || len(choice.Slots) == 0 {
+			return nil
 		}
-		return []SlotName{SlotWeapon, SlotOffhand}
-	case items.Offhand:
-		return []SlotName{SlotOffhand}
+		return []SlotName{chooserSlotName[choice.Slots[0].Key]}
+	}
+	switch spec.Type {
 	case items.Head:
 		return []SlotName{SlotHead}
 	case items.Neck:
@@ -75,26 +81,8 @@ func compatibleSlotsFor(spec items.ItemSpec, char *characters.Character) []SlotN
 		return []SlotName{SlotBack}
 	case items.Belt:
 		return []SlotName{SlotBelt}
-	case items.Wrist:
-		slots := []SlotName{SlotWrist1, SlotWrist2}
-		level := extraArmsLevel(char)
-		if level >= 1 {
-			slots = append(slots, SlotExtraWrist1)
-		}
-		if level >= 2 {
-			slots = append(slots, SlotExtraWrist2)
-		}
-		if level >= 3 {
-			slots = append(slots, SlotExtraWrist3)
-		}
-		if level >= 4 {
-			slots = append(slots, SlotExtraWrist4)
-		}
-		return slots
 	case items.Gloves:
 		return []SlotName{SlotGloves}
-	case items.Ring:
-		return []SlotName{SlotRing, SlotRing2}
 	case items.Legs:
 		return []SlotName{SlotLegs}
 	case items.Feet:
@@ -223,35 +211,20 @@ func slotOf(item items.Item, char *characters.Character) SlotName {
 	return ""
 }
 
-// displacedItemsForSlot returns the items that would be
-// unequipped when placing candidateSpec at targetSlot.
-// - 2H weapon in Weapon: displaces both Weapon AND Offhand.
-// - 1H in Offhand while current Weapon is 2H: displaces the 2H weapon.
-// - Otherwise: the current item in that slot, or empty.
-func displacedItemsForSlot(char *characters.Character, targetSlot SlotName, candidateSpec items.ItemSpec) []items.Item {
-	var displaced []items.Item
-
-	if targetSlot == SlotWeapon && candidateSpec.Type == items.Weapon && candidateSpec.Hands == items.TwoHanded {
-		if char.Equipment.Weapon.ItemId > 0 {
-			displaced = append(displaced, char.Equipment.Weapon)
-		}
-		if char.Equipment.Offhand.ItemId > 0 {
-			displaced = append(displaced, char.Equipment.Offhand)
-		}
-		return displaced
+// displacedItemsForSlot returns the items that come off when candidate is
+// placed at targetSlot: the helper's Displaced for the chooser types (so a
+// two-hander, a stray behind one, or an extra arm is modelled exactly as
+// Wear does it), else the slot's own occupant.
+func displacedItemsForSlot(char *characters.Character, targetSlot SlotName, candidate items.Item) []items.Item {
+	if usesChooser(candidate.GetSpec().Type) {
+		choice, _ := char.ChooseWornSlot(candidate, 0)
+		return choice.Displaced
 	}
-
-	if targetSlot == SlotOffhand && char.Equipment.Weapon.ItemId > 0 &&
-		char.Equipment.Weapon.GetSpec().Hands == items.TwoHanded {
-		displaced = append(displaced, char.Equipment.Weapon)
-		return displaced
-	}
-
 	current := itemInSlot(targetSlot, char)
 	if current.ItemId > 0 {
-		displaced = append(displaced, current)
+		return []items.Item{current}
 	}
-	return displaced
+	return nil
 }
 
 // placementBonus returns the additional score a spec earns
@@ -279,9 +252,19 @@ func placementBonus(profile WeightProfile, spec items.ItemSpec, slot SlotName, c
 	return bonus
 }
 
+func cursedAmong(char *characters.Character, displaced []items.Item) bool {
+	for _, d := range displaced {
+		if char.CursedRefusal(d) != `` {
+			return true
+		}
+	}
+	return false
+}
+
 // ItemValueDelta returns the net effect of equipping candidate
-// over char's current loadout under the given profile. Smart
-// slot selection picks the optimal placement. Returns
+// over char's current loadout under the given profile. The slot
+// picked is the slot Wear itself would pick for weapons,
+// shields, rings and wrists. Returns
 // SwapDelta{Score: 0, Slot: "", Displaced: nil} when candidate
 // is not equippable on this character.
 func ItemValueDelta(char *characters.Character, profile WeightProfile, candidate items.Item) SwapDelta {
@@ -295,7 +278,7 @@ func ItemValueDelta(char *characters.Character, profile WeightProfile, candidate
 	gearMul := mutations.GearEffectivenessMultiplier(char.Mutations)
 	candidateRaw *= gearMul
 
-	slots := compatibleSlotsFor(candidateSpec, char)
+	slots := compatibleSlotsFor(candidate, char)
 	if len(slots) == 0 {
 		return SwapDelta{}
 	}
@@ -305,7 +288,13 @@ func ItemValueDelta(char *characters.Character, profile WeightProfile, candidate
 	bestRank := -1
 
 	for _, slot := range slots {
-		displaced := displacedItemsForSlot(char, slot, candidateSpec)
+		displaced := displacedItemsForSlot(char, slot, candidate)
+		// A swap a curse would refuse is no upgrade (slice 5a, E8): Wear
+		// will not make it. The chooser types never get here with one,
+		// because the helper already skipped or refused the slot.
+		if cursedAmong(char, displaced) {
+			continue
+		}
 
 		candidateAt := candidateRaw + placementBonus(profile, candidateSpec, slot, char)
 
