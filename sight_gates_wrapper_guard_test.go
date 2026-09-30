@@ -23,10 +23,10 @@ func TestSightGateWrappersDoNotReFork(t *testing.T) {
 		fix       string
 	}{
 		{[]string{"internal/usercommands/get.go", "internal/mobcommands/get.go"},
-			regexp.MustCompile("ParticipantSight|CanSeeShapes|CanSeeClearly|`exploding`"),
+			regexp.MustCompile("ParticipantSight|CanSeeShapes|CanSeeClearly|`exploding`|\"exploding\"|SightNone|HasAdjective"),
 			"ask actions.TooDarkToGet or go through actions.TakeFloorItem"},
 		{[]string{"internal/usercommands/look.go", "internal/mobcommands/look.go"},
-			regexp.MustCompile(`ParticipantSight|SeesThroughExit|CanSeeClearly|ResolveTargetActor`),
+			regexp.MustCompile(`ParticipantSight|SeesThroughExit|CanSeeClearly|ResolveTargetActor|CanSeeShapes|FindByPetName`),
 			"go through actions.ResolveLook"},
 		{[]string{"internal/usercommands/remove.go", "internal/mobcommands/remove.go"},
 			regexp.MustCompile(`IsCursed|IsActing|refuseWhileBusy|Spellcasting`),
@@ -38,7 +38,7 @@ func TestSightGateWrappersDoNotReFork(t *testing.T) {
 			regexp.MustCompile(`GetHandPairs|HandsRequired|ItemPtr`),
 			"arm placement lives in Character.WearInArm"},
 		{[]string{"internal/usercommands/craft.go", "internal/mobcommands/craft.go"},
-			regexp.MustCompile(`CanSeeClearly|ParticipantSight`),
+			regexp.MustCompile(`CanSeeClearly|ParticipantSight|CanSeeShapes`),
 			"ask actions.TooDarkToCraft"},
 	}
 	for _, row := range rows {
