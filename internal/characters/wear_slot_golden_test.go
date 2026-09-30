@@ -14,9 +14,12 @@ import (
 // "Slot choice"). The legacy* functions below are VERBATIM copies of the
 // placement code as it stood at 3152749b0: wearWeaponOrShield, the three
 // Find* helpers, and wearArmorSlot's Ring and Wrist cases. The tests diff
-// Character.Wear against them over every non-cursed loadout at 2, 3, 4 and 6
-// arms, so a refactor of the slot choice provably moves nothing when nothing
-// is cursed. Do not "fix" the legacy copies: they are the record.
+// Character.Wear against them over every non-cursed loadout at 2, 3, 4, 5 and
+// 6 arms, plus a disabled-slot variant of every hand layout (every empty
+// slot disabled instead, ItemId < 0, the way a species or a missing extra
+// arm actually disables one), so a refactor of the slot choice provably
+// moves nothing when nothing is cursed. Do not "fix" the legacy copies: they
+// are the record.
 
 func legacyFindFirstEmptySlot(c *Character, pairs []HandPair, isShield bool) *HandSlot {
 	for pi := range pairs {
@@ -325,6 +328,16 @@ func goldenHandLayouts(c *Character) []string {
 	return layouts
 }
 
+// goldenDisabledVariant turns every empty ('e') slot in a hand layout into a
+// disabled one ('d'): the same ItemId < 0 marker the game actually writes,
+// whether from species.DisabledSlots (the wielded pair) or an extra-arms
+// mutation level below the slot's arm (ExtraArm1-4). Run alongside the plain
+// layout so the oracle also pins how Wear treats a hand it cannot use at
+// all, not just one that is merely empty.
+func goldenDisabledVariant(layout string) string {
+	return strings.ReplaceAll(layout, "e", "d")
+}
+
 var goldenCode = map[rune]items.ItemSpec{'s': goldenSword, 'c': goldenClaws, 'b': goldenShield, 'g': goldenGreat, 'r': goldenRing, 'w': goldenBracer}
 
 // applyLayout writes one item per code into slots, numbering from *nextId.
@@ -365,7 +378,9 @@ func goldenIds(list []items.Item) string {
 // disabled Ring or Wrist1 (it hands back the ItemId -1 marker; ruling 10
 // never writes a disabled slot), and the shield beside a two-hander refused
 // with every hand full at 3 or more arms (ruling 13 swaps the last available
-// hand). Both have explicit tests in wear_slot_test.go.
+// hand). Both have explicit tests in wear_slot_test.go. The ruling-13 case is
+// not skipped blindly: ruling13Check below still asserts the real result
+// against ruling 13 itself.
 func sanctionedDivergence(extraArms int, legacyReturned []items.Item, legacyWhy string) bool {
 	for _, it := range legacyReturned {
 		if it.ItemId < 0 {
@@ -375,6 +390,50 @@ func sanctionedDivergence(extraArms int, legacyReturned []items.Item, legacyWhy 
 	return extraArms > 0 && legacyWhy == `Your two-handed weapon leaves no room for a shield.`
 }
 
+// ruling13Check runs where goldenCompare skips because legacy refused a
+// shield with "no room" and there are extra arms (sanctionedDivergence):
+// ruling 13 says the shield should take the highest arm that is not part of
+// a two-hander, or refuse with the same line when every extra pair is itself
+// two-handed. It reads the target pair from subject BEFORE calling Wear
+// (Wear only ever touches that one pair), then checks Wear's real result
+// against it, so the skip is no longer blind.
+func ruling13Check(t *testing.T, name string, subject *Character, cand items.ItemSpec, failures *int) {
+	t.Helper()
+	report := func(format string, args ...any) {
+		*failures++
+		if *failures <= 20 {
+			t.Errorf("%s: "+format, append([]any{name}, args...)...)
+		}
+	}
+	pairs := subject.GetHandPairs()
+	var target *HandPair
+	for n := len(pairs) - 1; n >= 1; n-- {
+		if !pairs[n].First.Is2H(subject) {
+			target = &pairs[n]
+			break
+		}
+	}
+	_, sWorn, sWhy := subject.Wear(goldenItem(9000, cand, false))
+	const noRoom = `Your two-handed weapon leaves no room for a shield.`
+	if target == nil {
+		if sWorn || sWhy != noRoom {
+			report("ruling 13: want a refusal with no eligible hand, got worn=%v why=%q", sWorn, sWhy)
+		}
+		return
+	}
+	slot := target.First
+	if !target.IsHalfPair() {
+		slot = target.Second
+	}
+	if !sWorn {
+		report("ruling 13: want the shield to take the last available hand (%s), got refused %q", slot.Label, sWhy)
+		return
+	}
+	if slot.ItemPtr.ItemId != 9000 {
+		report("ruling 13: want the shield in %s, got item %d there", slot.Label, slot.ItemPtr.ItemId)
+	}
+}
+
 // goldenCompare runs the legacy oracle and Wear on two identically built
 // characters and reports any difference.
 func goldenCompare(t *testing.T, name string, extraArms int, build func() *Character, cand items.ItemSpec, failures *int) (compared bool) {
@@ -382,6 +441,10 @@ func goldenCompare(t *testing.T, name string, extraArms int, build func() *Chara
 	oracle, subject := build(), build()
 	oRet, oWorn, oWhy := legacyWear(oracle, goldenItem(9000, cand, false))
 	if sanctionedDivergence(extraArms, oRet, oWhy) {
+		const noRoom = `Your two-handed weapon leaves no room for a shield.`
+		if extraArms > 0 && oWhy == noRoom {
+			ruling13Check(t, name, subject, cand, failures)
+		}
 		return false
 	}
 	sRet, sWorn, sWhy := subject.Wear(goldenItem(9000, cand, false))
@@ -407,22 +470,24 @@ func TestWearSlotChoice_GoldenHands(t *testing.T) {
 	seedGoldenSpecies(t)
 	candidates := []items.ItemSpec{goldenSword, goldenClaws, goldenGreat, goldenShield}
 	compared, skipped, failures := 0, 0, 0
-	for _, extra := range []int{0, 1, 2, 4} {
+	for _, extra := range []int{0, 1, 2, 3, 4} {
 		for _, sp := range []int{goldenMedium, goldenSmall, goldenLarge} {
 			for _, dual := range []bool{false, true} {
 				for _, layout := range goldenHandLayouts(goldenChar(extra, sp, dual)) {
-					build := func() *Character {
-						c := goldenChar(extra, sp, dual)
-						id := 1000
-						applyLayout(handSlotsInArmOrder(c), layout, &id)
-						return c
-					}
-					for _, cand := range candidates {
-						name := fmt.Sprintf("arms=%d species=%d dual=%v hands=%s item=%s", 2+extra, sp, dual, layout, cand.Name)
-						if goldenCompare(t, name, extra, build, cand, &failures) {
-							compared++
-						} else {
-							skipped++
+					for _, variant := range []string{layout, goldenDisabledVariant(layout)} {
+						build := func() *Character {
+							c := goldenChar(extra, sp, dual)
+							id := 1000
+							applyLayout(handSlotsInArmOrder(c), variant, &id)
+							return c
+						}
+						for _, cand := range candidates {
+							name := fmt.Sprintf("arms=%d species=%d dual=%v hands=%s item=%s", 2+extra, sp, dual, variant, cand.Name)
+							if goldenCompare(t, name, extra, build, cand, &failures) {
+								compared++
+							} else {
+								skipped++
+							}
 						}
 					}
 				}
