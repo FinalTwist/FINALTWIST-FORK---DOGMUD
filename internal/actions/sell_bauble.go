@@ -52,10 +52,12 @@ func baubleShelvable(rec baubles.Record) bool {
 
 // Merchant lines for bauble refusals.
 const (
-	baubleSayUnknown    = "I'm afraid I don't buy those."
-	baubleSayNotBuyer   = "I'm not interested in trinkets. Try a general store or a jeweller."
-	baubleSayCantAfford = "I can't afford that right now."
-	baubleSayHot        = "That was stolen, and not long ago. I won't touch it. Try someone less particular about where things come from."
+	baubleSayUnknown      = "I'm afraid I don't buy those."
+	baubleSayNotBuyer     = "I'm not interested in trinkets. Try a general store or a jeweller."
+	baubleSayCantAfford   = "I can't afford that right now."
+	baubleSayHot          = "That was stolen, and not long ago. I won't touch it. Try someone less particular about where things come from."
+	baubleSayBackroomFull = "I can't move any more hot goods right now. Come back once some of what I'm sitting on has cooled."
+	baubleSayNoRoom       = "I'm afraid I've no room for more of those right now."
 )
 
 // Stolen baubles (docs/baubles Phase 6c). A stolen bauble is hot for
@@ -136,6 +138,25 @@ func baubleOfferFor(item items.Item, shopInv *shops.ShopInventory, fence bool, z
 		return BaubleOffer{Refusal: baubleSayHot}
 	default:
 		price = BaublePrice(rec.Value)
+	}
+
+	// The backroom (owner ruling 6, baubles slice D): a shop holds at most
+	// ShopAffixedStockCap baubles that were hot when shelved. A full one
+	// refuses another hot, shelvable bauble from any seller, so the offer is
+	// one rule for every caller; it is an interest refusal, so
+	// bestBaubleMerchant tries the next merchant, and offer and appraise
+	// show the line. Held entries count here only, never against the listed
+	// cap. The check and the add run in one sale under the mud lock. An
+	// honest shop fills its backroom too (a bauble hot only in another heat
+	// area), and says so in an honest voice; a fence talks about hot goods.
+	if shopInv != nil && baubleShelvable(rec) {
+		now := shops.ShelfNow()
+		if rec.Hot(now) && shopInv.HeldCount(now) >= int(configs.GetBalanceConfig().ShopAffixedStockCap) {
+			if fence {
+				return BaubleOffer{Refusal: baubleSayBackroomFull}
+			}
+			return BaubleOffer{Refusal: baubleSayNoRoom}
+		}
 	}
 
 	if shopInv != nil {

@@ -1033,3 +1033,92 @@ func TestStolenBauble_AHotOneIsShelvedHeldUntilItCools(t *testing.T) {
 	assert.Equal(t, 1, si.HeldCount(stolenTestNow))
 	assert.Empty(t, si.ListedIndexes(stolenTestNow), "not listed while held")
 }
+
+// A shop's backroom holds at most ShopAffixedStockCap hot baubles (owner
+// ruling 6, spec test 6). Full, it turns away another hot shelvable one in
+// the fence's voice, as an interest refusal (not Broke), and still buys a
+// cold one (listed at once) and a cheap hot one (destroyed, never held).
+func TestStolenBauble_AFullBackroomRefusesHotGoods(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+	pinStolenClock(t, stolenTestNow)
+	cfg := configs.GetConfig()
+	cfg.Balance.ShopAffixedStockCap = 2
+	cfg.Balance.BaubleStolenHeatHours = 72
+	configs.SetConfigForTest(t, cfg)
+	merchantInstance().Groups = []string{`fence`}
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000, CraftSupport: shops.CraftSupportGeneral})
+	later := stolenTestNow.Add(24 * time.Hour)
+	for _, name := range []string{"held one", "held two"} {
+		si.AffixedStock = append(si.AffixedStock, shops.AffixedStockEntry{
+			Item:  items.Item{ItemId: sellTestItemId, Affixed: true, Spec: &items.ItemSpec{Name: name, Value: 10}},
+			Price: 10, AddedAt: stolenTestNow, HoldUntil: later,
+		})
+	}
+
+	hot := stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenTestNow.Add(-time.Hour))
+	offer := BaubleOfferFrom(hot, merchantInstance())
+	assert.Equal(t, 0, offer.Price)
+	assert.Equal(t, baubleSayBackroomFull, offer.Refusal)
+	assert.False(t, offer.Broke, "an interest refusal: the next merchant in the room is tried")
+
+	seller := newSellerActor(t, true)
+	char := seller.GetCharacter()
+	require.True(t, char.StoreItem(hot))
+	res := Sell(seller, SellOptions{ItemName: "thimble", Quantity: 1})
+	assert.Equal(t, 0, res.Sold, "res=%+v", res)
+	assert.Len(t, si.AffixedStock, 2)
+
+	cold := stolenBauble(t, "Bone Dice", "dice", 12, 99, 1, stolenTestNow.Add(-30*24*time.Hour))
+	cheapHot := stolenBauble(t, "Brass Button", "button", 4, 99, 1, stolenTestNow.Add(-time.Hour))
+	require.True(t, char.StoreItem(cold))
+	require.True(t, char.StoreItem(cheapHot))
+	require.Equal(t, 1, Sell(seller, SellOptions{ItemName: "dice", Quantity: 1}).Sold, "a cold one still sells")
+	require.Equal(t, 1, Sell(seller, SellOptions{ItemName: "button", Quantity: 1}).Sold, "a cheap hot one still sells")
+	require.Len(t, si.AffixedStock, 3, "the cold one is shelved; the cheap hot one is not shelved at all")
+	assert.Equal(t, cold.Bauble, si.AffixedStock[2].Item.Bauble)
+	assert.Equal(t, 2, si.HeldCount(stolenTestNow), "the backroom is unchanged")
+}
+
+// An honest shop buys a bauble that is hot only in another heat area (not
+// HotIn here) and holds it, so its backroom can fill too. Full, it refuses
+// the next one in an honest voice, never the fence's line about hot goods
+// (controller decision, plan review 2026-09-30).
+func TestStolenBauble_AnHonestShopWithAFullBackroomHasNoRoom(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+	pinStolenClock(t, stolenTestNow)
+	cfg := configs.GetConfig()
+	cfg.Balance.ShopAffixedStockCap = 2
+	cfg.Balance.BaubleStolenHeatHours = 72
+	configs.SetConfigForTest(t, cfg)
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000, CraftSupport: shops.CraftSupportGeneral})
+	held := shops.AffixedStockEntry{
+		Item:  items.Item{ItemId: sellTestItemId, Affixed: true, Spec: &items.ItemSpec{Name: "held", Value: 10}},
+		Price: 10, AddedAt: stolenTestNow, HoldUntil: stolenTestNow.Add(24 * time.Hour),
+	}
+	si.AffixedStock = []shops.AffixedStockEntry{held, held}
+
+	elsewhere := newBauble(t, "Bone Dice", "dice", 12, baubles.StatusReady)
+	require.True(t, baubles.MarkStolen(elsewhere.Bauble, baubles.Theft{ByUserId: 1, RoomId: 1, Zone: "Faraway", FromMob: 99, FromName: "Merchant"}, stolenTestNow.Add(-time.Hour)))
+
+	offer := BaubleOfferFrom(elsewhere, merchantInstance())
+	assert.Equal(t, 0, offer.Price)
+	assert.Equal(t, baubleSayNoRoom, offer.Refusal, "an honest shop does not talk about moving hot goods")
+	assert.False(t, offer.Broke)
+
+	si.AffixedStock = si.AffixedStock[:1]
+	assert.Equal(t, 6, BaubleOfferFrom(elsewhere, merchantInstance()).Price, "with room, it buys a bauble that is hot only elsewhere")
+}
