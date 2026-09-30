@@ -37,3 +37,18 @@ func TestGet_DarkRefusalUnchanged(t *testing.T) {
 	out := runGate(t, user, func() (bool, error) { return Get("all", user, room, 0) })
 	assert.Contains(t, out, "You can't see anything to pick up!")
 }
+
+// A plain `get X` that auto-detects X in the player's own stash (no `from
+// stash` on the command line) now refuses an exploding item with the same
+// line an explicit `get X from stash` already used. Before the shared
+// pickup, this auto-detect path had no exploding check and took the item.
+func TestGet_AutoDetectedStashExplodingItemKeepsItsLine(t *testing.T) {
+	user, room := seedDarknessGateRoom(t, 90)
+	bomb := items.Item{ItemId: 96204, Spec: &items.ItemSpec{ItemId: 96204, Name: "bomb"}, Adjectives: []string{`exploding`}}
+	bomb.StashedBy = user.UserId
+	room.Stash = append(room.Stash, bomb)
+	out := runGate(t, user, func() (bool, error) { return Get("bomb", user, room, 0) })
+	assert.Contains(t, out, "You can't pick that up, it's about to explode!")
+	_, stillStashed := room.FindOnFloor("bomb", true)
+	assert.True(t, stillStashed)
+}

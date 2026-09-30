@@ -520,6 +520,7 @@ Proven able to fail by a temporary violation in each row.
 | Gold get refused at no sight | yes | no | yes |
 | Exploding item refused (single) | yes | no | yes |
 | Exploding item stops a sweep | yes | no sweep | yes (player sweep through shared body) |
+| Exploding item refused when a plain `get X` auto-detects X in the player's own stash | no (retrieved) | n/a | yes (matches explicit `get X from stash`) |
 | Household bauble refused | yes | yes | yes |
 | Look refused at no sight | yes | no | yes (mob silent) |
 | Creature named only when perceived | yes | no (hidden player named) | yes |
@@ -700,8 +701,11 @@ wording, and a cursed item in the named arm still refuses rather than moving
 the item elsewhere; and an item it knocks off a full pack lands on the floor instead
 of vanishing. `remove all` no longer strips cursed gear: each cursed item stays on with
 the cursed line, unless the player has Spellcasting 4. `get all <name>`
-behaves exactly as before. With no cursed items in the live world (E10), the
-curse changes are latent until a builder makes one.
+behaves exactly as before. A plain `get X` that finds X in the player's own
+stash now refuses an exploding item with the same line an explicit `get X
+from stash` already gave; before, this auto-detect path retrieved it. With
+no cursed items in the live world (E10), the curse changes are latent until
+a builder makes one.
 
 **Players see, 5b.** In a dark room a speaker's name now follows the
 listener's sight: "A figure says, ..." at shapes, "Someone says, ..." in

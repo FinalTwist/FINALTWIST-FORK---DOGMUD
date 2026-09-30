@@ -19,6 +19,8 @@
   or craft, and a monster can no longer look at you while you are hidden.
   A busy monster cannot take its gear off, and a monster's cursed gear
   stays on.
+- Picking something up by name that turns out to be stashed now refuses an
+  item about to explode, the same as asking for it from your stash by name.
 
 ## 2026-09-29: Pockets, companions and trinkets
 
