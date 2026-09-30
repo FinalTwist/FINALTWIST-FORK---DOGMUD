@@ -22,7 +22,11 @@ import (
 // carrier has no vendor_categories), and the legacy path would stock item 900
 // and resell it as a generic "Curious Trinket". Baubles therefore take their
 // own branch, like affixed loot does: priced from the catalog value times the
-// shop buy ratio, never added to stock, and the record marked sold.
+// shop buy ratio, and the record marked sold. A player's sale of an average
+// or rare bauble (baubleShelvable) to a living-economy shop puts it on that
+// shop's secondhand shelf (AffixedStock) at its catalog value, held out of
+// sight while it is hot (baubles.ShelfHoldUntil); every other sale destroys
+// it (baubles slice D).
 
 // baubleShopBuys reports whether a living-economy shop buys baubles: its
 // craft_support is listed in Balance.BaubleBuyerCraftSupports (by default
@@ -35,6 +39,15 @@ func baubleShopBuys(shopInv *shops.ShopInventory) bool {
 		}
 	}
 	return false
+}
+
+// baubleShelvable reports whether a sold bauble goes on the shop's shelf
+// rather than leaving the world (baubles slice D): worth more than the cheap
+// tier (owner ruling 5, so a dozen value-1 trinkets cannot evict shelved
+// gear, and the bauble Bartering loop stays closed), and not retired (ruling
+// 1: its withdrawn text would be listed once MarkSold sets it sold).
+func baubleShelvable(rec baubles.Record) bool {
+	return rec.Status != baubles.StatusRetired && rec.Value > baubles.TierCheap.Range().Max
 }
 
 // Merchant lines for bauble refusals.
@@ -237,9 +250,22 @@ func sellBaubleToMerchant(seller Actor, item items.Item, room *rooms.Room,
 		events.AddToQueue(events.ItemOwnership{MobInstanceId: seller.GetMobInstanceId(), Item: item, Gained: false})
 	}
 
-	// The bauble is not stocked: it leaves the world, and its gold is the
-	// only trace. The shop's gold changed, so a living-economy shop is saved.
+	// A player's sale of a shelvable bauble to a living-economy shop puts it
+	// on the shelf at its catalog value (the affixed-loot rule), held out of
+	// sight while it is hot. A mob's sale never does (ruling 7: the shop paid
+	// nothing), nor does a legacy merchant's, a cheap bauble or a retired
+	// one: those leave the world and the gold is the only trace. The shop
+	// changed either way, so a living-economy shop is saved. The record is
+	// marked sold after the save, for every sale.
 	if shopInv != nil {
+		if seller.IsPlayer() {
+			if rec, ok := baubles.Get(item.Bauble); ok && baubleShelvable(rec) {
+				now := shops.ShelfNow()
+				shopInv.AddAffixedStock(item, item.GetSpec().Value,
+					int(configs.GetBalanceConfig().ShopAffixedStockCap),
+					baubles.ShelfHoldUntil(item, now), now)
+			}
+		}
 		shopInv.BuysCount++
 		if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
 			mudlog.Error("SELL", "msg", "SaveShop failed", "error", err)

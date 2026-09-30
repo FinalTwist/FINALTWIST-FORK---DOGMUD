@@ -38,10 +38,11 @@ var stolenTestNow = time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
 // pinStolenClock sets every clock the stolen-bauble code reads.
 func pinStolenClock(t *testing.T, now time.Time) {
 	t.Helper()
-	origSale, origStolen := baubleNowForSale, stolenNow
+	origSale, origStolen, origShelf := baubleNowForSale, stolenNow, shops.ShelfNow
 	baubleNowForSale = func() time.Time { return now }
 	stolenNow = func() time.Time { return now }
-	t.Cleanup(func() { baubleNowForSale, stolenNow = origSale, origStolen })
+	shops.ShelfNow = func() time.Time { return now }
+	t.Cleanup(func() { baubleNowForSale, stolenNow, shops.ShelfNow = origSale, origStolen, origShelf })
 }
 
 // stolenBauble makes a bauble stolen by userId from mob template fromMob, at.
@@ -995,4 +996,40 @@ func TestStolenBauble_RealItemsKeepTheirBuyerAmongBaubles(t *testing.T) {
 	require.Equal(t, 3, res.Sold, "res=%+v", res)
 	assert.Equal(t, 992, fence.Character.Gold, "the fence bought the stolen bauble and nothing else")
 	assert.Less(t, merchantInstance().Character.Gold, purse, "the merchant bought the swords")
+}
+
+// A hot bauble a player sells to a fence's living shop is shelved but held
+// out of sight until its heat ends everywhere: StolenAt plus
+// BaubleStolenHeatHours (baubles slice D, spec test 8).
+func TestStolenBauble_AHotOneIsShelvedHeldUntilItCools(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+	pinStolenClock(t, stolenTestNow)
+	cfg := configs.GetConfig()
+	cfg.Balance.BaubleStolenHeatHours = 72
+	configs.SetConfigForTest(t, cfg)
+	merchantInstance().Groups = []string{`fence`}
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000, CraftSupport: shops.CraftSupportGeneral})
+
+	stolenAt := stolenTestNow.Add(-time.Hour)
+	hot := stolenBauble(t, "Tarnished Brass Thimble", "thimble", 12, 99, 1, stolenAt)
+	seller := newSellerActor(t, true)
+	require.True(t, seller.GetCharacter().StoreItem(hot))
+	res := Sell(seller, SellOptions{ItemName: "thimble", Quantity: 1})
+	require.Equal(t, 1, res.Sold, "res=%+v", res)
+
+	require.Len(t, si.AffixedStock, 1, "a player's sale of an average bauble is shelved")
+	e := si.AffixedStock[0]
+	assert.Equal(t, hot.Bauble, e.Item.Bauble)
+	assert.Equal(t, 12, e.Price, "relisted at its catalog value")
+	assert.True(t, e.HoldUntil.Equal(stolenAt.Add(72*time.Hour)), "held until the heat ends: %v", e.HoldUntil)
+	assert.True(t, e.AddedAt.Equal(stolenTestNow), "shelved on the shelf clock: %v", e.AddedAt)
+	assert.Equal(t, 1, si.HeldCount(stolenTestNow))
+	assert.Empty(t, si.ListedIndexes(stolenTestNow), "not listed while held")
 }

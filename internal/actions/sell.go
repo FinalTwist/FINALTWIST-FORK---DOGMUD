@@ -313,7 +313,9 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 	}
 
 	char.CancelConditionsWithFlag(conditions.Hidden)
-	// Baubles (docs/baubles): catalog-priced, never stocked. See sell_bauble.go.
+	// Baubles (docs/baubles): catalog-priced; a player's average or rare one
+	// goes on a living shop's shelf, the rest leave the world. See
+	// sell_bauble.go.
 	if item.IsBauble() {
 		return sellBaubleToMerchant(seller, item, room, mob, shopInv, awardProgression)
 	}
