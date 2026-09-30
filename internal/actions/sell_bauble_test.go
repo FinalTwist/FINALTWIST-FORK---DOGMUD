@@ -292,3 +292,34 @@ func TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved(t *testing.T) {
 		assert.Equal(t, baubles.StatusSold, rec.Status, "%s: the sale is recorded", it.Bauble)
 	}
 }
+
+// The cheap-tier boundary (owner ruling 5, baubleShelvable): a bauble worth
+// exactly the cheap tier's max is still cheap and must not be shelved; one
+// worth one gold more crosses into average and must be. The boundary is read
+// from the tier config, never hardcoded, so this pins the `>` in
+// baubleShelvable against a `>=` regression.
+func TestSell_Bauble_CheapTierBoundaryIsPinned(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, CraftSupport: shops.CraftSupportGeneral})
+
+	max := baubles.TierCheap.Range().Max
+
+	player := newSellerActor(t, true)
+	atMax := newBauble(t, "Chipped Clay Cup", "cup", max, baubles.StatusReady)
+	require.True(t, player.GetCharacter().StoreItem(atMax))
+	require.Equal(t, 1, Sell(player, SellOptions{ItemName: "cup", Quantity: 1}).Sold)
+	assert.Empty(t, si.AffixedStock, "a bauble worth exactly the cheap tier max must not be shelved")
+
+	aboveMax := newBauble(t, "Painted Wooden Horse", "horse", max+1, baubles.StatusReady)
+	require.True(t, player.GetCharacter().StoreItem(aboveMax))
+	require.Equal(t, 1, Sell(player, SellOptions{ItemName: "horse", Quantity: 1}).Sold)
+	require.Len(t, si.AffixedStock, 1, "a bauble one gold above the cheap tier max must be shelved")
+	assert.Equal(t, aboveMax.Bauble, si.AffixedStock[0].Item.Bauble)
+}
