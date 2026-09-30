@@ -1,5 +1,29 @@
 # DOGMud Patch Notes
 
+## 2026-10-01: City scavengers
+
+- The loot goblin is gone. It no longer steals everything left on the
+  ground across the world.
+- Every city now has a scavenger who walks its streets and picks up
+  whatever people leave lying on the ground: Old Mags the rag-and-bone
+  woman in the Common, Tuck in the Crafting Quarter, Jory the mudlark on
+  the docks, Ambry the lost-property clerk among the merchants, Mistress
+  Coombe in the Noble Quarter, Brother Amsel at the temple, Nettle in the
+  Outskirts, Grist in Thornwall, Moll on the Confluence quays, Odile in
+  the Confluence's upper town, Penhallow in Greenford, Gull in Stillwater,
+  Dunn in Hartcharn, Ruck in Kilnreach and Widow Sallis in Amber Valley.
+- A scavenger stops in each place for a while before moving on, so you
+  can catch up with one.
+- Lost something in town? The scavenger has it, and a skilled thief can
+  pick their pocket for it. Be quick: once a day, each scavenger gets rid
+  of everything they have found.
+- Outside the cities, things left on the ground slowly disappear, a little
+  every day. Big piles disappear faster than a single dropped item. Nothing
+  disappears while you are standing in the room.
+- Things that belong where they are, like a room's own props and quest
+  items, are never taken or removed.
+- Nothing is ever removed from inside your own home.
+
 ## 2026-10-01: Merchant chests
 
 - Every merchant now keeps a locked chest in the shop: a smith's iron

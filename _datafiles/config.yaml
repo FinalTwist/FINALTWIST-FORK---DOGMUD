@@ -151,7 +151,9 @@ LootGoblin:
   # - RoomId -
   #   The room the loot goblin spawns in (per its spawninfo). Also the room it returns
   #   to to drop off loot it finds. If zero (0), no loot goblin spawning.
-  RoomId: 139
+  #   Retired 2026-09-30: the city scavengers and the daily floor decay
+  #   (Balance: ScavengerStep*, FloorDecay*) keep item counts down instead.
+  RoomId: 0
   # - RoundCount -
   #   How often the Loot Goblin will spawn. It is a good idea to keep this
   #   number low to keep the game from getting bogged down with too many items
@@ -2053,6 +2055,28 @@ Balance:
   # to StateRecalling. Prevents infinite loops if the chest workflow stalls
   # (e.g., persistently full chest or unreachable chest room).
   ForagerStoringWatchdogRounds: 20
+
+  # ── CITY SCAVENGERS AND FLOOR DECAY ─────────────────────────────────────────
+  # The loot goblin's replacement. Each city (and each New Plymouth district)
+  # has a scavenger NPC that walks to random rooms of its city and picks up
+  # litter; its haul is pickpocketable and cleared every real-world day.
+  # Every other floor in the world thins out once a day instead.
+  # - ScavengerStepMinSeconds / ScavengerStepMaxSeconds -
+  #   Real seconds a scavenger lingers in each room before its next step,
+  #   picked uniformly in this range per room.
+  ScavengerStepMinSeconds: 30
+  ScavengerStepMaxSeconds: 150
+  # - FloorDecayBaseChancePct -
+  #   Percent chance a lone litter item on a floor outside the scavengers'
+  #   rounds is removed at each real-world day boundary (UTC midnight).
+  FloorDecayBaseChancePct: 10
+  # - FloorDecayPerExtraItemPct -
+  #   Added for every other litter item in the same room (5 items: 30% each).
+  FloorDecayPerExtraItemPct: 5
+  # - FloorDecayCheckRounds -
+  #   How often loaded rooms are checked for decay they still owe. Only sets
+  #   how soon after midnight (or after a player leaves) the pass is paid.
+  FloorDecayCheckRounds: 15
 
   # ── ECONOMY HEALTH DASHBOARD ────────────────────────────────────────────────
   # Wall-clock cadence for auto-snapshots (hours). Default 1.
