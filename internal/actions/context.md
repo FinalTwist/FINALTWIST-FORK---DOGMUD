@@ -1438,8 +1438,20 @@ above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
   playerSale)` sends a bauble to the best offer in the room that the
   merchant can pay (`bestBaubleMerchant`; a merchant's gold constrains only
   a player's sale), and `sellNamed` picks the buyer again for each bauble.
-- Never stocked, never resold: the item leaves the world, the record is
-  marked sold (`baubles.MarkSold`), a living-economy shop is saved.
+- The shelf (slice D): a player's sale of an average or rare, non-retired
+  bauble (`baubleShelvable`) to a living-economy shop puts it on the shop's
+  secondhand shelf (`AffixedStock`) at its catalog value, held out of sight
+  until `baubles.ShelfHoldUntil` while it is hot. A mob's sale, a legacy
+  merchant, a cheap or a retired bauble still leaves the world. Every sale
+  marks the record sold (`baubles.MarkSold`) and saves a living shop. A shop
+  holding `ShopAffixedStockCap` hot baubles refuses another shelvable hot
+  one (`baubleSayBackroomFull`, an interest refusal, so the next merchant is
+  tried). `buy` (`tryPurchaseFromInventory`) offers the shelf in
+  `ListedIndexes` order, never a held entry, selects by position
+  (`util.FindMatchIndexIn`, so `buy 2.trinket` takes the second), names a
+  bauble in the buyer's own view (`NameFor`, `DisplayNameFor` on the
+  buyer's line), trims the listed cap lazily, rolls back with
+  `RestoreAffixedStock`, and calls `baubles.MarkBought` on a buyback.
 - `BaubleOfferFrom(item, mob)` is the same offer for the `offer` and
   `appraise` commands. `mobs.GetSellPrice` returns 0 for any bauble.
 - `sellNamed` names each sale by the item actually sold (not the probe), and

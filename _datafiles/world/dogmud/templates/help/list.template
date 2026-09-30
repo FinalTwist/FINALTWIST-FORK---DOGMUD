@@ -8,5 +8,9 @@ may even offer help for hire!
   <ansi fg="command">list</ansi>
   This would list whatever the merchant is carrying.
 
+A shop that buys from players also lists, below its own goods, a
+table of <ansi fg="cyan">Secondhand goods</ansi>: gear and trinkets it
+bought and will sell again. Each is one of a kind.
+
 Find out more about referring to items by name by typing <ansi fg="command">help item-names</ansi>.
 

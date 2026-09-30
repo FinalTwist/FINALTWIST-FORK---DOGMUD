@@ -47,7 +47,9 @@ import (
 // seller's save back past the sale) is simply seen, so it stays. Its status
 // is left as sold: every record is sellable already (sales.go), a save file
 // on disk can lag a sale by one autosave, and rewriting the sale on that
-// evidence would erase real ones.
+// evidence would erase real ones. A bauble on a shop's secondhand shelf
+// (baubles slice D) is sold and still referenced (the shops source walks
+// AffixedStock), so it stays; a buyback makes it unsold (MarkBought).
 
 // applySweep folds one complete collection (refs: every record id some item
 // points at) into the catalog at now, and returns how many records were

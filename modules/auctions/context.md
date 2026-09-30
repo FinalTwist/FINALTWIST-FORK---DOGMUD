@@ -51,6 +51,15 @@ collection"), which is what stops NPC bids reading as a faceless bot.
 `NpcWallet` is a real balance: `CanAfford`/`Spend`/`Refund`/`Regen`. A buyer
 that has been spending cannot keep bidding, and outbid gold is refunded.
 
+A lot the shopkeeper buyer wins goes onto its bound shop's secondhand shelf
+(`Receive`, baubles slice D): `shops.AddAffixedStock` with
+`baubles.ShelfHoldUntil`, which is zero today since the shopkeeper never
+wins a bauble (`EvaluateBuyRules` refuses the carrier). A won item that
+would be held is not shelved when the shop's `BackroomFull` returns true
+(the rule the bauble sale's offer refuses by): it leaves the world instead,
+as a legacy shop's purchase would. The shop still paid for it either way,
+capped by `Balance.ShopAffixedStockCap`.
+
 ## Gotchas
 
 - **Player money is BANK-ONLY, never carried gold.** `Bid` checks and debits

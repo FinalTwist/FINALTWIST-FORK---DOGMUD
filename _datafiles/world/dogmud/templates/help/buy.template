@@ -11,6 +11,12 @@ The <ansi fg="command">buy</ansi> command buys an item for sale at a merchant.
 When buying multiple items, the purchase stops early if you
 run out of gold or cannot carry any more.
 
+Secondhand goods are bought by the name <ansi fg="command">list</ansi> shows you.
+When two share a name, <ansi fg="command">buy 2.trinket</ansi> buys the second one
+listed. Mind the dot: <ansi fg="command">buy 2 trinket</ansi>, with a space,
+buys two trinkets. The word <ansi fg="command">bauble</ansi>, which
+<ansi fg="command">sell</ansi> accepts for any trinket, does not work here.
+
 Find out more about referring to items by name by typing
 <ansi fg="command">help item-names</ansi>.
 
