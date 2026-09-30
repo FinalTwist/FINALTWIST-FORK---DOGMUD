@@ -414,3 +414,25 @@ func TestAdminBaubleCorpusExport_SendsRawUnnormalizedBytes(t *testing.T) {
 	assert.NotContains(t, got, "an useful")
 	assert.Contains(t, got, "that that", "a repeated word must not be collapsed")
 }
+
+// bauble show keeps a bauble's last sale in view after a buyback put it back
+// in a pack (baubles slice D): the header shows its status now, the sold
+// line what it last sold for.
+func TestAdminBauble_ShowKeepsTheLastSaleAfterABuyback(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+	admin, room := getTestUserAndRoom(t)
+
+	rec, err := baubles.Create(baubles.Record{Name: "Bone Dice", NameSimple: "dice", Tier: baubles.TierAverage,
+		Value: 12, WeightLbs: 0.2, Description: "A pair of yellowed bone dice.", Status: baubles.StatusReady,
+		Generator: baubles.GeneratorOpenAI})
+	require.NoError(t, err)
+	require.True(t, baubles.MarkSold(rec.Id, 6, 7))
+	require.True(t, baubles.MarkBought(rec.Id, 8))
+
+	out := adminSaid(t, "show "+rec.Id, admin, room)
+	assert.Contains(t, out, "[ready]", "the header shows where it is now")
+	assert.Contains(t, out, "last sold: 6 gold", "the sale stays visible")
+}

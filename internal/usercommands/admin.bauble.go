@@ -245,8 +245,10 @@ func baubleShow(args []string, user *users.UserRecord, room *rooms.Room) (bool, 
 	if rec.EditedBy != `` {
 		fmt.Fprintf(&b, "  edited by:   %s\r\n", rec.EditedBy)
 	}
-	if rec.Status == baubles.StatusSold {
-		fmt.Fprintf(&b, "  sold:        %d gold, %s\r\n", rec.SoldValue, rec.SoldAt.Format(`2006-01-02 15:04 MST`))
+	// The last sale stays visible after a buyback puts the record back in a
+	// pack (baubles slice D); the [status] header says where it is now.
+	if rec.SoldValue > 0 {
+		fmt.Fprintf(&b, "  last sold:   %d gold, %s\r\n", rec.SoldValue, rec.SoldAt.Format(`2006-01-02 15:04 MST`))
 	}
 	fmt.Fprintf(&b, "  description: %s\r\n", rec.Description)
 	user.SendText(messaging.CategorySystem, b.String())
