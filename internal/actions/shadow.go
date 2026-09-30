@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -11,6 +12,18 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
+)
+
+// ShadowingConditionId is condition 87, "Shadowing": held while a shadow is
+// live. It is named here and nowhere else (shadow_follow_guard_test.go).
+const ShadowingConditionId = 87
+
+// The two misc-data keys that hold a shadow's quarry. At most one is set.
+// Only this file reads or writes them (shadow_follow_guard_test.go); every
+// other package goes through ShadowTargetOf, ClearShadow and EndShadow.
+const (
+	shadowTargetUserKey = "shadow-target-user"
+	shadowTargetMobKey  = "shadow-target-mob"
 )
 
 // ShadowOptions parameterizes a shadow attempt.
@@ -87,9 +100,9 @@ func shadowMob(actor Actor, mobInstanceId int, cfg configs.Balance) ShadowResult
 	}
 
 	char := actor.GetCharacter()
-	char.SetMiscData("shadow-target-user", nil)
-	char.SetMiscData("shadow-target-mob", m.InstanceId)
-	actor.AddCondition(87, "skill")
+	char.SetMiscData(shadowTargetUserKey, nil)
+	char.SetMiscData(shadowTargetMobKey, m.InstanceId)
+	actor.AddCondition(ShadowingConditionId, "skill")
 
 	actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`You begin shadowing <ansi fg="mobname">%s</ansi>, `+
@@ -134,9 +147,9 @@ func shadowPlayer(actor Actor, targetUserId int, cfg configs.Balance) ShadowResu
 	}
 
 	char := actor.GetCharacter()
-	char.SetMiscData("shadow-target-user", targetUser.UserId)
-	char.SetMiscData("shadow-target-mob", nil)
-	actor.AddCondition(87, "skill")
+	char.SetMiscData(shadowTargetUserKey, targetUser.UserId)
+	char.SetMiscData(shadowTargetMobKey, nil)
+	actor.AddCondition(ShadowingConditionId, "skill")
 
 	actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`You begin shadowing <ansi fg="username">%s</ansi>, `+
@@ -185,5 +198,47 @@ func shadowPlayer(actor Actor, targetUserId int, cfg configs.Balance) ShadowResu
 		Succeeded:  true,
 		Detected:   detected,
 		TargetName: targetUser.Character.Name,
+	}
+}
+
+// ShadowTargetOf returns the quarry c is shadowing: a player's user id or a
+// mob's instance id, the other zero, or both zero when c shadows no one. It
+// reads the target only; whether the shadow is live is
+// c.HasCondition(ShadowingConditionId).
+func ShadowTargetOf(c *characters.Character) (userId, mobInstanceId int) {
+	if c == nil {
+		return 0, 0
+	}
+	userId, _ = c.GetMiscData(shadowTargetUserKey).(int)
+	mobInstanceId, _ = c.GetMiscData(shadowTargetMobKey).(int)
+	return userId, mobInstanceId
+}
+
+// ClearShadow drops c's shadow outright: both target keys and
+// ShadowingConditionId. No cooldown and no message, which is what the
+// stale-state guard and the target death and logoff cleanups want. A shadow
+// that ENDS (spotted, or `shadow stop`) goes through EndShadow instead.
+func ClearShadow(c *characters.Character) {
+	if c == nil {
+		return
+	}
+	c.SetMiscData(shadowTargetUserKey, nil)
+	c.SetMiscData(shadowTargetMobKey, nil)
+	c.RemoveCondition(ShadowingConditionId)
+}
+
+// EndShadow ends actor's shadow: ClearShadow, then the shadow cooldown
+// (Balance.ShadowCooldown rounds), then reason to the actor when it is not
+// empty (a mob reads nothing).
+func EndShadow(actor Actor, reason string) {
+	char := actor.GetCharacter()
+	ClearShadow(char)
+
+	cfg := configs.GetBalanceConfig()
+	char.TryCooldown(skills.Skullduggery.String(`shadow`),
+		fmt.Sprintf(`%d rounds`, cfg.ShadowCooldown))
+
+	if reason != "" {
+		actor.SendText(messaging.CategorySystem, reason)
 	}
 }
