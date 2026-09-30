@@ -145,6 +145,17 @@ func (r Record) KeptToFinder() bool {
 	return r.PlayerKey && !r.Moderated
 }
 
+// Shelvable reports whether a sold or won bauble goes on a shop's
+// secondhand shelf rather than leaving the world (baubles slice D): worth
+// more than the cheap tier (owner ruling 5, so a dozen value-1 trinkets
+// cannot evict shelved gear, and the bauble Bartering loop stays closed),
+// and not retired (ruling 1: its withdrawn text would be listed once the
+// record is marked sold). The one rule both the player-sale path
+// (internal/actions) and the auction win path (modules/auctions) apply.
+func (r Record) Shelvable() bool {
+	return r.Status != StatusRetired && r.Value > TierCheap.Range().Max
+}
+
 // Text shown for a bauble whose text an admin has withdrawn.
 const (
 	retiredName        = `Trinket`

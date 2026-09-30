@@ -57,8 +57,11 @@ A lot the shopkeeper buyer wins goes onto its bound shop's secondhand shelf
 wins a bauble (`EvaluateBuyRules` refuses the carrier). A won item that
 would be held is not shelved when the shop's `BackroomFull` returns true
 (the rule the bauble sale's offer refuses by): it leaves the world instead,
-as a legacy shop's purchase would. The shop still paid for it either way,
-capped by `Balance.ShopAffixedStockCap`.
+as a legacy shop's purchase would. A bauble is further gated by
+`baubles.Record.Shelvable` (owner ruling 5): a cheap or retired one leaves
+the world instead of shelving, same rule the player-sale path in
+`internal/actions` applies; a non-bauble item is unaffected. The shop still
+paid for it either way, capped by `Balance.ShopAffixedStockCap`.
 
 ## Gotchas
 

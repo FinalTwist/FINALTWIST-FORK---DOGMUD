@@ -1439,7 +1439,8 @@ above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
   merchant can pay (`bestBaubleMerchant`; a merchant's gold constrains only
   a player's sale), and `sellNamed` picks the buyer again for each bauble.
 - The shelf (slice D): a player's sale of an average or rare, non-retired
-  bauble (`baubleShelvable`) to a living-economy shop puts it on the shop's
+  bauble (`baubles.Record.Shelvable`, the rule shared with the auction win
+  path in `modules/auctions`) to a living-economy shop puts it on the shop's
   secondhand shelf (`AffixedStock`) at its catalog value, held out of sight
   until `baubles.ShelfHoldUntil` while it is hot. A mob's sale, a legacy
   merchant, a cheap or a retired bauble still leaves the world. Every sale

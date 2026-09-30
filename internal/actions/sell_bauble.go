@@ -23,8 +23,8 @@ import (
 // and resell it as a generic "Curious Trinket". Baubles therefore take their
 // own branch, like affixed loot does: priced from the catalog value times the
 // shop buy ratio, and the record marked sold. A player's sale of an average
-// or rare bauble (baubleShelvable) to a living-economy shop puts it on that
-// shop's secondhand shelf (AffixedStock) at its catalog value, held out of
+// or rare bauble (baubles.Record.Shelvable) to a living-economy shop puts it
+// on that shop's secondhand shelf (AffixedStock) at its catalog value, held out of
 // sight while it is hot (baubles.ShelfHoldUntil); every other sale destroys
 // it (baubles slice D).
 
@@ -39,15 +39,6 @@ func baubleShopBuys(shopInv *shops.ShopInventory) bool {
 		}
 	}
 	return false
-}
-
-// baubleShelvable reports whether a sold bauble goes on the shop's shelf
-// rather than leaving the world (baubles slice D): worth more than the cheap
-// tier (owner ruling 5, so a dozen value-1 trinkets cannot evict shelved
-// gear, and the bauble Bartering loop stays closed), and not retired (ruling
-// 1: its withdrawn text would be listed once MarkSold sets it sold).
-func baubleShelvable(rec baubles.Record) bool {
-	return rec.Status != baubles.StatusRetired && rec.Value > baubles.TierCheap.Range().Max
 }
 
 // Merchant lines for bauble refusals.
@@ -149,7 +140,7 @@ func baubleOfferFor(item items.Item, shopInv *shops.ShopInventory, fence bool, z
 	// cap. The check and the add run in one sale under the mud lock. An
 	// honest shop fills its backroom too (a bauble hot only in another heat
 	// area), and says so in an honest voice; a fence talks about hot goods.
-	if shopInv != nil && baubleShelvable(rec) {
+	if shopInv != nil && rec.Shelvable() {
 		now := shops.ShelfNow()
 		if shopInv.BackroomFull(baubles.ShelfHoldUntil(item, now), now, int(configs.GetBalanceConfig().ShopAffixedStockCap)) {
 			if fence {
@@ -280,7 +271,7 @@ func sellBaubleToMerchant(seller Actor, item items.Item, room *rooms.Room,
 	// marked sold after the save, for every sale.
 	if shopInv != nil {
 		if seller.IsPlayer() {
-			if rec, ok := baubles.Get(item.Bauble); ok && baubleShelvable(rec) {
+			if rec, ok := baubles.Get(item.Bauble); ok && rec.Shelvable() {
 				now := shops.ShelfNow()
 				shopInv.AddAffixedStock(item, item.GetSpec().Value,
 					int(configs.GetBalanceConfig().ShopAffixedStockCap),

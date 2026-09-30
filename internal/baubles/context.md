@@ -29,7 +29,11 @@ was stolen, and how its text was generated.
   `View` sets `BaubleView.PlayerText` for any `PlayerKey` record, so no
   model prompt carries it (`items.Item.ModelName`).
   `MaterialFor(viewerUserId)` is the material for the finder alone. Never
-  promotable (slice C takes only server-key moderated text).
+  promotable (slice C takes only server-key moderated text). `Shelvable()`
+  is the one rule for whether a sold or won bauble goes on a shop's
+  secondhand shelf: worth more than the cheap tier and not retired. Shared
+  by the player-sale path (`internal/actions`) and the auction win path
+  (`modules/auctions`), so there is exactly one place to change it.
 - **store.go**: the on-disk format: shards of `ShardSize` records
   (`catalog-NNNN.yaml`; ids start at 1, so shard 0 is B0000001 to
   B0000500, `shardOf`) plus `meta.yaml` with the next id. A record read from
@@ -195,6 +199,7 @@ func RecentNames(zone string, n int) []string
 
 type Record struct { /* see record.go */ }
 func (r Record) View() items.BaubleView
+func (r Record) Shelvable() bool
 
 func Load() error        // boot, after items.LoadDataFiles()
 func SaveAll()           // shutdown and copyover; retries failed writes

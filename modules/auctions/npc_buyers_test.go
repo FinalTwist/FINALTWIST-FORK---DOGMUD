@@ -338,6 +338,54 @@ func TestShopkeeper_ReceiveRespectsAFullBackroom(t *testing.T) {
 	}
 }
 
+// A bauble won at auction shelves by the same rule as a player's sale
+// (baubles.Record.Shelvable, owner ruling 5, baubles slice D): a cheap one
+// must not be shelved, an average one must. A non-bauble item is unaffected
+// by this rule and keeps today's behaviour (TestShopkeeper_WinRelistsIntoBoundShop).
+func TestShopkeeper_ReceiveGatesBaublesByShelvability(t *testing.T) {
+	mudlog.SetupLogger(nil, "", "", false) // the catalog logs each sale
+	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket", Value: 1},
+	})
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+
+	orig := saveShopFn
+	saveShopFn = func(zone string, mobId, roomId int) error { return nil }
+	defer func() { saveShopFn = orig }()
+
+	max := baubles.TierCheap.Range().Max
+	bauble := func(value int) items.Item {
+		rec, err := baubles.Create(baubles.Record{
+			Name: "Chipped Clay Cup", NameSimple: "cup", Tier: baubles.TierAverage,
+			Value: value, Status: baubles.StatusReady,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		it := items.New(items.BaubleItemId)
+		it.Bauble = rec.Id
+		return it
+	}
+
+	shop := &shops.ShopInventory{}
+	sk := &shopkeeper{name: "The Merchants' Guild", bound: shop}
+	sk.Receive(bauble(max))
+	if len(shop.AffixedStock) != 0 {
+		t.Fatalf("a cheap bauble won at auction must not be shelved: %d entries, want 0", len(shop.AffixedStock))
+	}
+	if shop.BuysCount != 1 {
+		t.Errorf("BuysCount=%d want 1: the shop still paid for it", shop.BuysCount)
+	}
+
+	sk.bound = shop
+	sk.Receive(bauble(max + 1))
+	if len(shop.AffixedStock) != 1 {
+		t.Fatalf("an average bauble won at auction must be shelved: %d entries, want 1", len(shop.AffixedStock))
+	}
+}
+
 func TestShopkeeper_RegisteredAndResolvable(t *testing.T) {
 	if buyerByName("The Merchants' Guild") == nil {
 		t.Fatal("shopkeeper persona must be registered so refunds/flavor/receive resolve by name")
