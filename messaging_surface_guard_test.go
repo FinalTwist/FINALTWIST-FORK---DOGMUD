@@ -889,6 +889,13 @@ func narrationRecognizeCall(call *ast.CallExpr) (narrationCallViewpoint, bool) {
 		// Measured at that moment: 5 production uses of
 		// SendTextVisualHidingNames, 5 of SendTextVisualWithAudio and 1 of
 		// SendTextVisualAsLit were all invisible here.
+		// Sight gates slice 5b: actions.SendHeard and actions.SendSeen are the
+		// shared room-line senders every speech and emote wrapper calls. The
+		// receiver is the package, so it is matched by name.
+		case "SendHeard", "SendSeen":
+			if recv.Name == "actions" {
+				return viewpointObserver, true
+			}
 		case "SendTextToUser":
 			if recv.Name == "room" {
 				return viewpointObserver, true

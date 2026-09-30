@@ -97,6 +97,7 @@ var beyondReaderCalls = map[string]bool{
 	"SendTextHidingNames": true, "SendCommunicationHidingNames": true, "SendVisualCommunicationHidingNames": true,
 	"SendTextToExits": true, "SendRoomCommunication": true, "SendTrio": true, "SendCounterTrio": true,
 	"SendMessage": true, "Command": true, "merchantSay": true,
+	"SendHeard": true, "SendSeen": true,
 }
 
 // isSendToRoom matches any SendTo...Room callee.
