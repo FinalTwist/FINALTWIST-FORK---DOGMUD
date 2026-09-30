@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
 // Her `remove` refuses a cursed worn item up front, as `get` refuses a
@@ -20,5 +22,22 @@ func TestCompanionRemoveRefusesACursedItem(t *testing.T) {
 		[]stimulus{{Kind: `heard`, FromOwner: true}}, 0, 0)
 	if out.Issued || out.Refused != `it will not come off` {
 		t.Fatalf("want a refusal before any command, got %+v", out)
+	}
+}
+
+// She neither offers nor starts a recipe she cannot see to make (spec C5).
+func TestCraftableHereIsEmptyInTheDark(t *testing.T) {
+	_, _, room, her := harmWorld(t, configs.PVPDisabled)
+	crafting.RegisterRecipeForTest(&crafting.RecipeSpec{RecipeId: `sg-twine`, Name: `Twine`, Skill: `tailoring`})
+	t.Cleanup(func() { crafting.UnregisterRecipeForTest(`sg-twine`) })
+	her.Character.KnownRecipes = map[string]int{`sg-twine`: 1}
+	p := &Profile{Crafts: []string{`tailoring`}}
+
+	if got := craftableHere(her, p, room); len(got) != 1 {
+		t.Fatalf("control: lit, she can make twine, got %+v", got)
+	}
+	room.SkyLight, room.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(0)
+	if got := craftableHere(her, p, room); len(got) != 0 {
+		t.Fatalf("dark: nothing is craftable here, got %+v", got)
 	}
 }

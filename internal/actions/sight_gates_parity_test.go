@@ -297,3 +297,20 @@ func TestGateParity_RemoveAllSkipsCursed(t *testing.T) {
 		assert.Equal(t, 39703, c.Equipment.Ring.ItemId, who)
 	}
 }
+
+func TestGateParity_CraftNeedsClearSight(t *testing.T) {
+	for _, light := range gateLights {
+		for _, who := range gateWho {
+			s := newGateScene(t, light)
+			a := s.actor(who)
+			res := InitiateCraft(a, "no-such-recipe")
+			if light == gateLit {
+				assert.False(t, TooDarkToCraft(a), "%s at %s", who, light)
+				assert.False(t, res.CannotSee, "%s at %s", who, light)
+				continue
+			}
+			assert.True(t, TooDarkToCraft(a), "%s at %s: shapes are not enough for fine work", who, light)
+			assert.Equal(t, CraftResult{CannotSee: true}, res, "%s at %s", who, light)
+		}
+	}
+}
