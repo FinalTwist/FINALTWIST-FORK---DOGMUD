@@ -56,16 +56,15 @@ func newScanMobActor(name string, room *rooms.Room, mobInstId int) *scanFakeActo
 	}
 }
 
-func (a *scanFakeActor) GetCharacter() *characters.Character    { return a.char }
-func (a *scanFakeActor) GetRoom() *rooms.Room                   { return a.room }
-func (a *scanFakeActor) GetName() string                        { return a.name }
-func (a *scanFakeActor) IsPlayer() bool                         { return a.isPlayer }
-func (a *scanFakeActor) GetUserId() int                         { return a.userId }
-func (a *scanFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *scanFakeActor) AddCondition(_ int, _ string)           {}
-func (a *scanFakeActor) OnSkillUse(_ string) bool               { return false }
-func (a *scanFakeActor) OnStatUse(_ string) bool                { return false }
-func (a *scanFakeActor) SendRoomCommunication(_ string, _ bool) {}
+func (a *scanFakeActor) GetCharacter() *characters.Character { return a.char }
+func (a *scanFakeActor) GetRoom() *rooms.Room                { return a.room }
+func (a *scanFakeActor) GetName() string                     { return a.name }
+func (a *scanFakeActor) IsPlayer() bool                      { return a.isPlayer }
+func (a *scanFakeActor) GetUserId() int                      { return a.userId }
+func (a *scanFakeActor) GetMobInstanceId() int               { return a.mobInstId }
+func (a *scanFakeActor) AddCondition(_ int, _ string)        {}
+func (a *scanFakeActor) OnSkillUse(_ string) bool            { return false }
+func (a *scanFakeActor) OnStatUse(_ string) bool             { return false }
 func (a *scanFakeActor) SendText(_ messaging.Category, msg string) {
 	a.sent = append(a.sent, msg)
 }

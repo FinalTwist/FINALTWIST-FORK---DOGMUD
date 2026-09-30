@@ -24,12 +24,6 @@ type Actor interface {
 	// for mobs). Routes through the centralized messaging pipeline.
 	SendText(cat messaging.Category, msg string)
 
-	// SendRoomCommunication broadcasts a communication (say/shout/etc.) to
-	// the room. Some clients suppress these messages based on deafen settings;
-	// this variant goes through the communication pipeline rather than the raw
-	// text pipeline. excludeSelf works the same as the deleted SendRoomText.
-	SendRoomCommunication(msg string, excludeSelf bool)
-
 	// GetName returns the display name of the actor.
 	GetName() string
 

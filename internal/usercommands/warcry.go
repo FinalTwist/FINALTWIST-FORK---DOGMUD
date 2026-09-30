@@ -41,9 +41,9 @@ func Warcry(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	}
 
 	user.SendText(messaging.CategorySystem, `<ansi fg="red-bold">You let out a thunderous warcry that ignites the fighting spirit of your allies!</ansi>`)
-	room.SendTextVisual(messaging.CategoryWarcry,
+	// Heard, not seen: the name follows each listener's sight (sight gates 5b).
+	actions.SendHeard(&actions.UserActor{User: user, Room: room}, messaging.CategoryWarcry,
 		fmt.Sprintf(`<ansi fg="red-bold"><ansi fg="username">%s</ansi> lets out a thunderous warcry!</ansi>`, user.Character.Name),
-		user.UserId,
 	)
 
 	// Apply to party members in the room
@@ -74,9 +74,9 @@ func Warcry(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	if mutations.HasMutationFlag(user.Character.Mutations, "shout-stacking") {
 		rb, rd := actions.ApplyRallyEffect(user.Character)
 		user.SendText(messaging.CategorySystem, `<ansi fg="cyan-bold">Your layered voice weaves a rallying cry into the same breath!</ansi>`)
-		room.SendTextVisual(messaging.CategoryRally,
+		// Heard, not seen, like the warcry line above.
+		actions.SendHeard(&actions.UserActor{User: user, Room: room}, messaging.CategoryRally,
 			fmt.Sprintf(`<ansi fg="cyan-bold"><ansi fg="username">%s</ansi>'s shout gathers into a rally in the same breath!</ansi>`, user.Character.Name),
-			user.UserId,
 		)
 		if party := parties.Get(user.UserId); party != nil {
 			for _, memberId := range party.GetMembers() {

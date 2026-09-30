@@ -258,11 +258,6 @@ func m2RoutingLines(relPath string, src []byte) ([]string, error) {
 				add(role, call.Args[0], call.Args[1])
 			}
 		case *ast.CallExpr:
-			if id, ok := v.Fun.(*ast.Ident); ok && id.Name == "sendAudioRoomText" && len(v.Args) >= 5 {
-				// (room, mob, cat, anonMsg, fullMsg, excluded...)
-				add("observer", v.Args[2], v.Args[4])
-				return true
-			}
 			sel, ok := v.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true

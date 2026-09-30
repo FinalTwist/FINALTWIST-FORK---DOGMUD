@@ -42,16 +42,6 @@ func (a *MobActor) GetRoom() *rooms.Room {
 // SendText is a no-op for mobs — they have no player connection.
 func (a *MobActor) SendText(cat messaging.Category, msg string) {}
 
-// SendRoomCommunication broadcasts NPC speech to the room. Mobs do not
-// respect client-side mute/deafen settings; the broadcast is sight-gated
-// via the messaging pipeline.
-func (a *MobActor) SendRoomCommunication(msg string, excludeSelf bool) {
-	if a.Room == nil {
-		return
-	}
-	a.Room.SendTextVisual(messaging.CategoryNPCDialogue, msg)
-}
-
 func (a *MobActor) GetName() string {
 	return a.Mob.Character.Name
 }

@@ -26,7 +26,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 		if user := users.GetByUserId(message.UserId); user != nil {
 
 			// If they are deafened, they cannot hear user communications
-			if message.IsCommunication && user.Deafened {
+			if message.HiddenFromDeafened(user.Deafened) {
 				return events.Continue
 			}
 
@@ -43,12 +43,14 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 
 	// RoomId branch: post-T9, Room.SendText/SendTextVisual fan out
 	// per-recipient (UserId events above), so this branch serves only the
-	// remaining RoomId-keyed emitters: Room.SendTextCommunication (player
-	// chat — the Deafened moderation filter below is load-bearing) and
-	// direct events.Message{RoomId} constructions. The IsQuiet /
-	// SuperHearing filter currently has zero emitters in DOGMud (no dogmud
-	// condition grants superhearing) — dormant upstream-compat, kept for
-	// cherry-pick parity. Audited 2026-07-10.
+	// remaining RoomId-keyed emitters: Room.SendTextCommunication (a player's
+	// adjacent-room shout and the AI companion's `ask` line),
+	// Room.SendTextToExits, and any other direct events.Message{RoomId}
+	// construction. Player speech and free-form emotes arrive per user with
+	// IsCommunication set, so the per-user check above carries the Deafened
+	// filter for them (sight gates slice 5b). The IsQuiet / SuperHearing
+	// filter below is reached by SendTextToExits(txt, true), but no dogmud
+	// condition grants superhearing, so those lines reach nobody.
 	if message.RoomId > 0 {
 
 		room := rooms.LoadRoom(message.RoomId)
@@ -80,7 +82,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 			if user := users.GetByUserId(userId); user != nil {
 
 				// If they are deafened, they cannot hear user communications
-				if message.IsCommunication && user.Deafened {
+				if message.HiddenFromDeafened(user.Deafened) {
 					continue
 				}
 

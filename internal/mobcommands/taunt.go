@@ -51,9 +51,9 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	case result.Fumble:
 		if !sendMobTauntTriad(combat.TauntFumble, "", messaging.CategoryTauntFailure,
 			mob, targetName, targetPlayer, room) {
-			sendAudioRoomText(room, mob, messaging.CategoryTauntFailure,
-				`Something bellows a challenge that breaks into a strangled gasp.`,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a challenge that breaks into a strangled gasp.`, mob.Character.Name))
+			room.SendTextHidingNames(messaging.CategoryTauntFailure,
+				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a challenge that breaks into a strangled gasp.`, mob.Character.Name),
+				[]string{mob.Character.Name}, messaging.HideNames)
 		}
 
 	case result.Hit:
@@ -72,9 +72,9 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 					sight := messaging.ParticipantSight(targetPlayer.Character, room)
 					targetPlayer.SendText(messaging.CategoryTauntSuccess, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 				}
-				sendAudioRoomText(room, mob, messaging.CategoryTauntSuccess,
-					messaging.Anonymize(fmt.Sprintf(`Something bellows a thunderous challenge at <ansi fg="username">%s</ansi>!`, targetName)),
-					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a thunderous challenge at <ansi fg="username">%s</ansi>!`, mob.Character.Name, targetName))
+				room.SendTextHidingNames(messaging.CategoryTauntSuccess,
+					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a thunderous challenge at <ansi fg="username">%s</ansi>!`, mob.Character.Name, targetName),
+					[]string{mob.Character.Name, targetName}, messaging.HideNames)
 			}
 		}
 		sendChannelDefenceMessages(result.Defence, mob, targetPlayer, room, targetIdentity, targetName, "taunt")
@@ -83,9 +83,9 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		// foe and pinned it (taunt-hold). AggroPulled is only ever set when the
 		// target is a mob, so the name colors as a mobname.
 		if result.AggroPulled {
-			sendAudioRoomText(room, mob, messaging.CategoryTauntSuccess,
-				`Something wheels around, drawn to a new challenger.`,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> wheels around and locks onto <ansi fg="mobname">%s</ansi>!`, targetName, mob.Character.Name))
+			room.SendTextHidingNames(messaging.CategoryTauntSuccess,
+				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> wheels around and locks onto <ansi fg="mobname">%s</ansi>!`, targetName, mob.Character.Name),
+				[]string{mob.Character.Name, targetName}, messaging.HideNames)
 		}
 
 	default: // miss
@@ -96,9 +96,9 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				sight := messaging.ParticipantSight(targetPlayer.Character, room)
 				targetPlayer.SendText(messaging.CategoryTauntResist, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 			}
-			sendAudioRoomText(room, mob, messaging.CategoryTauntResist,
-				messaging.Anonymize(fmt.Sprintf(`Something bellows a challenge at <ansi fg="username">%s</ansi>, but they shrug it off.`, targetName)),
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a challenge at <ansi fg="username">%s</ansi>, but they shrug it off.`, mob.Character.Name, targetName))
+			room.SendTextHidingNames(messaging.CategoryTauntResist,
+				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a challenge at <ansi fg="username">%s</ansi>, but they shrug it off.`, mob.Character.Name, targetName),
+				[]string{mob.Character.Name, targetName}, messaging.HideNames)
 		}
 	}
 
@@ -122,7 +122,7 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 // ⚠️ DARKNESS IS HAND-ROLLED HERE, and has to be. The AUDIO channel never runs
 // through messaging's pipeline sight gate, so both the personal line (via
 // messaging.ParticipantSight + messaging.HideNames) and the room line (via
-// sendAudioRoomTextHidingNames) hide names explicitly rather than inheriting
+// rooms.Room.SendTextHidingNames) hide names explicitly rather than inheriting
 // it. That is also why the {actortype} and {acteetype} tokens must resolve to
 // real name aliases: HideNames' tag-consuming match looks for
 // username|mobname|petname, and a tag outside that set leaks the name.
@@ -150,7 +150,7 @@ func sendMobTauntTriad(intensity combat.TauntIntensity, dmgDesc string, cat mess
 		excluded = append(excluded, targetPlayer.UserId)
 	}
 
-	sendAudioRoomTextHidingNames(room, cat, triad.ToRoom, []string{mob.Character.Name, targetName}, excluded...)
+	room.SendTextHidingNames(cat, triad.ToRoom, []string{mob.Character.Name, targetName}, messaging.HideNames, excluded...)
 	return true
 }
 
@@ -186,6 +186,6 @@ func sendChannelDefenceMessages(out combat.ChannelDefenceResult, mob *mobs.Mob,
 		excluded = append(excluded, defender.UserId)
 	}
 	visible := string(triad.ToRoom)
-	sendAudioRoomTextHidingNames(room, messaging.CategoryTauntResist, visible,
-		[]string{mob.Character.Name, defenderPlainName}, excluded...)
+	room.SendTextHidingNames(messaging.CategoryTauntResist, visible,
+		[]string{mob.Character.Name, defenderPlainName}, messaging.HideNames, excluded...)
 }

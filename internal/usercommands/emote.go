@@ -11,13 +11,21 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
+// Emote sends the player's emote to the room through actions.SendSeen. An
+// emote is seen, not heard: the name follows each onlooker's sight and a
+// listener who cannot see gets nothing (owner ruling 7, sight gates slice
+// 5b). Only the free-form line (and its @ form) is chatter, spared a
+// deafened player; the empty and alias lines are pre-written and reach
+// everyone who can see.
 func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	actor := &actions.UserActor{User: user, Room: room}
 
 	if len(rest) == 0 {
 		user.SendText(messaging.CategoryEmote, "You emote.")
-		room.SendTextVisual(messaging.CategoryEmote,
+		actions.SendSeen(actor, messaging.CategoryEmote,
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> emotes.`, user.Character.Name),
-			user.UserId,
+			false,
 		)
 		return true, nil
 	}
@@ -27,7 +35,7 @@ func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	if result.IsAlias {
 		aliasMsg := actions.FormatEmoteText(user.Character.Name, result.AliasText, "username")
 		user.SendText(messaging.CategoryEmote, fmt.Sprintf(`You Emote: %s`, aliasMsg))
-		room.SendTextVisual(messaging.CategoryEmote, aliasMsg, user.UserId)
+		actions.SendSeen(actor, messaging.CategoryEmote, aliasMsg, false)
 		events.AddToQueue(events.Emote{UserId: user.UserId, RoomId: room.RoomId, Text: result.AliasText})
 		return true, nil
 	}
@@ -38,7 +46,7 @@ func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	// Neutralise <ansi> markup before interpolation. Only the free-form path
-	// is escaped — result.AliasText above comes from the server-side
+	// is escaped; result.AliasText above comes from the server-side
 	// EmoteAliases table and its markup is legitimate.
 	rest = util.EscapeAnsiTags(rest)
 
@@ -49,9 +57,10 @@ func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		user.SendText(messaging.CategoryEmote, fmt.Sprintf(`You Emote: %s`, emoteMsg))
 	}
 
-	room.SendTextCommunication(
+	// Free text is chatter: true keeps the deafen filter.
+	actions.SendSeen(actor, messaging.CategoryEmote,
 		actions.FormatEmoteText(user.Character.Name, rest, "username"),
-		user.UserId,
+		true,
 	)
 	events.AddToQueue(events.Emote{UserId: user.UserId, RoomId: room.RoomId, Text: rest})
 

@@ -29,11 +29,9 @@ func Say(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	// transform can reassemble a tag. See util.EscapeAnsiTags.
 	rest = util.EscapeAnsiTags(rest)
 
-	actor := &actions.UserActor{User: user, Room: room}
-	result := actions.Say(actor, rest)
-
-	roomMsg := actions.FormatSayText(user.Character.Name, result.Text, result.IsSneaking, "username", "saytext")
-	room.SendTextCommunication(roomMsg, user.UserId)
+	// actions.Say sends the room line: the speaker's name follows each
+	// listener's sight, and the deafen filter still applies (sight gates 5b).
+	result := actions.Say(&actions.UserActor{User: user, Room: room}, rest)
 
 	selfMsg := fmt.Sprintf(`You say, "<ansi fg="saytext">%s</ansi>"`, result.Text)
 	user.SendText(messaging.CategorySpeech, util.SplitStringNL(selfMsg, 80))

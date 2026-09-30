@@ -141,6 +141,14 @@ type Message struct {
 
 func (m Message) Type() string { return `Message` }
 
+// HiddenFromDeafened reports whether a listener under the Deafened moderation
+// flag must not receive m: it is player chatter (IsCommunication) and they
+// are deafened. The one statement of the rule; hooks/Message_SendMessages.go
+// applies it on both of its branches and tests read it rather than copy it.
+func (m Message) HiddenFromDeafened(deafened bool) bool {
+	return m.IsCommunication && deafened
+}
+
 type Communication struct {
 	SourceUserId        int    // User that sent the message
 	SourceMobInstanceId int    // Mob that sent the message

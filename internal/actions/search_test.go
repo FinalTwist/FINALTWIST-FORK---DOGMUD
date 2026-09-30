@@ -60,16 +60,15 @@ func newSearchMobActor(name string, room *rooms.Room, mobInstId int) *searchFake
 	}
 }
 
-func (a *searchFakeActor) GetCharacter() *characters.Character    { return a.char }
-func (a *searchFakeActor) GetRoom() *rooms.Room                   { return a.room }
-func (a *searchFakeActor) GetName() string                        { return a.name }
-func (a *searchFakeActor) IsPlayer() bool                         { return a.isPlayer }
-func (a *searchFakeActor) GetUserId() int                         { return a.userId }
-func (a *searchFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *searchFakeActor) AddCondition(_ int, _ string)           {}
-func (a *searchFakeActor) OnSkillUse(_ string) bool               { return false }
-func (a *searchFakeActor) OnStatUse(_ string) bool                { return false }
-func (a *searchFakeActor) SendRoomCommunication(_ string, _ bool) {}
+func (a *searchFakeActor) GetCharacter() *characters.Character { return a.char }
+func (a *searchFakeActor) GetRoom() *rooms.Room                { return a.room }
+func (a *searchFakeActor) GetName() string                     { return a.name }
+func (a *searchFakeActor) IsPlayer() bool                      { return a.isPlayer }
+func (a *searchFakeActor) GetUserId() int                      { return a.userId }
+func (a *searchFakeActor) GetMobInstanceId() int               { return a.mobInstId }
+func (a *searchFakeActor) AddCondition(_ int, _ string)        {}
+func (a *searchFakeActor) OnSkillUse(_ string) bool            { return false }
+func (a *searchFakeActor) OnStatUse(_ string) bool             { return false }
 func (a *searchFakeActor) SendText(_ messaging.Category, msg string) {
 	a.sent = append(a.sent, msg)
 }

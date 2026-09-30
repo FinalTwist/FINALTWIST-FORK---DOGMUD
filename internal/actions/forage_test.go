@@ -61,16 +61,15 @@ func newForageMobActor(t *testing.T, mob *mobs.Mob, room *rooms.Room) *forageFak
 	}
 }
 
-func (a *forageFakeActor) GetCharacter() *characters.Character    { return a.char }
-func (a *forageFakeActor) GetRoom() *rooms.Room                   { return a.room }
-func (a *forageFakeActor) GetName() string                        { return a.name }
-func (a *forageFakeActor) IsPlayer() bool                         { return a.isPlayer }
-func (a *forageFakeActor) GetUserId() int                         { return a.userId }
-func (a *forageFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *forageFakeActor) AddCondition(_ int, _ string)           {}
-func (a *forageFakeActor) OnSkillUse(_ string) bool               { return false }
-func (a *forageFakeActor) OnStatUse(_ string) bool                { return false }
-func (a *forageFakeActor) SendRoomCommunication(_ string, _ bool) {}
+func (a *forageFakeActor) GetCharacter() *characters.Character { return a.char }
+func (a *forageFakeActor) GetRoom() *rooms.Room                { return a.room }
+func (a *forageFakeActor) GetName() string                     { return a.name }
+func (a *forageFakeActor) IsPlayer() bool                      { return a.isPlayer }
+func (a *forageFakeActor) GetUserId() int                      { return a.userId }
+func (a *forageFakeActor) GetMobInstanceId() int               { return a.mobInstId }
+func (a *forageFakeActor) AddCondition(_ int, _ string)        {}
+func (a *forageFakeActor) OnSkillUse(_ string) bool            { return false }
+func (a *forageFakeActor) OnStatUse(_ string) bool             { return false }
 func (a *forageFakeActor) SendText(_ messaging.Category, msg string) {
 	a.sent = append(a.sent, msg)
 }

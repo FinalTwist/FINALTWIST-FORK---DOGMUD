@@ -21,10 +21,8 @@ func merchantSay(room *rooms.Room, mob *mobs.Mob, line string) {
 	if mob == nil || room == nil {
 		return
 	}
-	actor := &actions.MobActor{Mob: mob, Room: room}
-	result := actions.Say(actor, line)
-	room.SendText(messaging.CategorySpeech,
-		actions.FormatSayText(mob.Character.Name, result.Text, false, "mobname", "saytext-mob"))
+	// actions.Say sends the room line itself (sight gates slice 5b).
+	actions.Say(&actions.MobActor{Mob: mob, Room: room}, line)
 }
 
 func Offer(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
