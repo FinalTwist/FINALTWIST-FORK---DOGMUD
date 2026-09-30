@@ -150,3 +150,37 @@ func TestAGiftIsRememberedUntilTheNextTheft(t *testing.T) {
 		t.Fatal("no such record")
 	}
 }
+
+// A bauble shelved while hot anywhere (Hot, not HotIn: its buyer could carry
+// it back into the theft's area) is held until its heat ends, StolenAt plus
+// the heat; anything else is listed at once (baubles slice D).
+func TestShelfHoldUntilIsTheEndOfTheHeat(t *testing.T) {
+	SetDirForTest(t.TempDir())
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+	setBaubleConfig(t, func(b *configs.Balance) { b.BaubleStolenHeatHours = 72 })
+
+	rec, err := Create(Record{Name: "Bone Dice", NameSimple: "dice", Tier: TierAverage, Value: 12, Status: StatusReady})
+	if err != nil {
+		t.Fatal(err)
+	}
+	it := items.Item{ItemId: items.BaubleItemId, Bauble: rec.Id}
+	t0 := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+
+	if !ShelfHoldUntil(it, t0).IsZero() {
+		t.Fatal("an honest bauble is listed at once")
+	}
+	MarkStolen(rec.Id, Theft{ByUserId: 1, FromMob: 2, Zone: "Thornwall City"}, t0)
+	if got := ShelfHoldUntil(it, t0.Add(time.Hour)); !got.Equal(t0.Add(72 * time.Hour)) {
+		t.Fatalf("hot: held until %v, want %v", got, t0.Add(72*time.Hour))
+	}
+	if !ShelfHoldUntil(it, t0.Add(72*time.Hour)).IsZero() {
+		t.Fatal("cold once the heat is out")
+	}
+	MarkReturned(rec.Id, 1, nil, t0.Add(2*time.Hour))
+	if !ShelfHoldUntil(it, t0.Add(3*time.Hour)).IsZero() {
+		t.Fatal("given back, it is not hot, so not held")
+	}
+	if !ShelfHoldUntil(items.Item{ItemId: 5}, t0).IsZero() {
+		t.Fatal("anything that is not a bauble is listed at once")
+	}
+}

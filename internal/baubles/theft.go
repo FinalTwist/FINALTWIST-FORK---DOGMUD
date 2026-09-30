@@ -150,6 +150,24 @@ func ItemIsHotIn(itm items.Item, zone string, now time.Time) bool {
 	return ok && rec.HotIn(zone, now)
 }
 
+// ShelfHoldUntil is when a bauble a shop shelves at now may first be shown
+// for sale (baubles slice D): the end of its heat, StolenAt plus
+// HeatDuration, while it is hot anywhere. Hot, not HotIn: the shop may be
+// outside the theft's heat area, but its buyer could carry it back there,
+// where its owner would know it. Zero (listed at once) for a bauble that is
+// not hot, one with no record, and anything that is not a bauble. The hold
+// is fixed when shelved; a later change to the heat does not move it.
+func ShelfHoldUntil(itm items.Item, now time.Time) time.Time {
+	if !itm.IsBauble() {
+		return time.Time{}
+	}
+	rec, ok := Get(itm.Bauble)
+	if !ok || !rec.Hot(now) {
+		return time.Time{}
+	}
+	return rec.StolenAt.Add(HeatDuration())
+}
+
 // MarkRecognized records that the bauble's owner recognised it on someone.
 func MarkRecognized(id string, byUserId int, at time.Time) bool {
 	_, ok := Update(id, func(r *Record) { r.RecognizedAt = at.UTC() })
