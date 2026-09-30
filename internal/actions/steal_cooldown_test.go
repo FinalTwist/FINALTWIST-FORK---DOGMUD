@@ -206,3 +206,20 @@ func TestStealCooldown_AnUnwatchedContainerPlantArmsIt(t *testing.T) {
 	assert.Equal(t, 15, actor.char.GetCooldown(stealKey()),
 		"an unwatched container plant arms the 60-second cooldown")
 }
+
+// Steal and plant share one skullduggery cooldown: a steal spends it, and a
+// plant straight after is refused without trying.
+func TestStealCooldown_StealThenPlantIsRefused(t *testing.T) {
+	pinStealCooldown(t)
+	actor := newStealPlayerActor(200, 8)
+	actor.room.Containers = map[string]rooms.Container{"chest": {Gold: 100}}
+	res := Steal(actor, StealOptions{ContainerNoun: "chest"})
+	require.True(t, res.Succeeded, "outcome: %+v", res)
+
+	seedPlantItem(actor)
+	plant := Plant(actor, PlantOptions{ContainerNoun: "chest", ItemNoun: "!1"})
+	assert.True(t, plant.OnCooldown, "a plant inside the steal's cooldown is refused: %+v", plant)
+	assert.False(t, plant.Succeeded)
+	_, stillCarried := actor.char.FindInBackpack("!1")
+	assert.True(t, stillCarried, "the refused plant keeps its item")
+}
