@@ -139,10 +139,14 @@ search and a positive hit proving the same search could match.
 7. **Guard and tests** as in "Testing and gates".
 8. **Playtest procedure** as in "Testing and gates".
 
-## Where the design needs a decision
+## Owner rulings on the source findings (binding, 2026-09-30)
 
-The ordering the design depends on holds (Q10). Four facts bear on the design
-and need an owner ruling before the plan. Each carries a recommendation.
+The ordering the design depends on holds (Q10). Four facts bore on the design;
+the owner ruled on each on 2026-09-30 and took every recommendation: D1 silence
+a sneaking mob's movement lines in this slice, D2 `ClearShadow` under
+`EndShadow`, D3 one exit helper for the shadow listener only (`modules/follow`
+unchanged), D4 accept the three edges. The text below keeps each finding and
+its recommendation, now ruled.
 
 **D1. A hidden mob's steps are announced by name (N1 to N3). Blocking.** A mob
 shadower that follows a player will be seen doing it: `RelocateMob` sends
@@ -152,7 +156,7 @@ mob as for any other. A sneaking player sends neither. Without a change, every
 mob-shadows-player step tells the target who is following, the playtest step
 "target does not see the mob" fails, and the awareness-only sense roll
 (ruling 3) is moot. Slice 4b made hidden detection symmetric but left this
-narration asymmetric. **Recommendation:** in this slice, `RelocateMob` takes
+narration asymmetric. **Ruled (owner, 2026-09-30):** in this slice, `RelocateMob` takes
 the mover's sneaking state and, when sneaking, skips the exit line, the entry
 line and `SendTextToExits`, as `go.go:296-356` does for a player. This changes
 every hidden mob's movement, not only shadowing (a thief archetype mob that
@@ -165,7 +169,7 @@ spotted end and `shadow stop` start the cooldown and send a line. The death and
 despawn cleanup hooks today clear state with no cooldown and no line, and so
 does the stale-state guard (F1). Routing the hooks through `EndShadow` as
 ruling 4 reads would start a 5-round cooldown and send text when the target
-dies or logs off, a behaviour change nobody asked for. **Recommendation:** one
+dies or logs off, a behaviour change nobody asked for. **Ruled (owner, 2026-09-30):** one
 NEW `ClearShadow(char *characters.Character)` in `internal/actions` (keys and
 condition 87 only) that `EndShadow` calls and then adds the cooldown and line;
 the stale guard and both cleanup hooks call `ClearShadow`. Still one body, no
@@ -174,14 +178,14 @@ copies.
 **D3. Exit resolution (X1 to X3).** `modules/follow` returns the command word
 (map key) but ignores mutator exits; `FindExitTo`, which the mob hook uses
 today, covers mutator exits but returns a temp exit's `Title`, which is not
-guaranteed to be the key `go` matches. **Recommendation:** the listener
+guaranteed to be the key `go` matches. **Ruled (owner, 2026-09-30):** the listener
 resolves the key from `Exits`, then `ExitsTemp`, then active mutator exits
 (the follow order plus the mutator fallback), in one unexported helper next to
 the listener. `FindExitTo` is left alone because `RelocateMob` uses it for
 display text.
 
 **D4. What "arrival" and "named exit" now cover (M1 to M3).** Three
-consequences of ruling 1 and 2, each recommended as accepted:
+consequences of ruling 1 and 2, all accepted by the owner, 2026-09-30:
 - The arrival check fires on any `RoomChange` of a shadower into its target's
   room, including one it walked by itself; the listener cannot tell a
   shadow-follow move from any other. A shadower that walks in on its quarry
@@ -272,13 +276,13 @@ contest (`shadow.go:164-182`). Both keep their start text and quest notify.
 | Sense roll after each step | before the move, player targets only, no award | none | on arrival, both targets, award both outcomes |
 | Sense roll when starting | player target, award both outcomes | mob target: no roll, award as a win | both targets, award both outcomes |
 | Sense result shown | player target: line | n/a | player target: line; mob target: nothing |
-| Hidden mover's steps narrated to the room | no (N1) | yes, by name (N2) | no (D1, if ruled) |
+| Hidden mover's steps narrated to the room | no (N1) | yes, by name (N2) | no (D1) |
 | Target death or logoff clears the shadow | yes, no cooldown | yes, no cooldown | unchanged (D2) |
 
 ## What changes in play
 
 - **Mob shadowers follow.** A hidden mob told to `shadow` a player or mob now
-  walks after it, and (with D1) does so without its steps being announced.
+  walks after it, and does so without its steps being announced (D1).
 - **A spotted shadower's shadow ends.** Today a shadower revealed on arrival
   keeps condition 87 and its target, and follows again as soon as it re-hides.
   Now the shadow ends with "You've been spotted -- your shadow ends." and the
@@ -293,6 +297,10 @@ contest (`shadow.go:164-182`). Both keep their start text and quest notify.
   mob's detection score, so a sharp-eyed mob trains the shadower less than an
   oblivious one.
 - **Fleeing players are followed** (D4), as fleeing mobs already were.
+- **Every sneaking creature moves silently** (D1), not only a shadower: a
+  hidden mob no longer announces "<name> leaves towards ..." or "<name> enters
+  from ...", as a sneaking player never has. A thief that sneaks and walks is
+  no longer given away by its own movement lines.
 
 ## Testing and gates
 
