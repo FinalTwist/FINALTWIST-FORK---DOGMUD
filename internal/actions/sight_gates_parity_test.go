@@ -128,3 +128,62 @@ func TestGateParity_EquipOverCursedArmour(t *testing.T) {
 		assert.True(t, inPack, "%s: the candidate stays in the pack", who)
 	}
 }
+
+func TestGateParity_TakeFloorItem(t *testing.T) {
+	want := map[gateLight]error{gateLit: nil, gateShapes: nil, gateDark: ErrTooDark, gateBlinded: ErrTooDark}
+	for _, light := range gateLights {
+		for _, who := range gateWho {
+			s := newGateScene(t, light)
+			a := s.actor(who)
+			pebble := gateItem(39501, "pebble", items.Junk, false)
+			s.room.Items = []items.Item{pebble}
+			err := TakeFloorItem(a, pebble, false)
+			assert.ErrorIs(t, err, want[light], "%s at %s", who, light)
+			if want[light] == nil {
+				assert.NoError(t, err, "%s at %s", who, light)
+			}
+			_, onFloor := s.room.FindOnFloor("pebble", false)
+			assert.Equal(t, want[light] != nil, onFloor, "%s at %s: a refusal moves nothing", who, light)
+		}
+	}
+}
+
+func TestGateParity_ExplodingItemIsRefused(t *testing.T) {
+	for _, who := range gateWho {
+		s := newGateScene(t, gateLit)
+		bomb := gateItem(39502, "bomb", items.Junk, false)
+		bomb.Adjectives = []string{`exploding`}
+		s.room.Items = []items.Item{bomb}
+		assert.ErrorIs(t, TakeFloorItem(s.actor(who), bomb, false), ErrExploding, who)
+		res := GetItemFromFloor(s.actor(who), "bomb", false)
+		assert.True(t, res.Found, who)
+		assert.ErrorIs(t, res.Err, ErrExploding, who)
+	}
+}
+
+func TestGateParity_GetItemFromFloorInTheDarkFindsNothing(t *testing.T) {
+	for _, who := range gateWho {
+		s := newGateScene(t, gateDark)
+		s.room.Items = []items.Item{gateItem(39503, "pebble", items.Junk, false)}
+		res := GetItemFromFloor(s.actor(who), "pebble", false)
+		assert.False(t, res.Found, "%s: the dark tells the actor nothing about the floor", who)
+		assert.ErrorIs(t, res.Err, ErrTooDark, who)
+	}
+}
+
+func TestGateParity_GoldPickup(t *testing.T) {
+	for _, light := range gateLights {
+		for _, who := range gateWho {
+			s := newGateScene(t, light)
+			s.room.Gold = 10
+			err := GetGoldFromFloor(s.actor(who), 10)
+			if light == gateDark || light == gateBlinded {
+				assert.ErrorIs(t, err, ErrTooDark, "%s at %s", who, light)
+				assert.Equal(t, 10, s.room.Gold, "%s at %s", who, light)
+				continue
+			}
+			assert.NoError(t, err, "%s at %s", who, light)
+			assert.Equal(t, 0, s.room.Gold, "%s at %s", who, light)
+		}
+	}
+}

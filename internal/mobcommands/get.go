@@ -43,12 +43,11 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if args[0] == "gold" {
 
 		if room.Gold > 0 {
-
-			mob.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
-
 			actor := &actions.MobActor{Mob: mob, Room: room}
 			goldAmt := room.Gold
 			if err := actions.GetGoldFromFloor(actor, goldAmt); err == nil {
+				// Revealed by the pickup, not by trying one in the dark.
+				mob.Character.CancelConditionsWithFlag(conditions.Hidden)
 				room.SendTextVisual(messaging.CategoryLoot, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> picks up <ansi fg="gold">%d gold</ansi>.`, mob.Character.Name, goldAmt))
 			}
 		}
