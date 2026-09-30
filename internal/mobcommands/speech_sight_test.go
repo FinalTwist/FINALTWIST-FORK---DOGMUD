@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -156,5 +157,115 @@ func TestMobSay_NightVisionInTheDarkHearsNoName(t *testing.T) {
 		got := strings.Join(mobSpeechHeard(1), "\n")
 		require.Contains(t, got, `says, "growls"`, "light %d: the words arrive", lamp)
 		require.NotContains(t, got, "Skeleton", "light %d: a nightvision holder in a dark room cannot tell who", lamp)
+	}
+}
+
+// TestMobHowlTaunt_HitFallbackHidesTargetBySight closes a coverage hole a
+// review found in sight gates 5b: howl's undefended hit-fallback line
+// ("throws back its head", howl.go:58-60) and taunt's undefended hit-fallback
+// line ("bellows a thunderous challenge", taunt.go:75-77) each carry the
+// TARGET's name in the SendTextHidingNames names list alongside the mob's, but
+// no test drove either path to that line and checked the target was hidden
+// too. Every existing test either exercises a different branch (fumble,
+// aggro-pull, the seeded-store triad, sendChannelDefenceMessages) or checks
+// only the mob's own name.
+//
+// Table strings are the plan's visible-lines table (docs/superpowers/plans/
+// 2026-09-29-sight-gates-5b.md lines 92-112) for taunt; howl has no row of its
+// own there (only its fumble and aggro-pull rows are listed), so its expected
+// text is the same HideNames transform applied to howl.go's literal, which
+// carries the identical two-tag shape ("mobname ... username").
+func TestMobHowlTaunt_HitFallbackHidesTargetBySight(t *testing.T) {
+	commands := []struct {
+		name       string
+		run        func(string, *mobs.Mob, *rooms.Room) (bool, error)
+		wantShapes string
+		wantNone   string
+	}{
+		{
+			name:       "howl",
+			run:        Howl,
+			wantShapes: "A figure throws back its head and lets out a bone-chilling howl at a figure!",
+			wantNone:   "Something throws back its head and lets out a bone-chilling howl at something!",
+		},
+		{
+			name:       "taunt",
+			run:        Taunt,
+			wantShapes: "A figure bellows a thunderous challenge at a figure!",
+			wantNone:   "Something bellows a thunderous challenge at something!",
+		},
+	}
+
+	for _, command := range commands {
+		t.Run(command.name, func(t *testing.T) {
+			cleanup := seedAllRegistries()
+			defer cleanup()
+			restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
+				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
+			})
+			defer restoreBiomes()
+			const infraredId = 9102
+			restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+				infraredId: {ConditionId: infraredId, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1,
+					Flags:   []conditions.Flag{conditions.InfraredVision},
+					Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
+			})
+			defer restoreConditions()
+
+			mob := mobs.GetInstance(100)
+			require.NotNil(t, mob)
+			targetMob := mobs.GetInstance(200)
+			require.NotNil(t, targetMob)
+
+			darkRoom := rooms.LoadRoom(2)
+			require.NotNil(t, darkRoom)
+			darkRoom.Biome = "cave"
+			require.Equal(t, 0, darkRoom.LightLevel())
+
+			mob.Character.RoomId = darkRoom.RoomId
+			targetMob.Character.RoomId = darkRoom.RoomId
+			darkRoom.AddMob(mob.InstanceId)
+			darkRoom.AddMob(targetMob.InstanceId)
+			mob.Character.SetAggro(0, targetMob.InstanceId, characters.DefaultAttack)
+			require.True(t, mob.Character.IsInCombat())
+
+			shapesListener := users.GetByUserId(1)
+			noneListener := users.GetByUserId(2)
+			shapesListener.Character.RoomId = darkRoom.RoomId
+			noneListener.Character.RoomId = darkRoom.RoomId
+			darkRoom.AddPlayer(shapesListener.UserId)
+			darkRoom.AddPlayer(noneListener.UserId)
+			require.True(t, shapesListener.Character.Conditions.AddCondition(infraredId, true))
+			require.Equal(t, messaging.SightShapes, messaging.ParticipantSight(shapesListener.Character, darkRoom))
+			require.Equal(t, messaging.SightNone, messaging.ParticipantSight(noneListener.Character, darkRoom))
+
+			original := executeTauntAction
+			executeTauntAction = func(actions.Actor) actions.TauntResult {
+				return actions.TauntResult{
+					Executed: true,
+					Hit:      true,
+					Target: actions.AggroTarget{
+						Char:          &targetMob.Character,
+						Name:          targetMob.Character.Name,
+						MobInstanceId: targetMob.InstanceId,
+						Found:         true,
+					},
+					Defence: combat.ChannelDefenceResult{},
+				}
+			}
+			t.Cleanup(func() { executeTauntAction = original })
+
+			events.DrainQueuedMessagesForTest(shapesListener.UserId)
+			events.DrainQueuedMessagesForTest(noneListener.UserId)
+
+			handled, err := command.run("", mob, darkRoom)
+			require.NoError(t, err)
+			require.True(t, handled)
+
+			require.Equal(t, []string{command.wantShapes}, mobSpeechHeard(shapesListener.UserId),
+				"%s hit-fallback must hide the target at shapes too", command.name)
+			require.Equal(t, []string{command.wantNone}, mobSpeechHeard(noneListener.UserId),
+				"%s hit-fallback must hide the target with no sight too", command.name)
+		})
 	}
 }
