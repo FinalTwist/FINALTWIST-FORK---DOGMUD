@@ -2,12 +2,14 @@ package actions
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/shops"
@@ -125,4 +127,66 @@ func TestBuy_Shelf_EnforcesTheCapLazilyAndSavesTheTrim(t *testing.T) {
 	reloaded := shops.GetShopInventory("TestZone", 2, 1)
 	require.NotNil(t, reloaded, "the trim was saved though nothing was bought")
 	assert.Len(t, reloaded.AffixedStock, 1)
+}
+
+// Spec test 11 (buy half) and ruling 4: a finder-only bauble on a shelf is
+// matched and named in the buyer's own view. Its finder buys it by its own
+// name and reads that name on the purchase line; anyone else buys a Trinket,
+// and the hidden words match nothing for them.
+func TestBuy_Shelf_AFinderOnlyBaubleIsBoughtInTheBuyersOwnView(t *testing.T) {
+	now := stolenTestNow
+	si := shelfBuyFixture(t, 12, now)
+	const finderId, otherId = 1, 2
+	rec, err := baubles.Create(baubles.Record{Name: "Painted Wooden Horse", NameSimple: "horse", Tier: baubles.TierAverage,
+		Value: 12, WeightLbs: 0.6, Description: "A child's toy horse, its red paint flaking.", Status: baubles.StatusReady,
+		Source: baubles.SourceSearch, PlayerKey: true, Moderated: false, FoundByUserId: finderId})
+	require.NoError(t, err)
+	shelve := func() {
+		si.AffixedStock = []shops.AffixedStockEntry{{Item: items.Item{ItemId: items.BaubleItemId, Bauble: rec.Id}, Price: 12, AddedAt: now}}
+	}
+
+	other := shelfBuyer(t, otherId, 100)
+	shelve()
+	res := tryPurchaseFromInventory(other, "painted wooden horse", nil, si)
+	assert.Equal(t, BuyReasonNoMatch, res.Reason, "the hidden words match nothing for anyone but the finder")
+	events.DrainQueuedMessagesForTest(otherId)
+	res = tryPurchaseFromInventory(other, "trinket", nil, si)
+	require.True(t, res.Success, "res=%+v", res)
+	out := strings.Join(events.DrainQueuedMessagesForTest(otherId), "\n")
+	assert.Contains(t, out, "Trinket")
+	assert.NotContains(t, out, "Horse")
+
+	finder := shelfBuyer(t, finderId, 100)
+	shelve()
+	events.DrainQueuedMessagesForTest(finderId)
+	res = tryPurchaseFromInventory(finder, "painted wooden horse", nil, si)
+	require.True(t, res.Success, "the finder buys it by its own name: res=%+v", res)
+	out = strings.Join(events.DrainQueuedMessagesForTest(finderId), "\n")
+	assert.Contains(t, out, "You buy the")
+	assert.Contains(t, out, "Painted Wooden Horse", "the purchase line shows the finder their own name")
+}
+
+// Spec test 12 (buy half): bought back off the shelf, a sold record returns
+// to its unsold status (ruling 2), named to ready and generic to fallback,
+// and its sale still counts.
+func TestBuy_Shelf_ABuybackReturnsTheRecordToItsUnsoldStatus(t *testing.T) {
+	now := stolenTestNow
+	si := shelfBuyFixture(t, 12, now)
+	named := newBauble(t, "Bone Dice", "dice", 12, baubles.StatusReady)
+	baubles.Update(named.Bauble, func(r *baubles.Record) { r.Generator = baubles.GeneratorCorpus })
+	generic := newBauble(t, "Brass Thimble", "thimble", 11, baubles.StatusFallback)
+	since := time.Now().UTC().Add(-time.Second)
+	require.True(t, baubles.MarkSold(named.Bauble, 6, 9))
+	require.True(t, baubles.MarkSold(generic.Bauble, 6, 9))
+	si.AffixedStock = []shops.AffixedStockEntry{{Item: named, Price: 12, AddedAt: now}, {Item: generic, Price: 11, AddedAt: now}}
+	buyer := shelfBuyer(t, 1, 100)
+
+	require.True(t, tryPurchaseFromInventory(buyer, "bone dice", nil, si).Success)
+	require.True(t, tryPurchaseFromInventory(buyer, "brass thimble", nil, si).Success)
+	r1, _ := baubles.Get(named.Bauble)
+	r2, _ := baubles.Get(generic.Bauble)
+	assert.Equal(t, baubles.StatusReady, r1.Status, "a named record is ready again")
+	assert.Equal(t, baubles.StatusFallback, r2.Status, "a generic one is fallback again")
+	n, _ := baubles.SalesSince(since)
+	assert.Equal(t, 2, n, "a buyback does not erase the sale")
 }

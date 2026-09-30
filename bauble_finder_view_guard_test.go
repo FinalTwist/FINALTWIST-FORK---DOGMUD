@@ -69,6 +69,7 @@ type finderViewSite struct {
 }
 
 var finderViewSites = map[string]finderViewSite{
+	"internal/actions/buy.go|tryPurchaseFromInventory":         {2, "the buyer's own view of a shelf bauble: a match key compared with what the buyer typed, and the buyer's own purchase line (buyer.SendText)"},
 	"internal/actions/search_bauble.go|BaubleDelivery.deliver": {1, "the find's own lines, sent to the finder alone (who.send); the room line names no item"},
 	"internal/actions/steal.go|takeFromMob":                    {3, "the thief's own success line (actor.SendText); the room is not told what was taken"},
 	"internal/usercommands/appraise.go|appraiseBauble":         {4, "the appraisal, sent to the player who asked for it (user.SendText); the room line names no item"},

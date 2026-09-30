@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -585,6 +586,14 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 	for _, idx := range shopInv.ListedIndexes(now) {
 		e := &shopInv.AffixedStock[idx]
 		name := e.Item.GetSpec().Name
+		if e.Item.IsBauble() {
+			// The buyer's own view, the one list showed them (owner ruling
+			// 4): a finder-only bauble is Trinket to everyone but its finder,
+			// so only its finder's own name holds its hidden words and nobody
+			// else can confirm them by typing. A mob buyer (user 0) gets the
+			// generic view.
+			name = e.Item.NameFor(buyer.GetUserId())
+		}
 		price := e.Price
 		if discount := barterDiscount(char, buyer.GetRoom(), barterMaxDiscount); discount > 0 {
 			price = shops.ApplyBarterSellDiscount(price, discount)
@@ -672,7 +681,12 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 			mudlog.Error("PURCHASE", "msg", "SaveShop failed", "error", err)
 		}
 		shopSaved = true
-		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You buy the <ansi fg="itemname">%s</ansi>.`, bought.DisplayName()))
+		if bought.IsBauble() {
+			// Back in a pack: its record returns to its unsold status
+			// (baubles slice D, ruling 2).
+			baubles.MarkBought(bought.Bauble, buyer.GetUserId())
+		}
+		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You buy the <ansi fg="itemname">%s</ansi>.`, bought.DisplayNameFor(buyer.GetUserId())))
 		if room := buyer.GetRoom(); room != nil {
 			room.SendTextVisual(messaging.CategoryLoot, fmt.Sprintf(`<ansi fg="username">%s</ansi> buys the <ansi fg="itemname">%s</ansi>.`, buyer.GetName(), bought.DisplayName()), buyer.GetUserId())
 		}
