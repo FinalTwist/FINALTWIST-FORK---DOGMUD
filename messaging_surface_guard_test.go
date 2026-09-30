@@ -111,6 +111,16 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// walk to find, so it cannot be stale either. --
 	"on_use_user_text": {narration, "internal/items/itemspec.go ItemSpec.OnUseUserText -- narrated to the player via user.SendText(messaging.CategorySystem, ...) in internal/usercommands/use.go when they `use` the item; found in exactly ONE data file (materials-40000/40042-herbalism_recipe_page.yaml), promoted to schema by Method E (Go yaml struct tag) rather than the 2-file threshold."},
 
+	// -- City scavenger narration: internal/scavenger/scavenger.go Profile,
+	// one entry per scavenger in scavengers.yaml. Each is a pool of room
+	// lines rendered through scavenger.Line (narration.Substitute, tokens
+	// {actor}, {item}, {gold}) and sent by behaviortree.scavenger_step. They
+	// recur across the file's entries rather than across files, and are
+	// schema by Go struct tag (Method E). --
+	"pickup_lines": {narration, "internal/scavenger/scavenger.go Profile.PickupLines -- room line narrated when a city scavenger picks up a floor item (actions_scavenger.go scavengerPickUp); {actor} the scavenger, {item} the item."},
+	"gold_lines":   {narration, "internal/scavenger/scavenger.go Profile.GoldLines -- room line narrated when a city scavenger picks up floor gold; {actor} the scavenger, {gold} the coins."},
+	"reset_lines":  {narration, "internal/scavenger/scavenger.go Profile.ResetLines -- room line narrated when a city scavenger's haul is cleared at the real-world day boundary (actions_scavenger.go scavengerDailyReset); {actor} the scavenger."},
+
 	// -- Quest narration USED TO HAVE FOUR ENTRIES of its own here:
 	// `playermessage` and `roommessage` for the reward lines
 	// (internal/quests/quests.go QuestReward), and `send_text` / `room_text`

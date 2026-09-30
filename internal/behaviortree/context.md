@@ -425,6 +425,12 @@ are subject to perception-scaled reaction delays (see below).
 |--------|--------|-------------|
 | `try_store_excess` | `chest_room` (int, required) | Forager chest-deposit workflow. Multi-tick: each tick advances one step — pathto chest room → unlock lockbox → put items in lockbox → lock lockbox. Returns Failure if `chest_room` param is missing, satchel is empty, or the chest room has no lockbox container. Engine handles chest-full gracefully: failed puts are no-ops and items remain in satchel for the next cycle. |
 
+### City Scavengers (2026-09-30, `actions_scavenger.go`)
+
+| Action | Params | Description |
+|--------|--------|-------------|
+| `scavenger_step` | none | The whole idle tick of a city scavenger (`internal/scavenger`; archetype `scavenger`). In order: clears the day's haul once per real-world day (items, and gold above the mob spec's purse; the first tick ever only records the day, kept in MiscData `scavenger_day`); picks up ONE litter item underfoot (`rooms.Room.FloorItemIsLitter`, through `actions.TakeFloorItem`, so darkness, a full pack and household baubles refuse it as for a player), else the floor gold, each with a profile line; otherwise lingers until `Walk.NextMoveAt` (running an authored idle command at `ActivityLevel`), then takes one step toward a random pool room via `mapper.GetPath` and sets the next linger (`ScavengerStepMinSeconds`..`ScavengerStepMaxSeconds`). Walk state is a `*scavenger.Walk` in TempData `scavenger_walk`; two steps in a row that leave it in place drop the target. Deliberately NOT `pathto`: the path walker steps every round and suppresses idle ticks until arrival. Success for a scavenger (it owns the tick), Failure for any other mob. Seams: `scavengerNow`, `scavengerRandn`, `scavengerNextStep`. |
+
 ### Archer / Ranged — varied delays (ranged-weapons feature)
 
 | Action | Params | Description |

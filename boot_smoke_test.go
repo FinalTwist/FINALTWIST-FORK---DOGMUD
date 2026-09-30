@@ -23,6 +23,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scavenger"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -108,6 +109,7 @@ func TestSmoke_ServerBootsCleanWithRealData(t *testing.T) {
 		{"conditions", len(conditions.GetAllConditionIds())},
 		{"quests", len(quests.GetAllQuests())},
 		{"crafting recipes", len(crafting.GetAll())},
+		{"city scavengers", len(scavenger.All())},
 	}
 
 	for _, c := range categories {
@@ -117,6 +119,9 @@ func TestSmoke_ServerBootsCleanWithRealData(t *testing.T) {
 			continue
 		}
 		t.Logf("%-18s %d loaded", c.name, c.count)
+	}
+	for _, p := range scavenger.All() {
+		t.Logf("scavenger %d %-36s pool %d rooms", p.MobId, p.City, len(p.Pool()))
 	}
 }
 

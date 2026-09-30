@@ -1064,7 +1064,7 @@ func (m *Mob) Despawns() bool {
 }
 
 // IsEssential returns true when this mob drives a living-economy system
-// (foragers, caravan crew, or shopkeepers). Essential mobs persist in their
+// (foragers, caravan crew, city scavengers, or shopkeepers). Essential mobs persist in their
 // rooms so their BTree state survives unattended periods — the room manager
 // skips unloading rooms that contain them. Memory cost is small: typically
 // fewer than 20–50 rooms pinned across the world at any moment.
@@ -1075,7 +1075,9 @@ func (m *Mob) IsEssential() bool {
 		return true
 	}
 	for _, g := range m.Groups {
-		if g == "forager" || g == "caravan" {
+		// A city scavenger's walk and haul live in its instance; unloading
+		// its room would reset both (internal/scavenger).
+		if g == "forager" || g == "caravan" || g == "scavenger" {
 			return true
 		}
 	}

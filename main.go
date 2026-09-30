@@ -80,6 +80,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/relationships"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scavenger"
 	"github.com/GoMudEngine/GoMud/internal/sealedcrate"
 	"github.com/GoMudEngine/GoMud/internal/shops"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -1889,6 +1890,29 @@ func loadAllDataFiles(isReload bool) {
 	moderation.LoadDataFiles()
 	housing.LoadDataFiles() // after rooms, mobs and factions: it validates against them
 	ferry.LoadDataFiles()
+	// City scavengers (the loot goblin's replacement). After rooms and mobs,
+	// since every pool is resolved against the zones and the mapper. Their
+	// rooms are exempt from the daily floor decay: the scavengers keep them.
+	scavenger.LoadDataFiles(scavenger.World{
+		ZoneExists: func(zone string) bool { return rooms.GetZoneConfig(zone) != nil },
+		ZoneRooms:  rooms.GetAllZoneRoomsIds,
+		RoomBiome: func(roomId int) (string, bool) {
+			r := rooms.LoadRoom(roomId)
+			if r == nil {
+				return ``, false
+			}
+			if r.Biome == `` { // an unset biome is the zone's default
+				return rooms.GetZoneBiome(r.Zone), true
+			}
+			return r.Biome, true
+		},
+		Reachable: func(from, to int) bool {
+			_, err := mapper.GetPath(from, to)
+			return err == nil
+		},
+		MobExists: func(mobId int) bool { return mobs.GetMobSpec(mobs.MobId(mobId)) != nil },
+	})
+	rooms.SetFloorDecayExempt(scavenger.IsPatrolledRoom)
 	warehouse.LoadAll()
 	questengine.LoadDataFiles()
 	templates.LoadAliases(plugins.GetPluginRegistry())
@@ -1914,6 +1938,18 @@ func loadAllDataFiles(isReload bool) {
 		preparedAnchors++
 	}
 	mudlog.Info("system NPC anchor rooms prepared", "count", preparedAnchors)
+
+	// The city scavengers spawn in their home rooms; prepare those too so
+	// every scavenger is on its rounds from boot, not from the first time a
+	// player happens by.
+	preparedScavengerHomes := 0
+	for _, roomId := range scavenger.AnchorRooms() {
+		if room := rooms.LoadRoom(roomId); room != nil {
+			room.Prepare(false)
+			preparedScavengerHomes++
+		}
+	}
+	mudlog.Info("scavenger home rooms prepared", "count", preparedScavengerHomes)
 
 	// Eager-spawn all rooms whose SpawnInfo references a shop-bearing mob.
 	// Without this, shopkeeper mobs in unvisited zones are never instantiated,
