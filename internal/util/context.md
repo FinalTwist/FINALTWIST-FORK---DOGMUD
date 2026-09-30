@@ -93,6 +93,7 @@ on write and on render.
 
 ```go
 func FindMatchIn(searchName string, items ...string) (match, closeMatch string)
+func FindMatchIndexIn(searchName string, items ...string) (match, closeMatch int) // -1 for none
 func GetMatchNumber(input string) (string, int)
 func ConvertForFilename(input string) string
 ```
@@ -101,6 +102,10 @@ func ConvertForFilename(input string) string
 that only read the first silently lose fuzzy matching — this is the routine
 behind most "why doesn't `get lake iron nodule` work" questions, and it matches
 whole multi-word phrases already.
+
+`FindMatchIndexIn` is the same algorithm by position (`FindMatchIn` wraps it);
+use it when two entries can share a name and the caller must know which one
+matched, as `buy` does for shelf rows.
 
 `GetMatchNumber` parses the disambiguation forms (`2.sword`, `sword#2`).
 

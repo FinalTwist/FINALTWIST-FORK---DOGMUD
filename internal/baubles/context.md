@@ -29,7 +29,11 @@ was stolen, and how its text was generated.
   `View` sets `BaubleView.PlayerText` for any `PlayerKey` record, so no
   model prompt carries it (`items.Item.ModelName`).
   `MaterialFor(viewerUserId)` is the material for the finder alone. Never
-  promotable (slice C takes only server-key moderated text).
+  promotable (slice C takes only server-key moderated text). `Shelvable()`
+  is the one rule for whether a sold or won bauble goes on a shop's
+  secondhand shelf: worth more than the cheap tier and not retired. Shared
+  by the player-sale path (`internal/actions`) and the auction win path
+  (`modules/auctions`), so there is exactly one place to change it.
 - **store.go**: the on-disk format: shards of `ShardSize` records
   (`catalog-NNNN.yaml`; ids start at 1, so shard 0 is B0000001 to
   B0000500, `shardOf`) plus `meta.yaml` with the next id. A record read from
@@ -121,7 +125,10 @@ was stolen, and how its text was generated.
   `PlayerKey` find's value with `tier.RollValue`, keeping the key's
   proposal in `ValueProposed`. `ApplyRegenerated` takes the new result's
   `PlayerKey` (a regen is always server-key).
-- **sales.go**: `MarkSold`, `SalesSince`.
+- **sales.go**: `MarkSold`, `MarkBought` (a buyback off a shop's shelf
+  returns a sold record to `unsoldStatus`; any other status is left, so a
+  retired one stays retired; the sale fields are kept), `SalesSince`
+  (counts by `SoldAt` alone, so a buyback does not erase a sale).
 - **theft.go**: `Theft`, `MarkStolen` (a household's bauble taken),
   `MarkHousehold`, `MarkVanished` (left untaken too long), `UntakenLimit`;
   after a theft (Phase 6c): `Record.Hot` (stolen within
@@ -138,10 +145,14 @@ was stolen, and how its text was generated.
   not given back since: what a fence pays its premium for), `MarkGiven`
   and `Record.GivenTo` (a player gave it to a mob that does not own it,
   `GivenToMob`; picked from that mob's pocket it is not the mob's stolen
-  goods; a theft clears it).
+  goods; a theft clears it). `ShelfHoldUntil(itm, now)` (slice D) is
+  `StolenAt + HeatDuration()` while the record is `Hot` anywhere, else zero:
+  how long a shelved bauble is held out of sight.
 - **admin.go**: `CatalogStats`, `Retire`, `Restore`, `Edit` (hand edits,
   checked like a model's answer), `ApplyRegenerated`, the prompt-preview
   seam (`SetPromptPreview`, `PreviewPrompt`) and `LooksLikeId`.
+  `Record.unsoldStatus` (ready when `Generator.Named()`, else fallback) is
+  `Restore`'s rule, shared with `MarkBought`.
 - **window.go**: the per-room roll windows and per-feature search claims (in
   memory), `FeatureSearchable`, `ClaimFeatureSearch`, `WindowState`,
   `ResetWindow`.
@@ -188,6 +199,7 @@ func RecentNames(zone string, n int) []string
 
 type Record struct { /* see record.go */ }
 func (r Record) View() items.BaubleView
+func (r Record) Shelvable() bool
 
 func Load() error        // boot, after items.LoadDataFiles()
 func SaveAll()           // shutdown and copyover; retries failed writes
@@ -218,6 +230,8 @@ type MintOpts struct{ Source Source; Place Place; FinderUserId int; Tier ValueTi
 func Mint(o MintOpts) (items.Item, Record, error)
 
 func MarkSold(id string, gold int, sellerUserId int) bool
+func MarkBought(id string, buyerUserId int) bool
+func ShelfHoldUntil(itm items.Item, now time.Time) time.Time
 type Theft struct{ ByUserId, RoomId, FromMob int; FromName, Faction, Zone string }
 func MarkStolen(id string, t Theft, at time.Time) bool
 func MarkHousehold(id string) bool
@@ -358,8 +372,10 @@ func ResetWindow(roomId int)
   can ever point at a record a crash would lose. A failed write of an
   existing record is logged, kept in memory, and retried by `SaveAll`.
 - A record lives as long as something points at it. The sweep is the only
-  pruner and it fails closed. A sold record held again (a crash rolled the
-  seller back) is seen and kept, and its sale is left as it was: every
+  pruner and it fails closed. A record on a shop's shelf is sold and still
+  referenced (`WalkItems` visits `AffixedStock`), so it is kept; a buyback
+  makes it unsold (`MarkBought`). A sold record held again (a crash rolled
+  the seller back) is seen and kept, and its sale is left as it was: every
   record is sellable, and a save on disk can lag a real sale by one
   autosave. `TestItemWalkersVisitEveryItemField` and
   `TestEveryItemHolderIsASweepRootOrTransient` (repo root) fail when a store
@@ -453,8 +469,10 @@ func ResetWindow(roomId int)
   crafting materials answer to them. The prompt asks for a specific noun
   instead (quartz, agate, fossil, antler, jawbone).
 - **Selling lives in `internal/actions/sell_bauble.go`**, not here. Every
-  record is sellable, a sold one included: it only reaches a merchant again
-  if a crash lost the seller's save after the sale was recorded.
+  record is sellable, a sold one included. A record reaches a merchant
+  again after a buyback off a shop's shelf (`MarkBought` makes it unsold
+  first); one still marked sold does so only if a crash lost the seller's
+  save after the sale was recorded.
 - **Boot only.** `Load` runs on first boot, not on a data reload
   (`loadAllDataFiles(isReload)`): the catalog is runtime state.
 - **The carrier must exist.** `Mint` refuses (`ErrNoCarrier`) and creates no

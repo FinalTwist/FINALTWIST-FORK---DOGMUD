@@ -57,3 +57,28 @@ func TestFinderOnlyRecordView(t *testing.T) {
 		t.Fatalf("server-key text is everyone's: %+v", v)
 	}
 }
+
+// Shelvable is the shared rule (owner ruling 5, baubles slice D) for whether
+// a sold or won bauble goes on a shop's resale shelf rather than leaving the
+// world: worth more than the cheap tier, and not retired (ruling 1). Both
+// the player-sale path (internal/actions) and the auction win path
+// (modules/auctions) read it from here, so there is exactly one rule to
+// change. The boundary is read from the tier config, never hardcoded.
+func TestRecord_Shelvable(t *testing.T) {
+	max := TierCheap.Range().Max
+
+	atMax := Record{Status: StatusReady, Value: max}
+	if atMax.Shelvable() {
+		t.Fatal("a bauble worth exactly the cheap tier max must not be shelvable")
+	}
+
+	aboveMax := Record{Status: StatusReady, Value: max + 1}
+	if !aboveMax.Shelvable() {
+		t.Fatal("a bauble one gold above the cheap tier max must be shelvable")
+	}
+
+	retired := Record{Status: StatusRetired, Value: max + 1}
+	if retired.Shelvable() {
+		t.Fatal("a retired bauble must never be shelvable, whatever its value")
+	}
+}

@@ -22,7 +22,11 @@ import (
 // carrier has no vendor_categories), and the legacy path would stock item 900
 // and resell it as a generic "Curious Trinket". Baubles therefore take their
 // own branch, like affixed loot does: priced from the catalog value times the
-// shop buy ratio, never added to stock, and the record marked sold.
+// shop buy ratio, and the record marked sold. A player's sale of an average
+// or rare bauble (baubles.Record.Shelvable) to a living-economy shop puts it
+// on that shop's secondhand shelf (AffixedStock) at its catalog value, held out of
+// sight while it is hot (baubles.ShelfHoldUntil); every other sale destroys
+// it (baubles slice D).
 
 // baubleShopBuys reports whether a living-economy shop buys baubles: its
 // craft_support is listed in Balance.BaubleBuyerCraftSupports (by default
@@ -39,10 +43,12 @@ func baubleShopBuys(shopInv *shops.ShopInventory) bool {
 
 // Merchant lines for bauble refusals.
 const (
-	baubleSayUnknown    = "I'm afraid I don't buy those."
-	baubleSayNotBuyer   = "I'm not interested in trinkets. Try a general store or a jeweller."
-	baubleSayCantAfford = "I can't afford that right now."
-	baubleSayHot        = "That was stolen, and not long ago. I won't touch it. Try someone less particular about where things come from."
+	baubleSayUnknown      = "I'm afraid I don't buy those."
+	baubleSayNotBuyer     = "I'm not interested in trinkets. Try a general store or a jeweller."
+	baubleSayCantAfford   = "I can't afford that right now."
+	baubleSayHot          = "That was stolen, and not long ago. I won't touch it. Try someone less particular about where things come from."
+	baubleSayBackroomFull = "I can't move any more hot goods right now. Come back once some of what I'm sitting on has cooled."
+	baubleSayNoRoom       = "I'm afraid I've no room for more of those right now."
 )
 
 // Stolen baubles (docs/baubles Phase 6c). A stolen bauble is hot for
@@ -123,6 +129,25 @@ func baubleOfferFor(item items.Item, shopInv *shops.ShopInventory, fence bool, z
 		return BaubleOffer{Refusal: baubleSayHot}
 	default:
 		price = BaublePrice(rec.Value)
+	}
+
+	// The backroom (owner ruling 6, baubles slice D): a shop holds at most
+	// ShopAffixedStockCap baubles that were hot when shelved. A full one
+	// refuses another hot, shelvable bauble from any seller, so the offer is
+	// one rule for every caller; it is an interest refusal, so
+	// bestBaubleMerchant tries the next merchant, and offer and appraise
+	// show the line. Held entries count here only, never against the listed
+	// cap. The check and the add run in one sale under the mud lock. An
+	// honest shop fills its backroom too (a bauble hot only in another heat
+	// area), and says so in an honest voice; a fence talks about hot goods.
+	if shopInv != nil && rec.Shelvable() {
+		now := shops.ShelfNow()
+		if shopInv.BackroomFull(baubles.ShelfHoldUntil(item, now), now, int(configs.GetBalanceConfig().ShopAffixedStockCap)) {
+			if fence {
+				return BaubleOffer{Refusal: baubleSayBackroomFull}
+			}
+			return BaubleOffer{Refusal: baubleSayNoRoom}
+		}
 	}
 
 	if shopInv != nil {
@@ -237,9 +262,22 @@ func sellBaubleToMerchant(seller Actor, item items.Item, room *rooms.Room,
 		events.AddToQueue(events.ItemOwnership{MobInstanceId: seller.GetMobInstanceId(), Item: item, Gained: false})
 	}
 
-	// The bauble is not stocked: it leaves the world, and its gold is the
-	// only trace. The shop's gold changed, so a living-economy shop is saved.
+	// A player's sale of a shelvable bauble to a living-economy shop puts it
+	// on the shelf at its catalog value (the affixed-loot rule), held out of
+	// sight while it is hot. A mob's sale never does (ruling 7: the shop paid
+	// nothing), nor does a legacy merchant's, a cheap bauble or a retired
+	// one: those leave the world and the gold is the only trace. The shop
+	// changed either way, so a living-economy shop is saved. The record is
+	// marked sold after the save, for every sale.
 	if shopInv != nil {
+		if seller.IsPlayer() {
+			if rec, ok := baubles.Get(item.Bauble); ok && rec.Shelvable() {
+				now := shops.ShelfNow()
+				shopInv.AddAffixedStock(item, item.GetSpec().Value,
+					int(configs.GetBalanceConfig().ShopAffixedStockCap),
+					baubles.ShelfHoldUntil(item, now), now)
+			}
+		}
 		shopInv.BuysCount++
 		if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
 			mudlog.Error("SELL", "msg", "SaveShop failed", "error", err)

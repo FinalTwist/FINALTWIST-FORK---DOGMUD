@@ -18,6 +18,8 @@ Baubles, the small trinkets you sometimes find, are bought only
 by general stores and jewellers, at a fixed share of their worth.
 Every bauble answers to <ansi fg="command">bauble</ansi>, so
 <ansi fg="command">sell all bauble</ansi> sells them all.
+A shop puts a trinket of some worth on its shelf of secondhand
+goods, where anyone can buy it. A cheap one it throws away.
 
 <ansi fg="yellow">Stolen goods:</ansi>
 
@@ -31,6 +33,11 @@ no questions, and like any shopkeeper, only as flush as their
 till. Ask around the back alleys,
 the rougher taverns and the roads just outside town. Once the
 three days are out, anyone who buys trinkets will take it.
+
+A stolen trinket a shop buys while it is still hot waits in its
+back room until it cools, and only then goes on the shelf. A
+back room holds only so much: a shop with a full one turns away
+hot goods until some of what it holds has cooled.
 
 Find out more about referring to items by name by typing
 <ansi fg="command">help item-names</ansi>.

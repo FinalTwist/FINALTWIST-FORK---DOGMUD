@@ -1,5 +1,25 @@
 # DOGMud Patch Notes
 
+## 2026-10-01: Secondhand shelves
+
+- A general store or jeweller that buys a trinket of some worth from you
+  now puts it on a shelf of secondhand goods instead of throwing it away.
+  Cheap trinkets are still thrown away.
+- `list` shows each shop's secondhand shelf as its own table, below the
+  shop's usual goods. Gear you sold to a shop shows there too, so you no
+  longer have to guess its name to buy it back.
+- Buy from the shelf by the name `list` shows you. When two things share a
+  name, `buy 2.trinket` buys the second one listed.
+- Fences keep a shelf too: what a fence buys from you goes on its shelf
+  like any shop's, stolen goods included once they have cooled.
+- A stolen trinket a shop buys while it is still hot waits out of sight in
+  its back room until it has cooled, and only then goes on the shelf. A
+  shop with a full back room turns away more hot goods for a while.
+- Mind the dot when buying: `buy 2.trinket` buys the second trinket
+  listed, while `buy 2 trinket` buys two trinkets.
+- A shop keeps up to twelve secondhand pieces on show. When it has too
+  many, the one that has been on show longest goes.
+
 ## 2026-09-30: Voices in the dark
 
 - In a dark room you now hear who is speaking only as well as you can see

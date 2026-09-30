@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -312,7 +313,9 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 	}
 
 	char.CancelConditionsWithFlag(conditions.Hidden)
-	// Baubles (docs/baubles): catalog-priced, never stocked. See sell_bauble.go.
+	// Baubles (docs/baubles): catalog-priced; a player's average or rare one
+	// goes on a living shop's shelf, the rest leave the world. See
+	// sell_bauble.go.
 	if item.IsBauble() {
 		return sellBaubleToMerchant(seller, item, room, mob, shopInv, awardProgression)
 	}
@@ -388,7 +391,8 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 	if item.Affixed {
 		if shopInv != nil {
 			c := int(configs.GetBalanceConfig().ShopAffixedStockCap)
-			shopInv.AddAffixedStock(item, item.GetSpec().Value, c)
+			now := shops.ShelfNow()
+			shopInv.AddAffixedStock(item, item.GetSpec().Value, c, baubles.ShelfHoldUntil(item, now), now)
 			shopInv.BuysCount++
 			if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
 				mudlog.Error("SELL", "msg", "SaveShop failed", "error", err)

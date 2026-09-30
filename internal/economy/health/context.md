@@ -96,9 +96,13 @@ func ScoreWithConfig(cur *Snapshot, history []*Snapshot, cfg ScoringConfig) Scor
   window, counted by `countStateReturns` watching the entity return to a target
   state.
 - **`LogisticsHealth`** — the combined haulage picture.
-- **`PerCraftSupportScores`** — whether each crafting trade can actually buy
-  its inputs. A fence's shop may carry no craft_support (it buys no
-  ordinary loot) and rolls into the "(uncategorized)" key.
+- **`PerCraftSupportScores`**: whether each crafting trade can actually buy
+  its inputs, grouped by `ShopSnapshot.Type()`: "fence" for a fence's shop
+  (`ShopSnapshot.Fence`, set in `captureShops` from the mob template's
+  `IsFence`), else its craft_support. A snapshot saved before `Fence`
+  existed decodes with it false and groups by craft_support; an empty one
+  rolls into the "(uncategorized)" key. The per-shop rows and the admin
+  page group the same way.
 
 The `*Opt` variants (`StockScoreOpt`, `PerShopScoreOpt`) return
 `(score, ok)` so a shop with nothing to measure is **excluded** from an average

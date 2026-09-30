@@ -309,9 +309,6 @@ func (b *Balance) validateMisc() {
 	if b.GoldPerAffixPoint <= 0 {
 		b.GoldPerAffixPoint = 3.0
 	}
-	if b.ShopAffixedStockCap <= 0 {
-		b.ShopAffixedStockCap = 8
-	}
 
 	// ── INSTANCES ────────────────────────────────────────────────────────────
 	if b.InstanceStatPoolCap < 1 {

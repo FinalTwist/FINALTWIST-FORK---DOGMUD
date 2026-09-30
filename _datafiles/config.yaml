@@ -1433,6 +1433,12 @@ Balance:
   ShopOverstockDecayQty: 1         # Units removed per overstock decay fire
   BarterMaxDiscount: 0.15       # Max fractional buy-price discount from bartering
   BarterMaxBonus: 0.15          # Max fractional sell-price bonus from bartering
+  # The secondhand shelf (AffixedStock): gear and average or rare baubles a
+  # shop bought from players and resells. At most this many are listed; over
+  # it, the one listed earliest goes. A bauble still hot when shelved waits
+  # out of sight until it cools, and a shop holds at most this many of those
+  # too, refusing more hot goods until some cool.
+  ShopAffixedStockCap: 12
 
   # ── BAUBLES (docs/baubles) ────────────────────────────────────────────────
   # Sell-only trinkets that player `search` sometimes turns up. The Go

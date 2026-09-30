@@ -1,6 +1,7 @@
 package auctions
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -289,12 +290,30 @@ type auctionWinReceiver interface {
 // Receive routes a won lot into the bound shop's resale stock. AddAffixedStock
 // holds the full item instance, so exact affixes/enchants survive and the item
 // becomes purchasable — mirroring the counter-buyback path in actions/sell.go.
+// A won item that would be held is not shelved when the shop's backroom is
+// full (shops.BackroomFull, the rule the bauble sale refuses by): it leaves
+// the world, as a legacy shop's purchase does. A bauble is further gated by
+// the shelvability rule the sale path applies (baubles.Record.Shelvable, owner
+// ruling 5): a cheap or retired bauble leaves the world instead of shelving,
+// same as a player's sale of one would. A non-bauble item is unaffected and
+// always shelves, subject only to the backroom check. The shop still paid
+// for it either way.
 func (s *shopkeeper) Receive(item items.Item) {
 	if s.bound == nil {
 		return
 	}
 	c := int(configs.GetBalanceConfig().ShopAffixedStockCap)
-	s.bound.AddAffixedStock(item, item.GetSpec().Value, c)
+	now := shops.ShelfNow()
+	shelvable := true
+	if item.IsBauble() {
+		rec, ok := baubles.Get(item.Bauble)
+		shelvable = ok && rec.Shelvable()
+	}
+	if shelvable {
+		if hold := baubles.ShelfHoldUntil(item, now); !s.bound.BackroomFull(hold, now, c) {
+			s.bound.AddAffixedStock(item, item.GetSpec().Value, c, hold, now)
+		}
+	}
 	s.bound.BuysCount++
 	persistShop(s.bound)
 	s.bound = nil
