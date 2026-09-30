@@ -2,6 +2,7 @@ package shops
 
 import (
 	"slices"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/economy"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -72,7 +73,9 @@ type StockEvent struct {
 type AffixedStockEntry struct {
 	Item       items.Item `yaml:"item"`
 	Price      int        `yaml:"price"`                 // relist price (AffixValue x 1.0)
-	AddedRound uint64     `yaml:"added_round,omitempty"` // for age-based clutter eviction
+	AddedRound uint64     `yaml:"added_round,omitempty"` // game round when shelved (kept for the record; eviction reads ListedAt)
+	AddedAt    time.Time  `yaml:"added_at,omitempty"`    // wall clock when shelved: heat is real time, rounds stop while the server is down
+	HoldUntil  time.Time  `yaml:"hold_until,omitempty"`  // held out of sight until then (a bauble hot when shelved); zero: listed at once
 }
 
 // StockEntry represents one item type in a shop's inventory.
