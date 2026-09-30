@@ -40,42 +40,42 @@ const (
 
 // Instance properties that may change
 type Item struct {
-	ItemId           int           `yaml:"itemid,omitempty"`
-	UUID             uuid.UUID     `yaml:"-"`                           // `yaml:"uuid,omitempty"`
-	Blob             string        `yaml:"blob,omitempty"`              // Does this item have a blob? Should be base64 encoded.
-	Uses             int           `yaml:"uses,omitempty"`              // How many uses it has left
-	Loaded           bool          `yaml:"loaded,omitempty"`            // Ranged weapons: projectile chambered/nocked
-	DropChance       int           `yaml:"dropchance,omitempty"`        // Per-instance drop chance 1-100 used by ShouldDrop. 0 = use caller's defaultChance.
-	LastUsedRound    uint64        `yaml:"lastusedround,omitempty"`     // Last round this item was used
-	CraftedRound     uint64        `yaml:"crafted_round,omitempty"`     // Round when this item was crafted
-	CraftSkill       int           `yaml:"craft_skill,omitempty"`       // Crafter's skill level at craft time
-	BottleMultiplier float64       `yaml:"bottle_multiplier,omitempty"` // Aging speed from the bottle used during crafting
-	MakerName        string        `yaml:"maker_name,omitempty"`        // Cosmetic crafter attribution (skill 30+)
-	Spec             *ItemSpec     `yaml:"overrides,omitempty"`
-	Affixed          bool          `yaml:"affixed,omitempty"`         // Instance-loot affix-scaled item (sellable + value-scaled; distinct from enchanted)
-	Uncursed         bool          `yaml:"uncursed,omitempty"`        // Is this item uncursed?
-	Enchantments     uint8         `yaml:"enchantments,omitempty"`    // Is this item enchanted?
-	Adjectives       []string      `yaml:"adjectives,omitempty"`      // Decorative text for the name of the item (e.g. "exploding")
-	EnchantTier      int           `yaml:"enchanttier,omitempty"`     // Current enchantment power tier (0+)
-	EnchantUses      int           `yaml:"enchantuses,omitempty"`     // Accumulated uses toward next tier
-	EnchantType      string        `yaml:"enchanttype,omitempty"`     // Enchantment type ID (links to enchantment def)
-	EnchantBaseline  *SpecBaseline `yaml:"enchantbaseline,omitempty"` // Numeric spec BEFORE any enchantment; see SpecBaseline
-	ReservePool      string        `yaml:"reservepool,omitempty"`     // "health", "stamina", or "conviction"
-	StashedBy        int           `yaml:"stashedby,omitempty"`       // userid of whoever stashed this item
-	DetuneMigrated   bool          `yaml:"detunemigrated,omitempty"`  // U10d: this ranged weapon is already on the post-detune line; see detune_migration.go
-	Bauble           string        `yaml:"bauble,omitempty"`          // Bauble catalog record id (internal/baubles); the name, description, value and weight come from the catalog
-	BaubleSpot       string        `yaml:"baublespot,omitempty"`      // Where a found bauble lies in its room ("on the bookshelf"); cleared once anyone carries it
-	BaubleHousehold  int           `yaml:"baublehousehold,omitempty"` // Room id of the household a found bauble belongs to; taking it there is theft. Cleared once carried
-	BaubleLeftAt     int64         `yaml:"baubleleftat,omitempty"`    // Unix seconds a found bauble was left lying untaken; it vanishes BaubleUntakenHours later. Cleared once carried
-	StolenFrom       string        `yaml:"stolenfrom,omitempty"`      // Whose property this is: a merchant chest's goods (internal/merchantchests), stamped at restock
-	StolenFromMob    int           `yaml:"stolenfrommob,omitempty"`   // That merchant's mob template id: who may recognise it on the thief
-	StolenBy         int           `yaml:"stolenby,omitempty"`        // User id of the thief who took it out of the chest (0 = a mob, or unknown)
-	StolenAt         int64         `yaml:"stolenat,omitempty"`        // Unix seconds it was taken; 0 = never taken. Hot for Balance.BaubleStolenHeatHours after (baubles.GoodsHot)
-	StolenZone       string        `yaml:"stolenzone,omitempty"`      // Zone it was taken in: hot only in that heat area (baubles.GoodsHotIn)
-	StolenSeen       bool          `yaml:"stolenseen,omitempty"`      // Recognised on the thief since the theft; recognition happens once per theft
-
-	BoundUserId   int            `yaml:"bounduserid,omitempty"` // Account (UserRecord) this item only works for; 0 = anyone. Set by the seller (housing extension deeds, priced per house)
-	tempDataStore map[string]any // Temporary data store for this item. Not saved to disk.
+	ItemId           int            `yaml:"itemid,omitempty"`
+	UUID             uuid.UUID      `yaml:"-"`                           // `yaml:"uuid,omitempty"`
+	Blob             string         `yaml:"blob,omitempty"`              // Does this item have a blob? Should be base64 encoded.
+	Uses             int            `yaml:"uses,omitempty"`              // How many uses it has left
+	Loaded           bool           `yaml:"loaded,omitempty"`            // Ranged weapons: projectile chambered/nocked
+	DropChance       int            `yaml:"dropchance,omitempty"`        // Per-instance drop chance 1-100 used by ShouldDrop. 0 = use caller's defaultChance.
+	LastUsedRound    uint64         `yaml:"lastusedround,omitempty"`     // Last round this item was used
+	CraftedRound     uint64         `yaml:"crafted_round,omitempty"`     // Round when this item was crafted
+	CraftSkill       int            `yaml:"craft_skill,omitempty"`       // Crafter's skill level at craft time
+	BottleMultiplier float64        `yaml:"bottle_multiplier,omitempty"` // Aging speed from the bottle used during crafting
+	MakerName        string         `yaml:"maker_name,omitempty"`        // Cosmetic crafter attribution (skill 30+)
+	Spec             *ItemSpec      `yaml:"overrides,omitempty"`
+	Affixed          bool           `yaml:"affixed,omitempty"`         // Instance-loot affix-scaled item (sellable + value-scaled; distinct from enchanted)
+	Uncursed         bool           `yaml:"uncursed,omitempty"`        // Is this item uncursed?
+	Enchantments     uint8          `yaml:"enchantments,omitempty"`    // Is this item enchanted?
+	Adjectives       []string       `yaml:"adjectives,omitempty"`      // Decorative text for the name of the item (e.g. "exploding")
+	EnchantTier      int            `yaml:"enchanttier,omitempty"`     // Current enchantment power tier (0+)
+	EnchantUses      int            `yaml:"enchantuses,omitempty"`     // Accumulated uses toward next tier
+	EnchantType      string         `yaml:"enchanttype,omitempty"`     // Enchantment type ID (links to enchantment def)
+	EnchantBaseline  *SpecBaseline  `yaml:"enchantbaseline,omitempty"` // Numeric spec BEFORE any enchantment; see SpecBaseline
+	ReservePool      string         `yaml:"reservepool,omitempty"`     // "health", "stamina", or "conviction"
+	StashedBy        int            `yaml:"stashedby,omitempty"`       // userid of whoever stashed this item
+	DetuneMigrated   bool           `yaml:"detunemigrated,omitempty"`  // U10d: this ranged weapon is already on the post-detune line; see detune_migration.go
+	Bauble           string         `yaml:"bauble,omitempty"`          // Bauble catalog record id (internal/baubles); the name, description, value and weight come from the catalog
+	BaubleSpot       string         `yaml:"baublespot,omitempty"`      // Where a found bauble lies in its room ("on the bookshelf"); cleared once anyone carries it
+	BaubleHousehold  int            `yaml:"baublehousehold,omitempty"` // Room id of the household a found bauble belongs to; taking it there is theft. Cleared once carried
+	BaubleLeftAt     int64          `yaml:"baubleleftat,omitempty"`    // Unix seconds a found bauble was left lying untaken; it vanishes BaubleUntakenHours later. Cleared once carried
+	StolenFrom       string         `yaml:"stolenfrom,omitempty"`      // Whose property this is: a merchant chest's goods (internal/merchantchests), stamped at restock
+	StolenFromMob    int            `yaml:"stolenfrommob,omitempty"`   // That merchant's mob template id: who may recognise it on the thief
+	StolenBy         int            `yaml:"stolenby,omitempty"`        // User id of the thief who took it out of the chest (0 = a mob, or unknown)
+	StolenAt         int64          `yaml:"stolenat,omitempty"`        // Unix seconds it was taken; 0 = never taken. Hot for Balance.BaubleStolenHeatHours after (baubles.GoodsHot)
+	StolenZone       string         `yaml:"stolenzone,omitempty"`      // Zone it was taken in: hot only in that heat area (baubles.GoodsHotIn)
+	StolenSeen       bool           `yaml:"stolenseen,omitempty"`      // Recognised on the thief since the theft; recognition happens once per theft
+	BoundUserId      int            `yaml:"bounduserid,omitempty"`     // Account (UserRecord) this item only works for; 0 = anyone. Set by the seller (housing extension deeds, priced per house)
+	HouseKeyOwner    int            `yaml:"housekeyowner,omitempty"`   // Housing guest key: the account whose house this key opens; 0 = not a house key
+	tempDataStore    map[string]any // Temporary data store for this item. Not saved to disk.
 }
 
 // NewItemUUID mints a fresh per-instance item UUID. Used when handing an
