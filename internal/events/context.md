@@ -600,8 +600,10 @@ every queued `CharacterDied` and `MobDeath` event; the second lets a test
 assert on the damaging-players list the `MobDeath_*` hooks read.
 `DrainQueuedMessageEventsForTest(userId)` (sight gates slice 5b) is
 `DrainQueuedMessagesForTest` returning the whole `Message`, not just its
-text, so a test can also read `IsCommunication`; zero drains none, a nonzero
-id drains only that user's queued `Message` events.
+text, so a test can also read `IsCommunication`. It matches on
+`msg.UserId == userId`, so a nonzero id drains only that user's queued
+`Message` events, but 0 also matches every room-keyed `Message` (a
+`RoomId`-keyed send leaves `UserId` at its zero value), draining those too.
 `DrainQueuedRoomMessagesForTest(roomId)` drains every `RoomId`-keyed
 `Message` queued for `roomId` (`Room.SendTextCommunication`,
 `Room.SendTextToExits`) rather than a per-user one.

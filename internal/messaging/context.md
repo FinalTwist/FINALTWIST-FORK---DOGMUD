@@ -355,7 +355,7 @@ Functions:
 - `NameHider` (sight gates slice 5b): the shape `HideNames` and
   `HideSpeakerNames` share (`func(text string, names []string, d
   SightDecision) string`), so a room sender that hides names on the audio
-  channel can take either interchangeably — a sound
+  channel can take either interchangeably: a sound
   (`messaging.HideNames`, "Something lets out a roar!") or a speaker
   (`messaging.HideSpeakerNames`, "Someone says, ...").
 - `HideSpeakerNames(text string, names []string, d SightDecision) string`
@@ -473,7 +473,7 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `pipeline.go` | Stage ordering: compose, normalize, sight gate, anonymize, color, wrap, deliver |
 | `normalize.go` | Grammar and article normalisation |
 | `anonymize.go` | Replacing names the observer should not see (infrared fallback, whole-line) |
-| `hidenames.go` | `HideNames`, `NameHider`, `HideSpeakerNames` (sight gates slice 5b) — replacing specific names in bare prose, longest-first, whole-word |
+| `hidenames.go` | `HideNames`, `NameHider`, `HideSpeakerNames` (sight gates slice 5b): replacing specific names in bare prose, longest-first, whole-word |
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it; `SeesThroughExit` and `FixedLight` (lighting plan 5c) |

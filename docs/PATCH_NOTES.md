@@ -6,8 +6,8 @@
   them. If you can make out shapes, a speaker is "a figure". If you see
   nothing, or you have been blinded, a speaker is "someone". You always hear
   the words.
-- This is the same for other players and for creatures, shopkeepers and
-  quest givers.
+- This is the same for other players, and for creatures and shopkeepers
+  speaking aloud.
 - A hidden creature that shouts gives itself away, just as you would.
 - When a creature shouts in the next room, you now hear what it shouts.
 - A rally or a warcry can be heard in the dark, even when you cannot see who

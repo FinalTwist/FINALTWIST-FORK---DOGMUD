@@ -2129,7 +2129,7 @@ speech and emote room line now reaches this package through
 so nothing in `hooks` hides a speaker's name itself.
 
 `justice_wiring.go`'s `init()` wires `justice.SetGuardSay` to a closure that
-only calls `actions.Say(&actions.MobActor{...}, line)` — a guard's spoken
+only calls `actions.Say(&actions.MobActor{...}, line)`: a guard's spoken
 line goes through the same reveal, deafen split and name-hiding every other
 NPC speaker gets, rather than a hand-rolled room broadcast.
 
