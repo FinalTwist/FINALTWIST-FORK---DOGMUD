@@ -290,13 +290,18 @@ type auctionWinReceiver interface {
 // Receive routes a won lot into the bound shop's resale stock. AddAffixedStock
 // holds the full item instance, so exact affixes/enchants survive and the item
 // becomes purchasable — mirroring the counter-buyback path in actions/sell.go.
+// A won item that would be held is not shelved when the shop's backroom is
+// full (shops.BackroomFull, the rule the bauble sale refuses by): it leaves
+// the world, as a legacy shop's purchase does. The shop still paid for it.
 func (s *shopkeeper) Receive(item items.Item) {
 	if s.bound == nil {
 		return
 	}
 	c := int(configs.GetBalanceConfig().ShopAffixedStockCap)
 	now := shops.ShelfNow()
-	s.bound.AddAffixedStock(item, item.GetSpec().Value, c, baubles.ShelfHoldUntil(item, now), now)
+	if hold := baubles.ShelfHoldUntil(item, now); !s.bound.BackroomFull(hold, now, c) {
+		s.bound.AddAffixedStock(item, item.GetSpec().Value, c, hold, now)
+	}
 	s.bound.BuysCount++
 	persistShop(s.bound)
 	s.bound = nil

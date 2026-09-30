@@ -196,3 +196,33 @@ func TestShelf_AddStampsTimesAndTrimsTheListedEntries(t *testing.T) {
 		t.Fatal("the new entry is held")
 	}
 }
+
+// The backroom (owner ruling 6): an item that would be held is refused once
+// the shop already holds limit entries; one that would list at once never
+// is, and a cap of 0 refuses nothing, like EnforceAffixedCap. Every caller
+// that shelves (the bauble sale, the auction's shopkeeper) asks this.
+func TestShelf_BackroomFullOnlyForAHeldItemAtTheCap(t *testing.T) {
+	now := shelfT0.Add(time.Hour)
+	si := &ShopInventory{AffixedStock: []AffixedStockEntry{
+		shelfEntry(1, shelfT0, shelfT0.Add(72*time.Hour)),
+		shelfEntry(2, shelfT0, time.Time{}),
+		shelfEntry(3, shelfT0, shelfT0.Add(24*time.Hour)),
+	}}
+	hold := now.Add(48 * time.Hour)
+
+	if !si.BackroomFull(hold, now, 2) {
+		t.Fatal("two held at a cap of 2: a held item is refused")
+	}
+	if si.BackroomFull(hold, now, 3) {
+		t.Fatal("two held under a cap of 3: room for one more")
+	}
+	if si.BackroomFull(time.Time{}, now, 2) || si.BackroomFull(now, now, 2) {
+		t.Fatal("an item listed at once is never refused by the backroom")
+	}
+	if si.BackroomFull(hold, now, 0) {
+		t.Fatal("a cap of 0 refuses nothing")
+	}
+	if si.BackroomFull(hold, shelfT0.Add(24*time.Hour), 2) {
+		t.Fatal("item 3's hold ended: one held, room for another")
+	}
+}

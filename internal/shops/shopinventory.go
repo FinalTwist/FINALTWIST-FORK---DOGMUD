@@ -143,8 +143,8 @@ type ShopInventory struct {
 // round, the wall clock (AddedAt: now) and the end of any hold (holdUntil,
 // zero to list it at once), then EnforceAffixedCap(limit, now) trims the
 // listed entries (limit <= 0: no cap). It does not enforce the held cap:
-// a sale refuses a hot bauble a full backroom cannot take before it gets
-// here (internal/actions baubleOfferFor).
+// every caller asks BackroomFull before it gets here (the bauble sale's
+// offer in internal/actions, the auction shopkeeper's Receive).
 func (si *ShopInventory) AddAffixedStock(item items.Item, price, limit int, holdUntil, now time.Time) {
 	si.AffixedStock = append(si.AffixedStock, AffixedStockEntry{
 		Item:       item,

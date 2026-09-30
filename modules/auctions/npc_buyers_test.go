@@ -2,8 +2,12 @@ package auctions
 
 import (
 	"testing"
+	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/shops"
 )
 
@@ -279,6 +283,58 @@ func TestShopkeeper_ReceiveNoBoundIsNoOp(t *testing.T) {
 	sk.Receive(item)                                // must not panic
 	if sk.bound != nil {
 		t.Errorf("bound should remain nil, got %+v", sk.bound)
+	}
+}
+
+// The backroom rule holds wherever something is shelved (baubles slice D,
+// shops.BackroomFull): a won bauble that would be held is not shelved in a
+// shop whose backroom is full, and one that would list at once is.
+func TestShopkeeper_ReceiveRespectsAFullBackroom(t *testing.T) {
+	mudlog.SetupLogger(nil, "", "", false) // the catalog logs each theft
+	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: "Curious Trinket", NameSimple: "trinket", Value: 1},
+	})
+	defer cleanup()
+	baubles.SetDirForTest(t.TempDir())
+	defer items.SetBaubleResolver(nil)
+
+	cfg := configs.GetConfig()
+	cfg.Balance.ShopAffixedStockCap = 1
+	configs.SetConfigForTest(t, cfg)
+	now := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
+	origNow := shops.ShelfNow
+	shops.ShelfNow = func() time.Time { return now }
+	defer func() { shops.ShelfNow = origNow }()
+	orig := saveShopFn
+	saveShopFn = func(zone string, mobId, roomId int) error { return nil }
+	defer func() { saveShopFn = orig }()
+
+	bauble := func(stolen bool) items.Item {
+		rec, err := baubles.Create(baubles.Record{Name: "Silver Reliquary", NameSimple: "reliquary", Tier: baubles.TierRare, Value: 150, Status: baubles.StatusReady})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stolen {
+			baubles.MarkStolen(rec.Id, baubles.Theft{ByUserId: 1, FromMob: 2, Zone: "Thornwall City"}, now.Add(-time.Hour))
+		}
+		it := items.New(items.BaubleItemId)
+		it.Bauble = rec.Id
+		return it
+	}
+	shop := &shops.ShopInventory{AffixedStock: []shops.AffixedStockEntry{
+		{Item: items.New(items.BaubleItemId), Price: 150, AddedAt: now, HoldUntil: now.Add(time.Hour)},
+	}}
+
+	sk := &shopkeeper{name: "The Merchants' Guild", bound: shop}
+	sk.Receive(bauble(true))
+	if len(shop.AffixedStock) != 1 {
+		t.Fatalf("a hot bauble went into a full backroom: %d entries, want 1", len(shop.AffixedStock))
+	}
+
+	sk.bound = shop
+	sk.Receive(bauble(false))
+	if len(shop.AffixedStock) != 2 {
+		t.Fatalf("an honest bauble lists at once and is shelved: %d entries, want 2", len(shop.AffixedStock))
 	}
 }
 

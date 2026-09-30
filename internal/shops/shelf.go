@@ -12,7 +12,7 @@ import (
 // HoldUntil. Listed entries are capped (Balance.ShopAffixedStockCap) and
 // the cap is enforced lazily, on an add, on list and on buy. Held entries
 // never count against that cap and are never evicted; a shop refuses a new
-// hot bauble once it holds that many (internal/actions baubleOfferFor).
+// hot bauble once it holds that many (BackroomFull).
 //
 // Every mutation happens in a command or a sale, under the mud lock, like
 // the rest of ShopInventory (it has no lock of its own).
@@ -46,6 +46,19 @@ func (si *ShopInventory) HeldCount(now time.Time) int {
 		}
 	}
 	return n
+}
+
+// BackroomFull reports whether the shop must refuse to shelve an item whose
+// hold would run until holdUntil (baubles.ShelfHoldUntil): it would be held
+// at now, and the shop already holds limit entries (owner ruling 6). An item
+// listed at once is never refused here, and limit <= 0 refuses nothing, as
+// in EnforceAffixedCap. The one rule for every caller that shelves: the
+// bauble sale refuses the offer, the auction's shopkeeper does not shelve.
+func (si *ShopInventory) BackroomFull(holdUntil, now time.Time, limit int) bool {
+	if limit <= 0 || !now.Before(holdUntil) {
+		return false
+	}
+	return si.HeldCount(now) >= limit
 }
 
 // ListedIndexes returns the AffixedStock indexes of the entries listed at

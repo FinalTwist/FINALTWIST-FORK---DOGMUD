@@ -151,7 +151,7 @@ func baubleOfferFor(item items.Item, shopInv *shops.ShopInventory, fence bool, z
 	// area), and says so in an honest voice; a fence talks about hot goods.
 	if shopInv != nil && baubleShelvable(rec) {
 		now := shops.ShelfNow()
-		if rec.Hot(now) && shopInv.HeldCount(now) >= int(configs.GetBalanceConfig().ShopAffixedStockCap) {
+		if shopInv.BackroomFull(baubles.ShelfHoldUntil(item, now), now, int(configs.GetBalanceConfig().ShopAffixedStockCap)) {
 			if fence {
 				return BaubleOffer{Refusal: baubleSayBackroomFull}
 			}
