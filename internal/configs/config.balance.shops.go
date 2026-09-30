@@ -45,6 +45,11 @@ func (b *Balance) validateShops() {
 		b.BarterMaxBonus = 0.15
 	}
 
+	// ── SECONDHAND SHELF (baubles slice D) ───────────────────────────────────
+	if b.ShopAffixedStockCap <= 0 {
+		b.ShopAffixedStockCap = 12
+	}
+
 	// ── STORAGE FEES ─────────────────────────────────────────────────────────
 	if b.StorageFeePerItem < 0 {
 		b.StorageFeePerItem = 1
