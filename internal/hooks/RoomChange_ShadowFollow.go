@@ -33,10 +33,13 @@ const shadowSpottedLine = "You've been spotted -- your shadow ends."
 // shadowSpottedLine and the cooldown); still hidden, the quarry makes the
 // sense roll (actions.ShadowSenseRoll) in that room's light.
 //
-// Listeners run after the moving command returns (events.ProcessEvents), so
-// by now the mover's entry detection has run and IsHidden reflects any
-// reveal. RoomChange.Unseen was captured before detection, which is why it is
-// never read here.
+// A RoomChange is only dispatched when events.ProcessEvents later pops it
+// off the queue and runs its listeners one at a time, which happens after
+// the code that queued the move returns, whether that was a player command,
+// a fleeing mob, or anything else that moves a character. By then the
+// mover's entry detection has already run, so IsHidden reflects any reveal.
+// RoomChange.Unseen was captured before detection, which is why it is never
+// read here.
 func RoomChangeShadowFollow(e events.Event) events.ListenerReturn {
 	evt, ok := e.(events.RoomChange)
 	if !ok {

@@ -703,6 +703,21 @@ func DrainQueuedMobConditionsForTest(mobInstanceId int) []Condition {
 	return found
 }
 
+// DrainAllQueuedEventsForTest removes every event from the global queue,
+// whatever its type, and returns how many were removed. A fixture that
+// seeds rooms via Room.AddMob (which queues a RoomChange as a side effect)
+// should call this in cleanup so no queued event leaks into a later test.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainAllQueuedEventsForTest() int {
+	qLock.Lock()
+	defer qLock.Unlock()
+	n := len(globalQueue)
+	globalQueue = priorityQueue{}
+	heap.Init(&globalQueue)
+	return n
+}
+
 // Initialize the priority queue.
 func init() {
 	heap.Init(&globalQueue)

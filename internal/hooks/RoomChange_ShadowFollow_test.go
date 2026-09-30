@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mutators"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -20,19 +21,24 @@ import (
 
 // Room layout: the quarry leaves shadowRoomA for shadowRoomB by "north", or
 // for shadowRoomTemp by the temporary exit "crack" (titled "a narrow crack",
-// so the key and the title differ). shadowRoomFar has no exit from A: a move
-// there is a teleport. Every character id is unique to this file.
+// so the key and the title differ), or for shadowRoomMut by "veil", an exit
+// that exists only while shadowMutatorId is active on shadowRoomA. shadowRoomFar
+// has no exit from A: a move there is a teleport. Every character id is
+// unique to this file.
 const (
 	shadowRoomA    = 71010
 	shadowRoomB    = 71011
 	shadowRoomFar  = 71012
 	shadowRoomTemp = 71013
+	shadowRoomMut  = 71014
 
 	shadowQuarryUser = 7101
 	shadowSlyUser    = 7102
 	shadowQuarryMob  = 71101
 	shadowSlyMob     = 71102
 	shadowNobody     = 71199 // a target id no character in the scene has
+
+	shadowMutatorId = "shadow-test-mutator"
 )
 
 // shadowSensedText is the sense line actions.ShadowSenseRoll sends a player
@@ -53,14 +59,25 @@ func newShadowScene(t *testing.T) *shadowScene {
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		actions.ShadowingConditionId: {ConditionId: actions.ShadowingConditionId, Name: "Shadowing", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 25},
 	}))
+	// shadowMutatorId's exit is registered globally and activated on
+	// shadowRoomA (a zero-value Mutator is live: DespawnedRound == 0), giving
+	// A a route to shadowRoomMut that exists only through ActiveMutators. A
+	// zone config entry for "test" is required: Room.ActiveMutators only
+	// consults a room's Mutators field once GetZoneConfig(r.Zone) is non-nil.
+	t.Cleanup(mutators.SeedSpecsForTest(mutators.MutatorSpec{
+		MutatorId: shadowMutatorId,
+		Exits:     map[string]exit.RoomExit{"veil": {RoomId: shadowRoomMut}},
+	}))
 	t.Cleanup(rooms.SeedRoomsForTest(map[int]*rooms.Room{
 		shadowRoomA: {RoomId: shadowRoomA, Zone: "test",
 			Exits:     map[string]exit.RoomExit{"north": {RoomId: shadowRoomB}},
-			ExitsTemp: map[string]exit.TemporaryRoomExit{"crack": {RoomId: shadowRoomTemp, Title: "a narrow crack"}}},
+			ExitsTemp: map[string]exit.TemporaryRoomExit{"crack": {RoomId: shadowRoomTemp, Title: "a narrow crack"}},
+			Mutators:  mutators.MutatorList{{MutatorId: shadowMutatorId}}},
 		shadowRoomB:    {RoomId: shadowRoomB, Zone: "test", Exits: map[string]exit.RoomExit{"south": {RoomId: shadowRoomA}}},
 		shadowRoomFar:  {RoomId: shadowRoomFar, Zone: "test", Exits: map[string]exit.RoomExit{}},
 		shadowRoomTemp: {RoomId: shadowRoomTemp, Zone: "test", Exits: map[string]exit.RoomExit{}},
-	}, map[string]*rooms.ZoneConfig{}))
+		shadowRoomMut:  {RoomId: shadowRoomMut, Zone: "test", Exits: map[string]exit.RoomExit{}},
+	}, map[string]*rooms.ZoneConfig{"test": {Name: "test"}}))
 
 	s := &shadowScene{
 		t:          t,
@@ -79,6 +96,12 @@ func newShadowScene(t *testing.T) *shadowScene {
 	t.Cleanup(mobs.SeedMobsForTest(map[int]*mobs.Mob{}, map[int]*mobs.Mob{
 		shadowQuarryMob: s.quarryMob, shadowSlyMob: s.slyMob,
 	}))
+
+	// s.place, below, calls Room.AddMob for a mob quarry or shadower, which
+	// queues a RoomChange as a side effect. Nothing in this file ever calls
+	// events.ProcessEvents to drain it, so left alone it would sit in the
+	// shared global queue and leak into whatever test runs next.
+	t.Cleanup(func() { events.DrainAllQueuedEventsForTest() })
 
 	// Leftovers from an earlier test must not count.
 	events.DrainQueuedUserInputsForTest(shadowSlyUser)
@@ -204,6 +227,7 @@ func TestRoomChangeShadowFollow_FollowPass(t *testing.T) {
 		{name: "stale (no condition 87): stays and is cleared", hidden: true, shadowerRoom: shadowRoomA, toRoomId: shadowRoomB, cleared: true},
 		{name: "teleport: no exit, stays", live: true, hidden: true, shadowerRoom: shadowRoomA, toRoomId: shadowRoomFar},
 		{name: "temp exit: the key is queued, not the title", live: true, hidden: true, shadowerRoom: shadowRoomA, toRoomId: shadowRoomTemp, want: []string{"crack"}},
+		{name: "mutator exit: the only route is an active mutator's exit", live: true, hidden: true, shadowerRoom: shadowRoomA, toRoomId: shadowRoomMut, want: []string{"veil"}},
 	}
 	for _, mover := range shadowKinds {
 		for _, shadower := range shadowKinds {
@@ -270,6 +294,39 @@ func TestRoomChangeShadowFollow_ArrivalSpottedEndsTheShadow(t *testing.T) {
 				}
 				if spotted != want {
 					t.Errorf("spotted line sent %d times, want %d", spotted, want)
+				}
+			})
+		}
+	}
+}
+
+// Arrival must read IsHidden live, not evt.Unseen: entry detection can reveal
+// a shadower in the gap between the RoomChange being stamped and it being
+// dispatched. An event stamped Unseen (hidden at queue time) whose shadower
+// is no longer hidden by dispatch time still ends the shadow. A listener
+// that read evt.Unseen instead of live IsHidden would see Unseen == true and
+// wrongly treat the shadower as still hidden, rolling the sense check
+// instead of ending the shadow.
+func TestRoomChangeShadowFollow_ArrivalReadsHiddenLiveNotEventUnseen(t *testing.T) {
+	for _, shadower := range shadowKinds {
+		for _, quarry := range shadowKinds {
+			t.Run(string(shadower)+" shadower, "+string(quarry)+" quarry", func(t *testing.T) {
+				s := newShadowScene(t)
+				s.place(quarry, true, s.roomB)
+				s.place(shadower, false, s.roomB)
+				c := s.sly(shadower)
+				s.shadowTarget(c, quarry, false, true, false) // live, NOT hidden (revealed since the event was stamped)
+
+				evt := moveEvent(shadower, false, shadowRoomA, shadowRoomB)
+				evt.Unseen = true // stale: was hidden when queued, no longer hidden now
+
+				RoomChangeShadowFollow(evt)
+
+				if !shadowEnded(c) {
+					t.Error("a stale Unseen=true event kept the shadow alive; the arrival pass must read IsHidden live, not evt.Unseen")
+				}
+				if shadowCooldown(c) <= 0 {
+					t.Error("the spotted end started no cooldown")
 				}
 			})
 		}
