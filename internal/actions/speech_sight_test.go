@@ -39,6 +39,7 @@ const (
 	speechDarkId    = 8856
 	speechNextId    = 8857
 	speechMobInst   = 98851
+	speechMobInst2  = 98858
 	speechInfraCond = 8861
 	speechSleepCond = 8862
 	speechLitRoom   = 8870
@@ -347,4 +348,55 @@ func TestShout_WakesTheRoom(t *testing.T) {
 		Shout(sc.speaker(player, sc.lit), "WAKE UP")
 		require.False(t, sleeper.HasConditionFlag(conditions.Sleeping), "player speaker %v", player)
 	}
+}
+
+// A shout wakes every sleeping mob in the room, but a mob shouter never
+// wakes itself. Both the shouting mob and a bystander mob must actually be
+// registered in the room's mob list (mobs.GetInstance + Room.AddMob), since
+// wakeSleepers walks room.GetMobs(), not the scene's sc.mob pointer alone.
+func TestShout_WakesSleepingMobsButNeverTheMobShouter(t *testing.T) {
+	sc := newSpeechScene(t)
+
+	mobs.SetInstanceForTest(speechMobInst, sc.mob)
+	t.Cleanup(func() { mobs.SetInstanceForTest(speechMobInst, nil) })
+	sc.lit.AddMob(speechMobInst)
+	require.True(t, sc.mob.Character.Conditions.AddCondition(speechSleepCond, false))
+	require.True(t, sc.mob.Character.HasConditionFlag(conditions.Sleeping))
+
+	bystanderChar := characters.New()
+	bystanderChar.Name = "Bysh"
+	bystander := &mobs.Mob{InstanceId: speechMobInst2, Character: *bystanderChar}
+	mobs.SetInstanceForTest(speechMobInst2, bystander)
+	t.Cleanup(func() { mobs.SetInstanceForTest(speechMobInst2, nil) })
+	sc.lit.AddMob(speechMobInst2)
+	require.True(t, bystander.Character.Conditions.AddCondition(speechSleepCond, false))
+	require.True(t, bystander.Character.HasConditionFlag(conditions.Sleeping))
+
+	Shout(sc.speaker(false, sc.lit), "WAKE UP")
+
+	require.False(t, bystander.Character.HasConditionFlag(conditions.Sleeping),
+		"a sleeping bystander mob in the room is woken by a shout")
+	require.True(t, sc.mob.Character.HasConditionFlag(conditions.Sleeping),
+		"a mob shouter does not wake itself")
+}
+
+// A sleeping player who shouts is skipped by their own shout's wake loop,
+// while another sleeping player in the room is still woken.
+func TestShout_PlayerShouterNeverWakesItself(t *testing.T) {
+	sc := newSpeechScene(t)
+
+	speaker := sc.player.Character
+	require.True(t, speaker.Conditions.AddCondition(speechSleepCond, false))
+	require.True(t, speaker.HasConditionFlag(conditions.Sleeping))
+
+	other := users.GetByUserId(speechClearId).Character
+	require.True(t, other.Conditions.AddCondition(speechSleepCond, false))
+	require.True(t, other.HasConditionFlag(conditions.Sleeping))
+
+	Shout(sc.speaker(true, sc.lit), "WAKE UP")
+
+	require.True(t, speaker.HasConditionFlag(conditions.Sleeping),
+		"a player shouter does not wake itself")
+	require.False(t, other.HasConditionFlag(conditions.Sleeping),
+		"another sleeping player in the room is woken by the shout")
 }
