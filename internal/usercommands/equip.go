@@ -6,7 +6,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/lightnotice"
@@ -112,169 +111,19 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		// Snapshot reservation BEFORE anything touches the equipment set, so the
 		// disclosure below can tell the player when the thing they just put on
-		// set more of them aside. Taken here rather than inside either placement
-		// branch because both mutate, and the arm-slot branch additionally runs
-		// Validate(true), which re-derives the pool maxima the shares are
-		// measured against.
+		// set more of them aside.
 		beforeReservation := user.Character.ReservationTotals()
 
-		// Handle direct arm slot equip (arms 1-6)
-		if targetArmSlot > 0 {
-			// Only weapons and shields (offhand) can go in arm slots
-			if iSpec.Type != items.Weapon && iSpec.Type != items.Offhand {
-				user.SendText(messaging.CategorySystem, `You can only wield weapons or shields in arm slots.`)
-				return true, nil
-			}
-			// Shields cannot go in arm 1 (primary weapon hand)
-			if iSpec.Type == items.Offhand && targetArmSlot == 1 {
-				user.SendText(messaging.CategorySystem, `You can't put a shield in your primary weapon hand (arm 1).`)
-				return true, nil
-			}
-
-			// Validate the character has this arm
-			pairs := user.Character.GetHandPairs()
-			pairIdx := (targetArmSlot - 1) / 2
-			slotInPair := (targetArmSlot - 1) % 2
-
-			if pairIdx >= len(pairs) {
-				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't have arm %d.`, targetArmSlot))
-				return true, nil
-			}
-			pair := &pairs[pairIdx]
-
-			// Check if targeting the second slot of a half-pair
-			if slotInPair == 1 && pair.IsHalfPair() {
-				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't have arm %d.`, targetArmSlot))
-				return true, nil
-			}
-
-			handsReq := user.Character.HandsRequired(matchItem)
-
-			// 2H weapons must go in odd-numbered arms (first slot of a pair)
-			if handsReq >= 2 {
-				if slotInPair != 0 {
-					user.SendText(messaging.CategorySystem, `A two-handed weapon needs a pair of arms. Try arm 1, 3, or 5.`)
-					return true, nil
-				}
-				if pair.IsHalfPair() {
-					user.SendText(messaging.CategorySystem, `That arm doesn't have a partner for a two-handed weapon.`)
-					return true, nil
-				}
-			}
-
-			// Determine which slots to displace
-			var displaced []items.Item
-			targetSlot := &pair.First
-			if slotInPair == 1 {
-				targetSlot = &pair.Second
-			}
-
-			// Check for cursed items before displacement
-			if !targetSlot.IsEmpty() && targetSlot.ItemPtr.IsCursed() {
-				user.SendText(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="item">%s</ansi> is cursed and can't be removed!`, targetSlot.ItemPtr.DisplayName()))
-				return true, nil
-			}
-
-			// For 2H, also check/displace the second slot
-			if handsReq >= 2 {
-				if !pair.Second.IsEmpty() && pair.Second.ItemPtr.IsCursed() {
-					user.SendText(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="item">%s</ansi> is cursed and can't be removed!`, pair.Second.ItemPtr.DisplayName()))
-					return true, nil
-				}
-				// Also check if the first slot holds a 2H (its partner is implicitly occupied)
-				if !pair.First.IsEmpty() && pair.First.ItemPtr.IsCursed() {
-					user.SendText(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="item">%s</ansi> is cursed and can't be removed!`, pair.First.ItemPtr.DisplayName()))
-					return true, nil
-				}
-			}
-
-			// If the partner slot holds a 2H weapon, we need to displace it too
-			if slotInPair == 1 && pair.First.Is2H(user.Character) {
-				if pair.First.ItemPtr.IsCursed() {
-					user.SendText(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="item">%s</ansi> is cursed and can't be removed!`, pair.First.ItemPtr.DisplayName()))
-					return true, nil
-				}
-				displaced = append(displaced, *pair.First.ItemPtr)
-				*pair.First.ItemPtr = items.Item{}
-			}
-
-			// Displace current occupant(s)
-			if !targetSlot.IsEmpty() {
-				displaced = append(displaced, *targetSlot.ItemPtr)
-				*targetSlot.ItemPtr = items.Item{}
-			}
-			if handsReq >= 2 && !pair.Second.IsEmpty() {
-				displaced = append(displaced, *pair.Second.ItemPtr)
-				*pair.Second.ItemPtr = items.Item{}
-			}
-
-			// Place the new item
-			user.Character.CancelConditionsWithFlag(conditions.Hidden)
-			user.Character.RemoveItem(matchItem)
-			*targetSlot.ItemPtr = matchItem
-
-			// Return displaced items to backpack
-			for _, old := range displaced {
-				if old.ItemId > 0 {
-					user.SendText(messaging.CategorySystem, fmt.Sprintf(`You remove your <ansi fg="item">%s</ansi> and return it to your backpack.`, old.DisplayName()))
-					// M1 audit defect: the arm-slot path told the wearer and
-					// left the room out, while the shared equip path below
-					// sends both for the same displacement. Text and exclusion
-					// copied from that path rather than reworded.
-					room.SendTextVisual(messaging.CategoryEquipment,
-						fmt.Sprintf(`<ansi fg="username">%s</ansi> removes their <ansi fg="item">%s</ansi> and stores it away.`, user.Character.Name, old.DisplayName()),
-						user.UserId,
-					)
-					user.Character.StoreItem(old)
-				}
-			}
-
-			// Build wield/wear message
-			armLabel := pair.First.Label
-			if slotInPair == 1 {
-				armLabel = pair.Second.Label
-			}
-			if iSpec.Type == items.Offhand {
-				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You equip your <ansi fg="item">%s</ansi> in your %s.`, matchItem.DisplayName(), armLabel))
-			} else {
-				user.SendText(messaging.CategorySystem, fmt.Sprintf(`You wield your <ansi fg="item">%s</ansi> in your %s.`, matchItem.DisplayName(), armLabel))
-			}
-			room.SendTextVisual(messaging.CategoryEquipment,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> equips their <ansi fg="item">%s</ansi>.`, user.Character.Name, matchItem.DisplayName()),
-				user.UserId,
-			)
-
-			user.Character.Validate(true)
-			sendReservationDisclosure(user, beforeReservation)
-			events.AddToQueue(events.EquipmentChange{
-				UserId:       user.UserId,
-				ItemsWorn:    []items.Item{matchItem},
-				ItemsRemoved: displaced,
-			})
-
-			// Trigger any outstanding condition onStart events
-			if len(iSpec.WornConditionIds) > 0 {
-				for _, condition := range user.Character.Conditions.List {
-					if condition.OnStartWaiting {
-						user.Character.TrackConditionStarted(condition.ConditionId)
-					}
-				}
-			}
-
-			// Quest engine: command notification
-			bridge := questengine.NewGameBridge(user, room.RoomId)
-			questengine.GetEngine().Notify("command", questengine.EventDetails{
-				UserId:  user.UserId,
-				RoomId:  room.RoomId,
-				Command: "equip",
-			}, bridge, bridge)
-
-			return true, nil
-		}
-
-		// Delegate core equip logic to shared action.
+		// One shared body for both spellings; a named arm only confines where
+		// the item goes (spec ruling 11), so the arm path meets Wear's
+		// MinStrength, reservation and curse gates like any other equip.
 		actor := &actions.UserActor{User: user, Room: room}
-		result := actions.EquipItem(actor, rest)
+		var result actions.EquipItemResult
+		if targetArmSlot > 0 {
+			result = actions.EquipItemInArm(actor, rest, targetArmSlot)
+		} else {
+			result = actions.EquipItem(actor, rest)
+		}
 
 		if result.Equipped {
 
@@ -290,7 +139,17 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				}
 			}
 
-			if result.Item.GetSpec().Subtype == items.Wearable {
+			if result.ArmLabel != `` {
+				if result.Item.GetSpec().Type == items.Offhand {
+					user.SendText(messaging.CategorySystem, fmt.Sprintf(`You equip your <ansi fg="item">%s</ansi> in your %s.`, result.Item.DisplayName(), result.ArmLabel))
+				} else {
+					user.SendText(messaging.CategorySystem, fmt.Sprintf(`You wield your <ansi fg="item">%s</ansi> in your %s.`, result.Item.DisplayName(), result.ArmLabel))
+				}
+				room.SendTextVisual(messaging.CategoryEquipment,
+					fmt.Sprintf(`<ansi fg="username">%s</ansi> equips their <ansi fg="item">%s</ansi>.`, user.Character.Name, result.Item.DisplayName()),
+					user.UserId,
+				)
+			} else if result.Item.GetSpec().Subtype == items.Wearable {
 				user.SendText(messaging.CategorySystem,
 					fmt.Sprintf(`You wear your <ansi fg="item">%s</ansi>.`, result.Item.DisplayName()),
 				)

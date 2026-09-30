@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
 // ErrHouseholdBauble refuses taking a household's bauble off the floor: it
@@ -12,6 +13,21 @@ import (
 // `get`, a mob's, a companion's or a scavenger's (owner ruling 2026-09-29).
 var ErrHouseholdBauble = errors.New(`that belongs to this household`)
 
+// ErrTooDark refuses a pickup by an actor who sees nothing at all here
+// (slice 5a). Shapes are enough to grope for an item, so only SightNone
+// refuses.
+var ErrTooDark = errors.New(`too dark to find anything`)
+
+// ErrExploding refuses an item that is about to explode; a sweep stops on it.
+var ErrExploding = errors.New(`it is about to explode`)
+
+// TooDarkToGet is the one statement of the pickup sight rule, for both
+// actors. The player's `get` also asks it first, so its container, corpse
+// and bag branches stay refused in the dark.
+func TooDarkToGet(actor Actor) bool {
+	return messaging.ParticipantSight(actor.GetCharacter(), actor.GetRoom()) == messaging.SightNone
+}
+
 // GetItemResult is the result of a GetItemFromFloor call.
 type GetItemResult struct {
 	Item  items.Item
@@ -19,41 +35,54 @@ type GetItemResult struct {
 	Err   error
 }
 
-// GetItemFromFloor searches the room floor (or stash) for an item matching
-// itemName, then atomically moves it into the actor's backpack using
-// TransferItemToBackpack. The stash flag mirrors room.FindOnFloor /
-// room.RemoveItem / room.AddItem semantics — pass true to search the stash.
-// A household's bauble is refused with ErrHouseholdBauble (Found, nothing moved).
-func GetItemFromFloor(actor Actor, itemName string, stash bool) GetItemResult {
+// TakeFloorItem moves an item already found on the floor (or in the stash)
+// into the actor's backpack, through every pickup gate in the player's order:
+// ErrTooDark, ErrExploding, ErrHouseholdBauble, then the transfer (which
+// fires ItemOwnership, or rolls back on a full pack).
+func TakeFloorItem(actor Actor, item items.Item, stash bool) error {
+	if TooDarkToGet(actor) {
+		return ErrTooDark
+	}
+	if item.HasAdjective(`exploding`) {
+		return ErrExploding
+	}
 	room := actor.GetRoom()
-
-	matchItem, found := room.FindOnFloor(itemName, stash)
-	if !found {
-		return GetItemResult{Found: false}
+	// A household's bauble is never picked up (it is only ever on the floor,
+	// never in a stash).
+	if !stash && item.BaubleBelongsTo(room.RoomId) {
+		return ErrHouseholdBauble
 	}
-
-	// Gates: each refuses with the item it found and an error, and moves
-	// nothing; the caller words the refusal. A household's bauble is never
-	// picked up (it is only ever on the floor, never in a stash).
-	if !stash && matchItem.BaubleBelongsTo(room.RoomId) {
-		return GetItemResult{Item: matchItem, Found: true, Err: ErrHouseholdBauble}
-	}
-
-	char := actor.GetCharacter()
-	err := TransferItemToBackpack(
-		matchItem,
-		char,
+	return TransferItemToBackpack(
+		item,
+		actor.GetCharacter(),
 		actor.GetUserId(),
 		actor.GetMobInstanceId(),
 		func(i items.Item) { room.RemoveItem(i, stash) },
 		func(i items.Item) { room.AddItem(i, stash) },
 	)
-
-	return GetItemResult{Item: matchItem, Found: true, Err: err}
 }
 
-// GetGoldFromFloor moves all gold currently on the room floor into the actor's
-// character wallet. It delegates to FloorPickupGold which validates the amount.
+// GetItemFromFloor searches the room floor (or stash) for an item matching
+// itemName and takes it through TakeFloorItem. In the dark it finds nothing
+// (Found false, ErrTooDark): the actor learns nothing about the floor. Every
+// other refusal returns the item found, Found, and the gate's error.
+func GetItemFromFloor(actor Actor, itemName string, stash bool) GetItemResult {
+	if TooDarkToGet(actor) {
+		return GetItemResult{Found: false, Err: ErrTooDark}
+	}
+	matchItem, found := actor.GetRoom().FindOnFloor(itemName, stash)
+	if !found {
+		return GetItemResult{Found: false}
+	}
+	return GetItemResult{Item: matchItem, Found: true, Err: TakeFloorItem(actor, matchItem, stash)}
+}
+
+// GetGoldFromFloor moves gold on the room floor into the actor's wallet
+// (FloorPickupGold validates the amount); refused with ErrTooDark when the
+// actor sees nothing.
 func GetGoldFromFloor(actor Actor, amount int) error {
+	if TooDarkToGet(actor) {
+		return ErrTooDark
+	}
 	return FloorPickupGold(amount, actor.GetRoom(), actor.GetCharacter())
 }

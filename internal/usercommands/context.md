@@ -491,6 +491,51 @@ never a target, and resolves as a room AoE. Aimed thrown weapons (darts,
 javelins) belong under `ranged-combat` and `ExecuteFire` instead. Settled
 2026-08-14; the reasoning is in `internal/actions/context.md`.
 
+### Sight and gates parity (slice 5a): shared bodies, this package only words them
+
+`get`, `look`, `remove` and `craft` each open on a shared-body verdict from
+`internal/actions` and translate it into player text; none of them re-implements
+a gate.
+
+- **`Equip`** (`equip.go`): the arm-suffix branch (`equip X armN`, or the
+  legacy `armN` spelling) goes through `actions.EquipItemInArm(actor, rest,
+  targetArmSlot)` instead of calling `Character.Wear` directly; the plain
+  path still calls `actions.EquipItem`. Both return the same
+  `actions.EquipItemResult`, so the two paths render identically
+  (`result.ArmLabel` is empty for the plain path, set for the arm path, and
+  picks the "You wield"/"You equip ... in your %s" wording). Routing the arm
+  path through the shared body means it now meets `Wear`'s `MinStrength` and
+  reservation gates like any other equip, and an item it knocks off a full
+  pack lands on the floor instead of being lost, matching the plain path.
+- **`busyRefusalText(verb string)`** (`busy_refuse.go`) is now the one string
+  builder behind both `refuseWhileBusy` (the pre-dispatch gate most commands
+  use) and a wrapper that renders `Busy` from a shared body's own result
+  (`Remove`, below): the wording must not fork between "refused before the
+  call" and "refused inside the call".
+- **`Get`** (`get.go`): refuses up front on `actions.TooDarkToGet`
+  ("You can't see anything to pick up!"), asked before the container, corpse
+  and bag branches so all of them stay refused in the dark too.
+- **`Look`** (`look.go`): every sight rule (no-sight refusal, a creature named
+  only at clear sight and only if perceived, an exit's through-sight and
+  lock, the pet at clear sight) lives in `actions.ResolveLook`, shared with
+  the mob look; this function switches on `res.Kind` (`actions.LookDark`,
+  `LookRoom`, `LookCreature`, ...) and only words the answer.
+- **`Remove`** (`remove.go`): the `all` branch calls
+  `actions.RemoveAllEquipment(actor)`, which owns the busy gate, the curse
+  gate per item and one `EquipmentChange` event per removal; the wrapper
+  renders `res.Busy` through `busyRefusalText`, a line per `res.Cursed` item,
+  then the reservation-return disclosure. The single-item path calls
+  `actions.RemoveEquipment(actor, rest)` and switches on `result.Busy`,
+  `!result.Found`, `result.Cursed` and `result.CursedOverridden`, so a
+  cursed item stays on unless the remover's enchant skill is high enough to
+  lift it.
+- **`Craft`** (`craft.go`): refuses up front on `actions.TooDarkToCraft`
+  ("You can't see well enough to work on anything here."), before recipe
+  lookup and the storage pull; `result.CannotSee` in the later
+  `actions.InitiateCraft` switch is unreachable from this wrapper today (the
+  early refusal always fires first) but is kept because the result's
+  contract is shared with the mob and companion callers.
+
 ### Crafting: instant-complete narration (`craft.go`)
 
 Two `messaging.SendTrio` helpers deliver crafting's text, and they are not

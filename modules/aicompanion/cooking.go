@@ -59,6 +59,16 @@ func craftableHere(mob *mobs.Mob, p *Profile, room *rooms.Room) []recipeOption {
 	if room == nil || len(p.Crafts) == 0 || len(mob.Character.KnownRecipes) == 0 {
 		return nil
 	}
+	// Crafting needs clear sight, for her as for anyone (slice 5a): offer
+	// nothing the actual craft attempt would refuse, so autonomy never picks
+	// a craft that would not start and the prompt lists no recipe she cannot
+	// see to make. This reuses actions.TooDarkToCraft, the same predicate
+	// InitiateCraft asks, rather than cannotSee (perception.go), which does
+	// not consult sleep: a sleeping companion in a lit room could otherwise
+	// list a recipe her own craft attempt then silently refused.
+	if actions.TooDarkToCraft(actions.NewMobActorInRoom(mob, room)) {
+		return nil
+	}
 	ids := make([]string, 0, len(mob.Character.KnownRecipes))
 	for id := range mob.Character.KnownRecipes {
 		ids = append(ids, id)

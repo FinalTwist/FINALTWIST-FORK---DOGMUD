@@ -289,7 +289,13 @@ func (c *Character) HandsRequired(i items.Item) int {
 		return iSpec.Hands
 	}
 
+	// An unregistered species reads as Medium. The upgrade scorer reaches
+	// this for every weapon it weighs (slice 5a), and a nil here used to be a
+	// panic, never a rule.
 	speciesInfo := species.GetSpecies(c.SpeciesId)
+	if speciesInfo == nil {
+		return iSpec.Hands
+	}
 	if speciesInfo.Size == species.Large {
 		return 1
 	}
@@ -366,106 +372,22 @@ func (c *Character) GetGearValue() int {
 	return value
 }
 
-// wearWeaponOrShield handles pair-based placement for weapons and offhands.
-// Returns the same tuple as Wear. Caller is responsible for calling
-// reapplyPermanentConditions (this helper calls it for 2H and shield cases internally
-// to preserve pre-refactor semantics).
-func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHandsRequired int, canDualWield bool) (returnItems []items.Item, newItemWorn bool, failureReason string) {
-	pairs := c.GetHandPairs()
-	isShield := spec.Type == items.Offhand
-
-	if iHandsRequired >= 2 {
-		freePair := FindFirstFreePair(pairs)
-		if freePair == nil {
-			freePair = FindCheapestPairToDisplace(pairs)
-		}
-		if freePair == nil {
-			return returnItems, false, `You have no free pair of hands for a two-handed weapon.`
-		}
-		if !freePair.First.IsEmpty() && freePair.First.ItemPtr.IsCursed() {
-			return returnItems, false, `Your ` + freePair.First.ItemPtr.DisplayName() + ` is cursed and prevents you from removing it.`
-		}
-		if !freePair.Second.IsEmpty() && freePair.Second.ItemPtr.IsCursed() {
-			return returnItems, false, `Your ` + freePair.Second.ItemPtr.DisplayName() + ` is cursed and prevents you from removing it.`
-		}
-		if !freePair.First.IsEmpty() {
-			returnItems = append(returnItems, *freePair.First.ItemPtr)
-		}
-		if !freePair.IsHalfPair() && !freePair.Second.IsEmpty() {
-			returnItems = append(returnItems, *freePair.Second.ItemPtr)
-		}
-		*freePair.First.ItemPtr = i
-		if !freePair.IsHalfPair() {
-			*freePair.Second.ItemPtr = items.Item{}
-		}
-		c.reapplyPermanentConditions()
-		return returnItems, true, ``
+// wearChosen places a weapon or shield where ChooseWornSlot says (arm 0 for
+// the automatic choice, 1 to 6 for a named arm) and reapplies permanent
+// conditions, as the hand path always has.
+func (c *Character) wearChosen(i items.Item, arm int) ([]items.Item, bool, string) {
+	choice, refusal := c.ChooseWornSlot(i, arm)
+	if refusal != `` {
+		return nil, false, refusal
 	}
-
-	if isShield {
-		slot := c.FindFirstEmptySlot(pairs, true)
-		if slot != nil {
-			*slot.ItemPtr = i
-			c.reapplyPermanentConditions()
-			return returnItems, true, ``
-		}
-		if pairs[0].First.Is2H(c) {
-			return returnItems, false, `Your two-handed weapon leaves no room for a shield.`
-		}
-		if pairs[0].Second.ItemPtr.IsCursed() {
-			return returnItems, false, `Your ` + pairs[0].Second.ItemPtr.DisplayName() + ` is cursed and prevents you from removing it.`
-		}
-		returnItems = append(returnItems, *pairs[0].Second.ItemPtr)
-		*pairs[0].Second.ItemPtr = i
-		c.reapplyPermanentConditions()
-		return returnItems, true, ``
-	}
-
-	// 1H weapon
-	bothMartial := spec.Subtype == items.Claws && c.Equipment.Weapon.GetSpec().Subtype == items.Claws
-
-	slot := c.FindFirstEmptySlot(pairs, false)
-	if slot != nil {
-		if slot.Label == "offhand" && !canDualWield && !bothMartial {
-			slot = nil
-			for pi := 1; pi < len(pairs); pi++ {
-				p := &pairs[pi]
-				if p.First.Is2H(c) {
-					continue
-				}
-				if p.First.IsEmpty() {
-					slot = &p.First
-					break
-				}
-				if !p.IsHalfPair() && p.Second.IsEmpty() {
-					slot = &p.Second
-					break
-				}
-			}
-		}
-		if slot != nil {
-			*slot.ItemPtr = i
-			c.reapplyPermanentConditions()
-			return returnItems, true, ``
-		}
-	}
-
-	// No empty slots — displace Weapon slot (arm 1)
-	if c.Equipment.Weapon.IsCursed() {
-		return returnItems, false, `Your ` + c.Equipment.Weapon.DisplayName() + ` is cursed and prevents you from removing it.`
-	}
-	if pairs[0].First.Is2H(c) && !pairs[0].Second.IsEmpty() {
-		returnItems = append(returnItems, *pairs[0].Second.ItemPtr)
-		*pairs[0].Second.ItemPtr = items.Item{}
-	}
-	returnItems = append(returnItems, c.Equipment.Weapon)
-	c.Equipment.Weapon = i
+	choice.apply(i)
 	c.reapplyPermanentConditions()
-	return returnItems, true, ``
+	return choice.Displaced, true, ``
 }
 
-// wearArmorSlot handles placement for non-weapon equipment (armor, rings, wrists,
-// back, shoulders, component bag, tail, light). Returns the same tuple as Wear.
+// wearArmorSlot handles placement for non-weapon equipment (armor, back,
+// shoulders, component bag, tail, light). Rings and wrists pass through here
+// but their slot choice is ChooseWornSlot's. Returns the same tuple as Wear.
 // Does NOT call reapplyPermanentConditions: Wear calls it after the
 // reservation check passes, so a refused equip never refreshes against a
 // placement it is about to revert.
@@ -501,38 +423,17 @@ func (c *Character) wearArmorSlot(i items.Item, spec items.ItemSpec) (returnItem
 		}
 		returnItems = append(returnItems, c.Equipment.Gloves)
 		c.Equipment.Gloves = i
-	case items.Ring:
-		if c.Equipment.Ring.IsDisabled() && c.Equipment.Ring2.IsDisabled() {
-			return returnItems, false, `You can't wear rings.`
+	case items.Ring, items.Wrist:
+		// Slot choice lives in ChooseWornSlot (slice 5a, ruling 10): an empty
+		// slot is filled first in today's order; with every slot full the
+		// first uncursed one is swapped, and a disabled slot is never
+		// written.
+		choice, refusal := c.ChooseWornSlot(i, 0)
+		if refusal != `` {
+			return returnItems, false, refusal
 		}
-		if !c.Equipment.Ring.IsDisabled() && c.Equipment.Ring.ItemId == 0 {
-			c.Equipment.Ring = i
-		} else if !c.Equipment.Ring2.IsDisabled() && c.Equipment.Ring2.ItemId == 0 {
-			c.Equipment.Ring2 = i
-		} else {
-			returnItems = append(returnItems, c.Equipment.Ring)
-			c.Equipment.Ring = i
-		}
-	case items.Wrist:
-		if c.Equipment.Wrist1.IsDisabled() && c.Equipment.Wrist2.IsDisabled() {
-			return returnItems, false, `You can't wear things on your wrists.`
-		}
-		if !c.Equipment.Wrist1.IsDisabled() && c.Equipment.Wrist1.ItemId == 0 {
-			c.Equipment.Wrist1 = i
-		} else if !c.Equipment.Wrist2.IsDisabled() && c.Equipment.Wrist2.ItemId == 0 {
-			c.Equipment.Wrist2 = i
-		} else if c.ExtraArms >= 1 && !c.Equipment.ExtraWrist1.IsDisabled() && c.Equipment.ExtraWrist1.ItemId == 0 {
-			c.Equipment.ExtraWrist1 = i
-		} else if c.ExtraArms >= 2 && !c.Equipment.ExtraWrist2.IsDisabled() && c.Equipment.ExtraWrist2.ItemId == 0 {
-			c.Equipment.ExtraWrist2 = i
-		} else if c.ExtraArms >= 3 && !c.Equipment.ExtraWrist3.IsDisabled() && c.Equipment.ExtraWrist3.ItemId == 0 {
-			c.Equipment.ExtraWrist3 = i
-		} else if c.ExtraArms >= 4 && !c.Equipment.ExtraWrist4.IsDisabled() && c.Equipment.ExtraWrist4.ItemId == 0 {
-			c.Equipment.ExtraWrist4 = i
-		} else {
-			returnItems = append(returnItems, c.Equipment.Wrist1)
-			c.Equipment.Wrist1 = i
-		}
+		choice.apply(i)
+		returnItems = choice.Displaced
 	case items.Back:
 		if c.Equipment.Back.IsDisabled() {
 			return returnItems, false, `You can't wear things on your back.`
@@ -583,7 +484,32 @@ func (c *Character) wearArmorSlot(i items.Item, spec items.ItemSpec) (returnItem
 	return returnItems, true, ``
 }
 
+// Wear puts an item on the body and returns what came off. Its callers
+// (actions.EquipItem, the merchant upgrade, spawn and bounty-hunter loot, the
+// companion's starting kit) see one refusal wording per gate.
 func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bool, failureReason string) {
+	return c.wear(i, func(i items.Item, spec items.ItemSpec) ([]items.Item, bool, string) {
+		if spec.Type == items.Weapon || spec.Type == items.Offhand {
+			return c.wearChosen(i, 0)
+		}
+		return c.wearArmorSlot(i, spec)
+	})
+}
+
+// WearInArm is `equip X armN` (spec ruling 11): Wear's gates (type,
+// MinStrength, hands over two, reservation, curse) around a placement into
+// the one arm named, 1 to 6. A cursed item in that arm refuses; it never
+// moves the item to another arm (ruling 12).
+func (c *Character) WearInArm(i items.Item, arm int) (returnItems []items.Item, newItemWorn bool, failureReason string) {
+	return c.wear(i, func(i items.Item, _ items.ItemSpec) ([]items.Item, bool, string) {
+		return c.wearChosen(i, arm)
+	})
+}
+
+// wear is Wear's body with the placement step passed in, so Wear and
+// WearInArm share every gate: the type gate, MinStrength, hands over two, the
+// reservation snapshot and revert, the curse pass and the success tail.
+func (c *Character) wear(i items.Item, place func(items.Item, items.ItemSpec) ([]items.Item, bool, string)) (returnItems []items.Item, newItemWorn bool, failureReason string) {
 
 	i.Validate()
 
@@ -593,15 +519,14 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 		return returnItems, false, `That item cannot be equipped.`
 	}
 
-	// Min-Strength wield gate — heavy bows and arbalests require a minimum
+	// Min-Strength wield gate: heavy bows and arbalests require a minimum
 	// Strength to operate. Checked before HandsRequired so the rejection is
 	// immediate and consistent for all callers.
 	if spec.MinStrength > 0 && c.Stats.Strength.ValueAdj < spec.MinStrength {
 		return returnItems, false, `You aren't strong enough to handle ` + i.DisplayName() + `.`
 	}
 
-	iHandsRequired := c.HandsRequired(i)
-	if iHandsRequired > 2 {
+	if c.HandsRequired(i) > 2 {
 		return returnItems, false, `That requires too many hands.`
 	}
 
@@ -619,24 +544,31 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 	// the reservation on gear already worn, which no per-item delta could see.
 	//
 	// Restoring the whole Worn value is a sound revert because both placement
-	// helpers write ONLY into c.Equipment (wearWeaponOrShield through pointers
+	// helpers write ONLY into c.Equipment (wearChosen through pointers
 	// into it, wearArmorSlot by assigning slot fields), with two exceptions,
 	// both handled: SortComponentItems was moved out of wearArmorSlot and runs
-	// below, and wearWeaponOrShield's own reapplyPermanentConditions is re-run against
+	// below, and wearChosen's own reapplyPermanentConditions is re-run against
 	// the restored equipment on the refusal path.
 	beforeReserve := c.ReservationOverages()
 	savedEquipment := c.Equipment
 
-	// Weapon + shield placement uses pair-based logic; armor + non-weapon slots
-	// use the simple switch.
-	if spec.Type == items.Weapon || spec.Type == items.Offhand {
-		returnItems, newItemWorn, failureReason = c.wearWeaponOrShield(i, spec, iHandsRequired, c.CanDualWield())
-	} else {
-		returnItems, newItemWorn, failureReason = c.wearArmorSlot(i, spec)
-	}
-
+	returnItems, newItemWorn, failureReason = place(i, spec)
 	if !newItemWorn {
 		return returnItems, newItemWorn, failureReason
+	}
+
+	// The equip curse rule, on what placement actually displaced (slice 5a,
+	// ruling 8): no slot choice is copied here, so every single-slot armour
+	// type and the light are covered. Hands, rings and wrists never reach it
+	// with a cursed item, because ChooseWornSlot already skipped or refused
+	// the slot. Checked BEFORE the reservation test so a cursed refusal reads
+	// as the curse. The revert is the reservation check's own.
+	for _, d := range returnItems {
+		if reason := c.CursedRefusal(d); reason != `` {
+			c.Equipment = savedEquipment
+			c.reapplyPermanentConditions()
+			return nil, false, reason
+		}
 	}
 
 	if pool, worse := beforeReserve.Worsened(c.ReservationOverages()); worse {
@@ -654,8 +586,7 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 	}
 	if spec.Type != items.Weapon && spec.Type != items.Offhand {
 		// Preserved from the pre-U7b shape: permanent conditions are reapplied on the
-		// armour path only (wearWeaponOrShield does its own), and only on
-		// success.
+		// armour path only (wearChosen does its own), and only on success.
 		c.reapplyPermanentConditions()
 	}
 	if spec.Type == items.Light {

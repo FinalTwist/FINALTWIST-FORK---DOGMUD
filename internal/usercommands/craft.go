@@ -85,11 +85,11 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// Owner ruling 2026-09-21. Listing what you know is memory and stays
 	// allowed above; an ATTEMPT to make something is refused.
 	//
-	// CanSeeClearly, not CanSeeShapes: it folds blindness, an unlit room and
-	// NightVision into one verdict, and crafting is fine work, so making out
-	// warm shapes by infrared is not enough to do it. Sibling refusals live in
-	// get.go, loot.go and shoot.go.
-	if !messaging.CanSeeClearly(user.Character, room) {
+	// Clear sight, not shapes (actions.TooDarkToCraft): it folds blindness, an
+	// unlit room and NightVision into one verdict, and crafting is fine work,
+	// so making out warm shapes by infrared is not enough to do it. Sibling
+	// refusals live in get.go, loot.go and shoot.go.
+	if actions.TooDarkToCraft(&actions.UserActor{User: user, Room: room}) {
 		user.SendText(messaging.CategorySystem, `You can't see well enough to work on anything here.`)
 		return true, nil
 	}
@@ -124,6 +124,13 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	result := actions.InitiateCraft(actor, rest)
 
 	switch {
+	case result.CannotSee:
+		// Unreachable today: the early refusal above already returns before
+		// InitiateCraft runs. The case exists because CannotSee is part of the
+		// result's contract for every caller, including mobs and the companion.
+		craftDeliver(user, messaging.CategorySystem, `You can't see well enough to work on anything here.`)
+		return true, nil
+
 	case len(result.AmbiguousRecipes) > 0:
 		list := make([]string, 0, len(result.AmbiguousRecipes))
 		for _, n := range result.AmbiguousRecipes {

@@ -9,75 +9,56 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
 func Remove(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-	if refuseWhileBusy(user, `change equipment`) {
-		return true, nil
-	}
-
 	actor := &actions.UserActor{User: user, Room: room}
 
 	// Snapshot reservation BEFORE anything leaves the body, so the disclosure
-	// below can tell the player when taking that off gave capacity back. The
-	// equip side has said "putting that on sets part of you aside" since U7b and
-	// remove said nothing, which taught the player that reservation is a one-way
-	// door. Taken up here so the `all` branch is covered by the same snapshot.
+	// below can tell the player when taking that off gave capacity back.
+	// Taken up here so the `all` branch is covered by the same snapshot.
 	beforeReservation := user.Character.ReservationTotals()
 
+	cursedLine := func(it items.Item) string {
+		return fmt.Sprintf(`You can't seem to remove your <ansi fg="item">%s</ansi>... It's <ansi fg="red-bold">CURSED!</ansi>`, it.DisplayName())
+	}
+
 	if rest == "all" {
-		removedItems := []items.Item{}
-		for _, item := range user.Character.Equipment.GetAllItems() {
-			result := actions.RemoveEquipment(actor, item.Name())
-			if result.Removed {
-				removedItems = append(removedItems, result.Item)
-			}
+		// The busy, curse and per-item rules live in actions.RemoveAllEquipment
+		// (slice 5a), which fires one EquipmentChange per item.
+		res := actions.RemoveAllEquipment(actor)
+		if res.Busy {
+			user.SendText(messaging.CategorySystem, busyRefusalText(`change equipment`))
+			return true, nil
 		}
-
-		events.AddToQueue(events.EquipmentChange{
-			UserId:       user.UserId,
-			ItemsRemoved: removedItems,
-		})
-
+		for _, it := range res.Cursed {
+			user.SendText(messaging.CategorySystem, cursedLine(it))
+		}
 		sendReservationReturnDisclosure(user, beforeReservation)
-
-		for _, item := range removedItems {
+		for _, item := range res.Removed {
 			if item.GetSpec().Type == items.Light {
 				lightnotice.Check(user, lightnotice.TriggerCommand)
 				break
 			}
 		}
-
 		return true, nil
 	}
 
-	// Check whether the user has an item equipped that matches
-	matchItem, found := user.Character.FindOnBody(rest)
-
-	if !found || matchItem.ItemId < 1 {
+	result := actions.RemoveEquipment(actor, rest)
+	switch {
+	case result.Busy:
+		user.SendText(messaging.CategorySystem, busyRefusalText(`change equipment`))
+	case !result.Found:
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't appear to be using a "%s".`, rest))
-	} else {
-
-		// Cursed item check — must happen BEFORE calling the shared action,
-		// since the shared action will actually remove the item.
-		if matchItem.IsCursed() && user.Character.Health > 0 {
-			if user.Character.GetSkillLevel(skills.Spellcasting) < 4 {
-				user.SendText(messaging.CategorySystem,
-					fmt.Sprintf(`You can't seem to remove your <ansi fg="item">%s</ansi>... It's <ansi fg="red-bold">CURSED!</ansi>`, matchItem.DisplayName()),
-				)
-
-				return true, nil
-			} else {
-				user.SendText(messaging.CategorySystem,
-					`It's <ansi fg="red-bold">CURSED</ansi> but luckily your <ansi fg="skillname">enchant</ansi> skill level allows you to remove it.`,
-				)
-			}
+	case result.Cursed:
+		user.SendText(messaging.CategorySystem, cursedLine(result.Item))
+	default:
+		if result.CursedOverridden {
+			user.SendText(messaging.CategorySystem,
+				`It's <ansi fg="red-bold">CURSED</ansi> but luckily your <ansi fg="skillname">enchant</ansi> skill level allows you to remove it.`,
+			)
 		}
-
-		result := actions.RemoveEquipment(actor, rest)
-
 		if result.Removed {
 			user.SendText(messaging.CategorySystem,
 				fmt.Sprintf(`You remove your <ansi fg="item">%s</ansi> and return it to your backpack.`, result.Item.DisplayName()),
@@ -92,13 +73,11 @@ func Remove(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			if result.Item.GetSpec().Type == items.Light {
 				lightnotice.Check(user, lightnotice.TriggerCommand)
 			}
-		} else if result.Found {
+		} else {
 			user.SendText(messaging.CategorySystem,
-				fmt.Sprintf(`You can't seem to remove your <ansi fg="item">%s</ansi>.`, matchItem.DisplayName()),
+				fmt.Sprintf(`You can't seem to remove your <ansi fg="item">%s</ansi>.`, result.Item.DisplayName()),
 			)
 		}
-
 	}
-
 	return true, nil
 }

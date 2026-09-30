@@ -25,17 +25,6 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	secretLook := flags.Has(events.CmdSecretly)
 
-	// Refuse exactly when the observer makes out nothing at all here. The old
-	// test (light below LightBlindBelow and no nightvision FLAG) was stale
-	// twice over: it refused an infravision holder the Game window gives
-	// shapes to, and it let a nightvision holder look in a room its shifted
-	// window reads as blind (lighting plan 5c).
-	sight := messaging.ParticipantSight(user.Character, room)
-	if sight == messaging.SightNone {
-		user.SendText(messaging.CategorySystem, `You can't see anything!`)
-		return true, nil
-	}
-
 	isSneaking := user.Character.IsHidden()
 
 	// trim off some fluff
@@ -52,6 +41,17 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	lookAt := rest
 
+	// Every sight rule of look lives in actions.ResolveLook, shared with the
+	// mob look (slice 5a): the no-sight refusal, the creature named only at
+	// clear sight and only if perceived, the exit's through-sight and lock,
+	// the pet at clear sight. This function only words the answer.
+	res := actions.ResolveLook(&actions.UserActor{User: user, Room: room}, lookAt)
+	if res.Kind == actions.LookDark {
+		user.SendText(messaging.CategorySystem, `You can't see anything!`)
+		return true, nil
+	}
+	sight := res.Sight
+
 	events.AddToQueue(events.Looking{
 		UserId: user.UserId,
 		RoomId: room.RoomId,
@@ -59,8 +59,8 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Hidden: isSneaking,
 	})
 
-	// Handle an ordinary look with no target
-	if len(lookAt) == 0 {
+	switch res.Kind {
+	case actions.LookRoom:
 
 		if !secretLook && !isSneaking {
 			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
@@ -74,19 +74,10 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		}
 		lookRoom(user, room.RoomId, secretLook || isSneaking)
 		return true, nil
-	}
 
-	//
-	// look for any mobs, players, npcs
-	//
+	case actions.LookCreature:
 
-	// Only a viewer who sees faces looks at a creature by name (lighting plan
-	// 5c). At shapes the name is not resolved at all, so the reply cannot
-	// confirm who is standing there: a name that matches a figure and a name
-	// that matches nobody fall through alike to the shapes hint at the end.
-	// cast refuses a typed name at shapes the same way (actions.admitCastAim).
-	target, err := actions.ResolveTargetActor(room, lookAt, actions.ResolveTargetOptions{Viewer: user.Character})
-	if err == nil && sight == messaging.SightFull {
+		target := res.Target
 
 		if target.IsPlayer() {
 
@@ -153,8 +144,25 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		return true, nil
 
+	case actions.LookExitTooDark:
+		user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
+		return true, nil
+
+	case actions.LookExitLocked:
+		user.SendText(messaging.CategorySystem, fmt.Sprintf("The %s exit is locked.", res.ExitName))
+		return true, nil
+
+	case actions.LookExit:
+		user.SendText(messaging.CategorySystem, fmt.Sprintf("You peer toward the %s.", res.ExitName))
+		if !isSneaking {
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> peers toward the %s.`, user.Character.Name, res.ExitName), []string{user.Character.Name}, user.UserId)
+		}
+
+		lookRoom(user, res.ExitRoomId, secretLook || isSneaking)
+
+		return true, nil
 	}
-	// fall through to container / noun / pet lookup branches below
+	// fall through to container / noun / pet lookup branches below (LookOther)
 
 	if room.MatchesSealedCrate(strings.ToLower(lookAt)) {
 		user.SendText(messaging.CategoryRoomDescription, `A heavy iron-banded shipping crate sits at the roadside, its lid`+
@@ -246,62 +254,6 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.SendText(messaging.CategoryRoomDescription, ``)
 
 		return true, nil
-	}
-
-	//
-	// Check room exits
-	//
-	exitName, lookRoomId := room.FindExitByName(lookAt)
-	// If nothing found, consider directional aliases
-	if exitName == `` {
-
-		if alias := keywords.TryDirectionAlias(lookAt); alias != lookAt {
-			exitName, lookRoomId = room.FindExitByName(alias)
-			if exitName != `` {
-				lookAt = alias
-			}
-		}
-	}
-
-	if exitName != `` {
-
-		// Seeing THROUGH an exit needs more light than seeing the room you
-		// are standing in. The old model expressed this as visibility 2
-		// rather than 1; LightExitsAbove carries it explicitly.
-		//
-		// 🪤 There used to be an "unless the biome is lit" exemption here. It
-		// was deleted with the graded light model, and it should not come
-		// back: a lit biome's light already cleared LightExitsAbove on its
-		// own, so the exemption only ever fired when a darkening mutator had
-		// dragged the room below the threshold, which is precisely the case
-		// where refusing is right. The light value decides now.
-		//
-		// LightExitsAbove stays the edge for normal eyes. Night vision moves
-		// it down by the holder's strength, exactly as it moves the blind and
-		// dim edges; it used to be a flag that waived the edge outright, even
-		// in a room the holder's own window reads as blind. Infra reach does
-		// not help: heat shows shapes here, not in the next room (lighting
-		// plan 5c; messaging.SeesThroughExit).
-		if !messaging.SeesThroughExit(user.Character, room) {
-			user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
-			return true, nil
-		}
-
-		exitInfo, _ := room.GetExitInfo(exitName)
-		if exitInfo.Lock.IsLocked() {
-			user.SendText(messaging.CategorySystem, fmt.Sprintf("The %s exit is locked.", exitName))
-			return true, nil
-		}
-
-		user.SendText(messaging.CategorySystem, fmt.Sprintf("You peer toward the %s.", exitName))
-		if !isSneaking {
-			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> peers toward the %s.`, user.Character.Name, exitName), []string{user.Character.Name}, user.UserId)
-		}
-
-		lookRoom(user, lookRoomId, secretLook || isSneaking)
-
-		return true, nil
-
 	}
 
 	// If the input is a recognized direction alias but no exit exists,
@@ -438,12 +390,8 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	//
 	// Look for any pets in the room
 	//
-	petUserId := room.FindByPetName(rest)
-	if petUserId == 0 && rest == `pet` && user.Character.Pet.Exists() {
-		petUserId = user.UserId
-	}
 	// A pet is a creature too: by name only with faces (see above).
-	if petUserId > 0 && sight == messaging.SightFull {
+	if petUserId := res.PetUserId; petUserId > 0 {
 		if petUser := users.GetByUserId(petUserId); petUser != nil {
 
 			user.SendText(messaging.CategoryRoomDescription, fmt.Sprintf(`You look at %s`, petUser.Character.Pet.DisplayName()))

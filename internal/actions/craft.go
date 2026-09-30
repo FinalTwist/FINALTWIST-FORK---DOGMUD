@@ -6,6 +6,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -45,6 +46,9 @@ type CraftResult struct {
 	// all matched the query (e.g. `craft cloak` when the player knows both
 	// cloak recipes). Player-only: mob actors always take the tightest match.
 	AmbiguousRecipes []string
+	// CannotSee is true when the actor cannot see clearly enough to work
+	// (TooDarkToCraft). Checked first.
+	CannotSee bool
 
 	// Descriptive data filled in on all non-error paths (for messaging).
 	RecipeName           string
@@ -118,6 +122,14 @@ func StationSatisfied(char *characters.Character, recipeStation, roomStation str
 	return mutations.HasPortableWorkshop(char.Mutations)
 }
 
+// TooDarkToCraft is the one statement of the craft sight rule for both
+// actors (slice 5a): crafting is fine work, so shapes by infrared are not
+// enough; it needs clear sight (awake, SightFull). The player's command also
+// asks it before its storage pull and enchanting branch.
+func TooDarkToCraft(actor Actor) bool {
+	return !messaging.CanSeeClearly(actor.GetCharacter(), actor.GetRoom())
+}
+
 // InitiateCraft attempts to begin (or immediately complete) a crafting
 // operation for actor using the recipe identified by recipeName.
 //
@@ -131,6 +143,11 @@ func StationSatisfied(char *characters.Character, recipeStation, roomStation str
 func InitiateCraft(actor Actor, recipeName string) CraftResult {
 	char := actor.GetCharacter()
 	room := actor.GetRoom()
+
+	// ── Can the actor see to work? ────────────────────────────────────────────
+	if TooDarkToCraft(actor) {
+		return CraftResult{CannotSee: true}
+	}
 
 	// ── Already crafting? ─────────────────────────────────────────────────────
 	if char.IsCrafting() {
