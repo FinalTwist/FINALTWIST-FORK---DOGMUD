@@ -1,5 +1,27 @@
 # DOGMud Patch Notes
 
+## 2026-09-29: Cursed gear and the dark
+
+- Cursed gear now stays put. Putting on armour, a ring, a bracer or a
+  light over a cursed piece fails, and taking everything off leaves your
+  cursed pieces on unless your magic is strong enough to lift the curse.
+- With every ring or wrist slot full, a new ring or bracer replaces the
+  first one that is not cursed.
+- Weapons and shields skip a hand held by a cursed item and go to the next
+  free hand you can use, on every arm you have.
+- A creature with extra arms can now take up a shield beside a two handed
+  weapon even with every hand full: the shield swaps out the item in its
+  last free hand.
+- Equipping into a named arm now checks your strength and your reserves
+  like any other equip, and an item it knocks off a full pack lands on the
+  floor instead of being lost.
+- Monsters now follow your rules. In the dark they cannot pick things up
+  or craft, and a monster can no longer look at you while you are hidden.
+  A busy monster cannot take its gear off, and a monster's cursed gear
+  stays on.
+- Picking something up by name that turns out to be stashed now refuses an
+  item about to explode, the same as asking for it from your stash by name.
+
 ## 2026-09-29: Pockets, companions and trinkets
 
 - Companions can no longer be pickpocketed, whoever they belong to.

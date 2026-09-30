@@ -7,6 +7,12 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
+// busyRefusalText is the focused-work refusal, shared by refuseWhileBusy and
+// the wrappers whose shared body reports Busy itself (remove, slice 5a).
+func busyRefusalText(verb string) string {
+	return fmt.Sprintf(`<ansi fg="red">You can't %s while focused on your work. Finish or be interrupted first.</ansi>`, verb)
+}
+
 // refuseWhileBusy enforces activity exclusivity for focus-required commands:
 // while the Activity machine is occupied (Crafting, Salvaging, or Casting),
 // the command refuses with the standard focused-work message and the caller
@@ -17,8 +23,7 @@ import (
 // audit found 13 active commands missing it.
 func refuseWhileBusy(user *users.UserRecord, verb string) bool {
 	if user.Character.IsActing() {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`<ansi fg="red">You can't %s while focused on your work. Finish or be interrupted first.</ansi>`, verb))
+		user.SendText(messaging.CategorySystem, busyRefusalText(verb))
 		return true
 	}
 	return false

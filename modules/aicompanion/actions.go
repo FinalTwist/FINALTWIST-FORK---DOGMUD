@@ -409,6 +409,11 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		if t.Kind != `worn` {
 			return actionOutcome{Refused: `not worn`}
 		}
+		// The shared curse rule (actions.CursedHolds): say so now rather than
+		// issue a remove that changes nothing.
+		if holds, _ := actions.CursedHolds(&mob.Character, t.Item); holds {
+			return actionOutcome{Refused: `it will not come off`}
+		}
 		return m.issue(c, mob, `remove`, `remove `+target, t.Key, t.Name, ``, delay, round)
 
 	case `eat`:

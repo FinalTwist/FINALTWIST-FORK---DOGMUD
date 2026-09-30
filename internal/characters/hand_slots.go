@@ -50,6 +50,27 @@ func (c *Character) GetHandPairs() []HandPair {
 	return pairs
 }
 
+// ArmLabel is the label of arm N (1 to 6) as GetHandPairs names it
+// ("wielded", "offhand", "extra arm 1" ...), or "" when the character has no
+// such arm.
+func (c *Character) ArmLabel(arm int) string {
+	if arm < 1 {
+		return ``
+	}
+	pairs := c.GetHandPairs()
+	pairIdx, slotInPair := (arm-1)/2, (arm-1)%2
+	if pairIdx >= len(pairs) {
+		return ``
+	}
+	if slotInPair == 0 {
+		return pairs[pairIdx].First.Label
+	}
+	if pairs[pairIdx].IsHalfPair() {
+		return ``
+	}
+	return pairs[pairIdx].Second.Label
+}
+
 // Is2H returns true if the item in this slot is a 2-handed weapon that
 // occupies both slots of the pair.
 func (s HandSlot) Is2H(c *Character) bool {
@@ -68,84 +89,6 @@ func (s HandSlot) IsEmpty() bool {
 // (odd number of extra arms).
 func (p HandPair) IsHalfPair() bool {
 	return p.Second.ItemPtr == nil
-}
-
-// PairIsFree returns true if both slots in the pair are empty.
-// A half-pair always returns false (can't fit a 2H).
-func (p HandPair) PairIsFree() bool {
-	if p.IsHalfPair() {
-		return false
-	}
-	return p.First.IsEmpty() && p.Second.IsEmpty()
-}
-
-// PairOccupantCount returns how many non-empty items are in the pair.
-func (p HandPair) PairOccupantCount() int {
-	count := 0
-	if !p.First.IsEmpty() {
-		count++
-	}
-	if !p.IsHalfPair() && !p.Second.IsEmpty() {
-		count++
-	}
-	return count
-}
-
-// FindFirstEmptySlot scans all pairs for the first empty slot.
-// If isShield is true, skips the Weapon slot (arm 1) since shields
-// can't go in the primary weapon hand.
-func (c *Character) FindFirstEmptySlot(pairs []HandPair, isShield bool) *HandSlot {
-	for pi := range pairs {
-		p := &pairs[pi]
-		// Skip first slot of first pair (Weapon) for shields
-		if pi == 0 && isShield {
-			if !p.IsHalfPair() && p.Second.IsEmpty() && !p.First.Is2H(c) {
-				return &p.Second
-			}
-			continue
-		}
-		// Don't place into a slot whose pair-partner holds a 2H
-		// (the second slot of a 2H pair is implicitly consumed)
-		if p.First.Is2H(c) {
-			continue
-		}
-		if p.First.IsEmpty() {
-			return &p.First
-		}
-		if !p.IsHalfPair() && p.Second.IsEmpty() {
-			return &p.Second
-		}
-	}
-	return nil
-}
-
-// FindFirstFreePair scans pairs for the first where both slots are empty
-// and the pair is not a half-pair. Used for placing 2H weapons.
-func FindFirstFreePair(pairs []HandPair) *HandPair {
-	for i := range pairs {
-		if pairs[i].PairIsFree() {
-			return &pairs[i]
-		}
-	}
-	return nil
-}
-
-// FindCheapestPairToDisplace finds the full pair with fewest occupants
-// to make room for a 2H weapon. Skips half-pairs.
-func FindCheapestPairToDisplace(pairs []HandPair) *HandPair {
-	var best *HandPair
-	bestCount := 3 // higher than max (2)
-	for i := range pairs {
-		if pairs[i].IsHalfPair() {
-			continue
-		}
-		count := pairs[i].PairOccupantCount()
-		if count < bestCount {
-			bestCount = count
-			best = &pairs[i]
-		}
-	}
-	return best
 }
 
 // BestParryRating returns the highest ParryRating across all equipped

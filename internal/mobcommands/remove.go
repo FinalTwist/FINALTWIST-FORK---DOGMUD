@@ -5,8 +5,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/events"
-	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -21,30 +19,17 @@ func Remove(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	actor := &actions.MobActor{Mob: mob, Room: room}
 
+	// Busy and curse gates live in the shared bodies (slice 5a); a mob is
+	// silent on every refusal.
 	if rest == "all" {
-		removedItems := []items.Item{}
-		for _, item := range mob.Character.Equipment.GetAllItems() {
-			result := actions.RemoveEquipment(actor, item.Name())
-			if result.Removed {
-				removedItems = append(removedItems, result.Item)
-			}
-		}
-
-		events.AddToQueue(events.EquipmentChange{
-			MobInstanceId: mob.InstanceId,
-			ItemsRemoved:  removedItems,
-		})
-
+		actions.RemoveAllEquipment(actor)
 		return true, nil
 	}
 
-	// Single-item remove path
 	result := actions.RemoveEquipment(actor, rest)
-
 	if result.Removed {
 		room.SendTextVisual(messaging.CategoryEquipment,
 			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> removes their <ansi fg="item">%s</ansi> and stores it away.`, mob.Character.Name, result.Item.DisplayName()))
 	}
-
 	return true, nil
 }

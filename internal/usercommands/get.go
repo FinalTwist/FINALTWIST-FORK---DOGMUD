@@ -25,8 +25,8 @@ import (
 // apart, which is exactly what went wrong before: only the dot form filtered,
 // and the space form fell through to "grab the entire floor".
 //
-// Stops early on an `exploding` item (never swept up by accident) and on the
-// first item the character cannot carry.
+// Stops early on an exploding item (never swept up by accident; actions.TakeFloorItem
+// refuses it) and on the first item the character cannot carry.
 func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName string) {
 	// A household's bauble is never swept up: taking it is theft, and only
 	// `steal <name>` attempts that. Each one the name matches is left, and
@@ -49,28 +49,18 @@ func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName 
 			break
 		}
 
-		if matchItem.HasAdjective(`exploding`) {
+		err := actions.TakeFloorItem(&actions.UserActor{User: user, Room: room}, matchItem, false)
+		if errors.Is(err, actions.ErrExploding) || errors.Is(err, actions.ErrTooDark) {
 			break
 		}
-
 		user.Character.CancelConditionsWithFlag(conditions.Hidden)
-
-		if user.Character.StoreItem(matchItem) {
-			room.RemoveItem(matchItem, false)
-
-			events.AddToQueue(events.ItemOwnership{
-				UserId: user.UserId,
-				Item:   matchItem,
-				Gained: true,
-			})
-
-			picked++
-		} else {
+		if err != nil {
 			user.SendText(messaging.CategorySystem,
 				fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi> - you're already overloaded!`, matchItem.DisplayName()),
 			)
 			break
 		}
+		picked++
 	}
 	if picked == 0 {
 		if left == 0 {
@@ -88,10 +78,10 @@ func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName 
 
 func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	// Can't pick things up if you can't see anything at all. Shapes are enough
-	// to grope for an item, so an infravision holder in a faint room gets
-	// through (lighting plan 5c).
-	if messaging.ParticipantSight(user.Character, room) == messaging.SightNone {
+	// Can't pick things up if you can't see anything at all (the shared
+	// rule, actions.TooDarkToGet). Asked here, first, so the container,
+	// corpse and bag branches below stay refused in the dark too.
+	if actions.TooDarkToGet(&actions.UserActor{User: user, Room: room}) {
 		user.SendText(messaging.CategorySystem, "You can't see anything to pick up!")
 		return true, nil
 	}
@@ -630,36 +620,32 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		var matchItem items.Item
 		var found bool
 
-		// First try the requested source (floor or stash)
+		// First try the requested source (floor or stash). The shared pickup
+		// runs every gate: dark, exploding, a household's bauble, capacity.
 		{
-			// Peek at the item before transferring so we can guard against exploding items
-			peekItem, peekFound := room.FindOnFloor(rest, getFromStash)
-			if peekFound && peekItem.HasAdjective(`exploding`) {
-				user.SendText(messaging.CategorySystem, `You can't pick that up, it's about to explode!`)
-				return true, nil
-			}
-			if peekFound {
-				result := actions.GetItemFromFloor(&actions.UserActor{User: user, Room: room}, rest, getFromStash)
-				if result.Found {
-					matchItem = result.Item
-					found = true
-					if errors.Is(result.Err, actions.ErrHouseholdBauble) {
-						// A bauble found in this household belongs to it.
-						// `get` never commits a crime: the shared pickup
-						// refuses it for every taker, and this names the
-						// steal command, which is the theft.
-						user.SendText(messaging.CategorySystem, fmt.Sprintf(
-							`The <ansi fg="itemname">%s</ansi> belongs to this household. To take it anyway, <ansi fg="command">steal %s</ansi>.`,
-							matchItem.DisplayName(), stealWord(matchItem)))
-						return true, nil
-					}
-					if result.Err != nil {
-						// Capacity exceeded — item was rolled back to floor
-						user.SendText(messaging.CategorySystem,
-							fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi> - you're already overloaded!`, matchItem.DisplayName()),
-						)
-						return true, nil
-					}
+			result := actions.GetItemFromFloor(&actions.UserActor{User: user, Room: room}, rest, getFromStash)
+			if result.Found {
+				matchItem = result.Item
+				found = true
+				switch {
+				case errors.Is(result.Err, actions.ErrExploding):
+					user.SendText(messaging.CategorySystem, `You can't pick that up, it's about to explode!`)
+					return true, nil
+				case errors.Is(result.Err, actions.ErrHouseholdBauble):
+					// A bauble found in this household belongs to it.
+					// `get` never commits a crime: the shared pickup
+					// refuses it for every taker, and this names the
+					// steal command, which is the theft.
+					user.SendText(messaging.CategorySystem, fmt.Sprintf(
+						`The <ansi fg="itemname">%s</ansi> belongs to this household. To take it anyway, <ansi fg="command">steal %s</ansi>.`,
+						matchItem.DisplayName(), stealWord(matchItem)))
+					return true, nil
+				case result.Err != nil:
+					// Capacity exceeded: item was rolled back to floor
+					user.SendText(messaging.CategorySystem,
+						fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi> - you're already overloaded!`, matchItem.DisplayName()),
+					)
+					return true, nil
 				}
 			}
 		}
@@ -673,6 +659,10 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				if result.Found {
 					found = true
 					matchItem = result.Item
+					if errors.Is(result.Err, actions.ErrExploding) {
+						user.SendText(messaging.CategorySystem, `You can't pick that up, it's about to explode!`)
+						return true, nil
+					}
 					if result.Err != nil {
 						user.SendText(messaging.CategorySystem,
 							fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi> - you're already overloaded!`, matchItem.DisplayName()),

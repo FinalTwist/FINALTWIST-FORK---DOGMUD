@@ -77,19 +77,37 @@ The `internal/mobcommands` package implements the AI command system for non-play
 - **Inventory control**: `get`, `drop`, `put`, `give` - Intelligent item
   handling. A mob's `get` never takes a household's bauble:
   `actions.GetItemFromFloor` refuses it (`ErrHouseholdBauble`) and the mob says
-  nothing.
-- **Equipment management**: `equip`, `remove`, `gearup` - Automated gear optimization
+  nothing. `get` is a thin wrapper over `actions.GetItemFromFloor` and
+  `actions.GetGoldFromFloor` (sight gates parity, slice 5a): the dark refusal,
+  the exploding-item refusal and the pickup itself all live in `internal/
+  actions/get.go`; a mob reveals itself by cancelling `conditions.Hidden` on a
+  successful pickup and is silent on every refusal.
+- **Equipment management**: `equip`, `remove`, `gearup` - Automated gear
+  optimization. `remove` (`remove.go`) is a thin wrapper over
+  `actions.RemoveEquipment` (single item) and `actions.RemoveAllEquipment`
+  (`remove all`); the busy and cursed-item gates live in those shared bodies
+  in `internal/actions/remove_equip.go`, and a mob is silent on every refusal
+  (a cursed item simply stays on, with no line).
 - **Resource consumption**: `eat`, `drink` - Survival behaviors. `Drink`
   (`drink.go`) is a wrapper over `actions.Drink`, the same body a player drinks
   through (drink path unification 2026-09-28), so a mob pays toxicity, reads
   potion freshness and crafter skill, and gets every special potion's effect.
   The repo-root `drink_wrapper_guard_test.go` fails if the wrapper grows drink
   rules again.
-- **Alchemy and crafting**: `alchemy` - Automated production behaviors
+- **Alchemy and crafting**: `alchemy` - Automated production behaviors.
+  `craft` (`craft.go`) is a thin wrapper over `actions.InitiateCraft`
+  (sight gates parity, slice 5a): the dark refusal (`CraftResult.CannotSee`)
+  lives in `internal/actions/craft.go`, and every refusal, including a mob
+  that cannot see to work, is a silent no-op.
 
 #### **Support and Utility Behaviors**
 - **Healing assistance**: `aid`, `lookforaid` - Medical support AI
-- **Environmental interaction**: `look`, `show` - Awareness and demonstration
+- **Environmental interaction**: `look`, `show` - Awareness and demonstration.
+  `look` (`look.go`) resolves through `actions.ResolveLook` (sight gates
+  parity, slice 5a), the same body `usercommands.Look` uses, so a mob checks
+  the dark, a locked exit and a hidden target by the player's own rules. Every
+  room line it sends goes through `Room.SendTextVisualHidingNames`, so an
+  observer who only sees shapes reads "a figure" instead of the mob's name.
 - **Magic usage**: `cast`, `portal` - Spellcasting AI with tactical considerations
 - **Stealth operations**: `sneak` - Covert movement capabilities
 

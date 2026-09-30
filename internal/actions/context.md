@@ -449,6 +449,95 @@ completed step can earn it too. The full rationale, moved verbatim from
 
 ---
 
+## Sight and gates: get, look, remove, equip, craft (slice 5a)
+
+A mob now gets, looks, removes, equips and crafts by the same rules a player
+does, through five shared bodies. `sight_gates_wrapper_guard_test.go` (repo
+root) is an AST test over `internal/usercommands/{get,look,remove,equip,
+craft,gearup}.go` and their `internal/mobcommands` twins: it parses each file
+with comments stripped and fails if a wrapper itself evaluates
+`ParticipantSight`/`CanSeeClearly`/`CanSeeShapes`, `IsCursed`/`Spellcasting`/
+`IsActing`, or touches hand-pair internals (`GetHandPairs`, `HandsRequired`,
+`ItemPtr`) directly instead of calling into the shared body below. A sixth
+row pins `usercommands/equip.go`'s arm branch to `Character.WearInArm` rather
+than reimplementing placement.
+
+**`get.go`**: `ErrTooDark` (`:19`) refuses a pickup when
+`messaging.ParticipantSight` is `SightNone`; shapes are enough to grope for
+an item, so only total darkness gates it. `ErrExploding` (`:22`) stops a
+sweep on an item tagged `exploding`. `TooDarkToGet(actor Actor) bool` (`:27`)
+is the one statement of that sight rule, asked first by the player's `get` so
+its container, corpse and bag branches stay refused too. `TakeFloorItem(actor
+Actor, item items.Item, stash bool) error` (`:42`) is the shared body: dark,
+then exploding, then `ErrHouseholdBauble` (never for a stash pull), then
+`TransferItemToBackpack`. `GetItemFromFloor(actor, itemName, stash)
+GetItemResult` (`:69`) asks `TooDarkToGet` BEFORE searching the floor, so a
+blind actor learns nothing about what is there (`Found: false, Err:
+ErrTooDark`) rather than a refusal naming an item it should not be able to
+see. `GetGoldFromFloor(actor, amount) error` (`:83`) refuses the same way
+before `FloorPickupGold`.
+
+**`look.go`** (new file, slice 5a): `ResolveLook(actor Actor, lookAt string)
+LookResolution` (`:47`) is the shared look body, in the player's exact order:
+sight first, then no-target (the room), then a creature (resolved with the
+looker itself as `ResolveTargetOptions.Viewer`, so nothing it does not
+perceive can be named), then a sealed crate or a known room container
+(`lookNamesAnObject`, `:108`), then an exit (direction alias resolved, then
+through-sight, then lock). `LookKind` (`:11`) is `LookDark`, `LookRoom`,
+`LookCreature`, `LookExit`, `LookExitTooDark`, `LookExitLocked`, `LookOther`.
+`LookOther` is deliberately one bucket for "anything else": the crate and
+container case defers to it rather than getting its own kind, so each
+wrapper's own noun and item resolution (which differs between the player and
+a mob) runs in its own order afterward, exactly as it does today.
+`LookResolution.PetUserId` (`:38`) is set only at `NamesCreatures` (clear
+sight) and is NOT a `LookKind`: the player resolves a pet AFTER carried items
+and room nouns, so turning it into a kind would move the pet check ahead of
+those and change look order. Each wrapper reads `PetUserId` at its own
+existing pet step instead.
+
+**`remove_equip.go`**: `CursedHolds(char, item) (holds, overridden bool)`
+(`:127`) is the one statement of the remove-side curse rule: a cursed item
+stays on a living wearer (`char.Health <= 0` lifts it, since a corpse holds
+nothing back) unless `Spellcasting >= 4`, which overrides it silently
+(`overridden` reports that for callers that want to say so). Equip's own
+curse rule is separate and has no override — see
+`characters.CursedRefusal` in `internal/characters/context.md`.
+`RemoveEquipment(actor, itemName) RemoveEquipResult` (`:142`) gates Busy
+(`IsActing`, checked before any lookup, so a busy actor with nothing worn
+still gets the busy line) then not-found then, through the shared
+`removeWorn(actor, matchItem) RemoveEquipResult` (`:155`), Cursed.
+`RemoveEquipResult` (`:108`) carries `Busy`, `Cursed` (the curse holds, item
+stays on) and `CursedOverridden` (it was cursed but Spellcasting lifted it)
+alongside the existing `Removed`/`Err`. `RemoveAllEquipment(actor)
+RemoveAllResult` (`:200`) is `remove all` for both actors: one Busy check,
+then every worn item taken through `removeWorn` BY IDENTITY off
+`char.Equipment.GetAllItems()`, not by name — so two same-named items, one
+cursed, cannot make the loop re-test the cursed one in place of the other.
+`RemoveAllResult` (`:190`) reports `Removed` and `Cursed` (left on) as
+separate slices; a wrapper renders both, one line summarizing which pieces
+would not come off.
+
+`EquipItemInArm(actor, itemName string, arm int) EquipItemResult` (`:36`) is
+`equip X armN` (spec ruling 11): the same `equipItem` body as `EquipItem`
+(`:29`) but placement is forced through `Character.WearInArm` instead of
+plain `Wear`, so the arm path gets every gate `Wear` has (strength, hands,
+curse, reservation) instead of the old hand-rolled arm placement.
+`EquipItemResult.ArmLabel` (`:20`) is set only by `EquipItemInArm`, from
+`Character.ArmLabel(arm)`, and names the hand that took the item ("offhand",
+"extra arm 1") for the wrapper's line.
+
+**`craft.go`**: `TooDarkToCraft(actor Actor) bool` (`:129`) is
+`!messaging.CanSeeClearly(...)`: crafting is fine work, so shapes by infrared
+are not enough — it needs full, awake sight, unlike the `get`/`look` gates
+above which pass at shapes. `InitiateCraft` checks it FIRST (`:148`), before
+`IsCrafting`, so a dark room refuses immediately with no other gate's state
+leaking through. `CraftResult.CannotSee` (`:51`) carries the refusal; every
+other `CraftResult` field is unset on that path. The player's `usercommands.
+Craft` asks the same gate before its storage pull and enchanting branch, so
+neither can start work `InitiateCraft` would refuse.
+
+---
+
 ## Naming and aiming in the dark (follow-up slice A)
 
 - **`ResolveTargetOptions.Viewer`**: every player command that names a creature

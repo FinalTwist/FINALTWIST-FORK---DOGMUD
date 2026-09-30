@@ -26,6 +26,10 @@ func Craft(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	result := actions.InitiateCraft(actor, rest)
 
 	switch {
+	case result.CannotSee:
+		// Cannot see to work; waits for light (no-op for mobs)
+		return true, nil
+
 	case result.AlreadyCrafting:
 		// Mob is already working; ignore silently (scripts may call too eagerly)
 		return true, nil
