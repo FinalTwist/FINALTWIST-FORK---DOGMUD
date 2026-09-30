@@ -536,6 +536,31 @@ a gate.
   early refusal always fires first) but is kept because the result's
   contract is shared with the mob and companion callers.
 
+### Speech and emotes parity (slice 5b): shared bodies, this package only words them
+
+`say` (`say.go`), `shout` (`shout.go`), `rally` (`rally.go`), `warcry`
+(`warcry.go`) and `emote` (`emote.go`) are thin wrappers over
+`actions.Say`/`Shout`/`ExecuteRally`+`SendHeard`/`ExecuteWarcry`+
+`SendHeard`/`Emote`+`SendSeen`: the reveal, the room line with the speaker's
+or actor's name hidden by each listener's sight, and the deafen split all
+live in the shared body. Each wrapper keeps only its own concerns: mute,
+drunk text (`say`, `shout`), uppercase (`shout`), escaping and the speaker's
+own line. `speech_wrapper_guard_test.go` (repo root) fails if any of these
+five, or their `internal/mobcommands` twins, re-forks that logic, and pins
+each wrapper's call count on its shared body (one per room line it sends).
+
+`Emote`'s free-form line (and its `@` form) is player chatter and stays
+deafen-filtered (`actions.SendSeen(..., chatter: true)`, routed through
+`Room.SendVisualCommunicationHidingNames`); the empty line and an alias line
+are pre-written and reach everyone who can see regardless of Deafened
+(`chatter: false`, `Room.SendTextVisualHidingNames`), and both bypass the
+mute check too, since they carry no free text.
+
+`internal/usercommands/offer.go`'s package-local `merchantSay` (shared by
+`Offer` and `Appraise`, `appraise.go`) only calls
+`actions.Say(&actions.MobActor{...}, line)`; it hand-rolls no room line of
+its own, matching the canonical `merchantSay` in `internal/actions/sell.go`.
+
 ### Crafting: instant-complete narration (`craft.go`)
 
 Two `messaging.SendTrio` helpers deliver crafting's text, and they are not

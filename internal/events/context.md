@@ -598,6 +598,19 @@ same way (spell effects slice 3b); zero drains them all.
 `DrainQueuedCharacterDiedForTest()` and `DrainQueuedMobDeathsForTest()` drain
 every queued `CharacterDied` and `MobDeath` event; the second lets a test
 assert on the damaging-players list the `MobDeath_*` hooks read.
+`DrainQueuedMessageEventsForTest(userId)` (sight gates slice 5b) is
+`DrainQueuedMessagesForTest` returning the whole `Message`, not just its
+text, so a test can also read `IsCommunication`; zero drains none, a nonzero
+id drains only that user's queued `Message` events.
+`DrainQueuedRoomMessagesForTest(roomId)` drains every `RoomId`-keyed
+`Message` queued for `roomId` (`Room.SendTextCommunication`,
+`Room.SendTextToExits`) rather than a per-user one.
+
+`Message.HiddenFromDeafened(deafened bool) bool` (sight gates slice 5b) is
+the one statement of the Deafened moderation rule: true when `m` is player
+chatter (`IsCommunication`) and the reader is deafened.
+`internal/hooks/Message_SendMessages.go` applies it on both of its delivery
+branches, and tests read it rather than copy the rule.
 
 `Condition` (`eventtypes.go`) carries `TickScale float64` (tick amount at
 apply, 2026-09-28) alongside `Magnitude`/`Triggers` and `DurationMult`: it

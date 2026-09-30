@@ -31,7 +31,6 @@ type Actor interface {
 	GetCharacter() *characters.Character
 	GetRoom() *rooms.Room
 	SendText(cat messaging.Category, msg string)
-	SendRoomCommunication(msg string, excludeSelf bool)
 	GetName() string
 	IsPlayer() bool
 	GetUserId() int                 // 0 for mobs
@@ -79,9 +78,10 @@ stay silent.
 - **UserActor** (`actor_user.go`): wraps a `*users.UserRecord`, sends text via
   `user.SendText()`, skill progression goes through `user.Character.OnSkillUse()`.
 - **MobActor** (`actor_mob.go`): wraps a `*mobs.Mob`; `SendText` is a no-op
-  because a mob has no private player connection. `SendRoomCommunication` is
-  the NPC room-broadcast path, routed through the room's visual messaging
-  pipeline. Skill progression goes through `mob.Character.OnSkillUse()`.
+  because a mob has no private player connection. A mob's room line goes out
+  through `Say`/`Shout`/`SendHeard`/`SendSeen` below, not through the Actor
+  interface itself (`SendRoomCommunication` is deleted, sight gates slice
+  5b). Skill progression goes through `mob.Character.OnSkillUse()`.
 
 ---
 
@@ -535,6 +535,78 @@ leaking through. `CraftResult.CannotSee` (`:51`) carries the refusal; every
 other `CraftResult` field is unset on that path. The player's `usercommands.
 Craft` asks the same gate before its storage pull and enchanting branch, so
 neither can start work `InitiateCraft` would refuse.
+
+---
+
+## Speech and emotes (sight gates 5b)
+
+Player speech and free-form emotes used to name the actor to every listener
+in any light, while mob speech was two-tier with a lit-room shortcut that
+named the speaker to a blinded listener, and a mob shout neither revealed the
+shouter nor carried its words next door. Five shared bodies now own every
+speech and emote room line for both a player and a mob; `speech_wrapper_guard_test.go`
+(repo root) is an AST test over `internal/usercommands/{say,shout,rally,
+warcry,emote}.go` and their `internal/mobcommands` twins: it fails if a
+wrapper itself hides a name, judges sight, reveals, walks the neighbours or
+wakes sleepers, and it also pins each wrapper's call count on its shared
+body, one per room line the wrapper sends.
+
+**`say.go`**: `Say(actor Actor, text string) SayResult` reveals a hidden
+speaker, echoes "You hear someone talking." through the exits
+(`Room.SendTextToExits`), fires `events.Communication`, then sends the room
+line through the private `sendSpoken`. `FormatSayText` builds the line
+itself, so both the player and the mob path share the one formatter
+(`speech_wrapper_guard_test.go`'s `TestSayRoomLineHasOneFormatter` pins it).
+
+**`shout.go`**: `Shout(actor Actor, text string) ShoutResult` reveals a
+hidden shouter, sends the room line through `sendSpoken` on
+`messaging.CategoryShout`, then walks every adjacent room
+(`Room.ForEachAdjacentRoom`) with an anonymous line carrying the words: a
+player's copy goes out through `otherRoom.SendTextCommunication` (still
+deafen-filtered, byte-identical to before), a mob's through plain
+`otherRoom.SendText` (authored, unfiltered). `wakeSleepers` wakes every other
+sleeper in the shouter's own room; next door is out of scope.
+
+**`room_lines.go`**: the three senders every speech and emote wrapper calls
+into, never its own room line:
+
+- `SendHeard(actor, cat, text)` is for authored text that is heard, not
+  chatter (a rally, a warcry): every listener hears it whatever they can
+  see, through `Room.SendTextHidingNames` with `messaging.HideNames`. Never
+  deafen-filtered. A player actor excludes itself from its own line.
+- `SendSeen(actor, cat, text, chatter)` is an emote's visual twin: the name
+  at clear sight, "a figure" at shapes, nothing for a listener who cannot
+  see. `chatter` is true only for a player's free-form line, which routes
+  through `Room.SendVisualCommunicationHidingNames` to keep the deafen
+  filter; every other line (empty, alias, and every mob emote) goes through
+  `Room.SendTextVisualHidingNames` unfiltered (owner ruling 6).
+- `sendSpoken(actor, room, cat, line, stillHidden)` (unexported) is what
+  `Say` and `Shout` share: every listener hears the words, the speaker's
+  name hidden per listener. A player's line goes through
+  `Room.SendCommunicationHidingNames` (deafen-filtered); a mob's through
+  `Room.SendTextHidingNames` with `messaging.HideSpeakerNames` (unfiltered).
+  A speaker still hidden after the reveal attempt is rewritten to
+  `messaging.SightNone` for everyone first (`HideSpeakerNames`), so a speaker
+  who somehow stayed hidden is unseen by all.
+
+**The deafen split (owner rulings 3, 6 and 7)**: a player's own words are
+chatter and the Deafened moderation flag still applies to them
+(`events.Message.HiddenFromDeafened`, read by `internal/hooks`); an NPC's
+lines are authored content and are never deafen-filtered, whatever the
+wrapper's own `chatter` argument says for a mob caller. Rally, warcry and an
+authored emote are heard/seen by sight rules only, with no deafen check at
+all, because `SendHeard`/`SendTextHidingNames`/`SendTextVisualHidingNames`
+never consult the flag.
+
+**`merchantSay` now only calls `Say`.** The unexported `merchantSay` in
+`internal/actions/sell.go` and the package-local `merchantSay` in
+`internal/usercommands/offer.go` (used by both `offer` and `appraise`) each
+call `actions.Say(&actions.MobActor{...}, line)` and nothing else; neither
+hand-rolls a room line any more. `internal/hooks/justice_wiring.go`'s guard
+`say` callback is the same shape: it only calls `actions.Say`.
+
+The `Social` files row (`say.go`, `emote.go`, `emote_aliases.go`) gains
+`shout.go` and `room_lines.go`.
 
 ---
 

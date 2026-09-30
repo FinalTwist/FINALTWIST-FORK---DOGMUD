@@ -24,6 +24,31 @@ The `internal/rooms` package is the core world management system for GoMud, hand
   event's parties: a shapes-only observer reads each name as "a figure". It is
   the observer half of `messaging.SendTrio`; `ParticipantSight(userId)` is the
   other half.
+  `SendTextHidingNames(cat, txt, names, hide messaging.NameHider,
+  excludeUserIds...)` is an AUDIO-channel sender for an authored line that
+  names who made it (a rally, a howl, NPC speech): heard by everyone whatever
+  they can see, with each of `names` rewritten per listener by `hide` at that
+  listener's `messaging.ParticipantSight`. `hide` is `messaging.HideNames` for
+  a sound ("Something lets out a roar!") and `messaging.HideSpeakerNames` for
+  speech ("Someone says, ..."). There is no lit-room shortcut, which is how
+  the deleted `mobcommands.sendAudioRoomText` named a speaker to a blinded
+  listener; never deafen-filtered, because NPC lines are authored content
+  (owner ruling 6, sight gates slice 5b).
+  `SendCommunicationHidingNames(cat, txt, names, excludeUserIds...)` is a
+  player's speech to the room: every listener hears the words, the speaker's
+  name hidden by `messaging.HideSpeakerNames`, and every message marked
+  `IsCommunication` so the Deafened moderation filter still applies.
+  `SendVisualCommunicationHidingNames(cat, txt, names, excludeUserIds...)` is
+  `SendTextVisualHidingNames` for a player's free-form text that is seen
+  rather than heard (a free-form emote): the same sight gate and name hiding,
+  also marked `IsCommunication` so a deafened player is still spared. Only
+  the shared bodies in `internal/actions` call these three
+  (`speech_wrapper_guard_test.go`, repo root).
+  `SendTextCommunication` keeps two callers now: `actions.Shout`'s adjacent-
+  room line (a player shouting next door) and the AI companion's `ask` line
+  (`modules/aicompanion/listeners.go`); NPC speech never uses it, going
+  through `SendTextHidingNames` unfiltered instead so a moderated player
+  still hears quest content.
 - **Naming a creature**: `FindByNameSeenBy(viewer, name, flags...)` skips
   every creature `viewer` does not perceive (`characters.Character.Perceives`)
   before matching, so a hidden creature cannot be named and does not count

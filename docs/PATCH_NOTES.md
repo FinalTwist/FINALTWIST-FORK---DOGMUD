@@ -1,5 +1,20 @@
 # DOGMud Patch Notes
 
+## 2026-09-30: Voices in the dark
+
+- In a dark room you now hear who is speaking only as well as you can see
+  them. If you can make out shapes, a speaker is "a figure". If you see
+  nothing, or you have been blinded, a speaker is "someone". You always hear
+  the words.
+- This is the same for other players and for creatures, shopkeepers and
+  quest givers.
+- A hidden creature that shouts gives itself away, just as you would.
+- When a creature shouts in the next room, you now hear what it shouts.
+- A rally or a warcry can be heard in the dark, even when you cannot see who
+  let it out.
+- Emotes are seen, not heard. If you cannot see, you do not see someone's
+  emote, and in the gloom you only see "a figure" do it.
+
 ## 2026-09-29: Cursed gear and the dark
 
 - Cursed gear now stays put. Putting on armour, a ring, a bracer or a

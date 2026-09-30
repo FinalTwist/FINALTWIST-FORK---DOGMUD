@@ -44,7 +44,13 @@ The `internal/mobcommands` package implements the AI command system for non-play
   in `command_readiness_drift_test.go` keep all three in sync.
 - **Rhetoric**: `taunt` and its wolf-flavoured `howl` variant use the shared
   coordinated Defy renderer when defended. Its attacker, defender, and room
-  lines replace the ordinary hit narration rather than following it.
+  lines replace the ordinary hit narration rather than following it. Every
+  room line either sends, on a fumble, a hit or a miss, goes out through
+  `rooms.Room.SendTextHidingNames` with `messaging.HideNames` (sight gates
+  slice 5b), so a shapes-only observer reads "a figure" for the mob or its
+  target rather than a name; the personal line to a player target is hidden
+  the same way through `messaging.HideNames` directly. The old two-tier
+  darkness helpers (`darkness.go`) that used to do this by hand are deleted.
 - **Tactical support**: `callforhelp` - Coordinated group combat behaviors
 - **Self-preservation**: `flee` (flee parity, slice 4a) is a wrapper over
   `actions.BeginFlee` (`flee.go`): it only begins the escape (the gates, the
@@ -63,7 +69,15 @@ The `internal/mobcommands` package implements the AI command system for non-play
 
 #### **Social and Communication AI**
 - **Conversation system**: `converse` - Dynamic NPC-to-NPC dialogue
-- **Player interaction**: `sayto`, `say`, `shout` - Contextual communication
+- **Player interaction**: `sayto`, `say`, `shout` - Contextual communication.
+  `say` (`say.go`), `shout` (`shout.go`), `rally` (`rally.go`), `warcry`
+  (`warcry.go`) and `emote` (`emote.go`) are thin wrappers over
+  `actions.Say`/`Shout`/`ExecuteRally`+`SendHeard`/`ExecuteWarcry`+
+  `SendHeard`/`Emote`+`SendSeen` (sight gates slice 5b): the reveal, the
+  room line with the name hidden by each listener's sight, the deafen split
+  (unfiltered for a mob) and, for `shout`, the adjacent-room line and waking
+  sleepers, all live in the shared body. `speech_wrapper_guard_test.go`
+  (repo root) fails if any of these five re-forks that logic.
 - **Emotional expression**: `emote` - Rich behavioral expressions
 - **Quest integration**: `givequest` - Dynamic quest assignment
 

@@ -2118,6 +2118,21 @@ fields. **Build actor refs with that method, never by hand.**
 That is now deliberate rather than a workaround: it answers "is anything in this
 room targeting the shooter", a wider question than "who has engaged me".
 
+## Speech, emotes and the Deafened filter (sight gates 5b)
+
+`Message_SendMessages.go` is the one place a queued `events.Message` becomes
+delivered text; both of its branches gate on
+`message.HiddenFromDeafened(user.Deafened)` (`internal/events`'s one
+statement of the rule) before sending, rather than re-deriving it. Every
+speech and emote room line now reaches this package through
+`internal/actions`'s shared bodies (`Say`, `Shout`, `SendHeard`, `SendSeen`),
+so nothing in `hooks` hides a speaker's name itself.
+
+`justice_wiring.go`'s `init()` wires `justice.SetGuardSay` to a closure that
+only calls `actions.Say(&actions.MobActor{...}, line)` — a guard's spoken
+line goes through the same reveal, deafen split and name-hiding every other
+NPC speaker gets, rather than a hand-rolled room broadcast.
+
 ## Dependencies
 
 - `internal/events` - Event system for listener registration and event processing
