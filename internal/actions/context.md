@@ -302,9 +302,9 @@ wrappers that render the outcome.
   the other).
 - **`RelocateMob(mob *mobs.Mob, from *rooms.Room, exitName string, dest *rooms.Room, sneaking bool)`**
   is the mob's move with no gate and no charge: walking
-  (`mobcommands.Go`, after its own lock check, passing `IsHidden()` or the
-  `sneaking` flag) and a successful flee (`hooks.handleMobFlee`, passing
-  `IsHidden()`) both end here. It removes the mob from `from`, calls
+  (`mobcommands.Go`, after its own lock check, passing `actions.MobIsSneaking(mob)`)
+  and a successful flee (`hooks.handleMobFlee`, passing
+  `actions.MobIsSneaking(mob)`) both end here. It removes the mob from `from`, calls
   `ClearRoomAggroOnDeparture`, adds it to `dest`, narrates both sides
   (sight-gated, with a sound fallback) unless `sneaking`, plays the movement
   sounds either way, and pulls an NPC party's idle (not in-combat) members
@@ -710,6 +710,14 @@ itself.
 - **Mob wrapper ownership:** The mob command renders no refusal text and has no
   player failure cooldown. It returns immediately on `CostRefused`; only a
   successful paid attempt calls `OnSkillUse("skullduggery", 0)`.
+- **`MobIsSneaking(mob *mobs.Mob) bool`** (`sneak.go`) is the one derivation of
+  a mob's sneaking state: `IsHidden()` (the Awareness-backed condition), or
+  the `sneaking` misc-data flag set while not yet hidden (`Sneak` sets it
+  synchronously, ahead of the hidden condition's event landing). Walking
+  (`mobcommands.Go`, both its ordinary exit step and its forced
+  `go <roomId>` path used by `callforhelp`) and a successful flee
+  (`hooks.handleMobFlee`) all call this rather than re-deriving it, so they
+  cannot drift the way flee once did by checking only `IsHidden()`.
 
 ### Steal
 

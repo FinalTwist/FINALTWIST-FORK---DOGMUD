@@ -2,12 +2,13 @@
 
 ## 2026-09-30: Shadows that follow
 
-- Creatures can shadow you now. A hidden creature that sets out to shadow
-  someone follows them from room to room, as a player can.
+- A creature that shadows someone now follows them from room to room, the
+  same way a player does.
 - A creature that is sneaking no longer announces itself as it comes and
   goes, just as a sneaking player never has.
-- If you are shadowing someone and they spot you as you arrive, your shadow
-  ends, and you must wait a little before you can shadow again.
+- If you are shadowing someone and anyone in the room spots you when you
+  arrive, your shadow ends, and you must wait a little before you can
+  shadow again.
 - The feeling that someone is following close behind you now comes once
   they have arrived, and it depends on the light where you both stand.
 - Every step you take while shadowing trains your skullduggery, whether or
