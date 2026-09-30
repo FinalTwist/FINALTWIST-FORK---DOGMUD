@@ -329,6 +329,30 @@ func DrainQueuedInputsForTest(instanceId int) []string {
 	return found
 }
 
+// DrainQueuedUserInputsForTest removes all Input events from the global queue
+// for the given user id (UserRecord.Command queues them with MobInstanceId 0)
+// and returns their InputText values. The player twin of
+// DrainQueuedInputsForTest.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedUserInputsForTest(userId int) []string {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []string
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		inp, ok := pe.event.(Input)
+		if ok && inp.MobInstanceId == 0 && inp.UserId == userId {
+			found = append(found, inp.InputText)
+			continue
+		}
+		remaining = append(remaining, pe)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
 // DrainQueuedBroadcastsForTest removes all Broadcast events from the global
 // queue and returns their Text values.
 //
