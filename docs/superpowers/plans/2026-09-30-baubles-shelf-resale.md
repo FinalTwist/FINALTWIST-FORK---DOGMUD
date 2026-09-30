@@ -15,7 +15,7 @@
 - **Worktree:** `C:/tmp/dogmud-baubles-d-impl` (Git Bash path `/c/tmp/dogmud-baubles-d-impl`). Every path below is relative to it.
 - **Branch:** `feature/bauble-shelf-resale`, created fresh from `origin/master` AFTER the docs PR that carries this plan (branch `docs/baubles-slice-d-spec`) merges.
 - **BASE:** the `origin/master` SHA the branch is cut from, written to `C:/tmp/dogmud-baubles-d-impl.base` in Task 0 (this plan names that file, which is what keeps it through the `C:/tmp` sweep; delete it when the branch merges).
-- **One PR** (Task 19): about 30 files and under 3,000 lines, far under the 300-file / 20,000-line limits. CI minutes are exhausted until 10-01, so the local gate in Task 18 is the gate, and its output goes into the PR body.
+- **One PR** (Task 19): about 53 files (39 code and test files, counted in the dry run, and 14 docs) and under 3,500 lines, far under the 300-file / 20,000-line limits. CI minutes are exhausted until 10-01, so the local gate in Task 18 is the gate, and its output goes into the PR body.
 - **Nothing is deployed.** The owner runs deploys. Claude prepares and merges.
 - Throwaway output (test logs, review notes, the PR body draft) goes in the session scratchpad, never `C:/tmp`. The only `C:/tmp` entries this plan creates are the worktree, its `.base` file, the playtest worktree (Task 17) and the boot-check worktree (Task 18), each removed by the task that made it.
 
@@ -69,8 +69,14 @@ Read at HEAD `25b7d34d0` of `docs/baubles-slice-d-spec`, whose code is byte-iden
 | P42 | Root guards present: `TestFinderViewReachesOnlyItsReader`, `TestFinderViewGuardCatchesALeak`, `TestEveryCreatureLookupDeclaresItsViewer`, `TestLivingStateWritesAreDurable`, `TestNoHandRolledTempRename`, `TestItemWalkersVisitEveryItemField`, `TestEveryItemHolderIsASweepRootOrTransient`, `TestBaubleSweepSourcesMatchTheGuardedRoots`, `TestBaubleSweepReadsEveryStoreFromDisk`, `TestEveryTextSurfaceIsRegistered`, `TestNoRawEventsMessageOutsidePipeline`, `TestSmoke_NoNewSilentlyIgnoredYAMLKeys`, `TestSmoke_ServerBootsCleanWithRealData` (`DOGMUD_BOOT_SMOKE=1`) | repo root `*_test.go` |
 | P43 | `golangci-lint` at `~/go/bin/golangci-lint`; `.golangci.yml` enables govet, staticcheck (SA only), errcheck (not on tests), ineffassign, unconvert; `compose.test.yml` service `test` | repo root |
 | P44 | The playtest harness is present at `../gomud-playtest-harness`; profile `mid` starts at room 462 (Thornwall City) with 500 gold and `search: 15` | `tools/playtest/profiles/mid.yaml` |
+| P45 | `Buy` parses a leading integer followed by a space as a quantity (`buy 5 iron ingot`); `2.trinket` has no space and reaches the matcher, where `GetMatchNumber` reads it as "the second trinket" | `internal/actions/buy.go:296-303`; `util.go:322-351` |
+| P46 | The AI companion's `browseShops` returns `shopListing{... Wares []ware}` "as a player's `list` would show it", stock rows only, sorted by name; `rememberShop` keys `Mind.Shops[mob].Wares` by `ItemId`; `describeListing` refs are keyed by `ItemId`. Callers: `browseAction` (`economy.go:225`), `check_wares` (`tools.go:149`), arrival (`travel.go:210`) | `modules/aicompanion/economy.go:60-166` |
+| P47 | The companion names every item it tells the model about with `items.Item.ModelName()`, which returns the carrier's own name for a bauble whose text a player's key wrote (`playerTextCarrier`), finder-only or moderated, and `Name()` otherwise | `internal/items/bauble_model.go:11-16`; `modules/aicompanion/perception.go:184-213`, `scene.go:149, 278, 288` |
+| P48 | Docs that still say sold baubles are never resold: `docs/baubles/implementation-plan.md:162` ("Never stocked or resold"), `:179-181` (Phase 2 exit check), `:877` ("slice D (the owner's), not here"), `:967` (open question 6); `templates/admincommands/help/command.bauble.template:128` ("Sold baubles leave the world."); `internal/baubles/context.md:361, 456` and `internal/baubles/sweep.go:46-50` (a sold record reaches a merchant again only after a crash) | files named |
+| P49 | `internal/shops/context.md` "Pricing Config Knobs" lists `BarterMaxDiscount` and `BarterMaxBonus` as dead (hard-coded `0.15`), and a Gotcha repeats it; both are read today (`buy.go:533`, `sell.go:346`) | `internal/shops/context.md:103-142, 292-297` |
+| P50 | The economy page groups a shop with no craft_support under `"(uncategorized)"` and then reads `d.scores.PerCraftSupport["(uncategorized)"]`, a key `PerCraftSupportScores` never writes (it uses `""`), so that row always shows no score | `index.html:314, 324`; `scoring.go:151` |
 
-**Dry run.** Before this plan was committed, the code blocks of Tasks 1 to 13 were applied mechanically, by their exact old texts, to a scratch worktree at HEAD `25b7d34d0`: every anchor matched once, `gofmt` was clean after the `gofmt -w` steps, and `go build ./...`, `go vet`, the tests of every touched package and the full root package passed. The dry run found two defects, fixed above: a bare mob fixture cannot carry a bauble (Task 9 now gives it strength), and a one-line helper gofmt rewrites (Task 11).
+**Dry run.** Before this plan was committed, the code blocks of Tasks 1 to 13 were applied mechanically, by their exact old texts, to a scratch worktree at HEAD `25b7d34d0`: every anchor matched once, `gofmt` was clean after the `gofmt -w` steps, and `go build ./...`, `go vet`, the tests of every touched package and the full root package passed. The dry run found two defects, fixed above: a bare mob fixture cannot carry a bauble (Task 9 now gives it strength), and a one-line helper gofmt rewrites (Task 11). After the plan review the dry run was repeated for every task the revisions changed (2, 6, 8a, 8b, 10, 11, 12, 13, 13b, and Task 16's `sweep.go` comment), on top of Tasks 1 to 13b, and each revised null probe was applied, confirmed to compile and to go red for its named reason, and reverted.
 
 ### Where the code differs from the spec
 
@@ -82,7 +88,25 @@ None of these changes a design decision; each is recorded so a reviewer does not
 4. **Parameter name.** `EnforceAffixedCap` and `AddAffixedStock` name the cap `limit`, not `cap`, so new code does not shadow the builtin.
 5. **Test clock helper.** `pinStolenClock` ("sets every clock the stolen-bauble code reads") also pins `shops.ShelfNow` from Task 9 on, so the existing fence tests keep one consistent clock.
 6. **`list` table text is not assertable in `usercommands` tests** (P27). Tests assert `buildShelfRows`, `renderShelfListing`'s return and the shop's saved state; the rendered "Secondhand goods by Siv" table is checked by the playtest (Task 17).
-7. **Colour of the new table title.** The spec names the title, not its colour pattern; the plan uses `cyan`, the pattern of the `Items available` table beside it.
+7. **Colour of the new table title.** The spec names the title, not its colour pattern; the plan uses `cyan`, the pattern of the `Items available` table beside it, and `help list` names it in cyan too.
+8. **Stale docs beyond the spec's list** (P48, P49): the spec's section 11 names the `context.md` files and help; the plan also corrects `docs/baubles/implementation-plan.md` (and adds Phase 6f), the admin `bauble` help, two `internal/baubles/context.md` lines, the `sweep.go` comment, and the two barter knobs `internal/shops/context.md` wrongly calls dead.
+9. **A pre-existing dashboard bug on the line Task 8b edits** (P50) is fixed there, with a static page check.
+
+### Revisions after the plan review (2026-09-30)
+
+Two blind reviews found no Critical issue. Each item below was applied and the affected tasks re-run in the dry run.
+
+- **Two controller decisions (design changes, made by the controller, not by this plan):**
+  - The AI companion's `browse` shows the shelf too (new Task 13b). The controller asked for the generic view, with a finder-only bauble reading "Trinket". The plan uses the companion's existing rule instead, `ModelName()` (P47): a finder-only bauble reads as its carrier, "Curious Trinket", and so does a moderated player-key bauble, whose real name `Name()` would have shown the model. That is stricter than asked, and it is the mechanism the module already uses everywhere else; flagged for the controller in the hand-off.
+  - An honest shop with a full backroom says `baubleSayNoRoom` ("I'm afraid I've no room for more of those right now."), a fence keeps `baubleSayBackroomFull` (Task 10, both tested).
+- **Null probes that did not compile** now go red for the named reason: Task 8a (`tmpl != nil && false`), Task 9 probe 3 (`ok && rec.Id != ""`), Task 11 probes 2 and 3 (`if false && ...`, `if err := error(nil); ...`), Task 12 probe 2 (`!shopSaved && false`), Task 13 probe 2 (`_ = baubles.StatusSold`).
+- **Task 0 Step 1** checks the plan on master with `git cat-file -e` (a merge commit's `show --stat` lists no files). Step 2 also checks every docs anchor Task 16 edits and the Task 10, 11 and 13b code anchors.
+- **Task 2** runs `gofmt -w` over all four Go files it edits.
+- **Expected outputs corrected:** Task 4's probe message, Task 5's build and vet lines (the build stops at `internal/actions`; vet reports `:478`, `:496`, `buy_test.go:30`), Task 9's lowercase testify wording, Task 0's audit lines.
+- **New assertions:** the "nothing to sell" say fires only when both tables are empty (Task 11, probe `&&` to `||`); `TestMarkBoughtReturnsTheUnsoldStatus` seeds a never-sold record so dropping `!r.SoldAt.IsZero()` goes red (Task 6 probe 2b); the snapshot test checks the JSON tag too; the shelf-order test uses three rows whose order differs from any name or price sort.
+- **Docs:** Task 16 fixes a code fence and covers P48 and P49; help contrasts `buy 2.trinket` with `buy 2 trinket` (P45); PATCH_NOTES says fences shelve too; the `FindMatchIndexIn` equivalence note now states the one corner where it differs.
+- **Playtest:** `ShopAffixedStockCap: 2` makes eviction and the backroom refusal reachable; the goals text names Jeweler Tess and Fence Dealer Siv in the Back Alley, East; the plan states what only unit tests cover (a hold ending, finder-only views, the honest "no room" line).
+- **Gate and PR:** the race run adds `internal/configs`, `modules/auctions` and `modules/aicompanion`; the size estimate is about 53 files; Task 19 uses the executing session's scratchpad, deletes the local branch after the worktree, and the PR body's deploy notes warn that rolling back past this PR makes backroom hot baubles buyable.
 
 ## File structure
 
@@ -101,8 +125,10 @@ None of these changes a design decision; each is recorded so a reviewer does not
 | `modules/auctions/npc_buyers.go` | modify | new `AddAffixedStock` call shape |
 | `internal/actions/buy.go`, `buy_test.go`, `buy_shelf_test.go` (create) | modify | shelf order, held exclusion, index selection, lazy trim, rollback, buyer's view, `MarkBought` |
 | `internal/usercommands/list.go`, `list_shelf_test.go` (create) | modify | lazy trim, "Secondhand goods" table |
+| `modules/aicompanion/economy.go`, `economy_shelf_test.go` (create) | modify | `browse` shows the shelf in the model's view (controller decision) |
+| `internal/economy/health/economy_page_test.go` (create) | create | static check of the dashboard's grouping and score lookup |
 | `bauble_finder_view_guard_test.go` | modify | two `finderViewSites` rows |
-| seven `context.md` files, three help templates, `docs/PATCH_NOTES.md` | modify | docs (Task 16) |
+| eight `context.md` files, `docs/baubles/implementation-plan.md`, the `sweep.go` comment, three player help templates, the admin `bauble` help, `docs/PATCH_NOTES.md` | modify | docs (Task 16) |
 
 ## Spec coverage map
 
@@ -119,6 +145,8 @@ None of these changes a design decision; each is recorded so a reviewer does not
 | 9 Persistence | 3 (round trip, old files), 11 and 12 (lazy trim saved) |
 | 10 Other callers | 5 |
 | 11 Docs and help | 16 (and comments in 6, 8b, 9) |
+| Review decision: companion `browse` | 13b |
+| Review decision: honest backroom line | 10 |
 | 12 Tests 1 to 15 | 1: 11, 12. 2: 3, 12. 3: 3. 4: 3, 11. 5: 5 (add), 11 (list), 12 (buy). 6: 10. 7: 9. 8: 9. 9: 12. 10: 1. 11: 11, 13. 12: 6, 7, 13. 13: 8a, 8b. 14: 3 (and 5 for the rollback call). 15: 9, 18 |
 | Rulings 1 to 8 | 1: 9 (retired destroyed). 2: 6 (`unsoldStatus`). 3: 6 (no `BoughtAt`, `Restore` unchanged). 4: 13. 5: 9 (`baubleShelvable`). 6: 10. 7: 9. 8: 6, 13 (no guard added against give-back; the return credit path is untouched) |
 
@@ -143,14 +171,15 @@ All tasks land in one PR on `feature/bauble-shelf-resale`.
 | 11 | `list` shows the shelf | 3 | opus |
 | 12 | `buy` from the shelf by position | 2 | opus |
 | 13 | `buy` in the buyer's own view; buyback | 3 | opus |
+| 13b | The AI companion's `browse` shows the shelf | 2 | opus |
 | 14 | Checkpoint: foundations review (after Task 8b) | none | opus |
 | 15 | Code review of the whole branch | none | opus |
-| 16 | Docs | 11 | sonnet (load `dogmud-player-copy`) |
+| 16 | Docs | 17 (docs only, plus one Go comment) | sonnet (load `dogmud-player-copy`) |
 | 17 | Adversarial playtest | none committed unless fixes | opus (controller) |
 | 18 | Local gate | none | sonnet |
 | 19 | PR and merge | none | sonnet |
 
-Execution order: 0, 1, 2, 3, 4, 5, 6, 7, 8a, 8b, 14, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19.
+Execution order: 0, 1, 2, 3, 4, 5, 6, 7, 8a, 8b, 14, 9, 10, 11, 12, 13, 13b, 15, 16, 17, 18, 19.
 
 Every task's test gate includes `go test . -count=1` at the repo root (`dogmud-writing-tests`: root guards are line- and function-keyed and go red in packages nobody thought they touched).
 
@@ -165,9 +194,10 @@ Every task's test gate includes `go test . -count=1` at the repo root (`dogmud-w
 ```bash
 git -C "/c/Users/Calabe Davis/workspace/DOGMud" fetch origin
 git -C "/c/Users/Calabe Davis/workspace/DOGMud" log --oneline -3 origin/master
-git -C "/c/Users/Calabe Davis/workspace/DOGMud" show --stat origin/master -- docs/superpowers/plans/2026-09-30-baubles-shelf-resale.md | tail -2
+git -C "/c/Users/Calabe Davis/workspace/DOGMud" cat-file -e origin/master:docs/superpowers/plans/2026-09-30-baubles-shelf-resale.md; echo "plan-on-master-exit=$?"
+git -C "/c/Users/Calabe Davis/workspace/DOGMud" log --oneline -1 origin/master -- docs/superpowers/plans/2026-09-30-baubles-shelf-resale.md
 ```
-Expected: the merge of `docs/baubles-slice-d-spec` is on `origin/master` and the stat names this plan. If it is not there, STOP: the branch must come from master after the docs PR.
+Expected: `plan-on-master-exit=0`, and the log names the commit that last changed this plan (reachable from `origin/master`, so the docs PR has merged). A non-zero exit: STOP, the branch must come from master after the docs PR. (`git show --stat` on a merge commit prints no file list, so it cannot answer this.)
 
 ```bash
 ls /c/tmp/dogmud-baubles-d-impl 2>/dev/null | head -1
@@ -237,6 +267,43 @@ internal/usercommands/list.go ::: // partitionShopStock splits shop stock into f
 bauble_finder_view_guard_test.go ::: "internal/usercommands/inventory.go|Inventory":
 bauble_finder_view_guard_test.go ::: "internal/actions/search_bauble.go|BaubleDelivery.deliver":
 internal/actions/context.md ::: - Never stocked, never resold: the item leaves the world, the record is
+_datafiles/html/admin/economy/index.html ::: var score = d.scores.PerCraftSupport[disc] || 0;
+modules/aicompanion/economy.go ::: if inv := shops.GetShopInventory(m.Zone, int(m.MobId), m.HomeRoomId); inv != nil {
+modules/aicompanion/economy.go ::: sort.Slice(l.Wares, func(i, j int) bool { return l.Wares[i].Name < l.Wares[j].Name })
+modules/aicompanion/economy.go ::: wr := &WareRecord{Name: w.Name, Price: w.Price, Qty: w.Qty, SeenUnix: nowUnix}
+modules/aicompanion/economy.go ::: parts = append(parts, fmt.Sprintf(`%s%s for %d gold`, ref, w.Name, w.Price))
+modules/aicompanion/economy.go ::: Qty    int
+internal/shops/context.md ::: constants; `StockEvent` depletion/refill event type.
+internal/shops/context.md ::: items a shop holds; stock entries are counts of an item id.
+internal/shops/context.md ::: value and the Go default are identical, so this fallback never actually
+internal/shops/context.md ::: shop's gold pool held back before it will buy from a seller.
+internal/shops/context.md ::: - **`BarterMaxDiscount`**: shipped `0.15`, Go default `0.15`. The buy-side
+internal/shops/context.md ::: function) and never reads this field.
+internal/shops/context.md ::: - **`BarterMaxDiscount` and `BarterMaxBonus` look tunable and are not.**
+internal/baubles/context.md ::: - **sales.go**: `MarkSold`, `SalesSince`.
+internal/baubles/context.md ::: goods; a theft clears it).
+internal/baubles/context.md ::: seam (`SetPromptPreview`, `PreviewPrompt`) and `LooksLikeId`.
+internal/baubles/context.md ::: func MarkSold(id string, gold int, sellerUserId int) bool
+internal/baubles/context.md ::: pruner and it fails closed. A sold record held again (a crash rolled the
+internal/baubles/context.md ::: record is sellable, a sold one included: it only reaches a merchant again
+internal/baubles/sweep.go ::: // evidence would erase real ones.
+internal/economy/health/context.md ::: ordinary loot) and rolls into the "(uncategorized)" key.
+internal/usercommands/context.md ::: - **Trading**: `buy`, `sell`, `list`, `offer`, `appraise` - Commerce mechanics
+internal/util/context.md ::: func FindMatchIn(searchName string, items ...string) (match, closeMatch string)
+internal/util/context.md ::: `FindMatchIn` returns **two** results
+modules/auctions/context.md ::: that has been spending cannot keep bidding, and outbid gold is refunded.
+modules/aicompanion/context.md ::: - **economy.go**: `browse` (priced as `list` prices), shop and price
+docs/baubles/implementation-plan.md ::: living-economy reserve are respected. Never stocked or resold; the record
+docs/baubles/implementation-plan.md ::: `sell bauble` at a general store pay 5 to 8 gold and leave nothing on the
+docs/baubles/implementation-plan.md ::: Resale of bought baubles is slice D (the owner's), not here.
+docs/baubles/implementation-plan.md ::: 6. Sold baubles destroyed (recommended) or resold as curios.
+docs/baubles/implementation-plan.md ::: ### Phase 7: Optional
+_datafiles/world/dogmud/templates/admincommands/help/command.bauble.template ::: ShopBuyRatio; other shops refuse. Sold baubles leave the world.
+_datafiles/world/dogmud/templates/help/sell.template ::: <ansi fg="command">sell all bauble</ansi> sells them all.
+_datafiles/world/dogmud/templates/help/sell.template ::: three days are out, anyone who buys trinkets will take it.
+_datafiles/world/dogmud/templates/help/list.template ::: This would list whatever the merchant is carrying.
+_datafiles/world/dogmud/templates/help/buy.template ::: run out of gold or cannot carry any more.
+docs/PATCH_NOTES.md ::: # DOGMud Patch Notes
 EOF
 ```
 Expected: every line starts with `1`. A `0` or `2`: master moved; re-read that file, fix the anchor in this plan (a doc-only commit on the branch), and carry on.
@@ -256,7 +323,7 @@ Expected: no output.
 cd /c/tmp/dogmud-baubles-d-impl && go build ./... && go test . ./internal/util/ ./internal/configs/ ./internal/shops/ ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/economy/health/ ./modules/auctions/ -count=1 2>&1 | tail -12
 python tools/context_md_audit.py 2>&1 | grep -E "^packages|^total"
 ```
-Expected: every package `ok`; the audit prints `packages with phantom symbols:   14` and `total phantom symbols:           27` (P40). Record these numbers; Task 16 must not raise them.
+Expected: every package `ok`; the audit prints three lines, `packages checked:                142`, `packages with phantom symbols:   14` and `total phantom symbols:           27` (P40). Record these numbers; Task 16 must not raise them.
 
 No commit.
 
@@ -471,7 +538,7 @@ func FindMatchIndexIn(searchName string, items ...string) (match int, closeMatch
 }
 ```
 
-(`closeMatch < 0` is the old `len(closeMatch) == 0`: no item that `stringMatch` can match is the empty string, since `HasPrefix("", x)` is false for a non-empty `x`.)
+(`closeMatch < 0` equals the old `len(closeMatch) == 0` except in one corner: a search that is empty after `GetMatchNumber` and normalizing (`#2`, or `'`) prefix-matches every item, an empty-string item included, and if that empty item is the Nth close match the old code saw an empty `closeMatch` and ran the contains pass again, where the new code keeps the index. Only malformed data offers an empty item name (buy skips `ItemId 0` rows, and a spec with no name is a content error), so in practice no caller sees a difference; `TestFindMatchIn` and the apostrophe tests pass unchanged.)
 
 - [ ] **Step 4: Run to see it pass, with every existing matcher test**
 
@@ -584,7 +651,7 @@ insert
 	ShopAffixedStockCap         ConfigInt   `yaml:"ShopAffixedStockCap"`                // Max listed entries on a shop's secondhand shelf (AffixedStock: bought-back affixed gear, average and rare baubles); over it the one listed earliest goes. Also the most hot baubles a shop holds out of sight (default 12)
 ```
 
-Then run `gofmt -w internal/configs/config.balance.go` (it realigns the `LOOT` block now that its longest name left).
+After all four Go edits below, run `gofmt -w internal/configs/config.balance.go internal/configs/config.balance.misc.go internal/configs/config.balance.shops.go internal/configs/config.balance.shops_test.go` (it realigns the `LOOT` block now that its longest name left, and tidies the blank line the misc deletion leaves).
 
 `internal/configs/config.balance.misc.go`: delete
 
@@ -1093,7 +1160,7 @@ Expected: `ok`, root `ok`.
 
 - [ ] **Step 5: Null probe**
 
-Delete `|| !rec.Hot(now)` from the guard. Run the test. Expected: FAIL `cold once the heat is out`. Restore; re-run Step 4.
+Delete `|| !rec.Hot(now)` from the guard. Run the test. Expected: FAIL `an honest bauble is listed at once` (its zero `StolenAt` plus the heat is not zero). Restore; re-run Step 4.
 
 - [ ] **Step 6: Commit**
 
@@ -1203,7 +1270,7 @@ func (si *ShopInventory) AddAffixedStock(item items.Item, price, limit int, hold
 - [ ] **Step 4: Let the compiler list the callers, then fix each**
 
 Run: `cd /c/tmp/dogmud-baubles-d-impl && go build ./... 2>&1; go vet ./internal/shops/ ./internal/actions/ 2>&1 | grep -E "not enough arguments|too many" `
-Expected: errors at `internal/actions/buy.go:639`, `internal/actions/sell.go:393`, `modules/auctions/npc_buyers.go:297`, and in vet `shopinventory_test.go:459,460,477,495` and `internal/actions/buy_test.go:29`. Any other site: STOP and add it to this task.
+Expected: `go build ./...` stops at the first failing package, `internal/actions` (`buy.go:639`, `sell.go:393`); once those are fixed a rerun reports `modules/auctions/npc_buyers.go:297`. Vet reports the test callers at the line of each call's closing argument: `shopinventory_test.go:459`, `:460`, `:478`, `:496` and `internal/actions/buy_test.go:30`. Re-run the build and vet after each fix until both are clean. Any site not listed here: STOP and add it to this task.
 
 `internal/shops/shopinventory_test.go`:
 - `si.AddAffixedStock(a, 200, 100)` becomes `si.AddAffixedStock(a, 200, 100, time.Time{}, shelfT0)`
@@ -1365,6 +1432,7 @@ func TestMarkBoughtReturnsTheUnsoldStatus(t *testing.T) {
 	named := seedRecord(t, Record{Name: `Bone Dice`, NameSimple: `dice`, Tier: TierAverage, Value: 12, Status: StatusReady, Generator: GeneratorOpenAI})
 	generic := seedRecord(t, Record{Name: `Trinket`, NameSimple: `trinket`, Tier: TierAverage, Value: 11, Status: StatusFallback, Generator: GeneratorLocal})
 	retired := seedRecord(t, Record{Name: `Rude Name`, Tier: TierAverage, Value: 13, Status: StatusReady, Generator: GeneratorOpenAI})
+	seedRecord(t, Record{Name: `Tin Cup`, NameSimple: `cup`, Tier: TierAverage, Value: 10, Status: StatusReady, Generator: GeneratorOpenAI}) // never sold: its SoldAt is zero
 
 	start := time.Now().UTC().Add(-time.Second)
 	for _, r := range []Record{named, generic, retired} {
@@ -1395,7 +1463,7 @@ func TestMarkBoughtReturnsTheUnsoldStatus(t *testing.T) {
 		t.Fatalf("a buyback does not erase a sale: %d sales, %d gold, want 3 and 18", n, gold)
 	}
 	if n, _ := SalesSince(time.Time{}); n != 3 {
-		t.Fatalf("a record never sold is not a sale: %d", n)
+		t.Fatalf("a record never sold (the tin cup) is not a sale: %d, want 3", n)
 	}
 }
 
@@ -1412,7 +1480,7 @@ func TestUnsoldStatusIsRestoresRule(t *testing.T) {
 }
 ```
 
-(`SalesSince(time.Time{})` over a catalog whose only records are these three proves the `SoldAt.IsZero()` test: `withCatalog` gives a fresh catalog.)
+(`withCatalog` gives a fresh catalog holding these four records. `SalesSince(time.Time{})` counts the tin cup, never sold, unless the `SoldAt.IsZero()` test is there: a zero `SoldAt` is not before a zero `t`.)
 
 - [ ] **Step 2: Run to see it fail**
 
@@ -1543,6 +1611,7 @@ Expected: `ok` (`TestRetireAndRestore`, `TestRestoreReturnsACorpusRecordToReady`
 
 1. In `MarkBought` drop the `if r.Status == StatusSold` guard (always `r.Status = r.unsoldStatus()`). Run `go test ./internal/baubles/ -run TestMarkBought -count=1`. Expected: FAIL `bought back: status ready, want retired`. Restore.
 2. Restore `SalesSince`'s old condition `r.Status == StatusSold && !r.SoldAt.Before(t)`. Expected: FAIL `a buyback does not erase a sale: 0 sales`. Restore.
+2b. Drop only `!r.SoldAt.IsZero() && ` from the new condition. Expected: FAIL `a record never sold (the tin cup) is not a sale: 4, want 3`. Restore.
 3. Make `unsoldStatus` return `StatusReady` always. Expected: FAIL in both tests, naming `GeneratorLocal`/the generic record, and `TestRetireAndRestore` still passes (it covers only a named record). Restore; re-run Step 4.
 
 - [ ] **Step 6: Commit**
@@ -1656,6 +1725,7 @@ Create `internal/economy/health/fence_type_test.go`:
 package health_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -1711,6 +1781,21 @@ func TestShopSnapshot_PreFenceYAMLTypesByCraftSupport(t *testing.T) {
 	}
 	if strings.Contains(string(out), "fence") {
 		t.Errorf("omitempty keeps a non-fence snapshot unchanged:\n%s", out)
+	}
+	// The dashboard reads the JSON (s.fence in index.html).
+	js, err := json.Marshal(health.ShopSnapshot{CraftSupport: "general"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(js), `"fence"`) {
+		t.Errorf("json omitempty: a non-fence snapshot carries no fence key: %s", js)
+	}
+	js, err = json.Marshal(health.ShopSnapshot{CraftSupport: "general", Fence: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(js), `"fence":true`) {
+		t.Errorf("json: a fence's snapshot says so as fence: %s", js)
 	}
 }
 ```
@@ -1777,7 +1862,7 @@ Expected: `ok` (the existing `TestSnapshot_YAMLRoundTrip`, `TestCaptureSnapshot_
 
 - [ ] **Step 5: Null probe**
 
-Replace `ss.Fence = tmpl != nil && tmpl.IsFence()` with `ss.Fence = false`. Run the Step 2 command. Expected: FAIL `fence: Fence=false Type="general"`. Restore; re-run Step 4.
+Replace `ss.Fence = tmpl != nil && tmpl.IsFence()` with `ss.Fence = tmpl != nil && false` (so `tmpl` stays used and the file compiles). Run the Step 2 command. Expected: FAIL `fence: Fence=false Type="general"`. Restore; re-run Step 4.
 
 - [ ] **Step 6: Commit**
 
@@ -1795,10 +1880,53 @@ EOF
 
 **Files:**
 - Modify: `internal/economy/health/scoring.go:135-155, 825`
-- Modify: `_datafiles/html/admin/economy/index.html:314`
+- Modify: `_datafiles/html/admin/economy/index.html:314, 327`
 - Modify: `internal/economy/health/fence_type_test.go` (append)
+- Create: `internal/economy/health/economy_page_test.go`
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
+
+Create `internal/economy/health/economy_page_test.go`:
+
+```go
+package health_test
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+// The admin economy page groups shops by Type() and looks each group's
+// score up by the key PerCraftSupportScores uses, labelling the empty key
+// only when it renders it (baubles slice D). The page is JavaScript with no
+// harness of its own, so this reads its source: a static check that the
+// grouping key and the score lookup agree.
+func TestEconomyPage_GroupsByTypeAndLooksUpScoresByKey(t *testing.T) {
+	_, here, _, _ := runtime.Caller(0)
+	page, err := os.ReadFile(filepath.Join(filepath.Dir(here), "..", "..", "..", "_datafiles", "html", "admin", "economy", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(page)
+	for _, want := range []string{
+		`var disc = s.fence ? "fence" : (s.craft_support || "");`,
+		`var score = d.scores.PerCraftSupport[disc] || 0;`,
+		`disc || "(uncategorized)",`,
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("index.html lacks %q", want)
+		}
+	}
+	if strings.Contains(src, `s.craft_support || "(uncategorized)"`) {
+		t.Error(`grouping under "(uncategorized)" looks the score up under a key PerCraftSupportScores never uses ("")`)
+	}
+}
+```
+
+and
 
 Append to `internal/economy/health/fence_type_test.go`:
 
@@ -1823,8 +1951,8 @@ func TestScore_FenceIsItsOwnType(t *testing.T) {
 
 - [ ] **Step 2: Run to see it fail**
 
-Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/economy/health/ -run TestScore_FenceIsItsOwnType -count=1`
-Expected: FAIL `rollup: map[general:40], want fence 20 and general 60` and `per-shop types: "general" "general"`.
+Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/economy/health/ -run 'TestScore_FenceIsItsOwnType|TestEconomyPage_' -count=1`
+Expected: FAIL `rollup: map[general:40], want fence 20 and general 60`, `per-shop types: "general" "general"`, and the page check's `index.html lacks "var disc = s.fence ...` plus its `(uncategorized)` error.
 
 - [ ] **Step 3: Implement**
 
@@ -1850,7 +1978,7 @@ with
 
 Replace `		b, exists := buckets[s.CraftSupport]` with `		b, exists := buckets[s.Type()]`, `			buckets[s.CraftSupport] = b` with `			buckets[s.Type()] = b`, and `			CraftSupport:    s.CraftSupport,` with `			CraftSupport:    s.Type(),`.
 
-`_datafiles/html/admin/economy/index.html`: replace
+`_datafiles/html/admin/economy/index.html`: group by the scoring key and label the empty key when rendering, which also fixes a pre-existing bug on this line: the page grouped a shop with no craft_support under `"(uncategorized)"` and then looked its score up under that label, a key `PerCraftSupportScores` never uses (it keys such shops `""`), so that row always showed no score. Replace
 
 ```js
             var disc = s.craft_support || "(uncategorized)";
@@ -1859,23 +1987,43 @@ Replace `		b, exists := buckets[s.CraftSupport]` with `		b, exists := buckets[s.
 with
 
 ```js
-            var disc = s.fence ? "fence" : (s.craft_support || "(uncategorized)");
+            var disc = s.fence ? "fence" : (s.craft_support || "");
 ```
+
+and replace
+
+```js
+                disc,
+                shops.length,
+```
+
+with
+
+```js
+                disc || "(uncategorized)",
+                shops.length,
+```
+
+(`var score = d.scores.PerCraftSupport[disc] || 0;` between them is unchanged and now looks up the real key.)
 
 - [ ] **Step 4: Run to see it pass**
 
-Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/economy/health/ -count=1 && go test . -count=1 2>&1 | tail -2 && grep -n 's.fence ? "fence"' _datafiles/html/admin/economy/index.html`
-Expected: `ok` (the existing `TestScore_PerCraftSupport_*` too), root `ok`, one grep hit at line 314.
+Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/economy/health/ -count=1 && go test . -count=1 2>&1 | tail -2`
+Expected: `ok` (the existing `TestScore_PerCraftSupport_*` and the new page check too), root `ok`.
 
 - [ ] **Step 5: Null probe**
 
-Put `buckets[s.CraftSupport]` back in both places. Run the Step 2 command. Expected: FAIL on the rollup. Restore; re-run Step 4.
+1. Put `buckets[s.CraftSupport]` back in both places. Run the Step 2 command. Expected: FAIL on the rollup. Restore.
+2. Put `|| "(uncategorized)"` back into the page's `var disc` line. Expected: FAIL in `TestEconomyPage_GroupsByTypeAndLooksUpScoresByKey`. Restore; re-run Step 4.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-d-impl && git add internal/economy/health/scoring.go internal/economy/health/fence_type_test.go _datafiles/html/admin/economy/index.html && git commit -F - <<'EOF'
+cd /c/tmp/dogmud-baubles-d-impl && git add internal/economy/health/scoring.go internal/economy/health/fence_type_test.go internal/economy/health/economy_page_test.go _datafiles/html/admin/economy/index.html && git commit -F - <<'EOF'
 feat(economy): the dashboard groups fences under "fence"
+
+The page now groups by the scoring key and labels the empty key when it
+renders, so a shop with no craft_support finally shows its score.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -2033,7 +2181,7 @@ func TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved(t *testing.T) {
 - [ ] **Step 2: Run to see them fail**
 
 Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/actions/ -run 'TestSell_Bauble_LivingShopByCraftSupport|TestStolenBauble_AHotOneIsShelvedHeldUntilItCools|TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved' -count=1`
-Expected: FAIL in the first two with `Should have 1 item(s), but has 0` ("an average bauble a player sells is shelved" / "a player's sale of an average bauble is shelved"). `TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved` PASSES now (nothing is shelved yet); it is proven by the null probes in Step 5.
+Expected: FAIL in the first two with `should have 1 item(s), but has 0` (testify's lowercase wording) ("an average bauble a player sells is shelved" / "a player's sale of an average bauble is shelved"). `TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved` PASSES now (nothing is shelved yet); it is proven by the null probes in Step 5.
 
 - [ ] **Step 3: Implement**
 
@@ -2123,7 +2271,7 @@ Expected: `ok` three times (spec test 15, `TestSell_Bauble_ASoldRecordSellsAgain
 
 1. Pass `time.Time{}` instead of `baubles.ShelfHoldUntil(item, now)`. Run `go test ./internal/actions/ -run TestStolenBauble_AHotOneIsShelvedHeldUntilItCools -count=1`. Expected: FAIL `held until the heat ends`. Restore.
 2. Remove the `if seller.IsPlayer()` wrapper (keep its body). Run `go test ./internal/actions/ -run TestSell_Bauble_OnlyAPlayersShelvableSaleIsShelved -count=1`. Expected: FAIL `none of the three is shelved` (the mob's horse is on the shelf). Restore.
-3. Replace `ok && baubleShelvable(rec)` with `ok`. Same test. Expected: FAIL `none of the three is shelved` (the cup and the retired trinket). Restore; re-run Step 4.
+3. Replace `ok && baubleShelvable(rec)` with `ok && rec.Id != ""` (every record; `rec` stays used). Same test. Expected: FAIL `none of the three is shelved` (the cup and the retired trinket). Restore; re-run Step 4.
 
 - [ ] **Step 6: Commit**
 
@@ -2205,12 +2353,49 @@ func TestStolenBauble_AFullBackroomRefusesHotGoods(t *testing.T) {
 	assert.Equal(t, cold.Bauble, si.AffixedStock[2].Item.Bauble)
 	assert.Equal(t, 2, si.HeldCount(stolenTestNow), "the backroom is unchanged")
 }
+
+// An honest shop buys a bauble that is hot only in another heat area (not
+// HotIn here) and holds it, so its backroom can fill too. Full, it refuses
+// the next one in an honest voice, never the fence's line about hot goods
+// (controller decision, plan review 2026-09-30).
+func TestStolenBauble_AnHonestShopWithAFullBackroomHasNoRoom(t *testing.T) {
+	seedBaubleSale(t)
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 0)()
+	pinStolenClock(t, stolenTestNow)
+	cfg := configs.GetConfig()
+	cfg.Balance.ShopAffixedStockCap = 2
+	cfg.Balance.BaubleStolenHeatHours = 72
+	configs.SetConfigForTest(t, cfg)
+
+	shops.ClearCache()
+	_ = shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.RemoveShopFile("TestZone", 2, 1)
+	defer shops.ClearCache()
+	si := shops.RegisterShop("TestZone", 2, 1, shops.ShopInventory{Gold: 1000, StartingGold: 1000, CraftSupport: shops.CraftSupportGeneral})
+	held := shops.AffixedStockEntry{
+		Item:  items.Item{ItemId: sellTestItemId, Affixed: true, Spec: &items.ItemSpec{Name: "held", Value: 10}},
+		Price: 10, AddedAt: stolenTestNow, HoldUntil: stolenTestNow.Add(24 * time.Hour),
+	}
+	si.AffixedStock = []shops.AffixedStockEntry{held, held}
+
+	elsewhere := newBauble(t, "Bone Dice", "dice", 12, baubles.StatusReady)
+	require.True(t, baubles.MarkStolen(elsewhere.Bauble, baubles.Theft{ByUserId: 1, RoomId: 1, Zone: "Faraway", FromMob: 99, FromName: "Merchant"}, stolenTestNow.Add(-time.Hour)))
+
+	offer := BaubleOfferFrom(elsewhere, merchantInstance())
+	assert.Equal(t, 0, offer.Price)
+	assert.Equal(t, baubleSayNoRoom, offer.Refusal, "an honest shop does not talk about moving hot goods")
+	assert.False(t, offer.Broke)
+
+	si.AffixedStock = si.AffixedStock[:1]
+	assert.Equal(t, 6, BaubleOfferFrom(elsewhere, merchantInstance()).Price, "with room, it buys a bauble that is hot only elsewhere")
+}
 ```
 
 - [ ] **Step 2: Run to see it fail**
 
-Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/actions/ -run TestStolenBauble_AFullBackroomRefusesHotGoods -count=1`
-Expected: FAIL, build error `undefined: baubleSayBackroomFull`.
+Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./internal/actions/ -run 'TestStolenBauble_AFullBackroomRefusesHotGoods|TestStolenBauble_AnHonestShopWithAFullBackroomHasNoRoom' -count=1`
+Expected: FAIL, build errors `undefined: baubleSayBackroomFull` and `undefined: baubleSayNoRoom`.
 
 - [ ] **Step 3: Implement**
 
@@ -2234,8 +2419,11 @@ const (
 	baubleSayCantAfford   = "I can't afford that right now."
 	baubleSayHot          = "That was stolen, and not long ago. I won't touch it. Try someone less particular about where things come from."
 	baubleSayBackroomFull = "I can't move any more hot goods right now. Come back once some of what I'm sitting on has cooled."
+	baubleSayNoRoom       = "I'm afraid I've no room for more of those right now."
 )
 ```
+
+(`baubleSayBackroomFull` is a fence's line; `baubleSayNoRoom` is an honest shop's, in the voice of `baubleSayUnknown`.)
 
 Replace
 
@@ -2253,11 +2441,16 @@ with
 	// one rule for every caller; it is an interest refusal, so
 	// bestBaubleMerchant tries the next merchant, and offer and appraise
 	// show the line. Held entries count here only, never against the listed
-	// cap. The check and the add run in one sale under the mud lock.
+	// cap. The check and the add run in one sale under the mud lock. An
+	// honest shop fills its backroom too (a bauble hot only in another heat
+	// area), and says so in an honest voice; a fence talks about hot goods.
 	if shopInv != nil && baubleShelvable(rec) {
 		now := shops.ShelfNow()
 		if rec.Hot(now) && shopInv.HeldCount(now) >= int(configs.GetBalanceConfig().ShopAffixedStockCap) {
-			return BaubleOffer{Refusal: baubleSayBackroomFull}
+			if fence {
+				return BaubleOffer{Refusal: baubleSayBackroomFull}
+			}
+			return BaubleOffer{Refusal: baubleSayNoRoom}
 		}
 	}
 
@@ -2272,8 +2465,10 @@ Expected: `ok`, root `ok`.
 
 - [ ] **Step 5: Null probes**
 
-1. Change `>=` to `>`. Run the Step 2 command. Expected: FAIL `Not equal: expected: "I can't move any more hot goods..." actual: ""`. Restore.
-2. Replace `rec.Hot(now)` with `true`. Expected: FAIL `a cold one still sells`. Restore; re-run Step 4.
+1. Change `>=` to `>`. Run the Step 2 command. Expected: FAIL in both tests on the price assertion (testify prints `expected: 0` then `actual  : 8` for the fence, `actual  : 6` for the honest shop). Restore.
+2. Replace `rec.Hot(now)` with `true`. Expected: FAIL `a cold one still sells`. Restore.
+3. Delete the `if fence { ... }` block (every shop says `baubleSayNoRoom`). Expected: FAIL in `TestStolenBauble_AFullBackroomRefusesHotGoods` on the refusal line. Restore.
+4. Make both branches return `baubleSayBackroomFull`. Expected: FAIL `an honest shop does not talk about moving hot goods`. Restore; re-run Step 4.
 
 - [ ] **Step 6: Commit**
 
@@ -2283,7 +2478,8 @@ feat(sell): a full backroom refuses more hot baubles
 
 A shop already holding ShopAffixedStockCap hot baubles refuses another
 hot shelvable one (ruling 6), as an interest refusal so the next
-merchant is tried; cold and cheap ones still sell.
+merchant is tried; cold and cheap ones still sell. A fence says so in
+its own voice, an honest shop in a plain one.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -2312,6 +2508,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/shops"
@@ -2370,18 +2567,23 @@ func plainRow(row []string) string {
 // is shown, so the "nothing to sell" line can fire.
 func TestListShelf_ShowsListedEntriesInShelfOrder(t *testing.T) {
 	user, _, si := shelfListFixture(t, 12)
+	// Shelf order Zinc, Amber, Copper differs from every sort a renderer
+	// might slip in: by name (Amber, Copper, Zinc), by price ascending
+	// (Amber 10, Copper 20, Zinc 30) and by price descending (Zinc, Copper,
+	// Amber).
 	si.AffixedStock = []shops.AffixedStockEntry{
-		shelfGear("Zinc Ring", 30, shelfListNow.Add(-2*time.Hour), time.Time{}),
-		shelfGear("Held Torc", 90, shelfListNow.Add(-time.Hour), shelfListNow.Add(time.Hour)),
-		shelfGear("Amber Brooch", 20, shelfListNow.Add(-time.Minute), time.Time{}),
+		shelfGear("Zinc Ring", 30, shelfListNow.Add(-3*time.Hour), time.Time{}),
+		shelfGear("Held Torc", 90, shelfListNow.Add(-2*time.Hour), shelfListNow.Add(time.Hour)),
+		shelfGear("Amber Brooch", 10, shelfListNow.Add(-time.Hour), time.Time{}),
+		shelfGear("Copper Pin", 20, shelfListNow.Add(-time.Minute), time.Time{}),
 	}
 
 	rows := buildShelfRows(si, user.UserId, shelfListNow)
-	require.Len(t, rows, 2, "the held entry is out of sight")
-	assert.Contains(t, plainRow(rows[0]), "Zinc Ring", "shelf order, not sorted by name or price")
-	assert.Equal(t, "30", rows[0][2])
-	assert.Contains(t, plainRow(rows[1]), "Amber Brooch")
-	assert.Equal(t, "20", rows[1][2])
+	require.Len(t, rows, 3, "the held entry is out of sight")
+	for i, want := range []struct{ name, price string }{{"Zinc Ring", "30"}, {"Amber Brooch", "10"}, {"Copper Pin", "20"}} {
+		assert.Contains(t, plainRow(rows[i]), want.name, "row %d: shelf order, not sorted by name or price", i)
+		assert.Equal(t, want.price, rows[i][2], "row %d: its own price", i)
+	}
 	for _, r := range rows {
 		assert.NotContains(t, plainRow(r), "Held Torc")
 		assert.Len(t, r, 3, "Name, Type, Price")
@@ -2390,6 +2592,25 @@ func TestListShelf_ShowsListedEntriesInShelfOrder(t *testing.T) {
 
 	si.AffixedStock = si.AffixedStock[1:2] // only the held one
 	assert.False(t, renderShelfListing(user, si, "Keeper", shelfListNow), "nothing listed: no table, so list may say it has nothing")
+}
+
+// The "nothing to sell" say fires only when both tables are empty: a shop
+// with no stock but a listed shelf says nothing, and one whose shelf holds
+// only held entries says it.
+func TestListShelf_NothingToSellOnlyWhenBothTablesAreEmpty(t *testing.T) {
+	user, room, si := shelfListFixture(t, 12)
+	si.AffixedStock = []shops.AffixedStockEntry{shelfGear("Zinc Ring", 30, shelfListNow, time.Time{})}
+	events.DrainQueuedInputsForTest(8412)
+	_, err := List("", user, room, 0)
+	require.NoError(t, err)
+	for _, in := range events.DrainQueuedInputsForTest(8412) {
+		assert.NotContains(t, in, "nothing to sell", "a listed shelf is something to sell")
+	}
+
+	si.AffixedStock = []shops.AffixedStockEntry{shelfGear("Held Torc", 90, shelfListNow, shelfListNow.Add(time.Hour))}
+	_, err = List("", user, room, 0)
+	require.NoError(t, err)
+	assert.Contains(t, strings.Join(events.DrainQueuedInputsForTest(8412), "\n"), "nothing to sell", "only held entries: nothing to show")
 }
 
 // Spec tests 4 and 5 (list half): list enforces the cap lazily once a hold
@@ -2590,9 +2811,10 @@ Run `gofmt -w bauble_finder_view_guard_test.go`, then `go test . -count=1 2>&1 |
 
 - [ ] **Step 6: Null probes**
 
+0. Change `if !listedStock && !listedShelf {` to `if !listedStock || !listedShelf {`. Run `go test ./internal/usercommands/ -run TestListShelf_NothingToSellOnlyWhenBothTablesAreEmpty -count=1`. Expected: FAIL `a listed shelf is something to sell`. Restore.
 1. In `buildShelfRows` use `e.Item.DisplayName()`. Run `go test ./internal/usercommands/ -run TestListShelf_AFinderOnlyBaubleReadsByViewer -count=1` (Expected: FAIL `the finder reads their own name`) and `go test . -run TestFinderViewReachesOnlyItsReader -count=1` (Expected: FAIL `in finderViewSites but reads no finder view (stale)`). Restore.
-2. Delete the `EnforceAffixedCap ... SaveShop` block in `List`. Run `go test ./internal/usercommands/ -run TestListShelf_EnforcesTheCapLazilyAndSaves -count=1`. Expected: FAIL `Bone Ring listed earliest and goes`. Restore.
-3. Keep the trim, delete only the `if err := shops.SaveShop(...) { ... }` statement inside it, leaving `if shopInv.EnforceAffixedCap(...) > 0 {}` with an empty body. Same test. Expected: FAIL `the trim was saved` (reloaded is nil). Restore; re-run Steps 4 and 5.
+2. Change `if shopInv.EnforceAffixedCap(` to `if false && shopInv.EnforceAffixedCap(` (the imports stay used). Run `go test ./internal/usercommands/ -run TestListShelf_EnforcesTheCapLazilyAndSaves -count=1`. Expected: FAIL `Bone Ring listed earliest and goes`. Restore.
+3. Keep the trim, and in place of the save write `if err := error(nil); err != nil {` (so `mudlog` stays used and nothing is written). Same test. Expected: FAIL `the trim was saved` (reloaded is nil). Restore; re-run Steps 4 and 5.
 
 - [ ] **Step 7: Commit**
 
@@ -2963,7 +3185,7 @@ Expected: no vet output, `ok` (`TestBuy_AffixedStockItem` and every existing buy
 - [ ] **Step 5: Null probes**
 
 1. Replace `for _, idx := range shopInv.ListedIndexes(now) {` with `for idx := range shopInv.AffixedStock {`. Run `go test ./internal/actions/ -run TestBuy_Shelf_AHeldEntryIsNotForSaleUntilItsHoldEnds -count=1`. Expected: FAIL `held: no row answers to its name`. Restore.
-2. Replace `if !shopSaved {` with `if false {`. Run `go test ./internal/actions/ -run TestBuy_Shelf_EnforcesTheCapLazilyAndSavesTheTrim -count=1`. Expected: FAIL `the trim was saved though nothing was bought`. Restore.
+2. Replace `if !shopSaved {` with `if !shopSaved && false {` (`shopSaved` stays read). Run `go test ./internal/actions/ -run TestBuy_Shelf_EnforcesTheCapLazilyAndSavesTheTrim -count=1`. Expected: FAIL `the trim was saved though nothing was bought`. Restore.
 3. Put name matching back: replace `matched := &available[pick]` with
 
    ```go
@@ -3176,7 +3398,7 @@ with
 - [ ] **Step 6: Null probes**
 
 1. Replace `name = e.Item.NameFor(buyer.GetUserId())` with `name = e.Item.GetSpec().Name`. Run the Step 2 command (Expected: FAIL `the finder buys it by its own name`) and `go test . -run TestFinderViewReachesOnlyItsReader -count=1` (Expected: FAIL `makes 1 finder-view reference(s), finderViewSites says 2`). Restore.
-2. Delete the `baubles.MarkBought` call. Run `go test ./internal/actions/ -run TestBuy_Shelf_ABuyback -count=1`. Expected: FAIL `a named record is ready again`. Restore.
+2. Replace the `baubles.MarkBought(bought.Bauble, buyer.GetUserId())` call with `_ = baubles.StatusSold` (the import stays used). Run `go test ./internal/actions/ -run TestBuy_Shelf_ABuyback -count=1`. Expected: FAIL `a named record is ready again`. Restore.
 3. Put `bought.DisplayName()` back in the buyer's line. Run `go test ./internal/actions/ -run TestBuy_Shelf_AFinderOnly -count=1`. Expected: FAIL `the purchase line shows the finder their own name`. Restore; re-run Steps 4 and 5.
 
 - [ ] **Step 7: Commit**
@@ -3189,6 +3411,267 @@ buy matches a shelf bauble by the name list showed that buyer
 (NameFor, ruling 4) and names it on the buyer's own purchase line
 (DisplayNameFor); the guard gains the site. A bauble bought back
 calls baubles.MarkBought.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+EOF
+```
+
+---
+
+### Task 13b: The AI companion's `browse` shows the shelf
+
+**Files:**
+- Modify: `modules/aicompanion/economy.go:60-65, 75-122, 125-150, 152-166`
+- Create: `modules/aicompanion/economy_shelf_test.go`
+
+Controller decision (plan review, 2026-09-30): `browseShops` mirrors `list` ("as a player's `list` would show it"), so it shows the shelf too, and it must not use the finder view, because these names reach the model. The companion already names every item it tells the model about with `items.Item.ModelName()` (`perception.go`, `scene.go`, `actions.go`), which shows the carrier (`Curious Trinket`) for any bauble whose text a player's key wrote, finder-only or moderated. The plan uses that existing rule rather than the generic `Name()`: `Name()` would give a finder-only bauble's generic `Trinket` but a moderated player-key bauble's real name, which the module's rule (spec S3 of slice H) keeps from the model. Shelf rows are shown in `describeListing` and never written to shop memory: `rememberShop` keys wares by `ItemId`, which a shelf row shares with regular stock (and every bauble is item 900), so remembering them would overwrite real prices.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `modules/aicompanion/economy_shelf_test.go`:
+
+```go
+package aicompanion
+
+import (
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/baubles"
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/shops"
+)
+
+// browse mirrors list (baubles slice D): the companion sees a shop's listed
+// secondhand shelf after its stock, in shelf order, never a held entry. The
+// names reach the model, so they are ModelName: a bauble whose text a
+// player's key wrote reads as its carrier, finder-only or moderated. Shelf
+// rows are never remembered: each is one of a kind, and they share ItemIds
+// with regular stock (every bauble is item 900).
+func TestBrowseShopsShowsTheShelfInTheModelsView(t *testing.T) {
+	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
+		items.BaubleItemId: {ItemId: items.BaubleItemId, Name: `Curious Trinket`, NameSimple: `trinket`, Type: items.Object, Subtype: items.Mundane, Value: 1},
+		96001:              {ItemId: 96001, Name: `iron sword`, Type: items.Weapon, Value: 100},
+	}))
+	baubles.SetDirForTest(t.TempDir())
+	t.Cleanup(func() { items.SetBaubleResolver(nil) })
+	cfg := configs.GetConfig()
+	cfg.FilePaths.DataFiles = configs.ConfigString(t.TempDir())
+	configs.SetConfigForTest(t, cfg)
+
+	room := &rooms.Room{RoomId: 9601, Zone: `TestZone`, Title: `Shop`}
+	t.Cleanup(rooms.SeedRoomsForTest(map[int]*rooms.Room{9601: room},
+		map[string]*rooms.ZoneConfig{`TestZone`: {Name: `TestZone`, RoomId: 9601, RoomIds: map[int]struct{}{9601: {}}}}))
+	keeper := &mobs.Mob{MobId: 961, InstanceId: 9602, HomeRoomId: 9601, Zone: `TestZone`,
+		Character: characters.Character{Name: `Keeper`, RoomId: 9601, Conditions: conditions.New(),
+			Shop: characters.Shop{{ItemId: 96001, Price: 100}}}}
+	keeper.Character.HealthMax.Value, keeper.Character.Health = 100, 100
+	mobs.SetInstanceForTest(9602, keeper)
+	t.Cleanup(func() { mobs.SetInstanceForTest(9602, nil) })
+	room.AddMob(9602)
+
+	shops.ClearCache()
+	t.Cleanup(shops.ClearCache)
+	si := shops.RegisterShop(`TestZone`, 961, 9601, shops.ShopInventory{Gold: 100, CraftSupport: shops.CraftSupportGeneral,
+		Stock: []shops.StockEntry{{ItemId: 96001, RestockQty: 1, MaxStock: 2, Current: 1}}})
+
+	bauble := func(name string, moderated bool) items.Item {
+		rec, err := baubles.Create(baubles.Record{Name: name, NameSimple: `horse`, Tier: baubles.TierAverage, Value: 12,
+			WeightLbs: 0.5, Description: `A toy horse.`, Status: baubles.StatusReady, PlayerKey: true, Moderated: moderated, FoundByUserId: 7})
+		if err != nil {
+			t.Fatal(err)
+		}
+		it := items.New(items.BaubleItemId)
+		it.Bauble = rec.Id
+		return it
+	}
+	now := time.Now()
+	si.AffixedStock = []shops.AffixedStockEntry{
+		{Item: bauble(`Painted Wooden Horse`, false), Price: 12, AddedAt: now},                           // finder-only
+		{Item: bauble(`Carved Oak Horse`, true), Price: 14, AddedAt: now, HoldUntil: now.Add(time.Hour)}, // held
+		{Item: bauble(`Glass Horse`, true), Price: 15, AddedAt: now},                                     // moderated player-key text
+	}
+
+	listings := browseShops(room)
+	if len(listings) != 1 {
+		t.Fatalf("one open merchant: %+v", listings)
+	}
+	wares := listings[0].Wares
+	var shelf []ware
+	for _, w := range wares {
+		if w.Secondhand {
+			shelf = append(shelf, w)
+		}
+	}
+	if len(shelf) != 2 {
+		t.Fatalf("the two listed shelf rows, not the held one: %+v", shelf)
+	}
+	for _, w := range shelf {
+		if w.Name != `Curious Trinket` {
+			t.Errorf("a bauble a player's key wrote reads as its carrier to the model: %+v", w)
+		}
+	}
+	if shelf[0].Price != 12 || shelf[1].Price != 15 {
+		t.Errorf("shelf order, each at its own price: %+v", shelf)
+	}
+	if !wares[len(wares)-1].Secondhand || wares[0].Secondhand {
+		t.Errorf("the stock first, then the shelf, as list shows them: %+v", wares)
+	}
+
+	text := describeListing(listings[0], nil)
+	for _, hidden := range []string{`Painted`, `Glass`, `Carved`} {
+		if strings.Contains(text, hidden) {
+			t.Errorf("the model never reads a player's text (%s): %q", hidden, text)
+		}
+	}
+	if !strings.Contains(text, `Curious Trinket for 12 gold (secondhand)`) {
+		t.Errorf("listing wording: %q", text)
+	}
+
+	mind := &Mind{}
+	mind.rememberShop(listings[0], 9601, now.Unix())
+	if w := mind.Shops[961].Wares[items.BaubleItemId]; w != nil {
+		t.Errorf("shelf rows are not remembered: %+v", w)
+	}
+	if mind.Shops[961].Wares[96001] == nil {
+		t.Error("the stock is remembered as before")
+	}
+}
+```
+
+- [ ] **Step 2: Run to see it fail**
+
+Run: `cd /c/tmp/dogmud-baubles-d-impl && go test ./modules/aicompanion/ -run TestBrowseShopsShowsTheShelfInTheModelsView -count=1`
+Expected: FAIL, build error `w.Secondhand undefined (type ware has no field or method Secondhand)`.
+
+- [ ] **Step 3: Implement**
+
+In `modules/aicompanion/economy.go` replace
+
+```go
+type ware struct {
+	ItemId int
+	Name   string
+	Price  int
+	Qty    int
+}
+```
+
+with
+
+```go
+type ware struct {
+	ItemId     int
+	Name       string
+	Price      int
+	Qty        int
+	Secondhand bool // a one-of-a-kind shelf row (baubles slice D): shown, never remembered
+}
+```
+
+Replace
+
+```go
+		if inv := shops.GetShopInventory(m.Zone, int(m.MobId), m.HomeRoomId); inv != nil {
+```
+
+with
+
+```go
+		inv := shops.GetShopInventory(m.Zone, int(m.MobId), m.HomeRoomId)
+		if inv != nil {
+```
+
+Replace
+
+```go
+		sort.Slice(l.Wares, func(i, j int) bool { return l.Wares[i].Name < l.Wares[j].Name })
+		out = append(out, l)
+```
+
+with
+
+```go
+		sort.Slice(l.Wares, func(i, j int) bool { return l.Wares[i].Name < l.Wares[j].Name })
+		// The secondhand shelf, after the stock as list shows it (baubles
+		// slice D), in shelf order, never a held entry. ModelName, never the
+		// finder's view: these names reach the model, so a bauble whose text
+		// a player's key wrote reads as its carrier. Read only: the lazy cap
+		// trim is left to list and buy.
+		if inv != nil {
+			for _, idx := range inv.ListedIndexes(shops.ShelfNow()) {
+				e := &inv.AffixedStock[idx]
+				l.Wares = append(l.Wares, ware{ItemId: e.Item.ItemId, Name: e.Item.ModelName(), Price: e.Price, Qty: 1, Secondhand: true})
+			}
+		}
+		out = append(out, l)
+```
+
+In `rememberShop` replace
+
+```go
+	for _, w := range l.Wares {
+		wr := &WareRecord{Name: w.Name, Price: w.Price, Qty: w.Qty, SeenUnix: nowUnix}
+```
+
+with
+
+```go
+	for _, w := range l.Wares {
+		if w.Secondhand {
+			continue // one of a kind, and its ItemId is shared: never a price to remember
+		}
+		wr := &WareRecord{Name: w.Name, Price: w.Price, Qty: w.Qty, SeenUnix: nowUnix}
+```
+
+In `describeListing` replace
+
+```go
+	for _, w := range l.Wares {
+		ref := ``
+```
+
+with
+
+```go
+	for _, w := range l.Wares {
+		if w.Secondhand {
+			// No ref: refs are keyed by ItemId, which a shelf row shares.
+			parts = append(parts, fmt.Sprintf(`%s for %d gold (secondhand)`, w.Name, w.Price))
+			continue
+		}
+		ref := ``
+```
+
+Run `gofmt -w modules/aicompanion/economy.go modules/aicompanion/economy_shelf_test.go`.
+
+- [ ] **Step 4: Run to see it pass**
+
+Run: `cd /c/tmp/dogmud-baubles-d-impl && go vet ./modules/aicompanion/ && go test ./modules/aicompanion/ -count=1 2>&1 | tail -3 && go test . -count=1 2>&1 | tail -2`
+Expected: no vet output, `ok` (`TestShopMemory` too), root `ok`.
+
+- [ ] **Step 5: Null probes**
+
+1. Use `e.Item.Name()` instead of `e.Item.ModelName()`. Run the Step 2 command. Expected: FAIL `a bauble a player's key wrote reads as its carrier to the model` for the Glass Horse (a finder-only one would read `Trinket`). Restore.
+2. Delete the `if w.Secondhand { continue }` in `rememberShop`. Expected: FAIL `shelf rows are not remembered`. Restore.
+3. Replace `for _, idx := range inv.ListedIndexes(shops.ShelfNow()) {` with `for idx := range inv.AffixedStock {`. Expected: FAIL `the two listed shelf rows, not the held one`. Restore; re-run Step 4.
+
+- [ ] **Step 6: Commit**
+
+```bash
+cd /c/tmp/dogmud-baubles-d-impl && git add modules/aicompanion/economy.go modules/aicompanion/economy_shelf_test.go && git commit -F - <<'EOF'
+feat(aicompanion): browse shows a shop's secondhand shelf
+
+browseShops mirrors list: the listed shelf rows follow the stock, in
+shelf order, named with ModelName so no player-written bauble text
+reaches the model. They are described but never remembered, since a
+shelf row shares its ItemId with regular stock.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -3209,6 +3692,8 @@ EOF
   - The Bartering loop stays closed for baubles (cheap ones never shelved).
   - No raw magic number: every cap reads `ShopAffixedStockCap`, every heat reads `HeatDuration()`, the cheap bound reads `TierCheap.Range()`.
   - The guard rows' counts and reasons are true.
+  - A fence's backroom refusal and an honest shop's are the right lines for the right shop, and both are interest refusals.
+  - The companion's `browse` never names a bauble in any view but `ModelName`, never shows a held entry, and never writes a shelf row into shop memory.
 - [ ] **Step 2: Fix findings** with a failing test first for behaviour; commit as `fix(<pkg>): <what> (review)`. Re-run `go test ./internal/shops/ ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/economy/health/ ./internal/util/ ./internal/configs/ ./modules/auctions/ . -count=1`.
 
 ---
@@ -3216,8 +3701,9 @@ EOF
 ### Task 16: Docs
 
 **Files:**
-- Modify: `internal/shops/context.md`, `internal/baubles/context.md`, `internal/economy/health/context.md`, `internal/actions/context.md`, `internal/usercommands/context.md`, `internal/util/context.md`, `modules/auctions/context.md`
-- Modify: `_datafiles/world/dogmud/templates/help/sell.template`, `buy.template`, `list.template`
+- Modify: `internal/shops/context.md`, `internal/baubles/context.md`, `internal/economy/health/context.md`, `internal/actions/context.md`, `internal/usercommands/context.md`, `internal/util/context.md`, `modules/auctions/context.md`, `modules/aicompanion/context.md`
+- Modify: `internal/baubles/sweep.go` (comment only), `docs/baubles/implementation-plan.md`
+- Modify: `_datafiles/world/dogmud/templates/help/sell.template`, `buy.template`, `list.template`, `_datafiles/world/dogmud/templates/admincommands/help/command.bauble.template`
 - Modify: `docs/PATCH_NOTES.md`
 
 Load `dogmud-player-copy` first (80-column visible width, no raw numbers for durations, ESL-clear). No em or en dashes anywhere. These files are CRLF in the working tree (P39): use the Edit tool only, never a Python read-modify-write.
@@ -3259,9 +3745,72 @@ shop refuses another hot bauble once it holds that many
 sale under the mud lock; a caller that changes a living shop saves it.
 ```
 
+In the Pricing Config Knobs section, add the cap and correct two stale bullets (a flaw found here: `BarterMaxDiscount` and `BarterMaxBonus` are read by `buy.go:533` and `sell.go:346` since the lighting work, so they are live, not dead). Replace
+
+```markdown
+value and the Go default are identical, so this fallback never actually
+triggers in production today.
+```
+
+with
+
+```markdown
+value and the Go default are identical, so this fallback never actually
+triggers in production today. The same holds for every live knob below.
+```
+
+Replace
+
+```markdown
+  `EvaluateBuyRules` and by `modules/auctions/npc_buyers.go`. Fraction of a
+  shop's gold pool held back before it will buy from a seller.
+```
+
+with
+
+```markdown
+  `EvaluateBuyRules` and by `modules/auctions/npc_buyers.go`. Fraction of a
+  shop's gold pool held back before it will buy from a seller.
+- **`BarterMaxDiscount`**: shipped `0.15`, Go default `0.15`. Read by
+  `internal/actions` `tryPurchaseFromInventory` (through `barterDiscount`,
+  which also folds in sight): the buy-side cap at Bartering 50.
+- **`BarterMaxBonus`**: shipped `0.15`, Go default `0.15`. Read by
+  `sellOneToMerchant`: the sell-side cap at Bartering 50.
+- **`ShopAffixedStockCap`**: shipped `12`, Go default `12`
+  (`config.balance.shops.go`). Not a price: the most entries the secondhand
+  shelf lists, and the most hot baubles a shop holds out of sight (see
+  "The secondhand shelf" below).
+```
+
+and delete the two stale Dead bullets, from the line `- **`BarterMaxDiscount`**: shipped `0.15`, Go default `0.15`. The buy-side` through the line `  function) and never reads this field.` (the eleven lines after the `ShopMaterialReserve` bullet), leaving `ShopMaterialReserve` as the only Dead knob. In Gotchas, replace
+
+```markdown
+- **`BarterMaxDiscount` and `BarterMaxBonus` look tunable and are not.**
+  Both the buy-side and sell-side barter caps are hard-coded `0.15` literals
+  in `internal/actions/buy.go` and `internal/actions/sell.go`; editing these
+  two `config.yaml` knobs changes nothing at runtime. Same dead pattern as
+  the salvage knobs elsewhere in the codebase: check for a consumer before
+  trusting a knob's comment.
+```
+
+with
+
+```markdown
+- **Check for a consumer before trusting a knob's comment.**
+  `ShopMaterialReserve` is declared, shipped and read by nothing. (The
+  barter caps `BarterMaxDiscount` and `BarterMaxBonus` were once hard-coded
+  literals too; `buy.go` and `sell.go` read the knobs now.)
+```
+
 - [ ] **Step 2: `internal/baubles/context.md`**
 
-Replace `- **sales.go**: `MarkSold`, `SalesSince`.` with:
+Replace the line
+
+```markdown
+- **sales.go**: `MarkSold`, `SalesSince`.
+```
+
+with
 
 ```markdown
 - **sales.go**: `MarkSold`, `MarkBought` (a buyback off a shop's shelf
@@ -3290,7 +3839,9 @@ with
   seam (`SetPromptPreview`, `PreviewPrompt`) and `LooksLikeId`.
   `Record.unsoldStatus` (ready when `Generator.Named()`, else fallback) is
   `Restore`'s rule, shared with `MarkBought`.
-``` In the API listing replace
+```
+
+In the API listing replace
 
 ```go
 func MarkSold(id string, gold int, sellerUserId int) bool
@@ -3302,6 +3853,42 @@ with
 func MarkSold(id string, gold int, sellerUserId int) bool
 func MarkBought(id string, buyerUserId int) bool
 func ShelfHoldUntil(itm items.Item, now time.Time) time.Time
+```
+
+Two places still say a sold record reaches a merchant again only after a crash. Replace (`:360-361`)
+
+```markdown
+- A record lives as long as something points at it. The sweep is the only
+  pruner and it fails closed. A sold record held again (a crash rolled the
+  seller back) is seen and kept, and its sale is left as it was: every
+```
+
+with
+
+```markdown
+- A record lives as long as something points at it. The sweep is the only
+  pruner and it fails closed. A record on a shop's shelf is sold and still
+  referenced (`WalkItems` visits `AffixedStock`), so it is kept; a buyback
+  makes it unsold (`MarkBought`). A sold record held again (a crash rolled
+  the seller back) is seen and kept, and its sale is left as it was: every
+```
+
+and (`:455-456`)
+
+```markdown
+- **Selling lives in `internal/actions/sell_bauble.go`**, not here. Every
+  record is sellable, a sold one included: it only reaches a merchant again
+  if a crash lost the seller's save after the sale was recorded.
+```
+
+with
+
+```markdown
+- **Selling lives in `internal/actions/sell_bauble.go`**, not here. Every
+  record is sellable, a sold one included. A record reaches a merchant
+  again after a buyback off a shop's shelf (`MarkBought` makes it unsold
+  first); one still marked sold does so only if a crash lost the seller's
+  save after the sale was recorded.
 ```
 
 - [ ] **Step 3: `internal/economy/health/context.md`**
@@ -3413,7 +4000,137 @@ the shopkeeper never wins a bauble, since `EvaluateBuyRules` refuses the
 carrier), capped by `Balance.ShopAffixedStockCap`.
 ```
 
-- [ ] **Step 8: Help templates** (visible text at most 80 columns per line)
+- [ ] **Step 7b: `modules/aicompanion/context.md`**
+
+Replace
+
+```markdown
+- **economy.go**: `browse` (priced as `list` prices), shop and price
+  memory, the money rules for buying.
+```
+
+with
+
+```markdown
+- **economy.go**: `browse` (priced as `list` prices), shop and price
+  memory, the money rules for buying. `browseShops` also returns a shop's
+  listed secondhand shelf (baubles slice D), after its stock and in shelf
+  order, as `ware.Secondhand` rows named with `ModelName` (the carrier for
+  a bauble a player's key wrote; never the finder's view). They are shown
+  in `describeListing` and never remembered: each is one of a kind and
+  shares its `ItemId` with regular stock.
+```
+
+- [ ] **Step 7c: `internal/baubles/sweep.go` comment**
+
+Replace
+
+```go
+// is left as sold: every record is sellable already (sales.go), a save file
+// on disk can lag a sale by one autosave, and rewriting the sale on that
+// evidence would erase real ones.
+```
+
+with
+
+```go
+// is left as sold: every record is sellable already (sales.go), a save file
+// on disk can lag a sale by one autosave, and rewriting the sale on that
+// evidence would erase real ones. A bauble on a shop's secondhand shelf
+// (baubles slice D) is sold and still referenced (the shops source walks
+// AffixedStock), so it stays; a buyback makes it unsold (MarkBought).
+```
+
+- [ ] **Step 7d: `docs/baubles/implementation-plan.md`**
+
+Replace (`:161-163`)
+
+```markdown
+  spread: no scarcity curve, no barter bonus). Merchant gold and the
+  living-economy reserve are respected. Never stocked or resold; the record
+  is marked sold. Unknown records are refused with a spoken line.
+```
+
+with
+
+```markdown
+  spread: no scarcity curve, no barter bonus). Merchant gold and the
+  living-economy reserve are respected. The record is marked sold. Unknown
+  records are refused with a spoken line. (Since slice D, Phase 6f, an
+  average or rare bauble a player sells to a living shop is shelved for
+  resale; the rest are destroyed.)
+```
+
+Replace (`:179-181`)
+
+```markdown
+  `bauble spawn average`, `get bauble`, `appraise bauble` and
+  `sell bauble` at a general store pay 5 to 8 gold and leave nothing on the
+  shelf.
+```
+
+with
+
+```markdown
+  `bauble spawn average`, `get bauble`, `appraise bauble` and
+  `sell bauble` at a general store pay 5 to 8 gold and (before slice D)
+  left nothing on the shelf. Since Phase 6f the store shelves it.
+```
+
+Replace (`:877`)
+
+```markdown
+  Resale of bought baubles is slice D (the owner's), not here.
+```
+
+with
+
+```markdown
+  Resale of bought baubles is slice D: Phase 6f.
+```
+
+Replace (`:967`)
+
+```markdown
+6. Sold baubles destroyed (recommended) or resold as curios.
+```
+
+with
+
+```markdown
+6. Sold baubles destroyed (recommended) or resold as curios. Answered by
+   slice D (Phase 6f): average and rare ones a player sells to a living
+   shop are resold; the rest are destroyed.
+```
+
+And before `### Phase 7: Optional` insert:
+
+```markdown
+### Phase 6f: Shelf resale (slice D) (written)
+
+Design: `docs/superpowers/specs/2026-09-30-baubles-shelf-resale-design.md`.
+Plan: `docs/superpowers/plans/2026-09-30-baubles-shelf-resale.md`.
+
+- **Sold baubles can come back.** A player's sale of an average or rare,
+  non-retired bauble to a living-economy shop puts it on the shop's
+  secondhand shelf (`AffixedStock`) at its catalog value. A mob's sale, a
+  legacy merchant, a cheap bauble (so a dozen value-1 trinkets cannot evict
+  shelved gear) and a retired one are still destroyed.
+- **Hot goods wait in the back room.** A bauble hot anywhere when shelved
+  is held out of sight until `StolenAt + HeatDuration()`. A shop holds at
+  most `ShopAffixedStockCap` of those and refuses more: a fence in its own
+  voice, an honest shop with a plain "no room".
+- **`list` and `buy`.** `list` shows a "Secondhand goods" table in shelf
+  order, per viewer (a finder-only bauble reads Trinket to others). `buy`
+  selects by position (`buy 2.trinket`), matches a bauble in the buyer's own
+  view, and a buyback returns the record to its unsold status
+  (`MarkBought`); `SalesSince` counts by `SoldAt`, so the sale still counts.
+- **Cap.** `ShopAffixedStockCap` rises from 8 to 12 and gains a
+  `config.yaml` key in SHOP ECONOMY; over it the entry listed earliest goes.
+- **Elsewhere.** The dashboard types a fence's shop `fence`; the AI
+  companion's `browse` shows the shelf in the model's view.
+```
+
 
 `sell.template`: after the line `<ansi fg="command">sell all bauble</ansi> sells them all.` insert
 
@@ -3437,7 +4154,7 @@ hot goods until some of what it holds has cooled.
 ```
 
 A shop that buys from players also lists, below its own goods, a
-table of <ansi fg="yellow">Secondhand goods</ansi>: gear and trinkets it
+table of <ansi fg="cyan">Secondhand goods</ansi>: gear and trinkets it
 bought and will sell again. Each is one of a kind.
 ```
 
@@ -3447,8 +4164,26 @@ bought and will sell again. Each is one of a kind.
 
 Secondhand goods are bought by the name <ansi fg="command">list</ansi> shows you.
 When two share a name, <ansi fg="command">buy 2.trinket</ansi> buys the second one
-listed. The word <ansi fg="command">bauble</ansi>, which
+listed. Mind the dot: <ansi fg="command">buy 2 trinket</ansi>, with a space,
+buys two trinkets. The word <ansi fg="command">bauble</ansi>, which
 <ansi fg="command">sell</ansi> accepts for any trinket, does not work here.
+```
+
+(`Buy` reads a leading number followed by a space as a quantity, `buy.go:296-303`; `2.trinket` has no space, so it reaches the matcher as "the second trinket".)
+
+`_datafiles/world/dogmud/templates/admincommands/help/command.bauble.template`: replace
+
+```
+    ShopBuyRatio; other shops refuse. Sold baubles leave the world.
+```
+
+with
+
+```
+    ShopBuyRatio; other shops refuse. An average or rare bauble a
+    player sells to a living shop goes on its secondhand shelf (held
+    out of sight while hot); the rest leave the world. Buying one back
+    makes its record unsold again; bauble show keeps the last sale.
 ```
 
 - [ ] **Step 9: `docs/PATCH_NOTES.md`**
@@ -3466,9 +4201,13 @@ After `# DOGMud Patch Notes` and its blank line, insert (use the merge day's dat
   longer have to guess its name to buy it back.
 - Buy from the shelf by the name `list` shows you. When two things share a
   name, `buy 2.trinket` buys the second one listed.
+- Fences keep a shelf too: what a fence buys from you goes on its shelf
+  like any shop's, stolen goods included once they have cooled.
 - A stolen trinket a shop buys while it is still hot waits out of sight in
   its back room until it has cooled, and only then goes on the shelf. A
   shop with a full back room turns away more hot goods for a while.
+- Mind the dot when buying: `buy 2.trinket` buys the second trinket
+  listed, while `buy 2 trinket` buys two trinkets.
 - A shop keeps up to twelve secondhand pieces on show. When it has too
   many, the one that has been on show longest goes.
 
@@ -3477,9 +4216,9 @@ After `# DOGMud Patch Notes` and its blank line, insert (use the merge day's dat
 - [ ] **Step 10: Check**
 
 ```bash
-cd /c/tmp/dogmud-baubles-d-impl && python tools/context_md_audit.py 2>&1 | grep -E "^packages|^total|^internal/(shops|baubles|economy|actions|usercommands|util)|^modules/auctions"
+cd /c/tmp/dogmud-baubles-d-impl && python tools/context_md_audit.py 2>&1 | grep -E "^packages|^total|^internal/(shops|baubles|economy|actions|usercommands|util)|^modules/(auctions|aicompanion)"
 ```
-Expected: `packages with phantom symbols:   14`, `total phantom symbols:           27` (Task 0 baseline) and no line for any touched package.
+Expected: `packages checked:` (the Task 0 count), `packages with phantom symbols:   14`, `total phantom symbols:           27` (Task 0 baseline), and no line for any touched package.
 
 Run the dash check standalone (expect-zero; old lines elsewhere in these files are not this branch's to change, so only added lines are checked):
 
@@ -3493,7 +4232,7 @@ Run: `go test ./internal/devtools/ ./internal/templates/ . -count=1 2>&1 | tail 
 - [ ] **Step 11: Commit**
 
 ```bash
-cd /c/tmp/dogmud-baubles-d-impl && git add internal/shops/context.md internal/baubles/context.md internal/economy/health/context.md internal/actions/context.md internal/usercommands/context.md internal/util/context.md modules/auctions/context.md _datafiles/world/dogmud/templates/help/sell.template _datafiles/world/dogmud/templates/help/buy.template _datafiles/world/dogmud/templates/help/list.template docs/PATCH_NOTES.md && git commit -F - <<'EOF'
+cd /c/tmp/dogmud-baubles-d-impl && gofmt -l internal/baubles/sweep.go && go build ./internal/baubles/ && git add internal/shops/context.md internal/baubles/context.md internal/economy/health/context.md internal/actions/context.md internal/usercommands/context.md internal/util/context.md modules/auctions/context.md modules/aicompanion/context.md internal/baubles/sweep.go docs/baubles/implementation-plan.md _datafiles/world/dogmud/templates/help/sell.template _datafiles/world/dogmud/templates/help/buy.template _datafiles/world/dogmud/templates/help/list.template _datafiles/world/dogmud/templates/admincommands/help/command.bauble.template docs/PATCH_NOTES.md && git commit -F - <<'EOF'
 docs(baubles): the secondhand shelf in context, help and patch notes
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
@@ -3521,46 +4260,53 @@ Expected: no output. Then:
 git -C /c/tmp/dogmud-baubles-d-impl worktree add --detach /c/tmp/dogmud-baubles-d-playtest HEAD
 ```
 
-In `C:/tmp/dogmud-baubles-d-playtest/_datafiles/config.yaml` (never committed), with the Edit tool: `BaublesEnabled: true`, `BaubleSearchChancePct: 100`, every non-zero value under `BaubleBiomeChancePct` to `100`, `BaubleRollsPerWindow: 20`, `BaublePickpocketChancePct: 100`, and the three tier-weight triples (`BaubleTierWeight*`, `BaubleHouseholdTierWeight*`, `BaublePickpocketTierWeight*`) to cheap `20`, average `60`, rare `20`, so most finds are shelvable and some cheap ones test the throw-away. Leave `Modules.baubles.Enabled` as shipped, so finds are corpus finds.
+In `C:/tmp/dogmud-baubles-d-playtest/_datafiles/config.yaml` (never committed), with the Edit tool: `BaublesEnabled: true`, `BaubleSearchChancePct: 100`, every non-zero value under `BaubleBiomeChancePct` to `100`, `BaubleRollsPerWindow: 20`, `BaublePickpocketChancePct: 100`, and the three tier-weight triples (`BaubleTierWeight*`, `BaubleHouseholdTierWeight*`, `BaublePickpocketTierWeight*`) to cheap `20`, average `60`, rare `20`, so most finds are shelvable and some cheap ones test the throw-away, and `ShopAffixedStockCap: 2`, so a tester reaches both the listed-cap eviction (a third sale at one shop pushes the earliest listed entry off) and the backroom refusal (a third hot trinket at the fence) within the budget, and the refusal copy gets read in game. Leave `Modules.baubles.Enabled` as shipped, so finds are corpus finds.
+
+**What this playtest cannot reach, and what covers it instead.** A hold ends 72 real hours after a theft, against a 45-minute budget, so no tester sees a held entry come off hold; `TestShelf_HeldEntriesAreNotListedNorEvicted`, `TestBuy_Shelf_AHeldEntryIsNotForSaleUntilItsHoldEnds` and `TestListShelf_EnforcesTheCapLazilyAndSaves` cover it. Corpus finds are not written by a player's key, so no finder-only bauble exists here; the per-viewer paths are covered by `TestListShelf_AFinderOnlyBaubleReadsByViewer`, `TestBuy_Shelf_AFinderOnlyBaubleIsBoughtInTheBuyersOwnView` and `TestBrowseShopsShowsTheShelfInTheModelsView`. The honest shop's "no room" line needs a bauble hot only in another heat area, which Thornwall alone does not give; `TestStolenBauble_AnHonestShopWithAFullBackroomHasNoRoom` covers it.
 
 - [ ] **Step 3: Goals file** at `C:/tmp/dogmud-baubles-d-playtest/tools/playtest/goals/2026-09-30-bauble-shelf.yaml`:
 
 ```yaml
 # Bauble slice D playtest: shops now keep the trinkets players sell them
 # on a "Secondhand goods" shelf, and hold stolen ones out of sight until
-# they cool. Finds are switched on at a very high rate in this checkout.
+# they cool. Finds are switched on at a very high rate in this checkout,
+# and each shop lists at most two secondhand pieces and holds at most two
+# hot ones.
 ephemeral:
   profile: mid
-  # 462 is Thornwall City: Jeweler Tess keeps a shop there, and Fence
-  # Dealer Siv trades in a back alley.
   start_room: 462
   budgets:
     wall_clock: 45m
 
 goals:
   - >-
-    Search indoors and out around Thornwall City until you carry at least
-    six trinkets. Look at each and note its name and what appraise says it
-    is worth.
+    You start in Thornwall City. Search indoors and out around the city
+    until you carry at least eight trinkets. Look at each and note its name
+    and what appraise says it is worth.
   - >-
-    Find a shop that buys trinkets (a jeweller or a general store). Run list
-    before selling anything. Sell your trinkets one at a time, and run list
-    after each sale. Report what appears in the Secondhand goods table, in
-    what order, at what price, and whether a cheap trinket ever appears
-    there. Report any table that looks wrong, repeats, or is empty when it
+    Find Jeweler Tess, who keeps a jeweller's shop in Thornwall City. Run
+    list before selling anything. Sell your trinkets to her one at a time,
+    and run list after each sale. Report what appears in the Secondhand
+    goods table, in what order, at what price, and whether a cheap trinket
+    ever appears there. After the third sale, report which piece left the
+    table. Report any table that looks wrong, repeats, or is empty when it
     should not be.
   - >-
     Buy trinkets back from the Secondhand goods table by the name list
-    shows. When two share a name, try buy 2.<name>. Report whether you got
-    the one you meant, and whether the price you paid matches the list.
-    Try buy with a word from a trinket's description that is not in its
-    listed name, and with the word bauble, and report what happens.
+    shows. When two share a name, try buy 2.<name>, then compare it with
+    buy 2 <name> (with a space). Report whether you got the one you meant,
+    how many you got, and whether the price you paid matches the list. Try
+    buy with a word from a trinket's description that is not in its listed
+    name, and with the word bauble, and report what happens.
   - >-
-    Pickpocket townspeople with steal until you hold a stolen trinket. Try
-    to sell it to the jeweller in town, then find a fence and sell it
-    there. Run list at the fence right after. Report whether the stolen
-    trinket shows on the shelf (it should stay out of sight for now), and
-    whether anything the fence says reads oddly.
+    Pickpocket townspeople with steal until you hold at least three stolen
+    trinkets. Try to sell one to Jeweler Tess. Then find Fence Dealer Siv,
+    who trades in the Back Alley, East of Thornwall City (a back alley
+    off the city's streets; ask around if you cannot find it), and sell
+    your stolen trinkets to him one at a time. Run list after each sale.
+    Report whether a stolen trinket shows on his shelf (it should stay out
+    of sight for now), what he says when he will not take one more, and
+    whether anything he says reads oddly.
   - >-
     Run help list, help buy and help sell. Report anything that is unclear,
     that contradicts what you saw, or that a player whose first language is
@@ -3586,7 +4332,7 @@ Expected before removal: only `_datafiles/config.yaml` and the goals file differ
 
 ### Task 18: Local gate
 
-**Files:** none, unless a check fails. CI is out of minutes until 10-01; this is the gate and its output goes into the PR body. Save each step's output to the session scratchpad as `bauble-shelf-gate.txt`.
+**Files:** none, unless a check fails. CI is out of minutes until 10-01; this is the gate and its output goes into the PR body. Save each step's output as `bauble-shelf-gate.txt` in the executing session's own scratchpad directory (the `$SCRATCH` of Task 19).
 
 - [ ] **Step 1: gofmt on committed blobs**
 
@@ -3600,7 +4346,7 @@ Expected: only `done`.
 ```bash
 cd /c/tmp/dogmud-baubles-d-impl && BASE=$(cat /c/tmp/dogmud-baubles-d-impl.base) && git diff --shortstat $BASE..HEAD && git diff --exit-code $BASE..HEAD -- go.mod go.sum; echo "gomod-exit=$?"
 ```
-Expected: about 30 files and under 3,000 lines (far under 300 files and 20,000 lines); `gomod-exit=0`.
+Expected: about 53 files and under 3,500 lines (far under 300 files and 20,000 lines); `gomod-exit=0`.
 
 - [ ] **Step 3: Build, vet, full test suite**
 
@@ -3633,9 +4379,9 @@ Expected: `0 issues.`
 - [ ] **Step 7: Race, in the Linux test container**
 
 ```bash
-cd /c/tmp/dogmud-baubles-d-impl && docker compose -f compose.test.yml run --build --rm test go test -race -count=1 ./internal/shops/ ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/economy/health/ ./internal/util/ 2>&1 | tail -8
+cd /c/tmp/dogmud-baubles-d-impl && docker compose -f compose.test.yml run --build --rm test go test -race -count=1 ./internal/shops/ ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ ./internal/economy/health/ ./internal/util/ ./internal/configs/ ./modules/auctions/ ./modules/aicompanion/ 2>&1 | tail -12
 ```
-Expected: six `ok` lines, no `WARNING: DATA RACE`.
+Expected: nine `ok` lines, no `WARNING: DATA RACE`.
 
 - [ ] **Step 8: A real boot on private ports, stopped by its own PID**
 
@@ -3684,19 +4430,19 @@ Remove-Item -Recurse -Force 'C:\tmp\dogmud-boot-check'; Remove-Item -Force 'C:\t
 ```bash
 cd /c/tmp/dogmud-baubles-d-impl && BASE=$(cat /c/tmp/dogmud-baubles-d-impl.base) && git diff --name-only $BASE..HEAD | sed -n 's#^\(internal/economy/health\|internal/[^/]*\|modules/[^/]*\)/.*#\1#p' | sort -u; echo ---; git diff --name-only $BASE..HEAD -- '*context.md' '_datafiles/world/dogmud/templates/help/' docs/PATCH_NOTES.md; git status --short
 ```
-Expected: every package in the first list has its `context.md` in the second, except `internal/configs` (a knob move; its file table is unchanged); the three help templates and `docs/PATCH_NOTES.md` listed; a clean tree.
+Expected: every package in the first list has its `context.md` in the second (`modules/aicompanion` included), except `internal/configs` (a knob move; its file table is unchanged); the three player help templates, `docs/PATCH_NOTES.md` and (from a separate `git diff --name-only $BASE..HEAD -- docs/baubles _datafiles/world/dogmud/templates/admincommands`) `docs/baubles/implementation-plan.md` and `command.bauble.template` listed; a clean tree.
 
 ---
 
 ### Task 19: PR and merge
 
-- [ ] **Step 1: Write the PR body** in the scratchpad as `bauble-shelf-pr.md`: a summary (shelving rules and the eight rulings; the "Secondhand goods" table; `buy` by position and in the buyer's own view; the backroom; `MarkBought`, `SalesSince`, `bauble show`; the dashboard `fence` type; `ShopAffixedStockCap` 8 to 12 with a new `config.yaml` key), the spec and plan paths, the seven code-vs-spec notes from this plan, a "Local gate (CI out of minutes until 10-01)" section pasting `bauble-shelf-gate.txt`, the playtest findings, "No deploy.", and the closing line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+- [ ] **Step 1: Write the PR body** as `bauble-shelf-pr.md` in the EXECUTING session's own scratchpad directory (the one its system prompt names; never a path copied from this plan, whose planning session is gone). Set it once in Git Bash: `SCRATCH='<that directory>'`. The body holds a summary (shelving rules and the eight rulings; the "Secondhand goods" table; `buy` by position and in the buyer's own view; the backroom; `MarkBought`, `SalesSince`, `bauble show`; the dashboard `fence` type; `ShopAffixedStockCap` 8 to 12 with a new `config.yaml` key), the spec and plan paths, the code-vs-spec notes and the review revisions from this plan (the two controller decisions called out), a "Local gate (CI out of minutes until 10-01)" section pasting `bauble-shelf-gate.txt`, the playtest findings, a "Deploy notes" section ("No deploy from this PR; the owner deploys." and "Rollback: a build from before this PR still loads shop files written after it, but ignores `hold_until`, so every hot bauble waiting in a backroom would become listed and buyable at once. Roll back only with that accepted, or after the holds have run out (72 hours after the last shelved theft)."), and the closing line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 
 - [ ] **Step 2: Push and open the PR on the fork**
 
 ```bash
 git -C /c/tmp/dogmud-baubles-d-impl push -u origin feature/bauble-shelf-resale
-gh pr create --repo pruuk/DOGMud --base master --head feature/bauble-shelf-resale --title "feat(baubles): slice D, shelf resale" --body-file "C:/Users/CALABE~1/AppData/Local/Temp/claude/C--Users-Calabe-Davis-workspace-DOGMud/eada5c36-5618-4580-a525-ba54f2e95ea4/scratchpad/bauble-shelf-pr.md"
+gh pr create --repo pruuk/DOGMud --base master --head feature/bauble-shelf-resale --title "feat(baubles): slice D, shelf resale" --body-file "$SCRATCH/bauble-shelf-pr.md"
 ```
 Read the URL `gh` prints and confirm it says `pruuk/DOGMud`.
 
@@ -3709,7 +4455,7 @@ If GitHub refuses because required checks did not pass (no CI minutes), merge wi
 
 - [ ] **Step 4: Hand-off (no deploy)**
 
-Report the PR number and merge SHA; that nothing was deployed; that the owner's main checkout `_datafiles/config.yaml` (skip-worktree `S`) lacks `ShopAffixedStockCap` until the EOD re-sync from the HEAD blob (the Go default 12 equals the shipped value, so nothing behaves differently meanwhile); then `git -C "/c/Users/Calabe Davis/workspace/DOGMud" worktree remove /c/tmp/dogmud-baubles-d-impl` and `rm /c/tmp/dogmud-baubles-d-impl.base`.
+Report the PR number and merge SHA; that nothing was deployed; that the owner's main checkout `_datafiles/config.yaml` (skip-worktree `S`) lacks `ShopAffixedStockCap` until the EOD re-sync from the HEAD blob (the Go default 12 equals the shipped value, so nothing behaves differently meanwhile); then, once `gh pr view <number> --repo pruuk/DOGMud --json state` says `MERGED`: `git -C "/c/Users/Calabe Davis/workspace/DOGMud" worktree remove /c/tmp/dogmud-baubles-d-impl`, `git -C "/c/Users/Calabe Davis/workspace/DOGMud" branch -D feature/bauble-shelf-resale` (the local branch; `--delete-branch` removed the remote one, and `-D` because the local master may not have fetched the merge yet), and `rm /c/tmp/dogmud-baubles-d-impl.base`.
 
 ---
 
@@ -3719,4 +4465,6 @@ Report the PR number and merge SHA; that nothing was deployed; that the owner's 
 
 **Placeholder scan.** Every code step carries its code and its exact old text; Task 0 Step 2 greps every Edit anchor at BASE. The values filled at execution are run results (BASE, the PR number, gate output) and the patch-note date if the merge is not on 2026-10-01. The Task 16 `context.md` anchors were grepped at HEAD too (each occurs once).
 
-**Type consistency.** `FindMatchIndexIn(searchName string, items ...string) (match int, closeMatch int)` (Tasks 1, 12). `ShelfNow func() time.Time` (Tasks 3, 9, 10, 11, 12 and test helpers). `(AffixedStockEntry) Held(now time.Time) bool`, `ListedAt() time.Time`; `(*ShopInventory) HeldCount(now time.Time) int`, `ListedIndexes(now time.Time) []int`, `EnforceAffixedCap(limit int, now time.Time) int`, `RestoreAffixedStock(idx int, e AffixedStockEntry)`, `AddAffixedStock(item items.Item, price, limit int, holdUntil, now time.Time)` (Tasks 3, 5, 9, 10, 11, 12). `baubles.ShelfHoldUntil(itm items.Item, now time.Time) time.Time` (Tasks 4, 5, 9). `baubles.MarkBought(id string, buyerUserId int) bool`, `(Record) unsoldStatus() Status` (Tasks 6, 7, 13). `baubleShelvable(rec baubles.Record) bool`, `baubleSayBackroomFull` (Tasks 9, 10). `buildShelfRows(si *shops.ShopInventory, viewerUserId int, now time.Time) [][]string`, `renderShelfListing(user *users.UserRecord, si *shops.ShopInventory, sellerName string, now time.Time) bool` (Task 11). `ShopSnapshot.Fence bool`, `(ShopSnapshot) Type() string` (Tasks 8a, 8b). Test helpers `shelfEntry`, `shelfIds` (Tasks 3, 5), `shelfListFixture`, `shelfGear`, `plainRow` (Task 11), `shelfBuyFixture`, `shelfBuyer` (Tasks 12, 13) are each defined before use. `invEntry.plainName` is removed in Task 12 and read nowhere after.
+**Type consistency.** `FindMatchIndexIn(searchName string, items ...string) (match int, closeMatch int)` (Tasks 1, 12). `ShelfNow func() time.Time` (Tasks 3, 9, 10, 11, 12 and test helpers). `(AffixedStockEntry) Held(now time.Time) bool`, `ListedAt() time.Time`; `(*ShopInventory) HeldCount(now time.Time) int`, `ListedIndexes(now time.Time) []int`, `EnforceAffixedCap(limit int, now time.Time) int`, `RestoreAffixedStock(idx int, e AffixedStockEntry)`, `AddAffixedStock(item items.Item, price, limit int, holdUntil, now time.Time)` (Tasks 3, 5, 9, 10, 11, 12). `baubles.ShelfHoldUntil(itm items.Item, now time.Time) time.Time` (Tasks 4, 5, 9). `baubles.MarkBought(id string, buyerUserId int) bool`, `(Record) unsoldStatus() Status` (Tasks 6, 7, 13). `baubleShelvable(rec baubles.Record) bool`, `baubleSayBackroomFull` (Tasks 9, 10). `buildShelfRows(si *shops.ShopInventory, viewerUserId int, now time.Time) [][]string`, `renderShelfListing(user *users.UserRecord, si *shops.ShopInventory, sellerName string, now time.Time) bool` (Task 11). `ShopSnapshot.Fence bool`, `(ShopSnapshot) Type() string` (Tasks 8a, 8b). Test helpers `shelfEntry`, `shelfIds` (Tasks 3, 5), `shelfListFixture`, `shelfGear`, `plainRow` (Task 11), `shelfBuyFixture`, `shelfBuyer` (Tasks 12, 13) are each defined before use. `invEntry.plainName` is removed in Task 12 and read nowhere after. Added by the review revisions: `baubleSayNoRoom` (Task 10, beside `baubleSayBackroomFull`); `ware.Secondhand bool` (Task 13b, read by `rememberShop` and `describeListing`); test files `economy_page_test.go` (8b) and `economy_shelf_test.go` (13b), each with its own imports so no task leaves an unused import behind.
+
+**Review revisions coverage.** Every item of the 2026-09-30 plan review maps to a change listed under "Revisions after the plan review" near the top; the re-run dry run applied Tasks 1 to 13b and the `sweep.go` comment (39 code and test files), passed `go build ./...`, `go vet`, the tests of every touched package, `internal/actions` and the root package, and all 17 revised or new null probes compiled and went red for their named reasons.
