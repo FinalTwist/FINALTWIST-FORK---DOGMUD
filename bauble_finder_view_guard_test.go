@@ -95,7 +95,7 @@ var beyondReaderCalls = map[string]bool{
 	"SendTextCommunication": true, "SendTextVisual": true, "SendTextVisualHidingNames": true,
 	"SendTextVisualAsLit": true, "SendTextVisualAsLitHidingNames": true, "SendTextVisualWithAudio": true,
 	"SendTextHidingNames": true, "SendCommunicationHidingNames": true, "SendVisualCommunicationHidingNames": true,
-	"SendTextToExits": true, "SendRoomCommunication": true, "SendTrio": true, "SendCounterTrio": true,
+	"SendTextToExits": true, "SendTrio": true, "SendCounterTrio": true,
 	"SendMessage": true, "Command": true, "merchantSay": true,
 	"SendHeard": true, "SendSeen": true,
 }

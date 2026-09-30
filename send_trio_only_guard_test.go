@@ -107,8 +107,8 @@ import (
 // this note is what supersedes it.
 //
 // Sight gates slice 5b (2026-09-29): mobcommands/darkness.go's
-// sendAudioRoomText and sendAudioRoomTextHidingNames are deleted, and
-// Actor.SendRoomCommunication (actor_mob.go:52 above) with them. The Taunt*,
+// sendAudioRoomText and sendAudioRoomTextHidingNames are deleted.
+// The Taunt*,
 // Rally, Warcry, Shout and Speech categories now leave through
 // rooms.Room.SendTextHidingNames and SendCommunicationHidingNames, still not
 // SendTrio, so sendTrioOnlyCategories is unchanged. The survey bullets above

@@ -62,16 +62,15 @@ func newSalvageMobActor(t *testing.T, mob *mobs.Mob, room *rooms.Room) *salvageF
 	}
 }
 
-func (a *salvageFakeActor) GetCharacter() *characters.Character    { return a.char }
-func (a *salvageFakeActor) GetRoom() *rooms.Room                   { return a.room }
-func (a *salvageFakeActor) GetName() string                        { return a.name }
-func (a *salvageFakeActor) IsPlayer() bool                         { return a.isPlayer }
-func (a *salvageFakeActor) GetUserId() int                         { return a.userId }
-func (a *salvageFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *salvageFakeActor) AddCondition(_ int, _ string)           {}
-func (a *salvageFakeActor) OnSkillUse(_ string) bool               { return false }
-func (a *salvageFakeActor) OnStatUse(_ string) bool                { return false }
-func (a *salvageFakeActor) SendRoomCommunication(_ string, _ bool) {}
+func (a *salvageFakeActor) GetCharacter() *characters.Character { return a.char }
+func (a *salvageFakeActor) GetRoom() *rooms.Room                { return a.room }
+func (a *salvageFakeActor) GetName() string                     { return a.name }
+func (a *salvageFakeActor) IsPlayer() bool                      { return a.isPlayer }
+func (a *salvageFakeActor) GetUserId() int                      { return a.userId }
+func (a *salvageFakeActor) GetMobInstanceId() int               { return a.mobInstId }
+func (a *salvageFakeActor) AddCondition(_ int, _ string)        {}
+func (a *salvageFakeActor) OnSkillUse(_ string) bool            { return false }
+func (a *salvageFakeActor) OnStatUse(_ string) bool             { return false }
 func (a *salvageFakeActor) SendText(_ messaging.Category, msg string) {
 	a.sent = append(a.sent, msg)
 }

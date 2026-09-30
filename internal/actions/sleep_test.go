@@ -27,16 +27,15 @@ type sleepFakeActor struct {
 	sent          []string
 }
 
-func (a *sleepFakeActor) GetCharacter() *characters.Character    { return a.char }
-func (a *sleepFakeActor) GetRoom() *rooms.Room                   { return a.room }
-func (a *sleepFakeActor) GetName() string                        { return a.char.Name }
-func (a *sleepFakeActor) IsPlayer() bool                         { return a.isPlayer }
-func (a *sleepFakeActor) GetUserId() int                         { return a.userId }
-func (a *sleepFakeActor) GetMobInstanceId() int                  { return 0 }
-func (a *sleepFakeActor) AddCondition(_ int, _ string)           {} // no-op: Sleep calls c.AddCondition directly
-func (a *sleepFakeActor) OnSkillUse(_ string) bool               { return false }
-func (a *sleepFakeActor) OnStatUse(_ string) bool                { return false }
-func (a *sleepFakeActor) SendRoomCommunication(_ string, _ bool) {}
+func (a *sleepFakeActor) GetCharacter() *characters.Character { return a.char }
+func (a *sleepFakeActor) GetRoom() *rooms.Room                { return a.room }
+func (a *sleepFakeActor) GetName() string                     { return a.char.Name }
+func (a *sleepFakeActor) IsPlayer() bool                      { return a.isPlayer }
+func (a *sleepFakeActor) GetUserId() int                      { return a.userId }
+func (a *sleepFakeActor) GetMobInstanceId() int               { return 0 }
+func (a *sleepFakeActor) AddCondition(_ int, _ string)        {} // no-op: Sleep calls c.AddCondition directly
+func (a *sleepFakeActor) OnSkillUse(_ string) bool            { return false }
+func (a *sleepFakeActor) OnStatUse(_ string) bool             { return false }
 func (a *sleepFakeActor) SendText(_ messaging.Category, msg string) {
 	a.sent = append(a.sent, msg)
 }
