@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -184,6 +185,59 @@ func TestGateParity_GoldPickup(t *testing.T) {
 			}
 			assert.NoError(t, err, "%s at %s", who, light)
 			assert.Equal(t, 0, s.room.Gold, "%s at %s", who, light)
+		}
+	}
+}
+
+func TestGateParity_ResolveLook(t *testing.T) {
+	// Each actor looks at the other one.
+	other := map[string]string{"player": "gatemob", "mob": "gatey"}
+	for _, light := range gateLights {
+		for _, who := range gateWho {
+			s := newGateScene(t, light)
+			room := ResolveLook(s.actor(who), "")
+			creature := ResolveLook(s.actor(who), other[who])
+			switch light {
+			case gateLit:
+				assert.Equal(t, LookRoom, room.Kind, who)
+				assert.Equal(t, LookCreature, creature.Kind, who)
+			case gateShapes:
+				assert.Equal(t, LookRoom, room.Kind, who)
+				assert.Equal(t, LookOther, creature.Kind, "%s: at shapes a creature is not named", who)
+				assert.False(t, creature.NamesCreatures, who)
+			default:
+				assert.Equal(t, LookDark, room.Kind, "%s at %s", who, light)
+				assert.Equal(t, LookDark, creature.Kind, "%s at %s", who, light)
+			}
+		}
+	}
+}
+
+func TestGateParity_LookCannotNameAHiddenCreature(t *testing.T) {
+	other := map[string]string{"player": "gatemob", "mob": "gatey"}
+	for _, who := range gateWho {
+		s := newGateScene(t, gateLit)
+		if who == "player" {
+			viewerTestHide(t, &s.mob.Character)
+		} else {
+			viewerTestHide(t, s.user.Character)
+		}
+		assert.NotEqual(t, LookCreature, ResolveLook(s.actor(who), other[who]).Kind, who)
+	}
+}
+
+func TestGateParity_LookThroughAnExitNeedsLight(t *testing.T) {
+	for _, light := range []gateLight{gateLit, gateShapes} {
+		for _, who := range gateWho {
+			s := newGateScene(t, light)
+			s.room.Exits = map[string]exit.RoomExit{"north": {RoomId: gateRoomId + 1}}
+			res := ResolveLook(s.actor(who), "north")
+			if light == gateLit {
+				assert.Equal(t, LookExit, res.Kind, who)
+				assert.Equal(t, gateRoomId+1, res.ExitRoomId, who)
+				continue
+			}
+			assert.Equal(t, LookExitTooDark, res.Kind, "%s: heat shows shapes here, not in the next room", who)
 		}
 	}
 }
