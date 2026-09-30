@@ -317,6 +317,26 @@ sent; `progression_notifier_guard_test.go` asserts the boot registration and
   subtracted a displaced item a second time and could strip a condition the new
   item still granted.
 
+### Slot choice (`wear_slot.go`, sight and gates parity 5a)
+
+`Wear` is now `wear(i, place)` in `worn.go`: the shared gates (type, unrecognised item; `MinStrength`; `HandsRequired > 2`; the U7b reservation snapshot/revert; the curse pass on whatever `place` displaced) wrapped around a `place` function. `Wear(i)` passes `wearChosen(i, 0)` (hands) or `wearArmorSlot(i, spec)` (everything else); `WearInArm(i, arm)` passes `wearChosen(i, arm)` for a named arm 1 to 6 (`equip X armN`), so both share every gate and cannot drift. `wearChosen` calls `ChooseWornSlot(i, arm)` and applies the returned choice.
+
+`ChooseWornSlot(i items.Item, arm int) (SlotChoice, string)` is the one place a ring, wrist, weapon or shield's target slot is decided, over the 2 to 6 arms and however many wrists the character actually has; the itemvalue scorer calls it too (`internal/itemvalue/context.md`), so a mob's upgrade check and its actual `Wear` agree. `arm == 0` is the automatic choice; `arm 1..6` goes through `chooseArm`, the `equip X armN` path (see below). For hands, rings and wrists it builds an ordered `[]slotCandidate` (`slotCandidate{slots, displaced, guarded}`) and applies ONE rule via `chooseFrom`: fill the first candidate with nothing to displace, else swap the first candidate whose `guarded` items are all uncursed, else refuse with `CursedRefusal` of the first candidate's first cursed item. `fill` and `swap` are usually the same list; they differ only where today's code fills in one order and swaps in another (a 2H pair's free-pair-then-cheapest-to-displace fill order versus ruling 13's shield swap, below). With nothing cursed the choice is always today's (pinned by the golden oracle test).
+
+`CursedRefusal(it items.Item) string` is the one statement of the equip curse rule: a cursed worn item (`it.ItemId > 0 && it.IsCursed()`) cannot be displaced by putting something else on, full stop — no Health or Spellcasting exception (ruling 8; `remove` keeps its own Spellcasting-4 exception via `actions.CursedHolds`, so a caster frees the slot with `remove` first, then equips).
+
+Hand candidates (`handCandidates`): a two-hander only offers whole pairs, ordered free-pair-first then fewest-occupants-first (today's `FindFirstFreePair`/`FindCheapestPairToDisplace`, now one `sort.SliceStable`). A shield offers `Offhand` first unless the main hands hold a two-hander, then the extra arms in arm order (`handSlotCandidates`); **ruling 13**: beside a two-hander with every hand full, the swap list instead walks arms from the HIGHEST down, skipping any pair whose First holds a two-hander, so the shield takes the last free hand rather than being refused ("Your two-handed weapon leaves no room for a shield." only when even that swap finds nothing cursed-free — it can still fire if every candidate is cursed). A one-hander offers `Weapon` (or its two-hander's First via `twoHanderSlot`, which also carries off a stray in the pair's Second) then `Offhand` only for a dual-wielder or claws-over-claws, then the extra arms.
+
+`chooseArm(i, spec, arm)` is `equip X armN` (rulings 11, 12): the same shape refusals `Wear` gives (weapon/shield only, no shield in arm 1, `HandsRequired > 2`, a two-hander needs an odd arm with a partner), then the one slot the arm names via `ArmLabel`'s pairing (`(arm-1)/2`, `(arm-1)%2`). A cursed item there refuses outright; it never falls through to another arm.
+
+`ChooseWornSlot` never mutates; `SlotChoice.apply(i)` (called by `wearChosen`) writes `i` into `Slots[0]` and clears every later entry.
+
+**Deleted**: `wearWeaponOrShield`, and from `hand_slots.go` the three `Find*` helpers (`FindFirstEmptySlot`, `FindFirstFreePair`, `FindCheapestPairToDisplace`) and `PairIsFree`/`PairOccupantCount`, which had no callers left once `ChooseWornSlot` absorbed their logic as a stable sort. `hand_slots.go` gained `ArmLabel(arm int) string`, the arm-to-label lookup `chooseArm` and command wrappers share.
+
+**The golden oracle** (`wear_slot_golden_test.go`) keeps verbatim copies of the pre-5a `wearWeaponOrShield`, the three `Find*` helpers and the ring/wrist cases (`legacyWear` and friends) and diffs `Wear` against them over ~27,000 non-cursed placements (2, 3, 4, 6 arms; three species sizes; dual wield on/off). Two placements are deliberately carved out (`sanctionedDivergence`) because the owner changed them on purpose with nothing cursed: the old disabled-`Ring`/`Wrist1` fallback (legacy wrote the `ItemId -1` marker into a disabled slot; `ChooseWornSlot` never writes a disabled slot), and the shield-beside-a-two-hander swap at 3+ arms (ruling 13, above). Both carve-outs have their own explicit tests in `wear_slot_test.go`.
+
+`HandsRequired(i items.Item) int` (`worn.go:278`) now nil-guards `species.GetSpecies(c.SpeciesId)`: an unregistered species reads as Medium instead of panicking, because the itemvalue scorer reaches this for every weapon candidate it weighs and several test fixtures build characters with no species registry.
+
 ### Carried light and item nouns (plan 5a)
 - `LightTerms() []float64` (`light.go`): one light-scale term per held light
   record (`Conditions.LightSources` then `Condition.LightNow`), what

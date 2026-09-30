@@ -75,7 +75,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
   what changed. A `get` of a household's bauble is refused before any
   command is issued ("it belongs to the household here"):
   `actions.GetItemFromFloor` would refuse it anyway, silently, and she
-  would keep trying.
+  would keep trying. A `remove` of a cursed item is refused the same way
+  (slice 5a): `actions.CursedHolds(&mob.Character, t.Item)` is asked before
+  the command is issued, and a holding curse returns `actionOutcome{Refused:
+  "it will not come off"}` rather than issuing a `remove` the shared body
+  would refuse anyway.
 - **autonomy.go**: `perceive` (runs each round: settles the last action,
   notices new rooms and new things, offers quiet moments to act),
   `handleIdle` (owns the idle tick: first aid, idle gestures), impressions of
@@ -115,6 +119,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
   memory, the money rules for buying.
 - **loot.go**: the module's own mob commands `companion-loot` (owner's loot
   rights only) and `companion-takeout` (unhidden, unlocked containers).
+- **cooking.go**: `craftableHere(mob, p, room)` lists what she knows, has the
+  makings for, and has the place for. Slice 5a added a fourth gate ahead of
+  the recipe walk: `cannotSee(mob, room)` (perception.go, `sightOf !=
+  SightFull`) empties the list in the dark, so autonomy never proposes a
+  craft that would not start and the prompt never lists a recipe she cannot
+  see to make. Before 5a this function had no sight test at all.
 - **harm.go**: `harmAllowed` and `areaHarmAllowed`, the one gate on
   everything she starts: the engine's own player harm rules
   (`mobs.CheckPlayerHarm` for a creature; `(*Room).CanPvp` plus the party

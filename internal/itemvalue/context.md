@@ -38,8 +38,11 @@ sugar over `ItemValueDelta(...).Score > 0`.
 - `delta.go` — `ItemValueDelta` main algorithm + internal
   helpers (`compatibleSlotsFor`, `displacedItemsForSlot`,
   `placementBonus`, `slotOf`, `itemInSlot`,
-  `encumbranceTierPenalty`, `canonicalRank`, `extraArmsLevel`,
-  `hasTailMutation`).
+  `encumbranceTierPenalty`, `canonicalRank`, `cursedAmong`,
+  `hasTailMutation`, `usesChooser`). `extraArmsLevel` is gone
+  (sight-gates 5a): weapon, shield, ring and wrist candidates no
+  longer read `ExtraArms`/mutations themselves, they ask
+  `characters.ChooseWornSlot` (below).
 
 ## Public API
 
@@ -70,15 +73,38 @@ Negative stat mods penalize (cursed items score below zero).
 
 ## ItemValueDelta algorithm (sketch)
 
+**Slice 5a: the scorer asks `Wear`'s own helper, it no longer reasons about
+arms independently.** `usesChooser(itemType)` is true for `Weapon`,
+`Offhand`, `Ring` and `Wrist`. For those four types, `compatibleSlotsFor`
+calls `char.ChooseWornSlot(candidate, 0)` (`internal/characters`, the one
+placement rule `Character.Wear` itself uses) and returns the single slot it
+names (`chooserSlotName` maps its `AllSlots` key back to a `SlotName`), or
+nil when the helper refuses or offers nothing — a candidate `Wear` would
+refuse is never scored at all. `displacedItemsForSlot` for the same four
+types returns the helper's own `Displaced` list (so a two-hander's stray
+second item, or which of six arms gives way, is modelled exactly as `Wear`
+would do it) rather than reading `itemInSlot` itself. Every other item type
+(armour slots, `Tail`, `ComponentBag`, `Light`) keeps its own direct
+slot-by-`ItemType` switch and reads `itemInSlot` for what it displaces, since
+those never had more than one candidate slot.
+
 1. Resolve candidate's compatible slots via
-   `compatibleSlotsFor(candidateSpec, char)` (respects
-   mutations: Tail, Extra Arms).
+   `compatibleSlotsFor(candidate, char)` — through `ChooseWornSlot` for the
+   four chooser types (above; this is where Tail and Extra Arms now enter,
+   inside `ChooseWornSlot` itself), or the type's fixed slot otherwise.
 2. For each compatible slot:
+   - Determine displaced items via `displacedItemsForSlot`.
+   - **Skip the slot if a curse would refuse it** (`cursedAmong`, sight-gates
+     5a spec point E8): `char.CursedRefusal(d)` is checked against every item
+     `displacedItemsForSlot` names. For the four chooser types this is
+     mostly redundant with `ChooseWornSlot` having already refused or routed
+     around a cursed occupant, but it also covers the non-chooser armour
+     slots, which have no such helper of their own and would otherwise score
+     a swap `Wear` refuses.
    - Compute placement bonus on the candidate
      (`TwoHandedBonus` if 2H, `DualWieldBonus` if Weapon at
      Offhand AND main is 1H, `ShieldBonus` if Offhand-type
      at Offhand).
-   - Determine displaced items via `displacedItemsForSlot`.
    - Score displaced items symmetrically (their current-slot
      bonuses included).
    - **Apply gear-effectiveness multiplier** (chunk 2.2a): multiply
@@ -91,7 +117,21 @@ Negative stat mods penalize (cursed items score below zero).
      carry-weight tier.
 3. Pick the slot with highest net score. Tiebreaker: canonical
    slot order (Weapon < Offhand < ... ).
-4. Return `SwapDelta{Score, Slot, Displaced}`.
+4. Return `SwapDelta{Score, Slot, Displaced}` — the zero value when every
+   candidate slot was refused (not equippable, or every candidate slot
+   cursed), so `IsUpgrade` is false rather than favouring whatever slot
+   scored least negative.
+
+`slot_agreement_test.go` (new, slice 5a) is the cross-package golden check:
+`TestScorerAndWearAgreeOnEverySlotChoice` builds matched characters across 0,
+1, 2 and 4 extra arms and 1500 random loadouts each, runs the same candidate
+(sword, greatsword, shield, ring, bracer) through both `ItemValueDelta` and
+`Character.Wear`, and asserts the scorer's `Slot`/`Displaced` match where
+`Wear` places the item and that both refuse together — it fails if the
+scorer's picture of a slot ever diverges from what an actual equip would do.
+`TestItemValueDelta_RingFollowsTheHelper` and
+`TestItemValueDelta_SkipsACursedSingleSlot` pin the curse-skipping behaviour
+at the unit level.
 
 **Incorporeal (rank 4) special case:** When `GearEffectivenessMultiplier`
 is 0.0 (all gear scores to 0), `ItemValueDelta` naturally returns
