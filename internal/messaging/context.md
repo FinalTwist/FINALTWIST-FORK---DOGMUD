@@ -10,7 +10,11 @@ the recipient's connection.
 1. **Compose** — caller produces `(Category, text)`.
 2. **Style normalize** — sentence-start caps, a/an agreement,
    duplicate-word collapse, sentence-end punctuation, ANSI canon for
-   names. Per-Category skip table in `normalize.go`.
+   names. Per-Category skip table in `normalize.go`. The a/an stage
+   looks through any run of `<ansi …>` open tags between the article
+   and the noun (`a <ansi fg="itemname">Ivory Fan</ansi>` becomes
+   `an …`), keeping the tags byte for byte. It tests the first letter,
+   not the sound, so "a useful" becomes "an useful"; a known limitation.
 3. **Sight gate** (visual channel only) — per-recipient: CanSeeClearly,
    CanSeeShapes, or skip-visual-deliver-audio. Consumes the chunk-6
    Perception FSM (see `internal/state/perception/`).

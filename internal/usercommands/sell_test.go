@@ -14,6 +14,7 @@ package usercommands
 // The tests focus on item count conservation and direction-of-gold-change.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -155,6 +156,37 @@ func TestSell_SingleItem(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, countSellItems(user.Character, testSellItemId), "item should leave backpack")
 	assert.Greater(t, user.Character.Gold, startGold, "gold must increase after sell")
+}
+
+// TestSell_SingleItem_VowelNameGetsAn drives the real sell path and reads
+// the delivered line. The item name arrives wrapped in <ansi
+// fg="itemname">, which once hid its vowel from the a/an stage and
+// produced "You sell a Iron Sword".
+func TestSell_SingleItem_VowelNameGetsAn(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+
+	user, room := getTestUserAndRoom(t)
+	_, merchantCleanup := seedMerchantInRoom(t, user, 1000)
+	defer merchantCleanup()
+
+	require.True(t, user.Character.StoreItem(items.New(testSellItemId)))
+
+	msgs, stop := captureAllMessages(t)
+	handled, err := Sell("iron sword", user, room, 0)
+	stop()
+	require.True(t, handled)
+	require.NoError(t, err)
+
+	var mine []string
+	for _, m := range *msgs {
+		if m.UserId == user.UserId {
+			mine = append(mine, m.Text)
+		}
+	}
+	all := strings.Join(mine, "")
+	assert.Contains(t, all, `You sell an <ansi fg="itemname">Iron Sword</ansi>`)
+	assert.NotContains(t, all, `You sell a <ansi`)
 }
 
 // TestSell_Quantity_SellFive_HaveSeven verifies "sell 5 iron sword" with 7
