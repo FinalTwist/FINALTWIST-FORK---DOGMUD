@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -95,4 +97,64 @@ func TestMobEmote_SeenNotHeard(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"Skeleton growls."}, mobSpeechHeard(1), "a mob emote reaches the deafened (ruling 6)")
 	require.Empty(t, mobSpeechHeard(2), "the blinded see nothing")
+}
+
+// The lit-room shortcut named a howling mob to a blinded listener.
+func TestMobHowl_FumbleHeardWithoutAName(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, room := mobSpeechRoom(t)
+	mob.Character.SetAggro(1, 0, characters.DefaultAttack)
+	original := executeTauntAction
+	executeTauntAction = func(actions.Actor) actions.TauntResult {
+		return actions.TauntResult{Executed: true, Fumble: true}
+	}
+	t.Cleanup(func() { executeTauntAction = original })
+
+	_, err := Howl("", mob, room)
+	require.NoError(t, err)
+	require.Equal(t, []string{"Skeleton lets out a pitiful howl that trails off weakly."}, mobSpeechHeard(1))
+	require.Equal(t, []string{"Something lets out a pitiful howl that trails off weakly."}, mobSpeechHeard(2))
+}
+
+// Ported from audio_room_text_sight_test.go (lighting plan 5c finding 1): a
+// night-vision holder in a dark room cannot tell who is speaking.
+func TestMobSay_NightVisionInTheDarkHearsNoName(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
+	})
+	defer restoreBiomes()
+	const nightId = 9631
+	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		nightId: {ConditionId: nightId, Name: "Test Night Sight", RoundInterval: 1, TriggerCount: 10,
+			Flags:   []conditions.Flag{conditions.NightVision},
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectNightVisionStrength: {Literal: 24}}},
+	})
+	defer restoreConditions()
+
+	mob := mobs.GetInstance(100)
+	require.NotNil(t, mob)
+	for _, lamp := range []int{0, 10, 24} {
+		room := rooms.LoadRoom(2)
+		require.NotNil(t, room)
+		room.Biome = "cave"
+		room.Lamp = rooms.LampPtr(lamp)
+		u := users.GetByUserId(1)
+		rooms.LoadRoom(1).RemovePlayer(1)
+		u.Character.RoomId = 2
+		room.AddPlayer(1)
+		if !u.Character.HasCondition(nightId) {
+			require.True(t, u.Character.Conditions.AddCondition(nightId, true))
+		}
+		require.NotEqual(t, messaging.SightFull, messaging.ParticipantSight(u.Character, room), "light %d", lamp)
+
+		events.DrainQueuedMessagesForTest(1)
+		_, err := Say("growls", mob, room)
+		require.NoError(t, err)
+		got := strings.Join(mobSpeechHeard(1), "\n")
+		require.Contains(t, got, `says, "growls"`, "light %d: the words arrive", lamp)
+		require.NotContains(t, got, "Skeleton", "light %d: a nightvision holder in a dark room cannot tell who", lamp)
+	}
 }

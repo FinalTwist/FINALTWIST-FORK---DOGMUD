@@ -72,7 +72,7 @@ func TestMobTauntTriadUsesTheAuthoredStore(t *testing.T) {
 }
 
 // TestMobTauntTriadAnonymizesInTheDark is the property the mob side cannot
-// inherit and must build by hand: sendAudioRoomText delivers on the AUDIO
+// inherit and must build by hand: rooms.Room.SendTextHidingNames delivers on the AUDIO
 // channel, which messaging's pipeline never sight-gates and never anonymizes.
 //
 // This is also why {actortype} and {acteetype} must resolve to real name

@@ -17,7 +17,7 @@ import (
 // messaging.Trio literal) or from acteeDefenceLine (which itself only wraps
 // Say). No other Send-family call -- SendText, SendTextVisual*,
 // SendToTarget*, SendToSource*, SendToRoomOld, or a free-function wrapper
-// such as sendAudioRoomText/sendMovementMessage -- ever carries one of these
+// such as sendMovementMessage (or the since-deleted sendAudioRoomText) -- ever carries one of these
 // three as a literal argument in production code today.
 //
 // This is a SMALL, DELIBERATELY NARROW set, not "every narration category."
@@ -105,6 +105,14 @@ import (
 // CategorySubmission's last raw sender, so it joined sendTrioOnlyCategories
 // below. The bullet above is a survey record of PR 3 and stays as written;
 // this note is what supersedes it.
+//
+// Sight gates slice 5b (2026-09-29): mobcommands/darkness.go's
+// sendAudioRoomText and sendAudioRoomTextHidingNames are deleted, and
+// Actor.SendRoomCommunication (actor_mob.go:52 above) with them. The Taunt*,
+// Rally, Warcry, Shout and Speech categories now leave through
+// rooms.Room.SendTextHidingNames and SendCommunicationHidingNames, still not
+// SendTrio, so sendTrioOnlyCategories is unchanged. The survey bullets above
+// stay as the record of their dates.
 var sendTrioOnlyCategories = []string{"Kick", "Trip", "Bash", "Submission"}
 
 // sendTrioOnlyAllowed lists production files permitted to reference one of
