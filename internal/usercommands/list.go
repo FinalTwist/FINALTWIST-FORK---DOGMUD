@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/pets"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -58,6 +61,14 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		// Use ShopInventory for dynamic pricing if available; legacy otherwise.
 		shopInv := shops.GetShopInventory(mob.Zone, int(mob.MobId), mob.HomeRoomId)
 		if shopInv != nil {
+			// The shelf cap is enforced lazily (baubles slice D): a hold that
+			// ended since the last trade can push the listed entries over it.
+			now := shops.ShelfNow()
+			if shopInv.EnforceAffixedCap(int(configs.GetBalanceConfig().ShopAffixedStockCap), now) > 0 {
+				if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
+					mudlog.Error("LIST", "msg", "SaveShop failed", "error", err)
+				}
+			}
 			stock := buildShopStockFromInventory(shopInv, user)
 			// Also include non-item entries (conditions, mercs, pets) from legacy shop
 			for _, si := range mob.Character.Shop {
@@ -65,7 +76,9 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 					stock = append(stock, si)
 				}
 			}
-			if !renderMobMerchantListing(user, stock, mob.Character.Name) {
+			listedStock := renderMobMerchantListing(user, stock, mob.Character.Name)
+			listedShelf := renderShelfListing(user, shopInv, mob.Character.Name, now)
+			if !listedStock && !listedShelf {
 				mob.Command(`say I have nothing to sell right now, but check again later.`)
 			}
 		} else {
@@ -146,6 +159,38 @@ func buildShopStockFromInventory(shopInv *shops.ShopInventory, user *users.UserR
 		})
 	}
 	return stock
+}
+
+// buildShelfRows builds the "Secondhand goods" rows (baubles slice D): the
+// entries of si.ListedIndexes(now), in that order and unsorted, since buy
+// counts `buy 2.name` in the same order. A held entry is not shown. Name is
+// the viewer's own view (DisplayNameFor): a finder-only bauble reads Trinket
+// to everyone but its finder. Price is the relist price before barter, like
+// the stock table's.
+func buildShelfRows(si *shops.ShopInventory, viewerUserId int, now time.Time) [][]string {
+	rows := [][]string{}
+	for _, idx := range si.ListedIndexes(now) {
+		e := &si.AffixedStock[idx]
+		rows = append(rows, []string{
+			e.Item.DisplayNameFor(viewerUserId),
+			string(e.Item.GetSpec().Type),
+			strconv.Itoa(e.Price),
+		})
+	}
+	return rows
+}
+
+// renderShelfListing sends the lister the merchant's secondhand shelf as its
+// own table, rendered "Secondhand goods by <merchant>". Returns false when
+// nothing on it is listed.
+func renderShelfListing(user *users.UserRecord, si *shops.ShopInventory, sellerName string, now time.Time) bool {
+	rows := buildShelfRows(si, user.UserId, now)
+	if len(rows) == 0 {
+		return false
+	}
+	renderShopTable(user, `Secondhand goods`, `cyan`, sellerName, `mobname`, []string{"Name", "Type", "Price"}, rows,
+		`To buy something, type: <ansi fg="command">buy [name]</ansi>`)
+	return true
 }
 
 // partitionShopStock splits shop stock into four categories: items, mercs, conditions, pets.

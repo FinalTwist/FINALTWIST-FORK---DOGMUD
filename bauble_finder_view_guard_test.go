@@ -73,6 +73,7 @@ var finderViewSites = map[string]finderViewSite{
 	"internal/actions/steal.go|takeFromMob":                    {3, "the thief's own success line (actor.SendText); the room is not told what was taken"},
 	"internal/usercommands/appraise.go|appraiseBauble":         {4, "the appraisal, sent to the player who asked for it (user.SendText); the room line names no item"},
 	"internal/usercommands/inventory.go|Inventory":             {2, "the player's own inventory listing"},
+	"internal/usercommands/list.go|buildShelfRows":             {1, "the lister's own shop listing; renderShopTable sends it to that user alone"},
 	"internal/usercommands/look.go|Look":                       {4, "what the looker reads about an item they carry or one on the floor; the room lines beside them keep DisplayName"},
 	"internal/usercommands/look.go|lookRoom":                   {2, "the looker's own view of the room's floor and their own stash"},
 	"modules/gmcp/gmcp.Char.go|GMCPCharModule.GetCharNode":     {1, "the player's own Char.Inventory backpack"},
