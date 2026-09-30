@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -15,15 +16,21 @@ type SayResult struct {
 	Text       string
 }
 
-// Say handles shared say logic: checks the Hidden condition, fires the exit echo,
-// and fires the Communication event. The caller handles: mute checks, drunk
-// text, self-message, room formatting, and darkness-aware display.
+// Say is the one say body for a player and a mob (sight gates slice 5b). It
+// reveals a hidden speaker, echoes "You hear someone talking." through the
+// exits, fires the Communication event, and sends the room line through
+// sendSpoken: every listener hears the words, and the speaker's name follows
+// that listener's sight. A player's line keeps the deafen filter; an NPC's
+// does not (owner ruling 6).
+//
+// The wrappers keep only their own concerns: mute, drunk text, escaping and
+// the speaker's own line (player), and the no-players shortcut (mob).
 func Say(actor Actor, text string) SayResult {
 	char := actor.GetCharacter()
 
-	// Speaking aloud is a noisy action — reveal if hidden.
+	// Speaking aloud is a noisy action: reveal if hidden.
 	if char.IsHidden() {
-		char.Awareness.TransitionToRevealing(state.TransitionReason{
+		_ = char.Awareness.TransitionToRevealing(state.TransitionReason{
 			Trigger:  awareness.TriggerNoisyAction,
 			Metadata: map[string]any{"command": "say"},
 		})
@@ -31,7 +38,8 @@ func Say(actor Actor, text string) SayResult {
 
 	isSneaking := char.IsHidden()
 
-	actor.GetRoom().SendTextToExits(`You hear someone talking.`, true)
+	room := actor.GetRoom()
+	room.SendTextToExits(`You hear someone talking.`, true)
 
 	events.AddToQueue(events.Communication{
 		SourceUserId:        actor.GetUserId(),
@@ -40,6 +48,13 @@ func Say(actor Actor, text string) SayResult {
 		Name:                actor.GetName(),
 		Message:             text,
 	})
+
+	nameColor, textColor := "mobname", "saytext-mob"
+	if actor.IsPlayer() {
+		nameColor, textColor = "username", "saytext"
+	}
+	sendSpoken(actor, room, messaging.CategorySpeech,
+		FormatSayText(actor.GetName(), text, false, nameColor, textColor), isSneaking)
 
 	return SayResult{
 		IsSneaking: isSneaking,

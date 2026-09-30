@@ -103,10 +103,8 @@ func merchantSay(room *rooms.Room, mob *mobs.Mob, line string) {
 	if mob == nil || room == nil {
 		return
 	}
-	actor := &MobActor{Mob: mob, Room: room}
-	result := Say(actor, line)
-	room.SendText(messaging.CategorySpeech,
-		FormatSayText(mob.Character.Name, result.Text, false, "mobname", "saytext-mob"))
+	// Say sends the room line itself (sight gates slice 5b).
+	Say(&MobActor{Mob: mob, Room: room}, line)
 }
 
 // affixedSellPrice is the fixed-spread price a shop pays for an affix-scaled

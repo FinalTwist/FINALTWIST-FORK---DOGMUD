@@ -276,3 +276,18 @@ func TestSendSpoken_AStillHiddenSpeakerIsUnseenByAll(t *testing.T) {
 		shapes: `Someone says, "psst"`, dark: `Someone says, "psst"`,
 	})
 }
+
+func TestSay_PerListener(t *testing.T) {
+	t.Run("player", func(t *testing.T) {
+		sc := newSpeechScene(t)
+		checkSpeech(t, sc, true, func(a Actor) { Say(a, "hello there") }, speechWant{
+			clear: `Kesh says, "hello there"`, blind: `Someone says, "hello there"`, deaf: "",
+			shapes: `A figure says, "hello there"`, dark: `Someone says, "hello there"`})
+	})
+	t.Run("mob", func(t *testing.T) {
+		sc := newSpeechScene(t)
+		checkSpeech(t, sc, false, func(a Actor) { Say(a, "hello there") }, speechWant{
+			clear: `Grel says, "hello there"`, blind: `Someone says, "hello there"`, deaf: `Grel says, "hello there"`,
+			shapes: `A figure says, "hello there"`, dark: `Someone says, "hello there"`})
+	})
+}
