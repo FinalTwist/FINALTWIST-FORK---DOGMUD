@@ -363,6 +363,7 @@ var legacyLiteralFiles = []string{
 	"internal/combat/submission.go",
 	"internal/combat/skill_moves.go",
 	"internal/hooks/Position_GrappleTick.go",
+	"internal/hooks/RoomChange_ShadowFollow.go",
 	"internal/actions/steal.go",
 	"internal/actions/plant.go",
 	"internal/actions/sneak.go",
