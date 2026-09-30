@@ -14,7 +14,7 @@ type Status string
 const (
 	StatusReady    Status = `ready`    // named by the model, or drawn from the fallback corpus
 	StatusFallback Status = `fallback` // a generic trinket: nothing named it and the corpus had nothing that fit
-	StatusSold     Status = `sold`     // sold to a merchant; the item is gone
+	StatusSold     Status = `sold`     // sold to a merchant; destroyed, or on its shelf
 	StatusRetired  Status = `retired`  // text withdrawn by an admin; shows generic text
 )
 
