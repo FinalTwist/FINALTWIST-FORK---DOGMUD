@@ -3,9 +3,9 @@
 Date: 2026-09-30. Owner-approved design, specced against `origin/master`
 6b6ff7ddf. Parent spec:
 `docs/superpowers/specs/2026-09-28-baubles-hardening-and-corpus-design.md`
-(slice D row). Four points the code raised need an owner ruling before the
-plan is written; they are listed in "Owner rulings needed" at the end, and
-every section that depends on one says so.
+(slice D row). The owner ruled on four points the code raised
+(2026-09-30); they are folded into the sections below and recorded under
+"Rulings" at the end.
 
 ## Facts verified against source
 
@@ -54,7 +54,9 @@ are from `_datafiles/config.yaml` (`git show HEAD:`).
 | F38 | `ShopSnapshot` has `CraftSupport` (yaml and json `craft_support`); `captureShops` covers every cached shop; `lookupShopMobName` falls back to `mobs.GetMobSpec` | `internal/economy/health/snapshot.go:60-88`, `capture.go:42-111, 484-499` |
 | F39 | `CraftSupport` consumers: `PerCraftSupportScores` keys on it (`scoring.go:151`), `ShopScoreRow.CraftSupport` (`scoring.go:825`); page groups `s.craft_support \|\| "(uncategorized)"` (`index.html:314`), score lookup `PerCraftSupport[disc]` (`:324`), per-shop cell `row.CraftSupport` with a dash fallback (`:351`) | files named |
 | F40 | Test to invert: `assert.Len(t, si.AffixedStock, 0, "baubles are not resold like affixed loot")` in `TestSell_Bauble_LivingShopByCraftSupport` | `sell_bauble_test.go:160-192`, line `:191` |
-| F41 | `saleProgression` awards Bartering on every sale | `sell.go:474-477` |
+| F41 | `saleProgression` awards Bartering once per `sell` command (`awardProgression` is true for the first sale only); `postSuccessBookkeeping` awards Bartering once per `buy` command, living-shop path included | `sell.go:292-295, 474-477`, `buy.go:431-435, 809-822` |
+| F42 | `Restore` picks the unsold status inline: `fallback`, or `ready` when `r.Generator.Named()`; then `sold` when `SoldValue > 0` | `internal/baubles/admin.go:111-128` (rule `:116-119`) |
+| F43 | The award path `AwardResolved` then `ApplyProgression` then `OnSkillUseScaled` then `CheckSkillProgression` has no per-trade or time-based limit on ordinary events: the chance is `ProgressionChanceForSkill`, keyed on skill level (plus mob gates). The only per-round claims are `claimBonusProgression` (bonus events) and `DriftFromCombat` | `internal/characters/progression_award_resolved.go:32-82`, `progression.go:115-140, 178-216, 384, 824, 884-935`; grep of `internal/progression`, `internal/characters` for cooldown, diminish, throttle, repeat |
 
 Brief corrections: `ApplyRegenerated` (`admin.go:262`) also reads status;
 F17 confirms auctions shelve no bauble today; F15 shows the cap knob has no
@@ -65,9 +67,10 @@ F17 confirms auctions shelve no bauble today; F15 shows the cap knob has no
 Baubles sold to a living shop go on its shelf (`AffixedStock`) at catalog
 value instead of leaving the world. `list` finally shows the shelf, per
 viewer. A bauble still hot when shelved is held off the shelf until its heat
-ends. Held entries sit outside the cap; the cap (listed entries) rises from 8
-to 12. Buying one back makes its record ready again. The dashboard types a
-fence's shop as `fence`.
+ends. A retired bauble is never shelved. Held entries sit outside the cap;
+the cap (listed entries) rises from 8 to 12. Buying one back returns its
+record to the status it had unsold. The dashboard types a fence's shop as
+`fence`.
 
 ## 1. Shelf entry and helpers (`internal/shops`)
 
@@ -94,8 +97,8 @@ comparison become `time.Time`.
 - `EnforceAffixedCap(cap int, now time.Time) int`: while the count of
   entries with `!Held(now)` exceeds `cap`, remove the non-held entry with the
   earliest `ListedAt()`, ties to the lowest index. Returns how many it
-  removed. `cap <= 0` removes nothing. A removed item is gone; for a bauble
-  the record already says sold.
+  removed. `cap <= 0` removes nothing. A removed item is gone; a bauble's
+  record keeps the sale that shelved it.
 - `RestoreAffixedStock(idx int, e AffixedStockEntry)` reinserts an entry at
   `idx` (clamped to the length), for `buy`'s rollback.
 
@@ -109,18 +112,22 @@ caller uses it, so non-baubles always get zero.
 Inside the existing `if shopInv != nil` block (F1), before `SaveShop`:
 
 ```go
-now := baubleNowForSale()
-shopInv.AddAffixedStock(item, item.GetSpec().Value,
-    int(configs.GetBalanceConfig().ShopAffixedStockCap),
-    baubles.ShelfHoldUntil(item, now), now)
+if rec, ok := baubles.Get(item.Bauble); ok && rec.Status != baubles.StatusRetired {
+    now := baubleNowForSale()
+    shopInv.AddAffixedStock(item, item.GetSpec().Value,
+        int(configs.GetBalanceConfig().ShopAffixedStockCap),
+        baubles.ShelfHoldUntil(item, now), now)
+}
 ```
 
 Price is the catalog value (F23), the same `GetSpec().Value` rule as affixed
 loot (F16). Every living shop that buys a bauble shelves it: fences, and the
-`general` and `jewelcrafting` buyers (F2, F7, F9). A legacy merchant (nil
-`shopInv`) still destroys it. `MarkSold` is unchanged and still runs after
-the save (subject to ruling R1). The header comment (`:18-25`) and the
-`:240` comment are rewritten to say baubles are shelved.
+`general` and `jewelcrafting` buyers (F2, F7, F9). Two cases still destroy
+it as today: a legacy merchant (nil `shopInv`), and a retired record (ruling
+1), whose withdrawn text would otherwise be listed under its real name once
+`MarkSold` sets it sold (F28, F32). `MarkSold` is unchanged and still runs
+after the save for every sale. The header comment (`:18-25`) and the `:240`
+comment are rewritten to say which baubles are shelved.
 
 ## 3. `list` (`internal/usercommands/list.go`)
 
@@ -152,6 +159,18 @@ In `tryPurchaseFromInventory`:
 
 - Before building the lists: `now := baubleNowForSale()`;
   `EnforceAffixedCap(cap, now)`; remember whether it removed anything.
+- Match a shelf bauble by the buyer's own view (ruling 4): its entry's
+  `plainName` and its `itemNames` element are
+  `e.Item.NameFor(buyer.GetUserId())` (F24), the same view `list` showed
+  that buyer, so a finder buys by their own name and everyone else by
+  `Trinket`. A mob buyer has user id 0 and so gets the generic view.
+  `itemNamesFancy` (sent to the room by the mob's say, F21), the room line
+  and the "You buy the X" line keep `DisplayName()`. For every other entry
+  `plainName` stays `GetSpec().Name`. The one new reference is registered
+  in `finderViewSites` (F25):
+  `"internal/actions/buy.go|tryPurchaseFromInventory": {1, "a match key
+  only: the buyer's own view of a shelf bauble's name, compared with what
+  the buyer typed and never sent"}`.
 - Skip held entries: they join neither `itemNames` nor `itemNamesFancy`
   (F20). A request that matches only a held bauble therefore takes the
   existing no-match path (F21) or the existing close-match rule, and the
@@ -165,16 +184,20 @@ In `tryPurchaseFromInventory`:
   buyer.GetUserId())` (section 5).
 - If `EnforceAffixedCap` removed anything and no purchase saved the shop,
   save it before returning.
-- Name matching for finder-only baubles: see ruling R4.
 
 ## 5. Record (`internal/baubles/sales.go`)
 
-- New `MarkBought(id string, buyerUserId int) bool`: `Update` setting
-  `Status = StatusReady` (subject to R1 and R2), logging `action bought`
-  like `MarkSold` (F28). `SoldAt`, `SoldValue` and every theft field are
-  kept. The bauble is therefore cold (its hold outlasted `Hot`) but still
-  `StolenGoods()`: honest shops buy it anywhere and a fence pays
-  `FencePrice`, 60% (F2, F7).
+- New `(r Record) unsoldStatus() Status` in `admin.go`: `StatusReady` when
+  `r.Generator.Named()`, else `StatusFallback`. `Restore` (F42) is rewritten
+  to call it in place of its inline lines `:116-119`, so the rule lives once
+  (ruling 2).
+- New `MarkBought(id string, buyerUserId int) bool`: `Update` that sets
+  `Status = r.unsoldStatus()` when the status is `sold`, and changes nothing
+  otherwise, so a record an admin retired while it sat on the shelf stays
+  retired. Logs `action bought` like `MarkSold` (F28). `SoldAt`,
+  `SoldValue` and every theft field are kept. A stolen bauble bought back
+  is therefore cold (its hold outlasted `Hot`) but still `StolenGoods()`:
+  honest shops buy it anywhere and a fence pays `FencePrice`, 60% (F2, F7).
 - `SalesSince` counts `!r.SoldAt.IsZero() && !r.SoldAt.Before(t)` and drops
   the status test (F29), so a buyback does not erase a past sale. A record
   sold twice holds only its latest `SoldAt` and `SoldValue`, so it counts
@@ -252,14 +275,19 @@ removed. Snapshots: see section 6.
    after it.
 5. Enforcement after a hold expires happens lazily on `list`, on `buy`, and
    on an add.
-6. A buyback sets the record ready and `SalesSince` still counts the sale.
+6. A buyback sets a named record ready and a generic one fallback,
+   leaves a retired one retired, and `SalesSince` still counts the sale;
+   `Restore` still passes its existing tests through `unsoldStatus`.
 7. `list` shows a finder-only bauble's own name to its finder and `Trinket`
-   to another player; the guard passes with the new row and fails without it.
+   to another player; `buy` matches the finder's own name for the finder
+   and `Trinket` for anyone else; the guard passes with the two new rows
+   and fails without either.
 8. The dashboard types a fence's shop `fence` in the discipline rollup and
    the per-shop row; an old snapshot without `fence` renders as before.
 9. A shelved bauble survives a catalog sweep (live and disk).
 10. Invert F40: a general store's sale leaves one shelf entry at catalog
-    value; a hot bauble's entry carries `HoldUntil = StolenAt + 72h`.
+    value; a hot bauble's entry carries `HoldUntil = StolenAt + 72h`; a
+    retired bauble's sale leaves the shelf empty and the record sold.
 11. `buy` rollback restores the original entry and price.
 12. Existing `TestAffixedStock_CapEvictsOldest` and
     `TestSell_Bauble_ASoldRecordSellsAgain` still pass.
@@ -278,40 +306,41 @@ cap tests pass the cap explicitly.
 - `HoldUntil` is fixed at shelving; a later change to
   `BaubleStolenHeatHours` does not move existing holds.
 - A value-1 bauble sells for 1 (F2) and buys back for 1 after barter (F7),
-  so a sell and buy loop costs nothing and each sale awards Bartering (F41).
-  The plan must check whether progression already damps repeated awards.
+  so a sell and buy loop costs nothing and awards Bartering twice per round
+  trip, once per command (F41). No limit on repeat awards from one trade
+  was found: the award path's only damping is the level-keyed chance, and
+  its per-round claims cover bonus events and combat drift only (F43). The
+  plan must re-run that grep (`internal/progression`,
+  `internal/characters/progression*.go`, `sell.go`, `buy.go` for a
+  cooldown, a per-merchant or per-item memory, or diminishing returns),
+  cite any limit it finds, and otherwise record the loop as an accepted
+  exposure or put a fix to the owner.
+- Accepted limitation (ruling 3): retiring and then restoring a bauble that
+  was bought back labels it `sold` while a player holds it, because
+  `Restore` still reads `SoldValue > 0` (F42). No `BoughtAt` field is added;
+  the label feeds admin reporting only.
 - The general-store discipline score changes when four fences (104, 9185,
   9209, 9213) leave the `general` group for `fence`.
 
-## Owner rulings needed
+## Rulings
 
-The approved design is specced as written. Each point below is where the
-code says the design, taken literally, does something unintended. The plan
-waits on these.
+Owner rulings of 2026-09-30 on the four points the code raised against the
+approved design.
 
-- **R1. A retired bauble sold to a shop shows its withdrawn text.** `MarkSold`
-  overwrites `retired` with `sold` (F28), and `View()` hides text only for
-  `retired` (F32). Today the item then leaves the world; with a shelf it is
-  listed under its real name, and `MarkBought` would set it ready. Proposed:
-  `MarkSold` stamps `SoldAt` and `SoldValue` but leaves a retired status
-  alone, and `MarkBought` changes only a `sold` status. This changes
-  "`MarkSold` is unchanged".
-- **R2. Buyback to `ready` mislabels a generic trinket.** A `fallback` record
-  (no name, F27) would come back `ready`. Proposed: `MarkBought` uses
-  `Restore`'s rule (`admin.go:116-119`): `ready` when `Generator.Named()`,
-  else `fallback`. Admin reporting only.
-- **R3. `Restore` after a buyback.** `Restore` sets `sold` whenever
-  `SoldValue > 0` (F31), which stays true after a buyback, so retiring and
-  restoring a bought-back bauble labels it sold while a player holds it. The
-  record cannot tell a shelved bauble from a bought-back one without a new
-  field. Proposed: accept (admin label only); the alternative is a
-  `BoughtAt` field that `Restore` compares with `SoldAt`.
-- **R4. A finder cannot buy by the name `list` shows them.** `buy` matches
-  `GetSpec().Name` (F20), which is `Trinket` for everyone (F23, F24), while
-  `list` shows the finder their own name. Proposed: bauble entries match on
-  `e.Item.NameFor(buyer.GetUserId())`, the room line and the mob's say keep
-  the viewer-agnostic names, and the function gets its `finderViewSites`
-  row. This adds a finder-view site to `buy.go`.
+1. **Retired baubles are not shelved.** `MarkSold` overwrites `retired`
+   with `sold` (F28) and `View()` hides text only for `retired` (F32), so a
+   shelved retired bauble would be listed under its withdrawn text. Ruling:
+   selling a retired bauble destroys it as today, `MarkSold` is unchanged,
+   and only records that are not retired go on the shelf (section 2).
+2. **Buyback status uses `Restore`'s rule.** A literal "ready" would
+   mislabel a generic trinket. Ruling: `ready` when `Generator.Named()`,
+   otherwise `fallback`, from one shared helper that `Restore` also calls
+   (section 5).
+3. **`Restore` after a buyback shows `sold`: accepted.** No `BoughtAt`
+   field. Recorded under Risks as an accepted limitation.
+4. **`buy` matches a shelf bauble by the buyer's own view,** the view
+   `list` used, and the new site is registered with the finder-view guard
+   (section 4).
 
 ## Out of scope
 
