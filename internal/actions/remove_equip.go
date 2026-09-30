@@ -4,6 +4,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 )
@@ -108,21 +109,56 @@ type RemoveEquipResult struct {
 	Item    items.Item
 	Found   bool
 	Removed bool // true when RemoveFromBody succeeded and item was stored/dropped
-	Err     error
+	// Busy: refused because the actor is focused on work (IsActing), before
+	// anything is looked up.
+	Busy bool
+	// Cursed: refused because the curse holds (CursedHolds).
+	Cursed bool
+	// CursedOverridden: the item was cursed but the actor's Spellcasting
+	// lifted it; it came off.
+	CursedOverridden bool
+	Err              error
 }
 
-// RemoveEquipment removes a worn item from the actor's body and stores it in
-// their backpack (falling back to dropping it on the floor if the backpack is
-// full). It cancels hidden conditions, fires the EquipmentChange event, and calls
-// Validate(). Cursed-item checks, messaging, and all-remove loops remain in
-// the callers.
+// CursedHolds is the one statement of the remove curse rule: a cursed item
+// stays on a living wearer, unless their Spellcasting is 4 or more, which
+// overrides it. Both remove wrappers and the AI companion ask it. (Equip has
+// its own rule, characters.CursedRefusal, with no exception.)
+func CursedHolds(char *characters.Character, item items.Item) (holds, overridden bool) {
+	if !item.IsCursed() || char.Health <= 0 {
+		return false, false
+	}
+	if char.GetSkillLevel(skills.Spellcasting) >= 4 {
+		return false, true
+	}
+	return true, false
+}
+
+// RemoveEquipment takes a worn item off and stores it in the backpack
+// (dropping it on the floor if the backpack is full). Gates, in order: Busy
+// (before the lookup, as the player's command always refused first), not
+// found, Cursed. It reveals the actor, fires EquipmentChange and calls
+// Validate(). Messaging stays in the callers.
 func RemoveEquipment(actor Actor, itemName string) RemoveEquipResult {
 	char := actor.GetCharacter()
-	room := actor.GetRoom()
-
+	if char.IsActing() {
+		return RemoveEquipResult{Busy: true}
+	}
 	matchItem, found := char.FindOnBody(itemName)
 	if !found || matchItem.ItemId < 1 {
 		return RemoveEquipResult{Found: false}
+	}
+	return removeWorn(actor, matchItem)
+}
+
+// removeWorn takes one worn item off through the curse gate.
+func removeWorn(actor Actor, matchItem items.Item) RemoveEquipResult {
+	char := actor.GetCharacter()
+	room := actor.GetRoom()
+
+	holds, overridden := CursedHolds(char, matchItem)
+	if holds {
+		return RemoveEquipResult{Item: matchItem, Found: true, Cursed: true}
 	}
 
 	char.Awareness.TransitionToRevealing(state.TransitionReason{
@@ -130,12 +166,12 @@ func RemoveEquipment(actor Actor, itemName string) RemoveEquipResult {
 	})
 
 	if !char.RemoveFromBody(matchItem) {
-		// RemoveFromBody failed — item is still on body
-		return RemoveEquipResult{Item: matchItem, Found: true, Removed: false}
+		// RemoveFromBody failed: item is still on body
+		return RemoveEquipResult{Item: matchItem, Found: true, CursedOverridden: overridden}
 	}
 
 	if !char.StoreItem(matchItem) {
-		// Backpack full — drop to floor as safety net
+		// Backpack full: drop to floor as safety net
 		room.AddItem(matchItem, false)
 	}
 
@@ -147,5 +183,34 @@ func RemoveEquipment(actor Actor, itemName string) RemoveEquipResult {
 
 	char.Validate()
 
-	return RemoveEquipResult{Item: matchItem, Found: true, Removed: true}
+	return RemoveEquipResult{Item: matchItem, Found: true, Removed: true, CursedOverridden: overridden}
+}
+
+// RemoveAllResult is the result of a RemoveAllEquipment call.
+type RemoveAllResult struct {
+	Busy    bool
+	Removed []items.Item
+	Cursed  []items.Item // left on: the curse holds
+}
+
+// RemoveAllEquipment is `remove all` for both actors: the busy gate once,
+// then every worn item through removeWorn by identity (not by name, so two
+// same-named pieces cannot confuse it). A cursed item is skipped and listed;
+// the rest come off, one EquipmentChange each.
+func RemoveAllEquipment(actor Actor) RemoveAllResult {
+	char := actor.GetCharacter()
+	if char.IsActing() {
+		return RemoveAllResult{Busy: true}
+	}
+	var out RemoveAllResult
+	for _, item := range char.Equipment.GetAllItems() {
+		res := removeWorn(actor, item)
+		switch {
+		case res.Cursed:
+			out.Cursed = append(out.Cursed, res.Item)
+		case res.Removed:
+			out.Removed = append(out.Removed, res.Item)
+		}
+	}
+	return out
 }

@@ -10,8 +10,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/activity"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
@@ -239,5 +241,59 @@ func TestGateParity_LookThroughAnExitNeedsLight(t *testing.T) {
 			}
 			assert.Equal(t, LookExitTooDark, res.Kind, "%s: heat shows shapes here, not in the next room", who)
 		}
+	}
+}
+
+func gateBusy(t *testing.T, c *characters.Character) {
+	t.Helper()
+	c.Activity = activity.NewMachine()
+	require.NoError(t, c.Activity.TransitionToCrafting(
+		activity.CraftingData{RecipeId: "test", RoundsTotal: 3},
+		state.TransitionReason{Trigger: activity.TriggerCraftBegin}))
+}
+
+func TestGateParity_RemoveWhileBusy(t *testing.T) {
+	for _, who := range gateWho {
+		s := newGateScene(t, gateLit)
+		a := s.actor(who)
+		a.GetCharacter().Equipment.Head = gateItem(39701, "cap", items.Head, false)
+		gateBusy(t, a.GetCharacter())
+		assert.True(t, RemoveEquipment(a, "cap").Busy, who)
+		assert.True(t, RemoveAllEquipment(a).Busy, who)
+		assert.Equal(t, 39701, a.GetCharacter().Equipment.Head.ItemId, who)
+	}
+}
+
+func TestGateParity_RemoveCursed(t *testing.T) {
+	for _, who := range gateWho {
+		s := newGateScene(t, gateLit)
+		a := s.actor(who)
+		c := a.GetCharacter()
+		c.Equipment.Ring = gateItem(39702, "hexed ring", items.Ring, true)
+		res := RemoveEquipment(a, "hexed ring")
+		assert.True(t, res.Cursed, who)
+		assert.False(t, res.Removed, who)
+		assert.Equal(t, 39702, c.Equipment.Ring.ItemId, who)
+
+		c.SetSkill(string(skills.Spellcasting), 4)
+		res = RemoveEquipment(a, "hexed ring")
+		assert.True(t, res.Removed, who)
+		assert.True(t, res.CursedOverridden, who)
+	}
+}
+
+func TestGateParity_RemoveAllSkipsCursed(t *testing.T) {
+	for _, who := range gateWho {
+		s := newGateScene(t, gateLit)
+		a := s.actor(who)
+		c := a.GetCharacter()
+		c.Equipment.Ring = gateItem(39703, "hexed ring", items.Ring, true)
+		c.Equipment.Head = gateItem(39704, "cap", items.Head, false)
+		res := RemoveAllEquipment(a)
+		require.Len(t, res.Cursed, 1, who)
+		assert.Equal(t, 39703, res.Cursed[0].ItemId, who)
+		require.Len(t, res.Removed, 1, who)
+		assert.Equal(t, 39704, res.Removed[0].ItemId, who)
+		assert.Equal(t, 39703, c.Equipment.Ring.ItemId, who)
 	}
 }
