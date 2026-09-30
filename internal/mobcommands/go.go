@@ -137,7 +137,7 @@ func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			sneaking = true
 		}
 
-		actions.RelocateMob(mob, room, exitName, destRoom)
+		actions.RelocateMob(mob, room, exitName, destRoom, sneaking)
 
 		// The rare Search roll and hidden detection on entry, both ways
 		// (owner ruling 3), shared with players.
