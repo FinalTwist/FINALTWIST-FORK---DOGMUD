@@ -263,11 +263,16 @@ func TestSendSeen_Emotes(t *testing.T) {
 }
 
 // A speaker somehow still hidden after the reveal (spec S2) is unseen by
-// every listener, whatever their sight.
+// every listener, whatever their sight: the line already reads "Someone"
+// before it reaches SendCommunicationHidingNames, so no listener's own sight
+// can recover the name.
 func TestSendSpoken_AStillHiddenSpeakerIsUnseenByAll(t *testing.T) {
 	sc := newSpeechScene(t)
-	actor := sc.speaker(true, sc.lit)
-	sendSpoken(actor, sc.lit, messaging.CategorySpeech,
-		FormatSayText("Kesh", "psst", false, "username", "saytext"), true)
-	speechExpectOne(t, "clear", speechHeard(t, speechClearId), `Someone says, "psst"`)
+	checkSpeech(t, sc, true, func(a Actor) {
+		sendSpoken(a, a.GetRoom(), messaging.CategorySpeech,
+			FormatSayText("Kesh", "psst", false, "username", "saytext"), true)
+	}, speechWant{
+		clear: `Someone says, "psst"`, blind: `Someone says, "psst"`, deaf: "",
+		shapes: `Someone says, "psst"`, dark: `Someone says, "psst"`,
+	})
 }
