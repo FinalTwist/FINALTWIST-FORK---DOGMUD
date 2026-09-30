@@ -44,14 +44,13 @@ func (f *fakeActor) GetRoom() *rooms.Room                { return f.room }
 func (f *fakeActor) SendText(_ messaging.Category, msg string) {
 	f.selfTexts = append(f.selfTexts, msg)
 }
-func (f *fakeActor) SendRoomCommunication(msg string, excludeSelf bool) {}
-func (f *fakeActor) GetName() string                                    { return f.name }
-func (f *fakeActor) IsPlayer() bool                                     { return f.isPlayer }
-func (f *fakeActor) GetUserId() int                                     { return f.userId }
-func (f *fakeActor) GetMobInstanceId() int                              { return f.mobInstId }
-func (f *fakeActor) AddCondition(conditionId int, source string)        {}
-func (f *fakeActor) OnSkillUse(skillName string) bool                   { return false }
-func (f *fakeActor) OnStatUse(statName string) bool                     { return false }
+func (f *fakeActor) GetName() string                             { return f.name }
+func (f *fakeActor) IsPlayer() bool                              { return f.isPlayer }
+func (f *fakeActor) GetUserId() int                              { return f.userId }
+func (f *fakeActor) GetMobInstanceId() int                       { return f.mobInstId }
+func (f *fakeActor) AddCondition(conditionId int, source string) {}
+func (f *fakeActor) OnSkillUse(skillName string) bool            { return false }
+func (f *fakeActor) OnStatUse(statName string) bool              { return false }
 func (f *fakeActor) AwardResolved(won bool, cands ...progression.Candidate) {
 	f.awards = append(f.awards, recordedFoldAward{
 		won:   won,

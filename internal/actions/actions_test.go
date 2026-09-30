@@ -64,23 +64,14 @@ func TestEmoteNonAlias(t *testing.T) {
 	assert.Equal(t, "", result.AliasText, "custom emote should have empty alias text")
 }
 
-// TestFormatSayTextNormal verifies that non-sneaking say messages include
-// the actor's name and the word "says,".
+// TestFormatSayTextNormal verifies that say messages include the actor's
+// name and the word "says,".
 func TestFormatSayTextNormal(t *testing.T) {
-	formatted := FormatSayText("Gandalf", "You shall not pass!", false, "username", "saytext")
+	formatted := FormatSayText("Gandalf", "You shall not pass!", "username", "saytext")
 	assert.Contains(t, formatted, "Gandalf", "normal say should include actor name")
 	assert.Contains(t, formatted, "says,", "normal say should contain 'says,'")
 	assert.Contains(t, formatted, "You shall not pass!", "normal say should include message text")
 	assert.NotContains(t, formatted, "someone says", "normal say should not use 'someone says'")
-}
-
-// TestFormatSayTextSneaking verifies that sneaking say messages use "someone says,"
-// and do NOT include the actor's name.
-func TestFormatSayTextSneaking(t *testing.T) {
-	formatted := FormatSayText("Sneaky", "Watch out!", true, "username", "saytext")
-	assert.Contains(t, formatted, "someone says,", "sneaking say should use 'someone says,'")
-	assert.NotContains(t, formatted, "Sneaky", "sneaking say should not reveal the actor name")
-	assert.Contains(t, formatted, "Watch out!", "sneaking say should include message text")
 }
 
 // TestFormatEmoteText verifies that formatted emote messages contain both
@@ -125,7 +116,7 @@ func TestEmoteAliasesPopulated(t *testing.T) {
 // wrapped at 80 characters per line (via util.SplitStringNL).
 func TestFormatSayTextLineWrapping(t *testing.T) {
 	longText := strings.Repeat("word ", 30) // Creates a very long message
-	formatted := FormatSayText("Speaker", longText, false, "username", "saytext")
+	formatted := FormatSayText("Speaker", longText, "username", "saytext")
 	// Check that the output contains newlines (line wrapping)
 	lines := strings.Split(formatted, "\n")
 	// With proper wrapping, we should have multiple lines

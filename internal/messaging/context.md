@@ -352,6 +352,21 @@ Functions:
   figure" at shapes and "something" otherwise. `UnseenFigure(d)` is the same
   word in the `combat-anon` tag, for a list entry that stands alone; the room
   roster (`rooms.GetDetails`), `scan` and `search`'s found-hider list use it.
+- `NameHider` (sight gates slice 5b): the shape `HideNames` and
+  `HideSpeakerNames` share (`func(text string, names []string, d
+  SightDecision) string`), so a room sender that hides names on the audio
+  channel can take either interchangeably: a sound
+  (`messaging.HideNames`, "Something lets out a roar!") or a speaker
+  (`messaging.HideSpeakerNames`, "Someone says, ...").
+- `HideSpeakerNames(text string, names []string, d SightDecision) string`
+  (sight gates slice 5b): hides a SPEAKER's name in a speech line, never the
+  spoken words. Only a name standing as a whole identity tag is replaced,
+  capitalised at a sentence start, as "a figure" at shapes or "someone"
+  otherwise (a voice belongs to a person, so the unseen word differs from
+  `HideNames`' "something", owner ruling 3); a bare mention inside the
+  quoted speech itself is untouched ("I am Kesh" stays "I am Kesh"), and a
+  player's words cannot forge an identity tag because the wrappers escape
+  them first (`util.EscapeAnsiTags`). Clear sight returns `text` unchanged.
 - `Normalize(cat Category, text string) string`
 - `Anonymize(text string) string`: the pipeline's infrared fallback for every
   visual line. Replaces each identity tag with "a figure" and takes the
@@ -458,7 +473,7 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `pipeline.go` | Stage ordering: compose, normalize, sight gate, anonymize, color, wrap, deliver |
 | `normalize.go` | Grammar and article normalisation |
 | `anonymize.go` | Replacing names the observer should not see (infrared fallback, whole-line) |
-| `hidenames.go` | `HideNames` — replacing specific names in bare prose, longest-first, whole-word |
+| `hidenames.go` | `HideNames`, `NameHider`, `HideSpeakerNames` (sight gates slice 5b): replacing specific names in bare prose, longest-first, whole-word |
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it; `SeesThroughExit` and `FixedLight` (lighting plan 5c) |

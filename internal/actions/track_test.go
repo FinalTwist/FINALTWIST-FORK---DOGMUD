@@ -57,16 +57,15 @@ func newTrackMobActor(name string, room *rooms.Room, mobInstId int) *trackFakeAc
 	}
 }
 
-func (a *trackFakeActor) GetCharacter() *characters.Character    { return a.char }
-func (a *trackFakeActor) GetRoom() *rooms.Room                   { return a.room }
-func (a *trackFakeActor) GetName() string                        { return a.name }
-func (a *trackFakeActor) IsPlayer() bool                         { return a.isPlayer }
-func (a *trackFakeActor) GetUserId() int                         { return a.userId }
-func (a *trackFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *trackFakeActor) AddCondition(_ int, _ string)           {}
-func (a *trackFakeActor) OnSkillUse(_ string) bool               { return false }
-func (a *trackFakeActor) OnStatUse(_ string) bool                { return false }
-func (a *trackFakeActor) SendRoomCommunication(_ string, _ bool) {}
+func (a *trackFakeActor) GetCharacter() *characters.Character { return a.char }
+func (a *trackFakeActor) GetRoom() *rooms.Room                { return a.room }
+func (a *trackFakeActor) GetName() string                     { return a.name }
+func (a *trackFakeActor) IsPlayer() bool                      { return a.isPlayer }
+func (a *trackFakeActor) GetUserId() int                      { return a.userId }
+func (a *trackFakeActor) GetMobInstanceId() int               { return a.mobInstId }
+func (a *trackFakeActor) AddCondition(_ int, _ string)        {}
+func (a *trackFakeActor) OnSkillUse(_ string) bool            { return false }
+func (a *trackFakeActor) OnStatUse(_ string) bool             { return false }
 func (a *trackFakeActor) SendText(_ messaging.Category, msg string) {
 	a.sent = append(a.sent, msg)
 }

@@ -44,9 +44,9 @@ func Howl(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	switch {
 	case result.Fumble:
-		sendAudioRoomText(room, mob, messaging.CategoryTauntFailure,
-			`Something lets out a pitiful howl that trails off weakly.`,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lets out a pitiful howl that trails off weakly.`, mob.Character.Name))
+		room.SendTextHidingNames(messaging.CategoryTauntFailure,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lets out a pitiful howl that trails off weakly.`, mob.Character.Name),
+			[]string{mob.Character.Name}, messaging.HideNames)
 
 	case result.Hit:
 		if !result.Defence.Defended {
@@ -55,9 +55,9 @@ func Howl(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				sight := messaging.ParticipantSight(targetPlayer.Character, room)
 				targetPlayer.SendText(messaging.CategoryTauntSuccess, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 			}
-			sendAudioRoomTextHidingNames(room, messaging.CategoryTauntSuccess,
+			room.SendTextHidingNames(messaging.CategoryTauntSuccess,
 				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> throws back its head and lets out a bone-chilling howl at <ansi fg="username">%s</ansi>!`, mob.Character.Name, targetName),
-				[]string{mob.Character.Name, targetName})
+				[]string{mob.Character.Name, targetName}, messaging.HideNames)
 		}
 		sendChannelDefenceMessages(result.Defence, mob, targetPlayer, room, targetIdentity, targetName, "howl")
 
@@ -65,9 +65,9 @@ func Howl(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		// and pinned it (taunt-hold). AggroPulled is only ever set when the
 		// target is a mob, so the name colors as a mobname.
 		if result.AggroPulled {
-			sendAudioRoomText(room, mob, messaging.CategoryTauntSuccess,
-				`Something turns, drawn snarling toward a new foe.`,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> turns from its prey and snarls at <ansi fg="mobname">%s</ansi>!`, targetName, mob.Character.Name))
+			room.SendTextHidingNames(messaging.CategoryTauntSuccess,
+				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> turns from its prey and snarls at <ansi fg="mobname">%s</ansi>!`, targetName, mob.Character.Name),
+				[]string{mob.Character.Name, targetName}, messaging.HideNames)
 		}
 
 	default: // miss
@@ -76,9 +76,9 @@ func Howl(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			sight := messaging.ParticipantSight(targetPlayer.Character, room)
 			targetPlayer.SendText(messaging.CategoryTauntResist, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 		}
-		sendAudioRoomTextHidingNames(room, messaging.CategoryTauntResist,
+		room.SendTextHidingNames(messaging.CategoryTauntResist,
 			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> howls menacingly at <ansi fg="username">%s</ansi>, but it has no effect.`, mob.Character.Name, targetName),
-			[]string{mob.Character.Name, targetName})
+			[]string{mob.Character.Name, targetName}, messaging.HideNames)
 	}
 
 	return true, nil

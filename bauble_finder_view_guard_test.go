@@ -94,8 +94,10 @@ var finderViewSelectors = map[string]bool{
 var beyondReaderCalls = map[string]bool{
 	"SendTextCommunication": true, "SendTextVisual": true, "SendTextVisualHidingNames": true,
 	"SendTextVisualAsLit": true, "SendTextVisualAsLitHidingNames": true, "SendTextVisualWithAudio": true,
-	"SendTextToExits": true, "SendRoomCommunication": true, "SendTrio": true, "SendCounterTrio": true,
+	"SendTextHidingNames": true, "SendCommunicationHidingNames": true, "SendVisualCommunicationHidingNames": true,
+	"SendTextToExits": true, "SendTrio": true, "SendCounterTrio": true,
 	"SendMessage": true, "Command": true, "merchantSay": true,
+	"SendHeard": true, "SendSeen": true,
 }
 
 // isSendToRoom matches any SendTo...Room callee.

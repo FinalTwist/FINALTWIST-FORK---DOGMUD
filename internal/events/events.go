@@ -376,6 +376,50 @@ func DrainQueuedMessagesForTest(userId int) []string {
 	return found
 }
 
+// DrainQueuedMessageEventsForTest is DrainQueuedMessagesForTest returning the
+// whole Message, so a test can read IsCommunication as well as the text.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedMessageEventsForTest(userId int) []Message {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []Message
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		msg, ok := pe.event.(Message)
+		if ok && msg.UserId == userId {
+			found = append(found, msg)
+			continue
+		}
+		remaining = append(remaining, pe)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
+// DrainQueuedRoomMessagesForTest removes every RoomId-keyed Message queued for
+// roomId (Room.SendTextCommunication, Room.SendTextToExits) and returns them.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedRoomMessagesForTest(roomId int) []Message {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []Message
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		msg, ok := pe.event.(Message)
+		if ok && msg.UserId == 0 && msg.RoomId == roomId {
+			found = append(found, msg)
+			continue
+		}
+		remaining = append(remaining, pe)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
 // DrainQueuedPlayerAttackedMobsForTest removes all PlayerAttackedMob events
 // for the given user and returns them. Pass 0 to drain every such event.
 //

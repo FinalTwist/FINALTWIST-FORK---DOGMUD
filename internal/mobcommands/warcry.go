@@ -22,8 +22,8 @@ func Warcry(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		return true, nil
 	}
 
-	sendAudioRoomText(room, mob, messaging.CategoryWarcry,
-		`<ansi fg="red-bold">Something lets out a bone-shaking warcry!</ansi>`,
+	// Heard, not seen: the name follows each listener's sight (sight gates 5b).
+	actions.SendHeard(&actions.MobActor{Mob: mob, Room: room}, messaging.CategoryWarcry,
 		fmt.Sprintf(`<ansi fg="red-bold"><ansi fg="mobname">%s</ansi> lets out a bone-shaking warcry!</ansi>`, mob.Character.Name))
 
 	return true, nil

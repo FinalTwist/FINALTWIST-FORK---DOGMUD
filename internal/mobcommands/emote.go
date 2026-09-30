@@ -9,6 +9,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
+// Emote sends a mob's emote through actions.SendSeen: seen by sight, a bare
+// mention of its own name hidden at shapes too, and never deafen-filtered
+// (NPC lines are authored content, owner ruling 6).
 func Emote(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Don't bother if no players are present
@@ -16,9 +19,11 @@ func Emote(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		return true, nil
 	}
 
+	actor := &actions.MobActor{Mob: mob, Room: room}
+
 	if len(rest) == 0 {
-		room.SendTextVisual(messaging.CategoryMobEmote,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> emotes.`, mob.Character.Name))
+		actions.SendSeen(actor, messaging.CategoryMobEmote,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> emotes.`, mob.Character.Name), false)
 		return true, nil
 	}
 
@@ -28,7 +33,8 @@ func Emote(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		emoteText = result.AliasText
 	}
 
-	room.SendTextVisual(messaging.CategoryMobEmote, actions.FormatEmoteText(mob.Character.Name, emoteText, "mobname"))
+	actions.SendSeen(actor, messaging.CategoryMobEmote,
+		actions.FormatEmoteText(mob.Character.Name, emoteText, "mobname"), false)
 
 	return true, nil
 }

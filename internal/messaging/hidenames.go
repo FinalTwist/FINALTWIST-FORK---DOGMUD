@@ -57,6 +57,54 @@ func HideNames(text string, names []string, d SightDecision) string {
 		return text
 	}
 	word := UnseenNoun(d)
+	for _, name := range longestFirst(names) {
+		text = hideTaggedName(text, name, word)
+		text = hideOneName(text, name, word)
+	}
+	return text
+}
+
+// NameHider is the shape HideNames and HideSpeakerNames share: rewrite text
+// so a reader at d cannot tell who names are. The room senders that hide
+// names on the audio channel take one, so a sound ("Something lets out a
+// roar!") and a speaker ("Someone says, ...") share one delivery path.
+type NameHider func(text string, names []string, d SightDecision) string
+
+// speakerNoun is what a listener at d calls a speaker it cannot make out: "a
+// figure" at shapes, "someone" otherwise. A voice belongs to a person, so the
+// unseen word is "someone" where UnseenNoun says "something" (owner ruling 3,
+// sight gates slice 5b).
+func speakerNoun(d SightDecision) string {
+	if d == SightShapes {
+		return "a figure"
+	}
+	return "someone"
+}
+
+// HideSpeakerNames hides a speaker's name in a speech line from a listener at
+// d: each of names, where it stands as a whole identity tag, becomes "a
+// figure" or "someone", capitalised at a sentence start. Clear sight returns
+// text unchanged.
+//
+// Only the tagged name goes, never a bare mention. Every speech line opens
+// with the speaker's name as an identity tag (actions.FormatSayText and
+// actions.Shout tag it), and the spoken words must arrive untouched (owner
+// ruling 3): "I am Kesh" stays "I am Kesh". A player's words cannot forge an
+// identity tag, because the wrappers escape them (util.EscapeAnsiTags).
+func HideSpeakerNames(text string, names []string, d SightDecision) string {
+	if d == SightFull || text == "" {
+		return text
+	}
+	word := speakerNoun(d)
+	for _, name := range longestFirst(names) {
+		text = hideTaggedName(text, name, word)
+	}
+	return text
+}
+
+// longestFirst is names without NoName, longest first, so a longer name is
+// hidden before a shorter one it contains.
+func longestFirst(names []string) []string {
 	ordered := make([]string, 0, len(names))
 	for _, n := range names {
 		if n != NoName {
@@ -64,11 +112,7 @@ func HideNames(text string, names []string, d SightDecision) string {
 		}
 	}
 	sort.SliceStable(ordered, func(i, j int) bool { return len(ordered[i]) > len(ordered[j]) })
-	for _, name := range ordered {
-		text = hideTaggedName(text, name, word)
-		text = hideOneName(text, name, word)
-	}
-	return text
+	return ordered
 }
 
 func hideOneName(text, name, word string) string {

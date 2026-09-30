@@ -1,15 +1,14 @@
 package mobcommands
 
 import (
-	"fmt"
-
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
+// Say speaks for a mob through actions.Say, which sends the room line with
+// the mob's name hidden by each listener's sight and no deafen filter (NPC
+// lines are authored content, owner ruling 6).
 func Say(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Don't bother if no players are present
@@ -17,17 +16,7 @@ func Say(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		return true, nil
 	}
 
-	actor := &actions.MobActor{Mob: mob, Room: room}
-	result := actions.Say(actor, rest)
-
-	if result.IsSneaking {
-		anonMsg := fmt.Sprintf(`someone says, "<ansi fg="saytext-mob">%s</ansi>"`, result.Text)
-		room.SendText(messaging.CategorySpeech, util.SplitStringNL(anonMsg, 80))
-	} else {
-		anonMsg := actions.FormatSayText("", result.Text, true, "mobname", "saytext-mob")
-		namedMsg := actions.FormatSayText(mob.Character.Name, result.Text, false, "mobname", "saytext-mob")
-		sendAudioRoomText(room, mob, messaging.CategorySpeech, anonMsg, namedMsg)
-	}
+	actions.Say(&actions.MobActor{Mob: mob, Room: room}, rest)
 
 	return true, nil
 }

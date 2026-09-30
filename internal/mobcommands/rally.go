@@ -22,8 +22,8 @@ func Rally(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		return true, nil
 	}
 
-	sendAudioRoomText(room, mob, messaging.CategoryRally,
-		`<ansi fg="cyan-bold">Something lets out a rallying roar!</ansi>`,
+	// Heard, not seen: the name follows each listener's sight (sight gates 5b).
+	actions.SendHeard(&actions.MobActor{Mob: mob, Room: room}, messaging.CategoryRally,
 		fmt.Sprintf(`<ansi fg="cyan-bold"><ansi fg="mobname">%s</ansi> lets out a rallying roar!</ansi>`, mob.Character.Name))
 
 	return true, nil

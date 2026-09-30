@@ -31,9 +31,9 @@ import (
 // This was the third hand-rolled darkness check in this package. canSeeInDark
 // is gone (M4e-1 Task 9: every visual reader now gets ParticipantSight +
 // HideNames, the three-tier verdict, instead of a binary lit-or-nightvision
-// check). What remains hand-rolled is darkness.go's sendAudioRoomText, still
-// two-tier by construction for the four speech commands (say.go, shout.go,
-// rally.go, warcry.go) that call it directly.
+// check). The last one, darkness.go's two-tier sendAudioRoomText, was deleted
+// by sight gates slice 5b: speech, rally, warcry, howl and taunt now hide
+// names through rooms.Room.SendTextHidingNames at every tier.
 func sendMovementMessage(room *rooms.Room, visualCat messaging.Category, visualMsg string, soundMsg string) {
 	room.SendTextVisualWithAudio(visualCat, visualMsg, soundMsg)
 }

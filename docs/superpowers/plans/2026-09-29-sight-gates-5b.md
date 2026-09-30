@@ -10,21 +10,21 @@
 
 **Spec (binding):** `docs/superpowers/specs/2026-09-29-sight-and-gates-parity-design.md`, section "5b: Speech and emotes in the dark", owner rulings 3, 5, 6 and 7.
 
-**Branch:** `feature/sight-gates-5b`, cut from master AFTER the 5a PR merges. 5b touches different code from 5a and could branch from master independently; it waits only because the spec orders the PRs. Files both slices touch (textual conflicts only, resolve by keeping both sides): `internal/actions/context.md`, `internal/mobcommands/context.md`, `internal/usercommands/context.md`, `docs/PATCH_NOTES.md`, `docs/README.md`, `internal/actions/economy_test.go` (5a edits its lines 279-340; 5b deletes its line 53), and possibly `bauble_finder_view_guard_test.go` and `messaging_surface_guard_test.go` if 5a re-keys an entry there.
+**Branch:** `feature/sight-gates-5b`, cut from master `6b6ff7ddf` (after 5a, #195, and baubles slice C, #197, merged). Both are in the base, so there is no pending conflict to resolve. The worktree already exists:
 
 ```bash
 cd "C:/Users/Calabe Davis/workspace/DOGMud"
 git fetch origin
-git worktree add -b feature/sight-gates-5b C:/tmp/dogmud-5b origin/master
+git worktree add -b feature/sight-gates-5b C:/tmp/dogmud-5b 6b6ff7ddf
 ```
 
 All paths below are relative to that worktree. Run Go commands from its root.
 
 ---
 
-## Facts verified against source (2026-09-29, worktree HEAD `3152749b0`)
+## Facts verified against source (first 2026-09-29 at `7d6d4ac38`; re-verified 2026-09-30 at `6b6ff7ddf`)
 
-`3152749b0` differs from master `7d6d4ac38` in `docs/` only (`git diff --stat 7d6d4ac38 HEAD -- . ':!docs'` is empty), so every spec row read at `7d6d4ac38` still holds line for line. Rows marked **NEW** are facts the spec does not state and that change the plan. Tests load Go config defaults, not `config.yaml`.
+Every row below was re-read at `6b6ff7ddf` (master after 5a #195 and baubles slice C #197). Of the 74 Go/internal files those merges changed, the only ones this plan reads or edits are `raw_events_message_guard_test.go` (F36), `internal/actions/context.md` (Task 12 anchor), `internal/mobcommands/context.md` and `internal/usercommands/context.md` (no anchor moved), and four new or grown `internal/actions` test files (no Actor fake, no fixture id or helper name collides). Every other source file named here is byte-identical to `7d6d4ac38`, and every "replace" / "delete" code block in Tasks 1 to 10 was matched verbatim against HEAD by script. Rows marked **NEW** are facts the spec does not state and that change the plan. Tests load Go config defaults, not `config.yaml`.
 
 | # | Fact | Where |
 |---|---|---|
@@ -44,9 +44,9 @@ All paths below are relative to that worktree. Run Go commands from its root.
 | F14 | Colour aliases: `rally` 14, `warcry` 9, `combat-anon` 196, `speech` 111, `shout` 215, `emote` 144, `mob-emote` 137. So player say, shout and free-form emote, sent today through `SendTextCommunication`, carry NO category colour; mob speech does | `_datafiles/world/dogmud/ansi-aliases.yaml:222-249` |
 | F15 | The deafen filter is `message.IsCommunication && user.Deafened`, on the per-user branch (`:29`) and the RoomId branch (`:83`). It is the only reader of `Message.IsCommunication` (`Broadcast.IsCommunication` at `eventtypes.go:114` is a different struct, read by `Broadcast_SendToAll.go:33` and `discord/listeners.go:106`) | `internal/hooks/Message_SendMessages.go:29,83`; grep `IsCommunication` |
 | F16 | **NEW.** No test helper returns a queued `Message`'s flags or a RoomId-keyed message: `DrainQueuedMessagesForTest(userId) []string` returns `Text` of `UserId`-keyed messages only. The deafen verdict is applied in the hook, after the queue, so a test cannot observe it today | `internal/events/events.go:357-377` |
-| F17 | `Actor.SendRoomCommunication(msg, excludeSelf)`: interface `actor.go:27-31`, `UserActor` `actor_user.go:46-52`, `MobActor` `actor_mob.go:45-53`. No production call (grep `\.SendRoomCommunication(` finds none). Nine test fakes: `actions/{consider:54,economy:53,forage:73,salvage:74,scan:68,search:72,sleep:39,track:69}_test.go`, `hooks/spell_foldanchor_test.go:47` | grep |
-| F18 | **NEW.** `actions.Say` has two more callers the spec does not list, each sending its OWN named line through plain `room.SendText(CategorySpeech, FormatSayText(mob.Character.Name, ..., false, "mobname", "saytext-mob"))` in any light: the justice guard speech and the merchant refusal. Once `Say` sends the room line both would double-send, so both drop their own send | `internal/hooks/justice_wiring.go:15-23`; `internal/actions/sell.go:102-110` |
-| F19 | `FormatSayText` callers: `usercommands/say.go:35`, `mobcommands/say.go:27,28`, `sell.go:109`, `justice_wiring.go:22`; pinned by `actions_test.go:67-126` | grep `FormatSayText(` |
+| F17 | `Actor.SendRoomCommunication(msg, excludeSelf)`: interface `actor.go:27-31`, `UserActor` `actor_user.go:46-52`, `MobActor` `actor_mob.go:45-53`. No production call (grep `\.SendRoomCommunication(` finds none). Nine test fakes: `actions/{consider:54,economy:53,forage:73,salvage:74,scan:68,search:72,sleep:39,track:69}_test.go`, `hooks/spell_foldanchor_test.go:47`. 5a and slice C added no Actor fake and no Actor method; `grep -rn SendRoomCommunication --include=*.go .` prints 15 lines | grep |
+| F18 | **NEW.** `actions.Say` has three more callers the spec does not list, each sending its OWN named line through plain `room.SendText(CategorySpeech, FormatSayText(mob.Character.Name, ..., false, "mobname", "saytext-mob"))` in any light: the justice guard speech, the merchant refusal in `actions/sell.go`, and the offer/appraise merchant line in `usercommands/offer.go` (its own package-local `merchantSay`, also called by `appraise.go:104,129,131`). Once `Say` sends the room line all three would double-send, so all three drop their own send | `internal/hooks/justice_wiring.go:15-23`; `internal/actions/sell.go:102-110`; `internal/usercommands/offer.go:20-28` |
+| F19 | `FormatSayText` callers: `usercommands/say.go:35`, `mobcommands/say.go:27,28`, `sell.go:109`, `justice_wiring.go:22`, `usercommands/offer.go:27`; pinned by `actions_test.go:67-126` | grep `FormatSayText(` |
 | F20 | `SendTextCommunication` production callers: `actor_user.go:48,50`, `usercommands/emote.go:52`, `say.go:36`, `shout.go:51,54,59`, and `modules/aicompanion/listeners.go:417` (the player `ask` line, out of scope). So the method stays | grep |
 | F21 | Player emote: empty `room.SendTextVisual(CategoryEmote, <ansi fg="username">%s</ansi> emotes., user.UserId)`; alias `room.SendTextVisual(CategoryEmote, aliasMsg, user.UserId)`; free-form and `@` `room.SendTextCommunication(FormatEmoteText(Name, rest, "username"), user.UserId)`; self line `You Emote: %s` except the `@` form | `internal/usercommands/emote.go:14-58` |
 | F22 | Mob emote: `PlayerCt() < 1` early return; empty and free/alias through `room.SendTextVisual(CategoryMobEmote, ...)` with no exclusion. `FormatEmoteText(name, text, color)` = `<ansi fg="%s">%s</ansi> <ansi fg="137">%s</ansi>` split at 80. `EmoteAliases["beam"]` = `beams with pride.` | `internal/mobcommands/emote.go:12-32`; `internal/actions/emote.go:27-35`; `emote_aliases.go:9` |
@@ -62,18 +62,30 @@ All paths below are relative to that worktree. Run Go commands from its root.
 | F32 | Existing say, shout and emote tests assert only `handled`/`err` (`usercommands_test.go:602-681,4107-4118,7170-7183`; `mobcommands_test.go:379-418,1219`), so they stay unchanged | grep |
 | F33 | Narration guard: `narrationRecognizeCall` returns observer only for `SendText`/`SendTextToUser` on a receiver named `room` and for `SendTextVisual`, `SendTextVisualHidingNames`, `SendTextVisualAsLit`, `SendTextVisualWithAudio` on `room`; a candidate event has an actor call plus exactly one of actee/observer, keyed `file|first literal`, keys collapse in a map. Registered keys this slice keeps: `usercommands/emote.go|You Emote: %s`, `|You emote.` (`:1345-1346`), `usercommands/rally.go|...You rally...`, `|...Your layered voice looses...` (`:1389-1390`), `usercommands/warcry.go|...Your layered voice weaves...`, `|...You let out a thunderous warcry...` (`:1414-1415`). Moving an observer call to an unrecognised sender turns those events actor-only and the entries stale | `messaging_surface_guard_test.go:863-927,1106-1124,1143-1199,1454-1515` |
 | F34 | `bauble_finder_view_guard_test.go` `beyondReaderCalls` lists `SendTextCommunication`, the visual family, `SendRoomCommunication`, `SendTrio`, `merchantSay` and others by callee name | `bauble_finder_view_guard_test.go:89-98` |
-| F35 | `m2_routing_guard_test.go:261-265` still recognises `sendAudioRoomText`; `m2RoutingFiles` is empty (`:70-71`). `send_trio_only_guard_test.go` names `sendAudioRoomText` at `:20,:45` and `actor_mob.go:52` at `:73` in comments | files named |
-| F36 | `raw_events_message_guard_test.go` allows `events.Message{` only in `rooms.go`, `userrecord.go`, `print.go`, `hooks.go`, `Message_SendMessages.go` | `raw_events_message_guard_test.go:19-25` |
+| F35 | `m2_routing_guard_test.go:261-265` still recognises `sendAudioRoomText`; `m2RoutingFiles` is empty (`:70-101`, comment lines only). `send_trio_only_guard_test.go` names `sendAudioRoomText` at `:20,:45` and `actor_mob.go:52` at `:73` in comments | files named |
+| F36 | `raw_events_message_guard_test.go` allows `events.Message{` only in `rooms.go`, `userrecord.go`, `print.go`, `admin.bauble.go` (added by slice C), `hooks.go`, `Message_SendMessages.go`. This plan's only new `events.Message{` literals are in `rooms.go` | `raw_events_message_guard_test.go:19-26` |
 | F37 | `awareness.TransitionToRevealing` passes through `Revealing` to `Visible` in the same call (spec S2) | `internal/state/awareness/awareness.go:190-214` |
-| F38 | Mob shout is live from `species/1-human.yaml:10-13` `angrycommands` (three `shout` lines) | file named |
-| F39 | `drink_wrapper_guard_test.go` is the re-fork guard template (package `main`, `os.ReadFile`, one regexp) | repo root |
+| F38 | Mob shout is live from `species/1-human.yaml:9-13` `angrycommands` (three `shout` lines, `:11-13`) | file named |
+| F39 | `drink_wrapper_guard_test.go` is the re-fork guard template (package `main`, `os.ReadFile`, one regexp). 5a added `sight_gates_wrapper_guard_test.go` (package `main`, `TestSightGateWrappersDoNotReFork`), which drops comments the same way Task 11 does (`parser.ParseFile(..., 0)` then `printer.Fprint`); the spec names a separate 5b file, and no name in Task 11 collides with it | repo root |
 | F40 | Admin tools for the playtest: `deafen <user>` (`admin.deafen.go:18-35`), `setcondition <target> <id>` (`admin.setcondition.go:48`), condition 3 Blinded lasts 3 rounds (`conditions/3-blinded.yaml`), `command <mob> <cmd>` issues a mob command (`admin.command.go:21-60`); dark cave 3101 and profiles `admin`, `m2-witness`, `slice-a-infrared` exist (`tools/playtest/scenarios/slice-a-dark-cave.yaml`, `tools/playtest/profiles/`) | files named |
+
+## Drift found on re-verify (2026-09-30)
+
+1. **F18, F19: a fifth `actions.Say` caller, `usercommands/offer.go` `merchantSay` (`:20-28`).** Not new drift (the file predates `7d6d4ac38`), but the first pass missed it. It double-sends once `Say` owns the room line, and Task 11's `TestSayRoomLineHasOneFormatter` would fail on it. Task 5 now thins it the same way as `actions/sell.go`; the file map, Tasks 5, 11 and 12 and "Where the spec could not be implemented" item 3 are updated.
+2. **F36:** slice C added `internal/usercommands/admin.bauble.go` to `rawEventsMessageAllowed`; the map is now `:19-26`. No effect on this plan.
+3. **F35, F38:** line ranges corrected (`m2RoutingFiles` spans `:70-101`; the human `angrycommands` start at `:9`). Files unchanged; the first pass cited them loosely.
+4. **F39:** 5a's `sight_gates_wrapper_guard_test.go` is a second template with the same comment-dropping approach; no collision with Task 11.
+5. **Task 8 Step 5:** the `SendTextCommunication(` caller check runs before Task 10, so `actions/actor_user.go:48,50` still appear; the expected list now says so.
+6. **Task 12:** `internal/actions/context.md` grew 91 lines under 5a; its `Social` files row moved from `:1581` to `:1672` (`:34` and `:82-84` did not move). The patch-notes heading takes the merge date, since 5a already holds a 2026-09-29 entry at the top.
+7. **Branch:** 5a merged; the conflict guidance is gone (5a did not touch `economy_test.go`, `bauble_finder_view_guard_test.go` or `messaging_surface_guard_test.go` after all).
+
+Unchanged and re-confirmed: every quoted "replace" / "delete" block (39 of them, plus the prose anchors in Tasks 2, 3, 4 and 8), the F24 line keys (`rally.go|57,86,114`, `warcry.go|57,90,118`), the F33 registered keys, the F34 `beyondReaderCalls` map, the F7 caller list, the F20 caller list, the nine F17 fakes, every fixture in F29 to F31, and every root guard test name the plan runs.
 
 ## Where the spec could not be implemented as written
 
 1. **One `SendTextHidingNames` cannot serve both nouns.** The spec routes mob speech ("Someone", ruling 3) and sounds ("Something", kept for rally, warcry, howl, taunt) through the same `SendTextHidingNames(cat, text, names, excl...)`. The plan adds one parameter, `hide messaging.NameHider`, so the caller picks `HideSpeakerNames` or `HideNames`. `SendCommunicationHidingNames` is speech only and keeps the spec's signature, hiding with `HideSpeakerNames`.
 2. **`HideSpeakerNames` as "the same matcher" would rewrite the spoken words.** `HideNames` also replaces bare mentions, so `Kesh says, "I am Kesh"` would reach a shapes listener as `A figure says, "I am a figure"`, against ruling 3 ("the words are always heard"). `HideSpeakerNames` hides the name only where it stands as an identity tag (F9's `hideTaggedName`), which is exactly the speaker label every speech line opens with. A player's words cannot forge an identity tag (the wrappers escape them). Emotes still hide a bare own name (they go through the visual `HideNames` path, as the spec asks).
-3. **`actions.Say` has four callers, not two (F18).** The plan moves the justice guard speech and the merchant refusal onto the shared room line too, so they gain the three tiers.
+3. **`actions.Say` has five callers, not two (F18).** The plan moves the justice guard speech, the merchant refusal (`actions/sell.go`) and the offer/appraise merchant line (`usercommands/offer.go`) onto the shared room line too, so they gain the three tiers.
 4. **Deafen is not observable in a test (F16).** The plan adds `events.Message.HiddenFromDeafened(deafened bool) bool`, makes the hook call it, and adds two queue-drain helpers, so the per-listener table asserts the real rule.
 5. **The player's adjacent-room shout line keeps `SendTextCommunication`** so it stays byte-identical and deafen-filtered; the mob's keeps `SendText(CategoryShout, ...)` and gains the words. The spec's "one line for both" is kept as one format string with the speaker's words colour.
 
@@ -115,6 +127,7 @@ Room lines only; no self line changes.
 | `internal/actions/shout.go` | Create: `ShoutResult`, `Shout`, `wakeSleepers` |
 | `internal/actions/speech_sight_test.go` | Create: the per-listener table and the shout, reveal, wake tests |
 | `internal/actions/sell.go` | `merchantSay` drops its own send |
+| `internal/usercommands/offer.go` | Its package-local `merchantSay` drops its own send |
 | `internal/actions/actor.go`, `actor_user.go`, `actor_mob.go` | Delete `SendRoomCommunication` |
 | `internal/actions/{consider,economy,forage,salvage,scan,search,sleep,track}_test.go`, `internal/hooks/spell_foldanchor_test.go` | Delete the fake `SendRoomCommunication` |
 | `internal/hooks/justice_wiring.go` | Drops its own send |
@@ -1223,10 +1236,10 @@ git commit -m "feat(actions): SendHeard and SendSeen, the shared speech and emot
 
 ### Task 5: `actions.Say` sends the room line
 
-**Model:** sonnet (four callers, two of them outside the spec).
+**Model:** sonnet (five callers, three of them outside the spec).
 
 **Files:**
-- Modify: `internal/actions/say.go`, `internal/actions/sell.go`, `internal/hooks/justice_wiring.go`, `internal/usercommands/say.go`, `internal/mobcommands/say.go`, `internal/actions/speech_sight_test.go`
+- Modify: `internal/actions/say.go`, `internal/actions/sell.go`, `internal/hooks/justice_wiring.go`, `internal/usercommands/offer.go`, `internal/usercommands/say.go`, `internal/mobcommands/say.go`, `internal/actions/speech_sight_test.go`
 - Create: `internal/usercommands/speech_sight_wrapper_test.go`, `internal/mobcommands/speech_sight_test.go`
 
 - [ ] **Step 1: Write the failing tests**
@@ -1550,7 +1563,7 @@ func Say(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 }
 ```
 
-- [ ] **Step 5: The two callers the spec missed (F18)**
+- [ ] **Step 5: The three callers the spec missed (F18)**
 
 In `internal/actions/sell.go`, replace the body of `merchantSay`:
 
@@ -1590,6 +1603,26 @@ with:
 
 and delete the now-unused import line `"github.com/GoMudEngine/GoMud/internal/messaging"` from `justice_wiring.go`.
 
+In `internal/usercommands/offer.go`, replace the body of its package-local `merchantSay` (used by `Offer` and by `appraise.go`):
+
+```go
+	actor := &actions.MobActor{Mob: mob, Room: room}
+	result := actions.Say(actor, line)
+	room.SendText(messaging.CategorySpeech,
+		actions.FormatSayText(mob.Character.Name, result.Text, false, "mobname", "saytext-mob"))
+}
+```
+
+with:
+
+```go
+	// actions.Say sends the room line itself (sight gates slice 5b).
+	actions.Say(&actions.MobActor{Mob: mob, Room: room}, line)
+}
+```
+
+Keep the `mob == nil || room == nil` guard above it, and keep the `messaging` import (`Offer` still uses `messaging.CategorySystem`).
+
 - [ ] **Step 6: Run the tests**
 
 Run:
@@ -1604,7 +1637,7 @@ Expected: gofmt prints nothing; build clean (if `go build` reports `messaging` u
 - [ ] **Step 7: Commit**
 
 ```bash
-git add internal/actions/say.go internal/actions/sell.go internal/actions/speech_sight_test.go internal/hooks/justice_wiring.go internal/usercommands/say.go internal/usercommands/speech_sight_wrapper_test.go internal/mobcommands/say.go internal/mobcommands/speech_sight_test.go
+git add internal/actions/say.go internal/actions/sell.go internal/actions/speech_sight_test.go internal/hooks/justice_wiring.go internal/usercommands/offer.go internal/usercommands/say.go internal/usercommands/speech_sight_wrapper_test.go internal/mobcommands/say.go internal/mobcommands/speech_sight_test.go
 git commit -m "feat(say): actions.Say sends the room line with the speaker's name by sight"
 ```
 
@@ -2316,7 +2349,7 @@ In `internal/hooks/Message_SendMessages.go` replace the comment block above `if 
 	// no dogmud condition grants superhearing, so those lines reach nobody.
 ```
 
-Confirm the first claim: `grep -rn "SendTextCommunication(" --include=*.go internal modules | grep -v _test.go` must list only `rooms.go` (the definition), `actions/shout.go` and `modules/aicompanion/listeners.go`.
+Confirm the first claim: `grep -rn "SendTextCommunication(" --include=*.go internal modules | grep -v _test.go` must list only `rooms.go` (the definition), `actions/shout.go`, `modules/aicompanion/listeners.go`, and `actions/actor_user.go:48,50` (the dead `UserActor.SendRoomCommunication`, which Task 10 deletes; after Task 10 the same grep lists only the first three).
 
 - [ ] **Step 6: Run the tests**
 
@@ -2916,8 +2949,8 @@ func TestOnlyTheSharedBodiesSendPlayerChatter(t *testing.T) {
 }
 
 // actions.Say owns the say room line. A second formatter call is a second
-// room line: hooks/justice_wiring.go and actions/sell.go each sent one until
-// this slice.
+// room line: hooks/justice_wiring.go, actions/sell.go and
+// usercommands/offer.go each sent one until this slice.
 func TestSayRoomLineHasOneFormatter(t *testing.T) {
 	pattern := regexp.MustCompile(`FormatSayText\(`)
 	seen := false
@@ -2972,22 +3005,22 @@ git commit -m "test(guard): speech and emote wrappers must not re-fork the share
 - [ ] **Step 1: context.md, every symbol verified first**
 
 Before naming a symbol, confirm it with `Select-String -Path internal\<pkg>\*.go -Pattern '^(func|type|const|var)\s'` (or `codegraph_search`).
-- `actions`: remove `SendRoomCommunication` from the `Actor` block (`:34`) and the `MobActor` paragraph (`:82-84`); add a "Speech and emotes (sight gates 5b)" section: `Say` sends the room line, `Shout`/`ShoutResult`, `SendHeard`, `SendSeen`, the private `sendSpoken`, the deafen split (player chatter yes, NPC no), `merchantSay` now only calls `Say`; the files row at `:1581` gains `shout.go`, `room_lines.go`; name `speech_wrapper_guard_test.go`.
+- `actions`: remove `SendRoomCommunication` from the `Actor` block (`:34`) and the `MobActor` paragraph (`:82-84`); add a "Speech and emotes (sight gates 5b)" section: `Say` sends the room line, `Shout`/`ShoutResult`, `SendHeard`, `SendSeen`, the private `sendSpoken`, the deafen split (player chatter yes, NPC no), `merchantSay` now only calls `Say` (so does `usercommands/offer.go`'s); the `Social` files row at `:1672` gains `shout.go`, `room_lines.go`; name `speech_wrapper_guard_test.go`.
 - `rooms`: after the `SendTextVisualHidingNames` paragraph (`:23`), add `SendTextHidingNames` (takes a `messaging.NameHider`, no lit shortcut, unfiltered), `SendCommunicationHidingNames` (player speech, deafen-marked), `SendVisualCommunicationHidingNames` (player free-form emote, deafen-marked); `SendTextCommunication`'s two remaining callers.
 - `messaging`: `NameHider`, `HideSpeakerNames` (tagged name only, "a figure" / "someone", why the words are never touched) beside `HideNames` (`:338-360`) and in the files table (`:461`).
 - `events`: `Message.HiddenFromDeafened`, `DrainQueuedMessageEventsForTest`, `DrainQueuedRoomMessagesForTest`.
 - `hooks`: the deafen checks call `HiddenFromDeafened`; `justice_wiring.go` only calls `actions.Say`.
 - `mobcommands`: `darkness.go` is gone; say, shout, rally, warcry, emote are thin wrappers over the shared bodies; howl and taunt hide names through `rooms.Room.SendTextHidingNames`.
-- `usercommands`: say, shout, rally, warcry, emote are thin wrappers; the free-form emote is seen by sight and deafen-filtered, the empty and alias forms are not filtered.
+- `usercommands`: say, shout, rally, warcry, emote are thin wrappers; the free-form emote is seen by sight and deafen-filtered, the empty and alias forms are not filtered; `offer.go`'s `merchantSay` (offer and appraise) only calls `actions.Say`.
 
 Run `python tools/context_md_audit.py` and expect no phantom symbol in these seven packages.
 
 - [ ] **Step 2: Patch notes**
 
-Add at the top of `docs/PATCH_NOTES.md` (player-facing, no numbers, no dashes):
+Add at the top of `docs/PATCH_NOTES.md`, above 5a's `## 2026-09-29: Cursed gear and the dark` (player-facing, no numbers, no dashes; the heading takes the date the PR merges, shown here as 2026-09-30):
 
 ```markdown
-## 2026-09-29: Voices in the dark
+## 2026-09-30: Voices in the dark
 
 - In a dark room you now hear who is speaking only as well as you can see
   them. If you can make out shapes, a speaker is "a figure". If you see
@@ -3074,5 +3107,5 @@ Body: the 5b parity table from the spec, the five departures in "Where the spec 
 ## Self-review
 
 - **Spec coverage.** Three-tier speaker rule and `HideSpeakerNames` (T1); `SendCommunicationHidingNames`, `SendTextHidingNames`, `SendVisualCommunicationHidingNames` with the `communication` flag on `sendTextVisualJudgedBy` and its four callers passing false (T3); `actions.Say` owning the room line, player deafen-filtered and NPC not (T5); `actions.Shout` with reveal (rider 5), adjacent line with words, wake (T6); rally and warcry heard through `SendHeard`, fold lines included (T7); emotes through `SendSeen`, player free-form and `@` deafen-filtered, empty and alias not, mob never (T8); howl and taunt moved and the two helpers deleted, `audio_room_text_sight_test.go` ported (T9); `Actor.SendRoomCommunication` and its nine fakes deleted (T10); re-fork guard with the spec's forbidden set and the outside-rooms-and-actions clause, proven able to fail (T11); T3, T4, T5 guard items (T3, T4, T9, T10); context.md for every touched package, patch notes, gate, boot, playtest, PR (T12, T13). The per-listener table covers say, shout, rally and warcry for a player and a mob speaker and the emote forms (T4, T5, T6), with the `@` form, deafen split and alias at the wrapper (T8), five listeners each forced by lamp or perception machine and asserted before sending.
-- **Beyond the spec, stated above.** The `NameHider` parameter; `HideSpeakerNames` hiding the tagged name only; the justice and merchant callers; `Message.HiddenFromDeafened` and the drain helpers; the player's adjacent shout staying on `SendTextCommunication`; the line-neutral rally/warcry edits for the line-keyed guard; the extra `FormatSayText` guard.
+- **Beyond the spec, stated above.** The `NameHider` parameter; `HideSpeakerNames` hiding the tagged name only; the justice and both merchant callers (`actions/sell.go`, `usercommands/offer.go`); `Message.HiddenFromDeafened` and the drain helpers; the player's adjacent shout staying on `SendTextCommunication`; the line-neutral rally/warcry edits for the line-keyed guard; the extra `FormatSayText` guard.
 - **Names across tasks.** `NameHider`, `HideSpeakerNames`, `speakerNoun`, `longestFirst` (T1); `Message.HiddenFromDeafened`, `DrainQueuedMessageEventsForTest`, `DrainQueuedRoomMessagesForTest` (T2); `SendTextHidingNames(cat, txt, names, hide, excl...)`, `SendCommunicationHidingNames(cat, txt, names, excl...)`, `SendVisualCommunicationHidingNames(cat, txt, names, excl...)`, `sendAudioHidingNames`, `sendTextVisualJudgedBy(lighting, cat, txt, names, communication, excl...)` (T3); `SendHeard(actor, cat, text)`, `SendSeen(actor, cat, text, chatter)`, `sendSpoken(actor, room, cat, line, stillHidden)` (T4); `Say(actor, text) SayResult` (T5); `Shout(actor, text) ShoutResult`, `wakeSleepers(actor, room)` (T6). Test helpers `newSpeechScene`, `speechHeard`, `speechExpectOne`, `checkSpeech`, `speechWant` (actions), `speechWrapperScene`, `speechWrapperHeard`, `blindForSpeechTest` (usercommands), `mobSpeechRoom`, `mobSpeechHeard` (mobcommands) are defined once and used consistently.

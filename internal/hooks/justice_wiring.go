@@ -3,7 +3,6 @@ package hooks
 import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/justice"
-	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -16,9 +15,7 @@ func init() {
 		if mob == nil || room == nil {
 			return
 		}
-		actor := &actions.MobActor{Mob: mob, Room: room}
-		result := actions.Say(actor, line)
-		room.SendText(messaging.CategorySpeech,
-			actions.FormatSayText(mob.Character.Name, result.Text, false, "mobname", "saytext-mob"))
+		// actions.Say sends the room line itself (sight gates slice 5b).
+		actions.Say(&actions.MobActor{Mob: mob, Room: room}, line)
 	})
 }
