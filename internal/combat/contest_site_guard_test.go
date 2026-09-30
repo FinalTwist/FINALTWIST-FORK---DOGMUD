@@ -69,7 +69,7 @@ var contestSiteOwners = map[string]string{
 	"internal/actions/steal.go:stealObserverPass":                            "U6b task 15 (the container-theft observer pass; household bauble theft shares it)",
 	"internal/actions/stolen_bauble.go:stolenRecognitionRoll":                "baubles Phase 6c (an owner recognising its stolen bauble: stealVictimScore against the steal score)",
 	"internal/actions/sneak.go:Sneak":                                        "U6b task 16 (two sites)",
-	"internal/actions/shadow.go:shadowPlayer":                                "U6b task 16",
+	"internal/actions/shadow.go:ShadowSenseRoll":                             "U6b task 16 (parity slice 6 lifted the shadow sense contest out of shadowPlayer into this one body; it runs when a shadow starts and on each arrival)",
 	"internal/usercommands/skill.skullduggery.shadow.go:shadowDetectionRoll": "U6b task 16",
 	"internal/actions/move.go:sneakerSpotted":                                "U6b task 16 (hidden detection on room entry: a sneaking mover against the room's players and mobs; moved from usercommands/go.go by movement parity 4b)",
 	"internal/actions/move.go:newcomerSpots":                                 "U6b task 16 (hidden detection on room entry: the newcomer against hidden players and mobs; moved from usercommands/go.go by movement parity 4b)",
