@@ -92,8 +92,7 @@ func Plant(actor Actor, opts PlantOptions) PlantResult {
 	if !char.CooldownReady(skullduggeryCooldownKey) {
 		return PlantResult{
 			OnCooldown: true,
-			Reason: fmt.Sprintf("%d rounds remaining",
-				char.GetCooldown(skullduggeryCooldownKey)),
+			Reason:     "still recovering",
 		}
 	}
 

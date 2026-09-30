@@ -136,8 +136,7 @@ func Steal(actor Actor, opts StealOptions) StealResult {
 	if !char.CooldownReady(skullduggeryCooldownKey) {
 		return StealResult{
 			OnCooldown: true,
-			Reason: fmt.Sprintf("%d rounds remaining",
-				char.GetCooldown(skullduggeryCooldownKey)),
+			Reason:     "still recovering",
 		}
 	}
 
