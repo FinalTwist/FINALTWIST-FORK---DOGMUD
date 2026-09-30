@@ -271,7 +271,7 @@ func TestSendSpoken_AStillHiddenSpeakerIsUnseenByAll(t *testing.T) {
 	sc := newSpeechScene(t)
 	checkSpeech(t, sc, true, func(a Actor) {
 		sendSpoken(a, a.GetRoom(), messaging.CategorySpeech,
-			FormatSayText("Kesh", "psst", false, "username", "saytext"), true)
+			FormatSayText("Kesh", "psst", "username", "saytext"), true)
 	}, speechWant{
 		clear: `Someone says, "psst"`, blind: `Someone says, "psst"`, deaf: "",
 		shapes: `Someone says, "psst"`, dark: `Someone says, "psst"`,
@@ -332,9 +332,8 @@ func TestShout_RevealsAHiddenMob(t *testing.T) {
 	sc := newSpeechScene(t)
 	hideRhetoricActor(t, &sc.mob.Character)
 
-	res := Shout(sc.speaker(false, sc.lit), "HELP")
+	Shout(sc.speaker(false, sc.lit), "HELP")
 	require.False(t, sc.mob.Character.IsHidden(), "shouting reveals a hidden mob")
-	require.False(t, res.IsSneaking)
 	speechExpectOne(t, "clear", speechHeard(t, speechClearId), `Grel shouts, "HELP"`)
 }
 

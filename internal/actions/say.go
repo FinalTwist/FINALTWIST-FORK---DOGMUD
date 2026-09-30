@@ -12,8 +12,7 @@ import (
 
 // SayResult contains the results of a Say action for the wrapper to use.
 type SayResult struct {
-	IsSneaking bool
-	Text       string
+	Text string
 }
 
 // Say is the one say body for a player and a mob (sight gates slice 5b). It
@@ -54,23 +53,17 @@ func Say(actor Actor, text string) SayResult {
 		nameColor, textColor = "username", "saytext"
 	}
 	sendSpoken(actor, room, messaging.CategorySpeech,
-		FormatSayText(actor.GetName(), text, false, nameColor, textColor), isSneaking)
+		FormatSayText(actor.GetName(), text, nameColor, textColor), isSneaking)
 
 	return SayResult{
-		IsSneaking: isSneaking,
-		Text:       text,
+		Text: text,
 	}
 }
 
 // FormatSayText formats the say message for room display.
 // nameColor is "username" for players, "mobname" for mobs.
 // textColor is "saytext" for players, "saytext-mob" for mobs.
-func FormatSayText(name string, text string, isSneaking bool, nameColor string, textColor string) string {
-	var msg string
-	if isSneaking {
-		msg = fmt.Sprintf(`someone says, "<ansi fg="%s">%s</ansi>"`, textColor, text)
-	} else {
-		msg = fmt.Sprintf(`<ansi fg="%s">%s</ansi> says, "<ansi fg="%s">%s</ansi>"`, nameColor, name, textColor, text)
-	}
+func FormatSayText(name string, text string, nameColor string, textColor string) string {
+	msg := fmt.Sprintf(`<ansi fg="%s">%s</ansi> says, "<ansi fg="%s">%s</ansi>"`, nameColor, name, textColor, text)
 	return util.SplitStringNL(msg, 80)
 }

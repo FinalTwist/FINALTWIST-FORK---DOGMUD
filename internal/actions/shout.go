@@ -15,11 +15,7 @@ import (
 
 // ShoutResult reports a shout to its wrapper.
 type ShoutResult struct {
-	// IsSneaking is true when the shouter is still hidden after the reveal,
-	// which TransitionToRevealing makes unreachable today (it lands on
-	// Visible in the same call); every listener then reads "Someone".
-	IsSneaking bool
-	Text       string
+	Text string
 }
 
 // Shout is the one shout body for a player and a mob (sight gates slice 5b):
@@ -44,7 +40,7 @@ func Shout(actor Actor, text string) ShoutResult {
 
 	room := actor.GetRoom()
 	if room == nil {
-		return ShoutResult{IsSneaking: isSneaking, Text: text}
+		return ShoutResult{Text: text}
 	}
 
 	nameColor, textColor := "mobname", "saytext-mob"
@@ -71,7 +67,7 @@ func Shout(actor Actor, text string) ShoutResult {
 
 	wakeSleepers(actor, room)
 
-	return ShoutResult{IsSneaking: isSneaking, Text: text}
+	return ShoutResult{Text: text}
 }
 
 // wakeSleepers wakes every sleeper in room but the actor. Chunk 3.3: a shout
