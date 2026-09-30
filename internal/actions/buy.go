@@ -514,10 +514,24 @@ func tryPurchaseLegacy(buyer Actor, request string, shopMob *mobs.Mob, shopUser 
 func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, shopInv *shops.ShopInventory) BuyResult {
 	cfg := shops.PricingConfigFromBalance()
 
+	// The shelf cap is enforced lazily (baubles slice D): a hold that ended
+	// since the last trade can push the listed entries over it. The trim is
+	// saved before returning unless a purchase below saves the shop anyway.
+	now := shops.ShelfNow()
+	shopSaved := false
+	if shopInv.EnforceAffixedCap(int(configs.GetBalanceConfig().ShopAffixedStockCap), now) > 0 {
+		defer func() {
+			if !shopSaved {
+				if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
+					mudlog.Error("PURCHASE", "msg", "SaveShop failed", "error", err)
+				}
+			}
+		}()
+	}
+
 	type invEntry struct {
 		entry      *shops.StockEntry
 		item       items.Item
-		plainName  string
 		price      int
 		affixedIdx int // index into shopInv.AffixedStock, or -1 for base-ItemId stock
 	}
@@ -555,7 +569,6 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		available = append(available, invEntry{
 			entry:      entry,
 			item:       itm,
-			plainName:  spec.Name,
 			price:      basePrice,
 			affixedIdx: -1,
 		})
@@ -563,30 +576,37 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		itemNamesFancy = append(itemNamesFancy, itm.DisplayName())
 	}
 
-	// Per-instance affixed resale stock (Stage 3): unique bought-back gear,
-	// priced at its stored relist price (AffixValue x 1.0), less any barter.
-	for i := range shopInv.AffixedStock {
-		e := &shopInv.AffixedStock[i]
-		spec := e.Item.GetSpec()
+	// The secondhand shelf (Stage 3; baubles slice D): bought-back affixed
+	// gear and baubles, in ListedIndexes order, the order list shows, each at
+	// its stored relist price less any barter. A held entry (a bauble still
+	// hot when shelved) is not offered, so no name, no match and no "Any
+	// interest" line can reach it. affixedIdx is the raw AffixedStock index,
+	// not the row's position among the listed ones.
+	for _, idx := range shopInv.ListedIndexes(now) {
+		e := &shopInv.AffixedStock[idx]
+		name := e.Item.GetSpec().Name
 		price := e.Price
 		if discount := barterDiscount(char, buyer.GetRoom(), barterMaxDiscount); discount > 0 {
 			price = shops.ApplyBarterSellDiscount(price, discount)
 		}
 		available = append(available, invEntry{
 			item:       e.Item,
-			plainName:  spec.Name,
 			price:      price,
-			affixedIdx: i,
+			affixedIdx: idx,
 		})
-		itemNames = append(itemNames, spec.Name)
+		itemNames = append(itemNames, name)
 		itemNamesFancy = append(itemNamesFancy, e.Item.DisplayName())
 	}
 
-	match, closeMatch := util.FindMatchIn(request, itemNames...)
-	if match == "" {
-		match = closeMatch
+	// Select by position, not by name (baubles slice D): two rows can share
+	// a name (two shelved trinkets), and `buy 2.trinket` must take the second.
+	// Counted in available order: stock first, then the shelf in list order.
+	// A full match anywhere outranks a close match, as FindMatchIn rules.
+	pick, closePick := util.FindMatchIndexIn(request, itemNames...)
+	if pick < 0 {
+		pick = closePick
 	}
-	if match == "" {
+	if pick < 0 {
 		if shopMob != nil {
 			extraSay := ""
 			if len(itemNamesFancy) > 0 {
@@ -598,16 +618,7 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		return BuyResult{Reason: BuyReasonNoMatch}
 	}
 
-	var matched *invEntry
-	for i := range available {
-		if available[i].plainName == match {
-			matched = &available[i]
-			break
-		}
-	}
-	if matched == nil {
-		return BuyResult{Reason: BuyReasonNoMatch}
-	}
+	matched := &available[pick]
 
 	// Encumbrance gate — same pre-side-effect check as the legacy
 	// path, since ShopInventory bypasses validatePurchase.
@@ -660,6 +671,7 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
 			mudlog.Error("PURCHASE", "msg", "SaveShop failed", "error", err)
 		}
+		shopSaved = true
 		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You buy the <ansi fg="itemname">%s</ansi>.`, bought.DisplayName()))
 		if room := buyer.GetRoom(); room != nil {
 			room.SendTextVisual(messaging.CategoryLoot, fmt.Sprintf(`<ansi fg="username">%s</ansi> buys the <ansi fg="itemname">%s</ansi>.`, buyer.GetName(), bought.DisplayName()), buyer.GetUserId())
@@ -703,6 +715,7 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 	if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
 		mudlog.Error("PURCHASE", "msg", "SaveShop failed", "error", err)
 	}
+	shopSaved = true
 
 	tradeInString := fmt.Sprintf(`<ansi fg="gold">%d gold</ansi>`, matched.price)
 	if matched.price == 0 {
