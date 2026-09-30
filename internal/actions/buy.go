@@ -630,13 +630,21 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 			}
 			return BuyResult{Reason: BuyReasonInsufficientGold}
 		}
+		if matched.affixedIdx >= len(shopInv.AffixedStock) {
+			return BuyResult{Reason: BuyReasonOutOfStock}
+		}
+		shelved := shopInv.AffixedStock[matched.affixedIdx] // the whole entry, for a rollback
 		bought, ok := shopInv.RemoveAffixedStock(matched.affixedIdx)
 		if !ok {
 			return BuyResult{Reason: BuyReasonOutOfStock}
 		}
 		bought.UUID = items.NewItemUUID()
 		if !char.StoreItem(bought) {
-			shopInv.AddAffixedStock(bought, matched.price, 0) // roll back on carry failure
+			// Roll back on carry failure: the same entry in the same place,
+			// its relist price and listing time unchanged (a re-add would
+			// stamp a new time at the barter-discounted price). Defensive:
+			// the encumbrance gate above refuses first.
+			shopInv.RestoreAffixedStock(matched.affixedIdx, shelved)
 			if buyer.IsPlayer() {
 				buyer.SendText(messaging.CategoryError, "You can't carry any more.")
 			}

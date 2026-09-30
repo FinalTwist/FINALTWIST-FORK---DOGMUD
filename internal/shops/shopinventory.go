@@ -139,19 +139,21 @@ type ShopInventory struct {
 	RoomId int    `yaml:"-"`
 }
 
-// AddAffixedStock appends a bought-back affixed item at relist price, evicting
-// the oldest entry (FIFO) when the list is at cap. cap <= 0 means no cap.
-func (si *ShopInventory) AddAffixedStock(item items.Item, price, cap int) {
+// AddAffixedStock shelves an item at its relist price: appended with the
+// round, the wall clock (AddedAt: now) and the end of any hold (holdUntil,
+// zero to list it at once), then EnforceAffixedCap(limit, now) trims the
+// listed entries (limit <= 0: no cap). It does not enforce the held cap:
+// a sale refuses a hot bauble a full backroom cannot take before it gets
+// here (internal/actions baubleOfferFor).
+func (si *ShopInventory) AddAffixedStock(item items.Item, price, limit int, holdUntil, now time.Time) {
 	si.AffixedStock = append(si.AffixedStock, AffixedStockEntry{
 		Item:       item,
 		Price:      price,
 		AddedRound: util.GetRoundCount(),
+		AddedAt:    now,
+		HoldUntil:  holdUntil,
 	})
-	if cap > 0 {
-		for len(si.AffixedStock) > cap {
-			si.AffixedStock = si.AffixedStock[1:] // drop oldest
-		}
-	}
+	si.EnforceAffixedCap(limit, now)
 }
 
 // RemoveAffixedStock removes and returns the entry at idx (e.g. on purchase).

@@ -2,6 +2,7 @@ package actions
 
 import (
 	"testing"
+	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
@@ -27,7 +28,7 @@ func TestBuy_AffixedStockItem(t *testing.T) {
 
 	shopInv := &shops.ShopInventory{Gold: 1000}
 	shopInv.AddAffixedStock(items.Item{ItemId: sellTestItemId, Affixed: true,
-		Spec: &items.ItemSpec{Value: 400, Name: "iron sword", NameSimple: "sword", Type: items.Weapon}}, 400, 8)
+		Spec: &items.ItemSpec{Value: 400, Name: "iron sword", NameSimple: "sword", Type: items.Weapon}}, 400, 8, time.Time{}, time.Now())
 
 	shopMob := &mobs.Mob{Character: characters.Character{Name: "Merchant"}}
 

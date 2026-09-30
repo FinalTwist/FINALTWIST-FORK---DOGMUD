@@ -1,6 +1,7 @@
 package auctions
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -294,7 +295,8 @@ func (s *shopkeeper) Receive(item items.Item) {
 		return
 	}
 	c := int(configs.GetBalanceConfig().ShopAffixedStockCap)
-	s.bound.AddAffixedStock(item, item.GetSpec().Value, c)
+	now := shops.ShelfNow()
+	s.bound.AddAffixedStock(item, item.GetSpec().Value, c, baubles.ShelfHoldUntil(item, now), now)
 	s.bound.BuysCount++
 	persistShop(s.bound)
 	s.bound = nil

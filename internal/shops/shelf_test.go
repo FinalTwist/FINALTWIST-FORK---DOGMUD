@@ -168,3 +168,31 @@ func TestShelf_TimesRoundTripAndOldFilesLoadListed(t *testing.T) {
 		t.Fatalf("an old entry loads listed with zero times: %+v", le)
 	}
 }
+
+// Spec test 5, on an add: AddAffixedStock stamps the wall clock and the
+// hold, then trims the LISTED entries to the cap, earliest listed first; a
+// held add is never counted against the listed cap.
+func TestShelf_AddStampsTimesAndTrimsTheListedEntries(t *testing.T) {
+	si := &ShopInventory{AffixedStock: []AffixedStockEntry{
+		shelfEntry(1, shelfT0, shelfT0.Add(time.Hour)),
+		shelfEntry(2, shelfT0.Add(time.Minute), time.Time{}),
+	}}
+	now := shelfT0.Add(2 * time.Hour)
+
+	si.AddAffixedStock(shelfEntry(3, time.Time{}, time.Time{}).Item, 55, 2, time.Time{}, now)
+	if got := shelfIds(si); !reflect.DeepEqual(got, []int{1, 3}) {
+		t.Fatalf("item 1's hold ended at T0+1h, after item 2 was shelved, so item 2 goes: got %v, want [1 3]", got)
+	}
+	last := si.AffixedStock[1]
+	if last.Price != 55 || !last.AddedAt.Equal(now) || !last.HoldUntil.IsZero() {
+		t.Fatalf("added entry: %+v", last)
+	}
+
+	si.AddAffixedStock(shelfEntry(4, time.Time{}, time.Time{}).Item, 60, 2, now.Add(72*time.Hour), now)
+	if got := shelfIds(si); !reflect.DeepEqual(got, []int{1, 3, 4}) {
+		t.Fatalf("a held add evicts nothing: got %v, want [1 3 4]", got)
+	}
+	if !si.AffixedStock[2].Held(now) {
+		t.Fatal("the new entry is held")
+	}
+}
