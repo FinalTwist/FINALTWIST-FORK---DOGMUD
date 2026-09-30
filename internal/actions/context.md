@@ -802,17 +802,21 @@ Pickpockets a target mob or player, or robs an item from a room container.
 **Progression:** Triggers `actor.OnStatUse("dexterity")` and
 `actor.OnSkillUse("skullduggery")`.
 
-**Cooldown:** Shares the `skullduggery` cooldown key (10 rounds).
+**Cooldown:** One key, `skullduggery:steal` (`skullduggeryCooldownKey`),
+shared with Plant, lasting `StealCooldown` real seconds (60 shipped, 15
+rounds at `RoundSeconds: 4`). Steal only CHECKS it (`CooldownReady`); it is
+armed by the attempt itself. `newTheftAttempt` builds the thief's side once
+(`theftAttempt`: rank, score, cooldown period) and each path reads the score
+through `theftAttempt.score()` immediately before its contest, which arms the
+cooldown as it hands the score over. So every refusal (no target, target
+gone, a companion, an immune mob, rank below 2, an empty container, too
+heavy to lift) leaves the cooldown unarmed, and no contest runs without
+arming it. Before 2026-09-30 it was armed ahead of every refusal, so a fresh
+character (rank 1) was refused on the first try and then locked out.
 
-**Result struct:**
-```go
-type StealResult struct {
-	Success    bool
-	ItemId     int
-	ItemName   string
-	Message    string  // feedback message
-}
-```
+**Result struct:** `StealResult` (`Succeeded`, `Detected`, `StoleGold`,
+`StoleItemId`, `StoleItemName`, `DefenderName`, `OnCooldown`, `Reason`,
+`Pending`); read `steal.go` for the field comments.
 
 ### Plant
 
@@ -843,16 +847,14 @@ name / simple name.
 **Progression:** Triggers `actor.OnStatUse("dexterity")` and
 `actor.OnSkillUse("skullduggery")`.
 
-**Cooldown:** Shares the `skullduggery` cooldown key (10 rounds).
+**Cooldown:** Steal's (`skullduggery:steal`, `StealCooldown` real seconds),
+checked up front and armed only by the attempt, through the same
+`theftAttempt.score()`: a missing target or container spends nothing. An
+unwatched container plant is an uncontested attempt and does arm it.
 
-**Result struct:**
-```go
-type PlantResult struct {
-	Success bool
-	ItemId  int
-	Message string
-}
-```
+**Result struct:** `PlantResult` (`Succeeded`, `Detected`, `PlantedItemId`,
+`DefenderName`, `OnCooldown`, `Reason`); read `plant.go` for the field
+comments.
 
 ### Defuse
 

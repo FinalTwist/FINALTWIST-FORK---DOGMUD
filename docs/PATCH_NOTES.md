@@ -20,6 +20,17 @@
 - A shop keeps up to twelve secondhand pieces on show. When it has too
   many, the one that has been on show longest goes.
 
+## 2026-09-30: A fairer wait for thieves
+
+- After you steal or plant something, you now wait about a minute before
+  you can try again, as intended. The wait was about four minutes.
+- The wait only starts when you really try. Being turned away no longer
+  starts it: when you are not yet skilled enough, when your mark is gone,
+  when you cannot steal from someone's companion, or when there is nothing
+  to take.
+- What a shop pays you now always rounds up to the next gold coin. A shop
+  buying something it does not usually stock used to round down.
+
 ## 2026-09-30: Voices in the dark
 
 - In a dark room you now hear who is speaking only as well as you can see
