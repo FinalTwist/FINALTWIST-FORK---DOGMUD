@@ -84,3 +84,15 @@ func TestMobShout_BlindedListenerHearsTheWordsNotTheName(t *testing.T) {
 	require.Equal(t, []string{`Skeleton shouts, "intruders!"`}, mobSpeechHeard(1))
 	require.Equal(t, []string{`Someone shouts, "intruders!"`}, mobSpeechHeard(2))
 }
+
+func TestMobEmote_SeenNotHeard(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, room := mobSpeechRoom(t)
+	users.GetByUserId(1).Deafened = true
+
+	_, err := Emote("growls.", mob, room)
+	require.NoError(t, err)
+	require.Equal(t, []string{"Skeleton growls."}, mobSpeechHeard(1), "a mob emote reaches the deafened (ruling 6)")
+	require.Empty(t, mobSpeechHeard(2), "the blinded see nothing")
+}

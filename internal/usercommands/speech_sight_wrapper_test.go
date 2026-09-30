@@ -85,3 +85,51 @@ func TestShout_BlindedListenerHearsTheWordsNotTheName(t *testing.T) {
 	require.Equal(t, []string{`Someone shouts, "HELP"`}, speechWrapperHeard(2))
 	require.Equal(t, []string{`You shout, "HELP"`}, speechWrapperHeard(1))
 }
+
+func TestEmote_FreeFormFollowsSightAndDeafen(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	alice, bob, room := speechWrapperScene(t)
+
+	_, err := Emote("waves.", alice, room, 0)
+	require.NoError(t, err)
+	require.Equal(t, []string{"Aliceia waves."}, speechWrapperHeard(2))
+	require.Equal(t, []string{"You Emote: Aliceia waves."}, speechWrapperHeard(1))
+
+	bob.Deafened = true
+	_, err = Emote("waves.", alice, room, 0)
+	require.NoError(t, err)
+	require.Empty(t, speechWrapperHeard(2), "free text is chatter: the deafened are spared it")
+	bob.Deafened = false
+
+	blindForSpeechTest(t, bob)
+	_, err = Emote("waves.", alice, room, 0)
+	require.NoError(t, err)
+	require.Empty(t, speechWrapperHeard(2), "an emote is seen, not heard")
+}
+
+func TestEmote_AtFormSkipsOnlyTheSelfLine(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	alice, _, room := speechWrapperScene(t)
+
+	_, err := Emote("@waves silently.", alice, room, 0)
+	require.NoError(t, err)
+	require.Empty(t, speechWrapperHeard(1))
+	require.Equal(t, []string{"Aliceia waves silently."}, speechWrapperHeard(2))
+}
+
+func TestEmote_AliasAndEmptyReachTheDeafened(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	alice, bob, room := speechWrapperScene(t)
+	bob.Deafened = true
+
+	_, err := Emote("beam", alice, room, 0)
+	require.NoError(t, err)
+	require.Equal(t, []string{"Aliceia beams with pride."}, speechWrapperHeard(2))
+
+	_, err = Emote("", alice, room, 0)
+	require.NoError(t, err)
+	require.Equal(t, []string{"Aliceia emotes."}, speechWrapperHeard(2))
+}

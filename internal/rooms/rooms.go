@@ -215,14 +215,16 @@ func (r *Room) UpdateCorpses(roundNow uint64) {
 	}
 }
 
-// SendTextCommunication delivers PLAYER-origin chat (say/emote/shout,
-// actor-parity speech) to the room. Deliberately NOT migrated to the
-// per-recipient SendText pipeline: it emits one RoomId-keyed event so the
-// legacy listener (hooks/Message_SendMessages.go, RoomId branch) applies
-// the Deafened moderation filter — deafen mutes player chatter only.
-// NPC/merchant speech must NOT use this; it goes through SendText /
-// SendTextVisual unfiltered so moderated players still hear quest
-// content. Audited 2026-07-10.
+// SendTextCommunication delivers PLAYER-origin chat as ONE RoomId-keyed
+// event, unrendered, so the legacy listener (hooks/Message_SendMessages.go,
+// RoomId branch) applies the Deafened moderation filter. Two callers remain:
+// a player's adjacent-room shout (actions.Shout) and the AI companion's `ask`
+// line. Player speech in the speaker's own room goes through
+// SendCommunicationHidingNames and a free-form emote through
+// SendVisualCommunicationHidingNames, both per user and both still
+// deafen-filtered. NPC speech must NOT use any of the three: it goes through
+// SendTextHidingNames unfiltered, so moderated players still hear quest
+// content (owner ruling 6, sight gates slice 5b).
 func (r *Room) SendTextCommunication(txt string, excludeUserIds ...int) {
 
 	events.AddToQueue(events.Message{
