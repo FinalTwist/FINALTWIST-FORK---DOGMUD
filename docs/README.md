@@ -20,6 +20,7 @@ setting, or [`schemas/`](schemas/) if you want to author content.
 | [`schemas/`](schemas/) | YAML schema references (room, mob, item, spell, condition, dialogue, schedule, patrol) |
 | [`architecture/`](architecture/) | System-level architecture notes and deliberate divergences from upstream |
 | [`economy/`](economy/) | Living-economy design and tuning |
+| [`economy/merchant_chests.md`](economy/merchant_chests.md) | Merchant chest roster: every merchant's average stock value, Perception before and after, chest, lock pins and gold per restock, with the formula. The live data is `_datafiles/world/dogmud/merchant_chests.yaml`; the code is `internal/merchantchests` |
 | [`balance/`](balance/) | Combat and progression tuning |
 | [`worldbuilding/`](worldbuilding/) | Zone expansion plan, coordinate map, settlement canon, world atlas |
 | [`../_datafiles/world/dogmud/bauble-corpus.yaml`](../_datafiles/world/dogmud/bauble-corpus.yaml) | The bauble fallback corpus seed: hand-written bauble text by biome group (dwelling, street, underground, ruins, waterside, wild), pocket and tier, used when no model names a find. Checked by `TestShippedCorpusSeed`; promoted model names live beside the catalog in `baubles/corpus.promoted.yaml` (living state, gitignored) |

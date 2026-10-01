@@ -127,7 +127,9 @@ Roadmap and phase plan: `docs/aicompanion/`.
   regular stock (every bauble is item 900). So she can see shelf goods but
   cannot buy them.
 - **loot.go**: the module's own mob commands `companion-loot` (owner's loot
-  rights only) and `companion-takeout` (unhidden, unlocked containers).
+  rights only) and `companion-takeout` (unhidden, unlocked containers,
+  never a merchant's chest: `actions.IsMerchantChest`, since taking from
+  one is watched theft).
 - **cooking.go**: `craftableHere(mob, p, room)` lists what she knows, has the
   makings for, and has the place for. Slice 5a added a fourth gate ahead of
   the recipe walk: `cannotSee(mob, room)` (perception.go, `sightOf !=

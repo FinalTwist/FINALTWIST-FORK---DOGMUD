@@ -1,5 +1,37 @@
 # DOGMud Patch Notes
 
+## 2026-10-01: Merchant chests
+
+- Every merchant now keeps a locked chest in the shop: a smith's iron
+  strongbox, a jeweller's velvet-lined casket, a cook's tin cashbox, an
+  enchanter's warded coffer, and the auction house has a vault. Each one
+  is restocked from time to time with coin and a few of the merchant's
+  own goods.
+- Merchants with finer stock keep better locks and sharper eyes. Setting
+  a pick to a merchant's chest, or reaching into one you have opened, is
+  watched by everyone in the room. A merchant who catches you shouts
+  thief, slams the chest shut and locks it, and you are treated as caught
+  stealing from them.
+- A sleeping merchant notices far less, whether you are at the chest or
+  sneaking past, and one who has stepped out cannot notice at all.
+- Whatever comes out of a merchant's chest is stolen goods, and shows an
+  s beside its name in your pack. Like a stolen trinket, it is hot for
+  three days in the town you took it in: no honest merchant, storage or
+  auction house there will take it, and you cannot craft with it or
+  salvage it while it is hot. Carry it to another town, or wait it out,
+  and it sells like anything else.
+- A fence buys chest goods anywhere, at any time, and moves them on
+  rather than putting them on its shelf. A fence will not buy back goods
+  taken from its own chest.
+- While the goods are hot, the merchant you robbed may recognise them on
+  you wherever you meet, even if you are wearing them, and the town's
+  guards and watchmen may too while you are still in that town, and
+  report you to the law. Give them back to the merchant and they are
+  theirs again.
+- Stolen goods never merge with clean ones in storage, and when you carry
+  clean copies of the same thing, a sale takes those first.
+- Fixed: `steal` no longer reaches into a locked container.
+
 ## 2026-10-01: Secondhand shelves
 
 - A general store or jeweller that buys a trinket of some worth from you
