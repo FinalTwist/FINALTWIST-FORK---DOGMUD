@@ -78,8 +78,9 @@
   var MAX_TOKENS_PER_MINUTE = 40000; // summed max_completion_tokens
   // The response_format.json_schema.name of every call the server makes
   // (modules/aicompanion: runtime.go, conversation.go, reflect.go,
-  // corememory.go). A body naming any other schema is not the server's.
-  var SCHEMA_NAMES = ['companion_decision', 'companion_conversation', 'companion_reflection', 'companion_core_memory'];
+  // corememory.go, hollow.go). A body naming any other schema is not the
+  // server's.
+  var SCHEMA_NAMES = ['companion_decision', 'companion_conversation', 'companion_reflection', 'companion_core_memory', 'companion_interview'];
   // FINDS_SCHEMA names a find while searching (internal/baubles
   // ReplySchemaName). Relayed only for a player who allowed it (finds).
   var FINDS_SCHEMA = 'bauble';

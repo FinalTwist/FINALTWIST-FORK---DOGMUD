@@ -43,6 +43,17 @@ func corpseRef(c *rooms.Corpse) string {
 	return fmt.Sprintf(`%d:%d:%d`, c.MobId, c.UserId, c.RoundCreated)
 }
 
+// corpseAt is the corpse with this identity in the room, or nil.
+func corpseAt(room *rooms.Room, ref string) *rooms.Corpse {
+	if room == nil {
+		return nil
+	}
+	if i := findCorpseByRef(room, ref); i >= 0 {
+		return &room.Corpses[i]
+	}
+	return nil
+}
+
 // findCorpseByRef returns the index of the corpse with this identity.
 func findCorpseByRef(room *rooms.Room, ref string) int {
 	for i := range room.Corpses {

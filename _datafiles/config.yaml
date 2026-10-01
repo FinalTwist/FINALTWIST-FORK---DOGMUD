@@ -2642,9 +2642,10 @@ Modules:
     # owner per UTC day. Each is a call nobody asked for, so it is capped.
     # 0 is no cap.
     NoticeCallsPerDay: 40
-    # Ask the player, in as many words, before anything they say is sent to
-    # OpenAI. They answer "i agree" or "i decline"; until they agree their
-    # companion behaves as a plain one and nothing leaves the server.
+    # Nothing a player says leaves the server until they have agreed: by
+    # speaking to a traveller in the Waystone Hollow after the board at its
+    # mouth has told them what that sends and where, or with "companion-ai
+    # on". Until then their companion behaves as a plain one.
     RequireConsent: true
     # Check what a companion is about to say with OpenAI's moderation
     # endpoint. Speech a passer-by prompted is dropped when the check cannot
@@ -2652,13 +2653,22 @@ Modules:
     # call on a player's own key is not moderated (their provider may have
     # no such endpoint); it is logged as the owner's speech instead.
     ModerateOutput: true
-    # A new character meets a companion shortly after character creation.
-    # AutoBondExisting does the same for characters that already exist, at
-    # their next login: off by default, because it changes every player's
-    # game at once.
-    AutoBond: true
-    AutoBondExisting: false
-    AutoBondProfile: "mara"
+    # There is one of each companion on the server. Nobody is handed one: a
+    # free companion waits in their own room of the Waystone Hollow (west of
+    # Scrub Draw, Pothole Coulee) until a player wins them over. See
+    # docs/aicompanion/settings.md, "Companions are one of a kind".
+    #
+    # Companions speak only to players who run them on their own key
+    # (PlayerKeys and RelayOrigin below); anyone else gets no answer at all
+    # and the server's key is never used. Set false to let the server's key
+    # pay as before.
+    RequirePlayerKey: true
+    # Days an owner may be away before their companion gives up waiting and
+    # goes back to the Hollow, taking what they have learned with them.
+    ReleaseAfterDays: 60
+    # A companion whose trust AND affection for their owner have both fallen
+    # to this or lower leaves them and goes back to the Hollow.
+    AbandonBelow: -50
     # Treat anything the owner says as spoken to the companion when no other
     # player is in the room.
     RespondWhenAlone: true

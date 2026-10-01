@@ -100,8 +100,10 @@ the Presence machine's transition itself provides the state boundary.
 **Essential-mob veto (T5):** `hooks.Presence_MobVetoes.go` registers
 `Active→Dormant` and `Active→Despawning` vetoes that return `ErrVetoed`
 when `mob.IsEssential() || mob.Character.IsCharmed()`. Shopkeepers,
-foragers, caravan crew, city scavengers (group `scavenger`), and charmed
-companions never leave Active.
+foragers, caravan crew, city scavengers (group `scavenger`), charmed
+companions, and AI companions waiting in the Waystone Hollow (the
+`HollowGroup` group, which the aicompanion module adds to that one
+instance; no template carries it) never leave Active.
 
 **Spawning state:** `NewMobPresence()` starts in `Spawning`. On the
 next `NewRound_PresenceTick`, the mob advances `Spawning→Active`. This

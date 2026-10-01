@@ -295,3 +295,13 @@ why a command available to both players and mobs must be registered twice
   exit and entry lines. It reads `actions.MobIsSneaking(mob)` before the
   move and sends neither line when sneaking, matching the ordinary exit
   path.
+
+## Search and salvage for bonded companions
+
+- `Search` passes `companionai.BaubleSearchFor(mob)` as
+  `actions.SearchOptions.BaubleForUserId` and reports what the search turned
+  up through `companionai.RouteSearched` (`searchFoundWords`). For every
+  other mob both are no-ops.
+- `Salvage` takes an optional `<mobId>:<roundCreated>` naming one corpse
+  (`actions.SalvageOptions.TargetCorpseMobId`/`TargetCorpseRoundCreated`); a
+  bare `salvage` takes the first eligible corpse, as before.

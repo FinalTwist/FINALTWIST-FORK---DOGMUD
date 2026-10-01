@@ -92,6 +92,13 @@ type SearchOptions struct {
 	// `search under the table`). Empty searches the whole room. Only players
 	// search features; a mob's search ignores it. See search_feature.go.
 	Feature string
+	// BaubleForUserId, for a mob's search, is the account its bauble roll is
+	// made for: a bonded AI companion searching on its owner's behalf
+	// (companionai.BaubleSearchFor decides whether it rolls at all). The
+	// roll is that account's, under every rule a player's is (rationed per
+	// player per room, skill, sight, household); the find goes into the
+	// companion's pack. 0, as for every other mob, is no roll.
+	BaubleForUserId int
 }
 
 // SearchStashedItem represents a stashed item discovered by Tier 2.
@@ -421,6 +428,8 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		if !used {
 			result.BaubleFound = searchForBauble(actor, room)
 		}
+	} else if opts.BaubleForUserId > 0 && actor.GetMobInstanceId() > 0 {
+		result.BaubleFound = companionSearchForBauble(actor, room, opts.BaubleForUserId)
 	}
 
 	// ── Skill progression (anti-botting gate) ───────────────────

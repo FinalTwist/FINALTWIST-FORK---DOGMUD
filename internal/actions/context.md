@@ -969,7 +969,14 @@ see the searcher. A mob's find ends nothing (slice F).
   2 rounds).
 
 **Baubles (`search_bauble.go`, docs/baubles Phases 3, 4 and 5b).** After every
-contested tier, a PLAYER's search takes a bauble roll (`baubles.RollFind`): a
+contested tier, a PLAYER's search takes a bauble roll. So does a bonded AI
+companion's, when `SearchOptions.BaubleForUserId` names her owner
+(`companionSearchForBauble`: the owner's ration, her skill and sight; the find
+goes into her pack via `BaubleDelivery.ByMobInstanceId`, or onto the ground
+with a line to the owner when she is overloaded, and the module hears of it
+through `companionai.RouteBaubleFound` by its `ModelName`; if she is gone by
+delivery it is
+the owner's find as usual). Every other mob never rolls. The player's roll is (`baubles.RollFind`): a
 chance set by the room's biome (`BaubleBiomeChancePct`: buildings 5%, streets
 2 to 2.5%, wilderness 0.25%) and raised by the searcher's search skill
 (`BaubleSkillFactor`, up to `BaubleSkillMaxBonus`), rationed to
@@ -1689,7 +1696,8 @@ type ScanOptions struct {
 }
 
 type SearchOptions struct {
-	Feature string // `search <feature>`; empty searches the room (search_feature.go)
+	Feature         string // `search <feature>`; empty searches the room (search_feature.go)
+	BaubleForUserId int    // a mob's search: roll for a bauble on this account's behalf (bonded companion)
 }
 
 type ShadowOptions struct {

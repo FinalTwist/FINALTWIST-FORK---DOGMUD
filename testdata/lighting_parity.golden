@@ -8548,3 +8548,33 @@ room 6873 biome=interior
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
+room 6880 biome=cave
+  plain        sight=full   clear=true shapes=true
+  nightvision  sight=full   clear=true shapes=true
+  infrared     sight=full   clear=true shapes=true
+  blinded      sight=none   clear=false shapes=false
+room 6881 biome=cave
+  plain        sight=full   clear=true shapes=true
+  nightvision  sight=full   clear=true shapes=true
+  infrared     sight=full   clear=true shapes=true
+  blinded      sight=none   clear=false shapes=false
+room 6882 biome=cave
+  plain        sight=full   clear=true shapes=true
+  nightvision  sight=full   clear=true shapes=true
+  infrared     sight=full   clear=true shapes=true
+  blinded      sight=none   clear=false shapes=false
+room 6883 biome=cave
+  plain        sight=full   clear=true shapes=true
+  nightvision  sight=full   clear=true shapes=true
+  infrared     sight=full   clear=true shapes=true
+  blinded      sight=none   clear=false shapes=false
+room 6884 biome=cave
+  plain        sight=full   clear=true shapes=true
+  nightvision  sight=full   clear=true shapes=true
+  infrared     sight=full   clear=true shapes=true
+  blinded      sight=none   clear=false shapes=false
+room 6885 biome=cave
+  plain        sight=full   clear=true shapes=true
+  nightvision  sight=full   clear=true shapes=true
+  infrared     sight=full   clear=true shapes=true
+  blinded      sight=none   clear=false shapes=false

@@ -1080,9 +1080,20 @@ func (m *Mob) IsEssential() bool {
 		if g == "forager" || g == "caravan" || g == "scavenger" {
 			return true
 		}
+		// An AI companion waiting in the Waystone Hollow (modules/aicompanion
+		// hollow.go) is one person on the server, with what she has learned
+		// restored onto her; she must not be unloaded or despawn from boredom.
+		if g == HollowGroup {
+			return true
+		}
 	}
 	return false
 }
+
+// HollowGroup marks an AI companion waiting in the Waystone Hollow for
+// someone to travel with. The aicompanion module adds it to that one
+// instance; no template carries it.
+const HollowGroup = "hollow"
 
 func (m *Mob) GetSellPrice(item items.Item) int {
 

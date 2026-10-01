@@ -214,13 +214,17 @@ func (t *relayTable) success(userId int) {
 // relay first, then the server's key, else nothing and set lines. A
 // passer-by talking to her is still routed by her owner: the owner's key
 // pays, and StrangerDailyTokens bounds what the passer-by may spend of it.
+//
+// With RequirePlayerKey (the default) there is no server key route at all:
+// a companion speaks only on the key of the player she is speaking for,
+// and to anyone else she says nothing (fallback).
 func (m *AICompanionModule) route(ownerId int) route {
 	if ownerId > 0 && m.relays != nil && m.playerKeysOffered() {
 		if model, ok := m.relays.live(ownerId, time.Now()); ok {
 			return route{kind: routeRelay, model: model}
 		}
 	}
-	if m.cfg.Enabled && m.apiKey() != `` {
+	if m.cfg.Enabled && m.apiKey() != `` && !m.cfg.RequirePlayerKey {
 		return route{kind: routeServer}
 	}
 	return route{kind: routeNone}

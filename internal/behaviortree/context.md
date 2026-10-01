@@ -252,6 +252,7 @@ Condition nodes use `type: condition` with `check: <name>`.
 | `player_in_room_has_quest` | `quest` (string) | ANY player in the room holds the token. Mirror of the above. ANDing has/missing variants can match *different* players in a shared room — only pair them where the room is effectively single-player (e.g. the solo ephemeral newcomer antechamber). |
 | `item_matches` | `item_id` (int) | Event ItemId matches. `player_give` only. |
 | `multiple_enemies` | none | More than one player + charmed mob in room. |
+| `multiple_foes` | none | More than one creature or person actually in the fight against this mob or its charmer (fighting them, or fought by this mob); bystanders do not count. Used by `companion_brawler` and `companion_battlemage`. |
 
 ### Combat Assessment
 
@@ -435,7 +436,7 @@ are subject to perception-scaled reaction delays (see below).
 
 | Action | Params | Description |
 |--------|--------|-------------|
-| `try_fire` | none | Fire the mob's loaded ranged weapon at its current Aggro target (or CombatMemory target if Aggro just cleared). Issues `fire <targetName>` or `fire <targetName> <direction>` for cross-room shots. Returns Failure if no loaded weapon, no valid target, or shot resolution fails. |
+| `try_fire` | none | Fire the mob's loaded ranged weapon at its current Aggro target (or CombatMemory target if Aggro just cleared). Issues `shoot #<instanceId>` / `shoot @<userId>` (exact, so two alike in a room are not a coin toss), with `<direction>` appended for cross-room shots. Returns Failure if no loaded weapon, no valid target, or shot resolution fails. |
 | `keep_distance` | `min_room_distance` (int, default 1) | Kiting action. If an enemy is in the mob's room, the mob is not already fleeing melee, and (flee parity slice 4a) `actions.FleeGate` does not refuse (rooted, frenzied, knocked down or grappled falls through to fighting instead), retreats toward home by issuing `flee <dir>` — a real flee, gated, costed and blockable like a player kiting archer's disengage — instead of a free `go <dir>`. `dir` still comes from `pickRetreatExit` (unlocked, home first). Returns Success on retreat, Failure if no usable exit found or the flee gate refuses. |
 
 **Archer re-engagement exemption (DoCombat hook):** A mob with a loaded
@@ -979,6 +980,31 @@ Added in the legacy tactics-engine sunset migration:
   target_casting → trip interrupt.
 
 Spec: `docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md`
+
+## AI Companion Archetypes
+
+The six bonded AI companions (modules/aicompanion) each fight with a tree
+of their own, answering only `mob_combat_round`:
+
+- **`companion_archer`** (Mara): `try_fire`, then a kick at a downed foe.
+  No `keep_distance`: a companion stays in the room with her owner.
+- **`companion_guardian`** (Corvel): bash a caster, taunt a foe that is on
+  someone else (`target_aggro_not_on_me`), rally, bash, kick a downed foe.
+- **`companion_healer`** (Liesl): self_heal below 40%, self_defense once
+  something is on her; otherwise the ordinary attack.
+- **`companion_skirmisher`** (Tobin): trip a caster, kick a downed foe, trip.
+- **`companion_battlemage`** (Isaura): self_heal, self_defense,
+  harm_multi on several foes, harm_single.
+- **`companion_brawler`** (Hal): kick a downed foe, grapple a lone foe,
+  trip, kick.
+
+No companion tree flees, calls for help, handles idle or reacts to
+packmates: a companion never hears packmate events, its idle time
+belongs to the module, and it runs by its own nerve (the profile's
+`flee_at`), not a fixed health line. Mending and warding the OWNER, a
+surprise opening blow from hiding, and the model's own spell choice are
+the module's (`modules/aicompanion/combat_style.go`). Tests:
+`companion_archetypes_test.go`.
 
 ## Files
 
