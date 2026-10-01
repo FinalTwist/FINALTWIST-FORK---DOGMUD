@@ -75,6 +75,9 @@ type World struct {
 	RoomBiome  func(roomId int) (biome string, ok bool)
 	Reachable  func(from, to int) bool
 	MobExists  func(mobId int) bool
+	// Private reports rooms no scavenger may ever patrol (player homes).
+	// They are dropped from every pool, include_rooms and home room alike.
+	Private func(roomId int) bool
 }
 
 var (
@@ -234,6 +237,16 @@ func resolvePool(p *Profile, w World) error {
 	excluded := map[int]bool{}
 	for _, id := range p.ExcludeRooms {
 		excluded[id] = true
+	}
+	if w.Private != nil {
+		for _, id := range candidates {
+			if w.Private(id) {
+				excluded[id] = true
+			}
+		}
+		if w.Private(p.HomeRoom) {
+			return fmt.Errorf(`home_room %d is a private room (player housing)`, p.HomeRoom)
+		}
 	}
 	if excluded[p.HomeRoom] {
 		return fmt.Errorf(`home_room %d is excluded`, p.HomeRoom)

@@ -211,3 +211,36 @@ func TestLine_FillsPlaceholders(t *testing.T) {
 		t.Fatal("no lines, no text")
 	}
 }
+
+// Player homes never join a pool, even when the pool's zone and biome would
+// take them in, and a home room that is one fails the load.
+func TestParse_DropsPrivateRooms(t *testing.T) {
+	w := fakeWorld()
+	w.Private = func(id int) bool { return id == 3 }
+
+	raw := `
+scavengers:
+  - mobid: 9820
+    city: Town
+    zones: [Town]
+    home_room: 1` + goodLines
+	ps, err := Parse([]byte(raw), w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range ps[0].Pool() {
+		if id == 3 {
+			t.Fatalf("private room 3 in the pool %v", ps[0].Pool())
+		}
+	}
+
+	raw = `
+scavengers:
+  - mobid: 9820
+    city: Town
+    include_rooms: [1, 2, 3]
+    home_room: 3` + goodLines
+	if _, err := Parse([]byte(raw), w); err == nil {
+		t.Fatal("a private home room was accepted")
+	}
+}

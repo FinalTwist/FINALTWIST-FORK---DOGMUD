@@ -40,7 +40,9 @@ rooms and mapper lookups (`main.go` wires them), so `Parse` is testable
 without a world on disk. Unknown mobs or zones, a home room outside its own
 pool, a duplicate mob, a missing placeholder, an unknown YAML key, or a pool
 under two rooms fail the boot like any broken content. Rooms with no path
-from the home room are dropped with a Warn naming them.
+from the home room are dropped with a Warn naming them. Rooms `World.Private`
+reports (main.go wires `housing.IsUnitRoom`) are dropped from every pool, and
+a private home room fails the load: no scavenger ever enters a player home.
 
 `LoadDataFiles` installs the set atomically; main.go then registers
 `IsPatrolledRoom` with `rooms.SetFloorDecayExempt` and prepares
@@ -54,8 +56,7 @@ never unloaded and its walk and haul survive), `maxwander: -1`, and is NOT
 non-combatant or attack-immune: `mobs.CheckPlayerHarm` would refuse the
 pickpocket otherwise. Its home room's spawninfo spawns it.
 
-Scavenger mob ids: 9820 to 9834 (9801 to 9804 are taken by the unmerged
-player-housing branch's landlords).
+Scavenger mob ids: 9820 to 9834 (9801 to 9804 are the housing landlords).
 
 ## Invariants
 
@@ -67,5 +68,6 @@ player-housing branch's landlords).
 - `scavenger_step` owns every idle tick of a scavenger (always Success), so
   the legacy wander, the displaced-home pull and the goal planner never
   fight its walk.
-- Pools are the floor-decay exemption. A room added to a pool stops
-  decaying; one removed starts.
+- Pools are the floor-decay exemption, with every housing unit room. A
+  room added to a pool stops decaying; one removed starts. A player home is
+  never in a pool and never decays.

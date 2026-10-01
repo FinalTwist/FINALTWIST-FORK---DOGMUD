@@ -1911,8 +1911,17 @@ func loadAllDataFiles(isReload bool) {
 			return err == nil
 		},
 		MobExists: func(mobId int) bool { return mobs.GetMobSpec(mobs.MobId(mobId)) != nil },
+		// Player homes are never on a scavenger's rounds, even if a pool's
+		// zone or biome would take them in.
+		Private: housing.IsUnitRoom,
 	})
-	rooms.SetFloorDecayExempt(scavenger.IsPatrolledRoom)
+	// Floors nobody may thin out: the rooms the scavengers keep, and every
+	// player-housing unit room, owned or vacant. A lodging's floor is the
+	// lodger's (internal/housing captures it into the house record), so the
+	// daily decay must never touch it.
+	rooms.SetFloorDecayExempt(func(roomId int) bool {
+		return scavenger.IsPatrolledRoom(roomId) || housing.IsUnitRoom(roomId)
+	})
 	warehouse.LoadAll()
 	questengine.LoadDataFiles()
 	templates.LoadAliases(plugins.GetPluginRegistry())

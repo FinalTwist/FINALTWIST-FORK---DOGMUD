@@ -62,6 +62,11 @@ func SetFloorDecayExempt(fn func(roomId int) bool) {
 	floorDecayExempt = fn
 }
 
+// IsFloorDecayExempt reports whether the registered exemption covers roomId.
+func IsFloorDecayExempt(roomId int) bool {
+	return floorDecayExempt != nil && floorDecayExempt(roomId)
+}
+
 // DecayDay is the real-world day number (UTC) of t: the unit the daily floor
 // decay and the scavengers' daily reset both count in.
 func DecayDay(t time.Time) int64 {
