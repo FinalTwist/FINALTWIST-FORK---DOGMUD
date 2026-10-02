@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
+	"github.com/GoMudEngine/GoMud/internal/lookdetail"
 	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -531,6 +532,14 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// was deliberately not resolved above; say why rather than deny it.
 	if sight == messaging.SightShapes {
 		user.SendText(messaging.CategorySystem, `You can only make out shapes here.`)
+		return true, nil
+	}
+
+	// Something the room's description names but nothing here answers to:
+	// a closer look may be written fresh (internal/lookdetail), on the
+	// looker's own key, or read from what an earlier look wrote. Only at
+	// clear sight, the case left once every sight rule above has run.
+	if sight == messaging.SightFull && lookdetail.TryLook(user, room, lookAt) {
 		return true, nil
 	}
 	user.SendText(messaging.CategorySystem, "Look at what???")

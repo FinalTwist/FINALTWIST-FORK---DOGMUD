@@ -355,8 +355,8 @@ are subject to perception-scaled reaction delays (see below).
 |--------|--------|-------------|
 | ⚠️ `try_reload` was REMOVED. Firing chambers its own next round, so an archer never needs a turn to reload. The node also made a skullduggery-capable archer `sneak` into cover first, which was the only place an archer took cover on its own; re-adding a "take cover" beat is worth more than it used to be, since hiding before a shot now earns the ambush. Left for the behaviour arc. | | |
 | `respond` | `user_text` (string), `room_text` (optional), `hints` (optional) | Sends text to triggering player; `room_text` to others; `hints` shown as a hint line. |
-| `say` | `text` (string) | Mob says text to the whole room. |
-| `emote` | `text` (string) | Mob emotes (no "says" prefix). |
+| `say` | `text` (string) | Mob says text to the whole room. On a `mob_idle` event only, it may be written fresh instead (`internal/npcidle.TryReplace`, through `idleOrSet`); every other event keeps the set line. |
+| `emote` | `text` (string) | Mob emotes (no "says" prefix). On a `mob_idle` event only, it may be written fresh instead, as `say`. |
 
 ### Quest & Flags — instant
 
@@ -430,7 +430,7 @@ are subject to perception-scaled reaction delays (see below).
 
 | Action | Params | Description |
 |--------|--------|-------------|
-| `scavenger_step` | none | The whole idle tick of a city scavenger (`internal/scavenger`; archetype `scavenger`). In order: clears the day's haul once per real-world day (items, and gold above the mob spec's purse; the first tick ever only records the day, kept in MiscData `scavenger_day`); picks up ONE litter item underfoot (`rooms.Room.FloorItemIsLitter`, through `actions.TakeFloorItem`, so darkness, a full pack and household baubles refuse it as for a player), else the floor gold, each with a profile line; otherwise lingers until `Walk.NextMoveAt` (running an authored idle command at `ActivityLevel`), then takes one step toward a random pool room via `mapper.GetPath` and sets the next linger (`ScavengerStepMinSeconds`..`ScavengerStepMaxSeconds`). Walk state is a `*scavenger.Walk` in TempData `scavenger_walk`; two steps in a row that leave it in place drop the target. Deliberately NOT `pathto`: the path walker steps every round and suppresses idle ticks until arrival. Success for a scavenger (it owns the tick), Failure for any other mob. Seams: `scavengerNow`, `scavengerRandn`, `scavengerNextStep`. |
+| `scavenger_step` | none | The whole idle tick of a city scavenger (`internal/scavenger`; archetype `scavenger`). In order: clears the day's haul once per real-world day (items, and gold above the mob spec's purse; the first tick ever only records the day, kept in MiscData `scavenger_day`); picks up ONE litter item underfoot (`rooms.Room.FloorItemIsLitter`, through `actions.TakeFloorItem`, so darkness, a full pack and household baubles refuse it as for a player), else the floor gold, each with a profile line; otherwise lingers until `Walk.NextMoveAt` (running an authored idle command at `ActivityLevel`), then takes one step toward a random pool room via `mapper.GetPath` and sets the next linger (the lingering idle command may be written fresh, `internal/npcidle.TryReplace`) (`ScavengerStepMinSeconds`..`ScavengerStepMaxSeconds`). Walk state is a `*scavenger.Walk` in TempData `scavenger_walk`; two steps in a row that leave it in place drop the target. Deliberately NOT `pathto`: the path walker steps every round and suppresses idle ticks until arrival. Success for a scavenger (it owns the tick), Failure for any other mob. Seams: `scavengerNow`, `scavengerRandn`, `scavengerNextStep`. |
 
 ### Archer / Ranged — varied delays (ranged-weapons feature)
 

@@ -40,6 +40,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/npcidle"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scavenger"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -207,6 +208,10 @@ func scavengerIdle(mob *mobs.Mob) {
 		return
 	}
 	if cmd := mob.GetIdleCommand(); cmd != `` {
+		// Now and then written fresh instead (internal/npcidle).
+		if npcidle.TryReplace(mob, cmd) {
+			return
+		}
 		mob.Command(cmd)
 	}
 }

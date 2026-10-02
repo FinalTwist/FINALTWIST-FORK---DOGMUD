@@ -492,13 +492,19 @@ weights are per profile (`Profile.Pastimes`, `pastimeWeight`,
   category is never wrapped for the reader.
 - **primer.txt**: the common-knowledge world primer given to the model.
 - **relayfor.go**: `relayFor`, the `apiframework.Relay` the module lends to
-  other features. It answers only for `apiframework.PurposeFinds`, only for
-  an owner whose key page has "Also name things I find while searching"
-  ticked (`relayOwner.finds`, `liveFor`), sends through `sendRelay` with the
-  request's own `Carries`, and feeds that owner's FINDS breaker (`Result`,
-  `relayTable.findsResult`, `relayOwner.findsFailures`/`findsUntil`), never
-  the one she runs on: a bauble request the owner's provider will not serve
-  pauses naming on that key, not her. Tests: `relayfor_test.go`.
+  other features, per purpose. It answers for `apiframework.PurposeFinds`
+  only for an owner whose key page has "Also name things I find while
+  searching" ticked (`relayOwner.finds`), and for every lively purpose
+  (`apiframework.IsLively`, such as `PurposeNPCIdle`, townsfolk idle
+  moments) only for one who left "Make the world livelier" ticked
+  (`relayOwner.lively`, `relayOwner.allows`; the box starts ticked, and the
+  Ready message carries it as `lively`, `relayTable.readyFor`). It sends
+  through `sendRelay` with the request's own `Carries`, and feeds that
+  purpose's own breaker (`Result(userId, purpose, err)`,
+  `relayTable.purposeResult`, `relayOwner.lent`, a `lentBreaker` per
+  purpose, each lively feature its own), never the one she runs on nor any
+  other purpose's: a request the owner's provider will not serve pauses
+  that feature on that key, nothing else. Tests: `relayfor_test.go`.
 - **config.go**: every setting and its default (`buildConfig`). The API key,
   base URL, custom endpoint switch and daily token budget are no longer here:
   they are the `APIFramework` section's. Left in the old place (a server's

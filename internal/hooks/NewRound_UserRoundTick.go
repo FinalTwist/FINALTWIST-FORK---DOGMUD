@@ -19,6 +19,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/roomlife"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -208,11 +209,19 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							msg := idleMsgs[idleMsgIndex]
 							if msg != `` {
 								wrappedMsg := util.SplitStringNL(msg, 80)
-								// Idle flavor text is visual; the visual
-								// pipeline judges each reader's sight, dark room
-								// or lit. The dark-room branch that tested the
-								// nightvision FLAG is gone (lighting plan 5c).
-								sendVisualRoomText(room, messaging.CategoryRoomDescription, wrappedMsg)
+								// Now and then the event is written fresh by
+								// a model on the key of a player in the room
+								// (internal/roomlife), seen or heard, through
+								// these same room senders; the set line is
+								// then shown only if no event comes.
+								if !roomlife.TryReplace(room, wrappedMsg, idleMsgs) {
+									// Idle flavor text is visual; the visual
+									// pipeline judges each reader's sight, dark
+									// room or lit. The dark-room branch that
+									// tested the nightvision FLAG is gone
+									// (lighting plan 5c).
+									sendVisualRoomText(room, messaging.CategoryRoomDescription, wrappedMsg)
+								}
 							}
 
 						}

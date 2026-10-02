@@ -1,5 +1,33 @@
 # DOGMud Patch Notes
 
+## 2026-10-01: Townsfolk and places with something new to do
+
+- Now and then, a shopkeeper, guard, barkeep or any other townsperson
+  will do or say something fresh instead of one of their usual idle lines:
+  chasing off a bird that has claimed their shelf, glaring at a jar that
+  will not stay put, muttering at a draught. Each moment fits who they are,
+  where they are, and what is around them, wares included.
+- This only happens with your own Companion key loaded, and it uses that
+  key, a little at a time. A new box on the Companion key page, "Make the
+  world livelier", is ticked for you; untick it to keep your key for your
+  companion alone. More ways for the world to come alive will use this same
+  box.
+- The places themselves come alive too. Now and then, instead of one of its
+  usual background lines, a street, tavern or wood shows you something of
+  its own: a rat darting along the foot of a wall, a gull making off with
+  a crust, an argument behind a closed door about whose turn it was to
+  fetch water.
+- Look at anything a room's description mentions. If nothing there answers
+  to it, you now get a closer look written for that very thing: the moss in
+  the fountain's cracks, the sign creaking over the cartwright's door.
+  Whoever looks after you sees the same detail.
+- These moments happen around you, never to you, and follow the same light
+  rules as everything else: in the dark you will not see them, though you
+  may still hear something.
+- AI companions are not affected: they already speak for themselves.
+- Fixed: a companion's farewell could not be written on your own key, so it
+  always fell back to a plain sentence.
+
 ## 2026-10-01: City scavengers
 
 - The loot goblin is gone. It no longer steals everything left on the
