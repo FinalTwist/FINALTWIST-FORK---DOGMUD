@@ -29,14 +29,20 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 		return true, nil
 	}
 
-	// A routed exit (a housing door) is not a lock to be picked: it opens for
-	// the people who live behind it and for nobody else. Refuse before the
-	// lockpicks check, any skill roll, trap or unlock, so the authored lock
-	// stays shut and the answer is the true one.
+	// A routed exit (a housing door, a rift door) is not a lock to be picked:
+	// whoever routes it decides who passes. Refuse before the lockpicks check,
+	// any skill roll, trap or unlock, so the authored lock stays shut and the
+	// answer is the true one. A router may supply its own wording.
 	if fields := strings.Fields(strings.ToLower(rest)); len(fields) > 0 {
-		if routedExit, _ := room.FindExitByName(fields[0]); routedExit != `` && rooms.IsRoutedExit(user.UserId, room.RoomId, routedExit) {
-			user.SendText(messaging.CategorySystem, util.SplitStringNL(fmt.Sprintf(`The lock on the <ansi fg="exit">%s</ansi> is the landlord's own work, and it has never once been picked. It opens for those who live here.`, routedExit), 80))
-			return true, nil
+		if routedExit, _ := room.FindExitByName(fields[0]); routedExit != `` {
+			if route, handled := rooms.RouteExit(user.UserId, room.RoomId, routedExit); handled {
+				refusal := route.PickRefusal
+				if refusal == `` {
+					refusal = fmt.Sprintf(`The lock on the <ansi fg="exit">%s</ansi> is the landlord's own work, and it has never once been picked. It opens for those who live here.`, routedExit)
+				}
+				user.SendText(messaging.CategorySystem, util.SplitStringNL(refusal, 80))
+				return true, nil
+			}
 		}
 	}
 

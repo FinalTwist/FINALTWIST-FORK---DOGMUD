@@ -850,6 +850,20 @@ func FindLiveInstanceByHomeAndId(roomId int, mobId MobId) *Mob {
 	return nil
 }
 
+// RestoreInstance puts a mob taken out with DestroyInstance back into the
+// world registry under its own instance id, unchanged (health, conditions,
+// state): the same creature, back. A caller that parks a mob between rooms
+// (a rift's hunter following its quarry) uses the pair. Placing it in a room
+// is the caller's.
+func RestoreInstance(m *Mob) {
+	if m == nil || m.InstanceId == 0 {
+		return
+	}
+	mobInstancesMu.Lock()
+	mobInstances[m.InstanceId] = m
+	mobInstancesMu.Unlock()
+}
+
 func DestroyInstance(instanceId int) {
 	mobInstancesMu.Lock()
 	delete(mobInstances, instanceId)

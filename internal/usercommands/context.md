@@ -695,3 +695,11 @@ Read that with the ordering rule above: running before the dispatch is
 necessary and not sufficient. A path below the pull still has to ask a
 storage-aware question, because all-or-nothing legitimately leaves a
 shortfall in place.
+
+## Fallback handlers
+
+`AddFallbackHandler(func(cmd, rest, user, room) bool)`: a module's hook for
+words it recognises only in some places. `TryCommand` consults them after
+registered commands, emotes and spells miss, before the `go` attempt, and
+not for a dead or input-blocked player. `modules/rifts` uses one for lens
+places (`1c`) at a rift's lens table.

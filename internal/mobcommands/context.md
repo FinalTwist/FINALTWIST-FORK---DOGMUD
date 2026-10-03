@@ -160,6 +160,12 @@ The `internal/mobcommands` package implements the AI command system for non-play
   taking no step on a refusal — a mob has no one to tell), then
   `actions.RelocateMob`, then rolls `actions.EntryDetection` on arrival and
   the rare `actions.TrainSearchOnMove`, both ways, same as a player.
+- A routed exit (`rooms.RouteExit`: a housing door, a rift door or portal)
+  is asked on the mob's behalf (user id 0): a refusal stops the mob
+  silently, a route replaces the destination. A forced `go <roomId>` with no
+  exit to it is refused into, out of or within an owned ephemeral chunk
+  (`rooms.MobMayMove`), so callforhelp cannot carry a mob through a rift's
+  walls.
 
 #### **Dynamic Conversations** (`converse.go`)
 - **Context-aware dialogue**: Conversations based on mob types and situations
@@ -305,3 +311,9 @@ why a command available to both players and mobs must be registered twice
 - `Salvage` takes an optional `<mobId>:<roundCreated>` naming one corpse
   (`actions.SalvageOptions.TargetCorpseMobId`/`TargetCorpseRoundCreated`); a
   bare `salvage` takes the first eligible corpse, as before.
+
+#### Cast narration (`cast.go`)
+- A spell's authored `cast_observer` names its target by the bare coloured
+  name (not the formatted one, which carries adjectives such as "(Lit)"), and
+  when a spell authors that line the generic "begins weaving a spell" is not
+  added after it.

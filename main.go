@@ -79,6 +79,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/relationships"
+	"github.com/GoMudEngine/GoMud/internal/rifts"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scavenger"
 	"github.com/GoMudEngine/GoMud/internal/sealedcrate"
@@ -1736,6 +1737,10 @@ func loadAllDataFiles(isReload bool) {
 	)
 	mobs.LoadDataFiles()
 
+	// Rifts: profiles and room templates (internal/rifts). After mobs, items
+	// and conditions, whose ids the profiles name; panics on bad data.
+	rifts.LoadDataFiles()
+
 	// Hostile mobs whose behavior tree gates engagement via a
 	// player_enter branch get that gate silently preempted by the
 	// entry auto-attack — warn at boot instead of during play.
@@ -1927,6 +1932,9 @@ func loadAllDataFiles(isReload bool) {
 	templates.LoadAliases(plugins.GetPluginRegistry())
 	keywords.LoadAliases(plugins.GetPluginRegistry())
 	mutators.LoadDataFiles()
+	// Rift profiles name the mutator that shows a portal site; checked here,
+	// once mutators exist (internal/rifts).
+	rifts.ValidateMutators()
 
 	// Force-spawn long-running system NPCs at boot. The shop prewarm
 	// above seeds shop cache entries from spawninfo but does NOT call

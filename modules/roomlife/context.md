@@ -31,6 +31,11 @@ livelier" ticked. It lends the key under its own purpose,
 `Chance` to 100; the room's own ambient roll (5% a round) still decides when
 an event is due.
 
+A room claimed by a `roomlife.PlaceHook` (a rift) uses that place's own
+chance instead of `Chance` (while `Chance` is above zero), and its
+`Request.Setting` is sent as `setting`; the system prompt says a setting
+overrides Gaius (prompt version 2). Such a room may send no `time_of_day`.
+
 ## Gotchas
 
 - A seen event written for a keyholder who cannot see is refused by

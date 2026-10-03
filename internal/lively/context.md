@@ -4,7 +4,8 @@
 
 What every "make the world livelier" feature shares to write something on a
 player's own key. A lively feature (today `modules/npcidle`,
-`modules/roomlife` and `modules/lookdetail`) brings its own purpose, consumer, allowance dimension,
+`modules/roomlife`, `modules/lookdetail` and the room writer in
+`modules/rifts`) brings its own purpose, consumer, allowance dimension,
 prompt and reply schema; this package does the rest the same way for all of
 them. It never touches the server's budget or key, except to moderate.
 
@@ -53,5 +54,5 @@ them. It never touches the server's budget or key, except to moderate.
 
 ## Dependencies
 
-`internal/apiframework`. Imported by `modules/npcidle`, `modules/roomlife` and
-`modules/lookdetail`.
+`internal/apiframework`. Imported by `modules/npcidle`, `modules/roomlife`,
+`modules/lookdetail` and `modules/rifts`.

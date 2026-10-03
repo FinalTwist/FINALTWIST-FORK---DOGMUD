@@ -59,6 +59,11 @@ const PurposeRoomLife = PurposeLively + `:roomlife`
 // lively purpose.
 const PurposeLookDetail = PurposeLively + `:lookdetail`
 
+// PurposeRifts is a new room for a rift's pools, written in the background
+// as a run's rooms are built and saved to the rift's bank so the pools grow
+// (modules/rifts). A lively purpose.
+const PurposeRifts = PurposeLively + `:rifts`
+
 // Relay sends requests through a player's own key.
 type Relay interface {
 	// Model returns the model the player's live relay uses when it may be

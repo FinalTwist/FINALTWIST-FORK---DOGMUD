@@ -141,6 +141,10 @@ func TryReplace(room *rooms.Room, setMsg string, pool []string) bool {
 		return false
 	}
 	chance := g.Chance()
+	place, claimed := placeFor(room)
+	if chance > 0 && claimed && place.Chance >= 0 {
+		chance = place.Chance // a rift asks more often than the world does
+	}
 	if chance <= 0 || roll() >= chance {
 		return false
 	}

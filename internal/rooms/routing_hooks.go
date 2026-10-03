@@ -1,6 +1,11 @@
 package rooms
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/GoMudEngine/GoMud/internal/exit"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
 
 // Routing hooks let a subsystem that rooms must not import (housing, today)
 // take part in three decisions the room layer owns:
@@ -16,7 +21,10 @@ import "sync"
 //
 // Each is a single registered func, set once at boot, in the same style as
 // SetBTreeStateEvictor. Unset hooks are no-ops, so tests and tools that never
-// boot the subsystem see ordinary room behaviour.
+// boot the subsystem see ordinary room behaviour. The exit router and the
+// entry guard also accept additional hooks (AddExitRouter, AddEntryGuard),
+// consulted after the primary one, so a second subsystem (rifts) can take
+// part without displacing housing.
 
 // ExitRoute is an ExitRouter's answer for one player taking one exit.
 type ExitRoute struct {
@@ -29,6 +37,9 @@ type ExitRoute struct {
 	// several places and must pick one (a lodger who is also a guest in
 	// other lodgings). RoomId is then zero and the caller asks.
 	Choices []ExitChoice
+	// PickRefusal, when set, is what `picklock` says about this exit. Empty
+	// keeps picklock's own wording for a routed exit (a housing door).
+	PickRefusal string
 }
 
 // ExitChoice is one destination a routed exit offers.
@@ -89,6 +100,9 @@ var (
 	privateRoomCheck PrivateRoomCheck
 	roomOverlay      RoomOverlay
 	roomSaveHook     RoomSaveHook
+
+	extraExitRouters []ExitRouter
+	extraEntryGuards []EntryGuard
 )
 
 // SetRoomSaveHook registers the room save hook. Passing nil clears it.
@@ -148,16 +162,67 @@ func SetPrivateRoomCheck(fn PrivateRoomCheck) {
 	privateRoomCheck = fn
 }
 
-// RouteExit asks the registered router about one player taking one exit.
-// handled is false when no router is registered or the exit is ordinary.
+// GetRandomExitFor is GetRandomExit for one traveller (userId zero for a mob):
+// a routed exit counts only when its router lets them through, and then
+// stands for the room the router names. Flee uses it so that a routed door
+// that refuses a walker refuses a fleer too.
+func (r *Room) GetRandomExitFor(userId int) (exitName string, roomId int) {
+	candidates := map[string]int{}
+	add := func(name string, info exit.RoomExit) {
+		if info.Secret || info.Lock.IsLocked() {
+			return
+		}
+		if route, routed := RouteExit(userId, r.RoomId, name); routed {
+			if route.RoomId == 0 {
+				return
+			}
+			candidates[name] = route.RoomId
+			return
+		}
+		candidates[name] = info.RoomId
+	}
+	for name, info := range r.Exits {
+		add(name, info)
+	}
+	for mut := range r.ActiveMutators {
+		for name, info := range mut.GetSpec().Exits {
+			add(name, info)
+		}
+	}
+	if len(candidates) == 0 {
+		return ``, 0
+	}
+	pick := util.Rand(len(candidates))
+	for name, id := range candidates {
+		if pick == 0 {
+			return name, id
+		}
+		pick--
+	}
+	return ``, 0
+}
+
+// RouteExit asks the registered routers about one player taking one exit: the
+// primary router (SetExitRouter) first, then each added one (AddExitRouter) in
+// the order they were added. The first router that handles the exit decides.
+// handled is false when no router claims the exit.
 func RouteExit(userId int, fromRoomId int, exitName string) (ExitRoute, bool) {
-	routingHooksMu.RLock()
-	fn := exitRouter
-	routingHooksMu.RUnlock()
-	if fn == nil || exitName == `` {
+	if exitName == `` {
 		return ExitRoute{}, false
 	}
-	return fn(userId, fromRoomId, exitName)
+	routingHooksMu.RLock()
+	fns := make([]ExitRouter, 0, 1+len(extraExitRouters))
+	if exitRouter != nil {
+		fns = append(fns, exitRouter)
+	}
+	fns = append(fns, extraExitRouters...)
+	routingHooksMu.RUnlock()
+	for _, fn := range fns {
+		if route, handled := fn(userId, fromRoomId, exitName); handled {
+			return route, true
+		}
+	}
+	return ExitRoute{}, false
 }
 
 // IsRoutedExit reports whether exitName in fromRoomId is handled by the
@@ -167,15 +232,56 @@ func IsRoutedExit(userId int, fromRoomId int, exitName string) bool {
 	return handled
 }
 
-// checkEntry asks the registered guard. With no guard every entry is allowed.
+// checkEntry asks the registered guards: the primary (SetEntryGuard) first,
+// then each added one (AddEntryGuard). The first refusal decides. With no
+// guard every entry is allowed.
 func checkEntry(userId int, toRoomId int) (allowed bool, redirectRoomId int, refusal string) {
 	routingHooksMu.RLock()
-	fn := entryGuard
-	routingHooksMu.RUnlock()
-	if fn == nil {
-		return true, 0, ``
+	fns := make([]EntryGuard, 0, 1+len(extraEntryGuards))
+	if entryGuard != nil {
+		fns = append(fns, entryGuard)
 	}
-	return fn(userId, toRoomId)
+	fns = append(fns, extraEntryGuards...)
+	routingHooksMu.RUnlock()
+	for _, fn := range fns {
+		if ok, redirect, why := fn(userId, toRoomId); !ok {
+			return false, redirect, why
+		}
+	}
+	return true, 0, ``
+}
+
+// AddExitRouter registers an additional exit router, consulted after the
+// primary one. It exists so that more than one subsystem can route exits
+// (housing owns the primary slot; rifts adds itself here). Routers must be
+// free of side effects: look, picklock and unlock ask them too, not only go.
+func AddExitRouter(fn ExitRouter) {
+	if fn == nil {
+		return
+	}
+	routingHooksMu.Lock()
+	defer routingHooksMu.Unlock()
+	extraExitRouters = append(extraExitRouters, fn)
+}
+
+// AddEntryGuard registers an additional entry guard, consulted after the
+// primary one.
+func AddEntryGuard(fn EntryGuard) {
+	if fn == nil {
+		return
+	}
+	routingHooksMu.Lock()
+	defer routingHooksMu.Unlock()
+	extraEntryGuards = append(extraEntryGuards, fn)
+}
+
+// ClearAddedRoutingHooks drops every router and guard added with
+// AddExitRouter / AddEntryGuard. For tests.
+func ClearAddedRoutingHooks() {
+	routingHooksMu.Lock()
+	defer routingHooksMu.Unlock()
+	extraExitRouters = nil
+	extraEntryGuards = nil
 }
 
 // IsPrivateRoom reports whether roomId belongs to a player.
@@ -187,4 +293,35 @@ func IsPrivateRoom(roomId int) bool {
 		return false
 	}
 	return fn(roomId)
+}
+
+// fleeRouting is true while a flee is choosing its exit (WhileFleeing). All
+// routing runs on the game loop, so a plain flag is enough.
+var fleeRouting bool
+
+// WhileFleeing runs fn with FleeRouting reporting true, so an exit router
+// asked inside it knows the traveller is fleeing rather than walking. A
+// router may let a flee through a door it shuts to walkers (a rift room held
+// shut by the monsters in it: fleeing is the way out, at a price).
+func WhileFleeing(fn func()) {
+	prev := fleeRouting
+	fleeRouting = true
+	defer func() { fleeRouting = prev }()
+	fn()
+}
+
+// FleeRouting reports whether the router being asked is deciding a flee.
+func FleeRouting() bool { return fleeRouting }
+
+// NoRecall reports whether roomId keeps its occupants in (temp data
+// `allow_recall` false, as every rift room has): recall, the tutorial door,
+// fold anchors and scripted teleports out of it are refused. Death and
+// admin moves are not.
+func NoRecall(roomId int) bool {
+	room := LoadRoom(roomId)
+	if room == nil {
+		return false
+	}
+	allowed, ok := room.GetTempData(`allow_recall`).(bool)
+	return ok && !allowed
 }

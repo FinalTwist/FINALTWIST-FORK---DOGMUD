@@ -1,5 +1,135 @@
 # DOGMud Patch Notes
 
+## 2026-10-03: Animals are what they look like
+
+Thirty-two creatures had the wrong species, and since creatures hunt and
+ally by species, the coyote was prey to rat-hunting dogs and the wolf
+counted rats as kin. Each is now the kind of beast it is described as:
+
+- Fox, coyote, timber wolf and wild dog are canines; the feral hog a boar;
+  the farm cat a feline; the mouse, river rat and jackrabbit rodents.
+- The briar hawk, wheeling hawk and scavenger bird are raptors; the otters
+  mustelids; the river gar a fish; the river lurker and sun-lizard reptiles.
+- Grubs, crawlers and the cave and canal lurkers (all many-legged and
+  plated) are insectoids.
+- Two new species: **bird**, for the chicken, sparrow, herons, sage grouse
+  and crows (no longer allies of the hawks that hunt them), and **horse**,
+  for Hob and Bran, Thornwall's draught horses (they were human).
+
+## 2026-10-03: Rift fixes
+
+- A party invite nobody has accepted no longer lets the inviter's party
+  into the invitee's rift.
+- A fold-recall started before stepping into a rift no longer carries you
+  out of it when it finishes.
+- A companion left behind in a rift room goes to its owner when the room
+  closes, instead of being stranded in a room that no longer exists.
+- Rift doors are never named after a command: three "drop" doors are now
+  "plunge" and three "rift" doors "fissure", so `drop sword` drops the
+  sword. Generated rooms are held to the same rule.
+- The lens table now says plainly when the next mistake undoes it, and
+  will not pair two lenses at once while another already waits.
+- The glass armour is valued at what its lenses cost, and the Arena Iron
+  Greaves and Chain Gloves weigh what iron and chain should.
+
+## 2026-10-02: Rifts into the Obelisk
+
+- Shards of dark crystal now hang in the air in a handful of wild places
+  across the land, a few in each region. They are never in towns or on the
+  roads, and every day they are somewhere new. `enter crystal` or
+  `touch crystal` to step inside the Obelisk: a maze of dark crystal in a
+  place that is not quite anywhere, left behind by a people long gone.
+- Go in with friends: once the first of you is through, the rest have a
+  short while to follow before the way closes behind you.
+- There is no way back the way you came. Every room has several ways on,
+  and the rooms you leave are gone behind you. No map works in there.
+- Some rooms are quiet passages, some are halls worth a long look, some
+  hold a puzzle or a trap, some hold things that guard them, and a few hold
+  something far worse. A room with enemies in it keeps its doorways shut
+  until they are dealt with.
+- The only way out is a breach in the crystal, and every way into a breach
+  is locked. Facet Keys open them, one key per lock, and only the Obelisk's
+  great guardians and its hardest puzzles give them up. A Facet Key does not
+  survive outside the Obelisk. The breach always lets you out where you came
+  in, even if the crystal there has since moved on.
+- Glowstones, shards of the Obelisk's crystal that keep a light of their
+  own, lie here and there inside. Wear one to see by. Like the keys, they
+  crumble to nothing outside the Obelisk.
+- The Obelisk is never quite still. Glass settles, the walls hum, and your
+  reflection does not always keep up with you. If you have "Make the world
+  livelier" ticked, now and then something happens in there that nobody
+  wrote down beforehand.
+- Heaps of crystal rubble lie in some rooms, more often the deeper and more
+  dangerous the room. `search rubble` and you may turn up something left
+  behind. Each heap gives up its find only once.
+- The Obelisk is still guarded. Its makers' security, the Lenses, keeps
+  running: Glint Stalkers that wait in the facets, cut, and vanish again;
+  Spine Lattices that loose their shards in volleys; Splitlights that turn
+  your blows back on you and drink the life out of a room; and, at the
+  heart of it, the Watching Obelisk itself. Watch for what they are
+  gathering. Some of it can be broken off with a hard enough blow.
+- Rooms with guardians in them stay shut to anyone they know is there. You
+  can still flee. Something in the walls will notice if you do. It comes
+  for you room by room, and if you stop long enough it finds you, and while
+  it can see you there is no way out. Keep moving, or stay unseen.
+- Stealth works in the Obelisk. Sneak, and its guardians have to notice you
+  to fight you; slip through a guarded room unseen and nothing follows. The
+  Glint Stalkers, which sometimes wait in the passages too, are the easiest
+  to get past.
+- Rare Obelisk Glass can sometimes be foraged from seams in the crystal.
+- Some rooms hold a small clouded prism. Study enough of them and the round
+  marks carved all over the Obelisk start to make sense to you, for good.
+  After that, the writings you find tell what became of the people who
+  built the place.
+- The Obelisk now has many more rooms to find: twenty passages, eleven
+  great halls, ten rooms of puzzles and traps, five guarded rooms and five
+  breaches, each with things worth a closer look. And the writings now tell
+  a longer story, ten fragments in all, of the people of light who built
+  the place, what they saw through it, and what came back the other way.
+- The Obelisk grows. If you have "Make the world livelier" ticked, now and
+  then, while you explore, your key writes a brand new room in the
+  background, and once it is checked it stays in the Obelisk for good, for
+  everyone, to turn up in later runs.
+- Some rooms hold a lens table: thirty-six lenses face down, tuned in
+  pairs. Type a lens's place, like `1c`, to turn it, and find its partner.
+  Matched pairs stay up; mistakes cost you, and when the table's patience
+  runs out every lens turns back, even the pairs you found. It forgives
+  less each time, and in the end it goes dark for good. Lock every pair
+  and the sealed way opens. No two tables are laid out alike, and only
+  those who can read the Obelisk's marks can make sense of one. See
+  `help lenses`.
+- Every rift is yours alone. Go in on your own and nobody else will ever
+  be in there with you; go in with your party and only your party follows.
+- The only ways out are a breach opened with a Facet Key, and dying. Keys
+  come only from the Obelisk's great guardians and from its lens tables:
+  lock every pair on a table and it gives you one.
+- The Obelisk is not kind to the fallen. Die in there and it keeps
+  everything you carry, all the gold on you, and maybe some of what you
+  wear. Leave the game while inside and it keeps what you carry. Your keys,
+  quest items and things bound to you are never taken.
+- Obelisk Glass has a use at last. A jeweler can grind one shard into
+  three Obelisk Lenses (`craft obelisk lens`), and a smith can scale
+  armour with them by the dozen: the Glass-Scale Hauberk, Glass-Scale Helm
+  and Glass-Facet Buckler. Each is a fraction of the weight of the steel
+  piece it is built on and a little harder, and throws a little of every
+  blow back at whoever struck it. They take a great many lenses,
+  and a failed attempt loses them all.
+- Armour has weight now. About half of it, mostly the everyday and
+  starter pieces, weighed nothing at all. Every piece now weighs what its
+  material and make suggest: iron and chain the most, leather less, cloth
+  and jewellery hardly anything. Worn armour still counts at half its
+  weight, so most adventurers will barely notice; a full kit of iron is a
+  load you will feel.
+- Fixed: recipes that make more than one of something now do. Crafting
+  chain links gives the three links the recipe always promised. Salvaging
+  one of several made together gives back only its share.
+- What it keeps, it sometimes gives back: now and then a heap of rubble
+  holds something another adventurer lost in the dark. Once found, it is
+  gone for good.
+- Fixed: being blinded by a condition that simply ran out could leave you
+  unable to see anything until you died. Your sight now comes back when the
+  blindness ends.
+
 ## 2026-10-01: Townsfolk and places with something new to do
 
 - Now and then, a shopkeeper, guard, barkeep or any other townsperson

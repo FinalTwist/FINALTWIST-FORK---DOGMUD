@@ -309,6 +309,36 @@ question).
 - **Zone duplication**: Creating temporary copies of entire zones
 - **ID mapping**: Tracking relationships between original and ephemeral rooms
 
+### Owned Ephemeral Chunks (`ephemeral_owned.go`)
+
+For a subsystem that builds ephemeral rooms one at a time and tears each down
+on its own schedule (today `internal/rifts`), rather than cloning a zone:
+
+- **`ReserveOwnedChunk(zone) (*OwnedChunk, error)`**: reserves a whole free
+  chunk (250 ids) and gives it a fresh coordinate plane, marked non-Euclidean
+  in the plane registry, so the mapper never lays it out.
+- **`(*OwnedChunk).AddRoom(*Room) (roomId, error)`**: next free slot's id,
+  the chunk's plane, `addRoomToMemory`. The caller sets `Zone` and content.
+- **`(*OwnedChunk).RemoveRoom(roomId) bool`**: refuses while a player is in
+  the room. Destroys the room's mobs WITHOUT saving them and deletes any
+  instance file a periodic save already wrote (`mobs.DeleteMobInstance`), so a
+  later room reusing the id never inherits their progression; then
+  `ClearRoomCache` (zone ids, mob/user indexes, file-path cache). The room is
+  not saved: ephemeral rooms have no instance file. Never call it from inside
+  a `RoomChange` listener for the room being left: later listeners in that
+  chain `LoadRoom(FromRoomId)`, and `LocationMusicChange` cancels the chain
+  when it is gone. Sweep on `NewRound` instead.
+- **`(*OwnedChunk).Release() (stranded int)`**: removes every room and frees
+  the chunk; keeps it reserved (and reports how many) while players remain.
+- `chunkFree(i)` (empty AND not owned) is what `CreateEphemeralRoomIds` and
+  `GenerateOasisCube` scan for; both now return `errEphemeralChunkLimit` when
+  every chunk is taken (the clone path used to index chunk -1).
+  `TryEphemeralCleanup` returns early for an owned chunk, and
+  `EphemeralRoomMaintenance` skips owned chunks.
+- **`OwnedChunkOf(roomId) int`**: the owned chunk a room is in, or -1.
+  **`MobMayMove(from, to) bool`**: false when either room is in an owned
+  chunk; `mobcommands.Go` asks it for a forced move that follows no exit.
+
 ### Zone Instance Options (`instances.go`)
 
 `CreateZoneInstance` (legacy, existing callers unchanged) now delegates to:
@@ -362,6 +392,19 @@ no-ops.
   moving and skips the exit's authored lock for a routed pass; `unlock`,
   `picklock` and `look` treat a routed exit as a door, not a lock or a view.
   An empty exit name is never routed.
+- **`AddExitRouter(ExitRouter)` / `AddEntryGuard(EntryGuard)`**: additional
+  routers and guards, consulted after the primary (housing's) in the order
+  added. `RouteExit` returns the first router that handles the exit;
+  `checkEntry` returns the first guard that refuses. `internal/rifts` uses
+  both. Routers must be free of side effects: `look`, `picklock`, `unlock`
+  and flee ask them too, not only `go`. `ClearAddedRoutingHooks` is for
+  tests. `ExitRoute.PickRefusal`, when set, is what `picklock` says about a
+  routed exit (empty keeps the housing wording).
+- **`(*Room).GetRandomExitFor(userId)`**: `GetRandomExit` for one traveller
+  (zero for a mob): a routed exit counts only when its router lets them
+  through, and stands for the room the router names. Flee uses it
+  (`actions.fleeExit`), so fleeing is never a way past a door walking could
+  not open.
 - **`SetEntryGuard(EntryGuard)`**: `MoveToRoom` asks it right after the
   instance access check. A refused ordinary move fails with the guard's
   message. A refused spawn (`MoveToRoom(..., true)`, login placement from
@@ -499,6 +542,7 @@ When writing hidden noun descriptions:
 | `floor_decay.go` | The daily floor decay that replaced the loot goblin (2026-09-30). Once per real-world day (`DecayDay`, UTC), each litter item on a floor is removed with `FloorDecayChancePct(n, FloorDecayBaseChancePct, FloorDecayPerExtraItemPct)` (10% plus 5% per other litter item, held to 100). `Room.FloorDecayDay` (instance-persisted) is the last day paid through; an unloaded room pays what it missed (capped at `floorDecayMaxCatchUpDays`, 30) the next time `DecayLoadedFloors` (hook `DecayFloors`, every `FloorDecayCheckRounds`) sees it loaded. `AddItem` starts the clock when litter lands on a litter-free floor (`noteFloorItemAdded`). Skipped: occupied rooms (deferred), ephemeral rooms, rooms `SetFloorDecayExempt` covers (main.go: `scavenger.IsPatrolledRoom` or `housing.IsUnitRoom`, so no player home, owned or vacant, ever decays; `IsFloorDecayExempt` reads it, and the boot smoke test checks every unit room). `FloorItemIsLitter` is the one rule shared with the scavengers: not the template's own floor items (`authoredItemIds`, set in `LoadRoomInstance`) or SpawnInfo items, not a `QuestToken` item, not an untaken or household bauble. Stash and floor gold never decay. Removed baubles are `MarkVanished` |
 | `spawninfo.go` / `spawninfo_validate.go` | Room spawn lists and their validation |
 | `instances.go` / `ephemeral.go` | Instanced and ephemeral rooms |
+| `ephemeral_owned.go` | Owned ephemeral chunks: single-room add/remove for one owner (rifts) |
 | `routing_hooks.go` | Exit router, entry guard, private-room check, room overlay and room save hook, registered by `internal/housing` |
 | `cubegen.go` | Generated cube/maze room structures |
 | `memory.go` | Memory reporting for the admin report |

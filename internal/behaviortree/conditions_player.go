@@ -119,8 +119,12 @@ func condPlayersInRoom(params map[string]any, ctx *EvalContext) Result {
 	if !mobCanSee(mobs.GetInstance(ctx.InstanceId), room) {
 		return Failure
 	}
-	if len(room.GetPlayers()) > 0 {
-		return Success
+	// Only players it could know are there: an undetected sneaker is not
+	// found by looking (sneak, search and entry detection decide that).
+	for _, id := range room.GetPlayers() {
+		if u := users.GetByUserId(id); u != nil && !u.Character.IsHidden() {
+			return Success
+		}
 	}
 	return Failure
 }

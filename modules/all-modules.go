@@ -17,6 +17,7 @@ import (
 	_ "github.com/GoMudEngine/GoMud/modules/lookdetail"
 	_ "github.com/GoMudEngine/GoMud/modules/npcidle"
 	_ "github.com/GoMudEngine/GoMud/modules/playtest"
+	_ "github.com/GoMudEngine/GoMud/modules/rifts"
 	_ "github.com/GoMudEngine/GoMud/modules/roomlife"
 	_ "github.com/GoMudEngine/GoMud/modules/time"
 	_ "github.com/GoMudEngine/GoMud/modules/weather"

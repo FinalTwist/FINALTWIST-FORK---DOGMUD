@@ -414,6 +414,7 @@ function livelyRules() {
     check('lively: townsfolk idle moments are listed', Relay.LIVELY_SCHEMAS.indexOf('npc_idle') !== -1, true);
     check('lively: ambient room events are listed', Relay.LIVELY_SCHEMAS.indexOf('room_event') !== -1, true);
     check('lively: closer looks are listed', Relay.LIVELY_SCHEMAS.indexOf('look_detail') !== -1, true);
+    check('lively: new rift rooms are listed', Relay.LIVELY_SCHEMAS.indexOf('rift_room') !== -1, true);
     check('lively: no lively schema is also a companion schema or the finds schema',
         Relay.LIVELY_SCHEMAS.filter(function (n) { return Relay.SCHEMA_NAMES.indexOf(n) !== -1 || n === Relay.FINDS_SCHEMA; }).length, 0);
     Relay.LIVELY_SCHEMAS.forEach(function (name) {

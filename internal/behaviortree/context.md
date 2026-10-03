@@ -247,7 +247,7 @@ Condition nodes use `type: condition` with `check: <name>`.
 | `time_of_day` | `period` ("day" or "night") OR `range` ("`<start>-<end>`", 24h format, e.g., `"9-17"`; wraps midnight when start > end). When both set, `range` takes precedence. | In-game time of day. Range uses `[start, end)` semantics (inclusive start, exclusive end). Empty range (`"5-5"`) always Failure; full-day range (`"0-24"`) always Success — both log a warning once. Malformed ranges log an error once and return Failure. |
 | `round_mod` | `n` (int) | `round % n == 0`. |
 | `random_chance` | `percent` (int) | N% probability. |
-| `players_in_room` | none | At least one player in the room. |
+| `players_in_room` | none | At least one player in the room the mob could know of: it must see the room, and hidden (undetected) players do not count. |
 | `player_in_room_missing_quest` | `quest` (string) | ANY player in the room lacks the token. For ambient/idle branches (`mob_idle` has no triggering player, so `player_missing_quest` can't gate them). |
 | `player_in_room_has_quest` | `quest` (string) | ANY player in the room holds the token. Mirror of the above. ANDing has/missing variants can match *different* players in a shared room — only pair them where the room is effectively single-player (e.g. the solo ephemeral newcomer antechamber). |
 | `item_matches` | `item_id` (int) | Event ItemId matches. `player_give` only. |
@@ -400,6 +400,7 @@ are subject to perception-scaled reaction delays (see below).
 | `try_defuse` | none | Invoke `actions.Defuse` on the first trap found in room (delayed). Scans containers then exits. |
 | `try_plant` | `item_tag` (string, e.g. "copper coin") | Invoke `actions.Plant` with the named item from backpack (delayed). Failure if item not found or not in backpack. |
 | `try_sneak` | none | Invoke `actions.Sneak` (delayed). Success when self enters or is already in the hidden state. |
+| `vanish` | none | Break off a fight and try to hide where it stands (`actions_vanish.go`): releases the mob's target, clears everyone's aggro on it (`actions.ClearRoomAggroOnDeparture`), then `actions.Sneak` (a roll against everyone watching). Success whenever it broke off (the round is spent, hidden or not); Failure if already hidden. For mobs that cannot leave their room (rift constructs: the Glint Stalker). |
 | `try_steal` | none | Invoke `actions.Steal` against the resolved target (delayed). Target resolution uses Event.UserId or Aggro fallback. |
 | `try_shadow` | none | Invoke `actions.Shadow` against the resolved target (delayed). Requires self already hidden. |
 

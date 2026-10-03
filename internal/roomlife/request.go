@@ -29,7 +29,8 @@ type Request struct {
 	Biome       string
 	Zone        string
 	Indoors     bool
-	TimeOfDay   string   // "day" or "night"
+	TimeOfDay   string   // "day" or "night"; empty in a timeless place
+	Setting     string   // where the place really is, when not the usual world (Place.Setting)
 	Examples    []string // the place's own set ambient lines, for its voice
 	NPCs        []string // NPCs present, by name
 	FloorItems  []string // what lies about, by name
@@ -56,6 +57,12 @@ func Snapshot(room *rooms.Room, pool []string) Request {
 	}
 	if gametime.GetDate().Night {
 		req.TimeOfDay = `night`
+	}
+	if place, ok := placeFor(room); ok {
+		req.Setting = plain(place.Setting, maxRoomDescription)
+		if place.Timeless {
+			req.TimeOfDay = ``
+		}
 	}
 	seen := map[string]bool{}
 	for _, m := range pool {

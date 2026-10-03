@@ -417,3 +417,23 @@ type corpseSalvageEntry struct {
   `EnchantSalvageYieldWith` (inject a deterministic roll) for new
   tests; never call the live `EnchantSalvageYield` in unit tests
   (requires a loaded balance config).
+
+## Output quantity
+
+`output.quantity` is honoured on every craft path (players, the shared
+action, NPC crafters) through `RecipeSpec.OutputCount` (at least 1).
+Salvage gives back one unit's share (`RecipeSpec.SalvageIngredients`): a
+recipe that makes n gives each unit ingredient/n, the remainder as a chance,
+so craft-then-salvage cannot multiply a material (three Obelisk Lenses from
+one Obelisk Glass; three chain links from their bar).
+
+## Obelisk glass armour
+
+`obelisk-lens` (jewelcrafting 35): 1 Obelisk Glass (40234, foraged from rift
+seams) → 3 Obelisk Lenses (40235). Lens-scaled versions of the top steel
+pieces (blacksmithing, forge), each the original recipe plus lenses:
+`glass-scale-hauberk` (45; chainmail vest + 24 lenses → 20099),
+`glass-scale-helm` (48; masterwork plate helm + 12 → 20100),
+`glass-facet-buckler` (42; steel buckler + 15 → 20101). Harder, a third of
+the weight, escape modifier 0.5, and `return_damage` 5/3/4 (12% for the
+set, physical, mitigated by the attacker's armour).

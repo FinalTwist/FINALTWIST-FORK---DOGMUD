@@ -94,12 +94,13 @@
   // LIVELY_SCHEMAS names every request that makes the world livelier, one
   // per feature (apiframework.LivelyPurpose): 'npc_idle', an NPC's idle
   // moment (internal/npcidle ReplySchemaName), 'room_event', a place's
-  // ambient event (internal/roomlife ReplySchemaName), and 'look_detail', a
+  // ambient event (internal/roomlife ReplySchemaName), 'look_detail', a
   // closer look at something a room's description names
-  // (internal/lookdetail ReplySchemaName). Relayed only for a player who
+  // (internal/lookdetail ReplySchemaName), and 'rift_room', a new room for a
+  // rift's pools (internal/rifts RoomSchemaName). Relayed only for a player who
   // left "Make the world livelier" ticked (lively). A new lively feature
   // adds its schema name here.
-  var LIVELY_SCHEMAS = ['npc_idle', 'room_event', 'look_detail'];
+  var LIVELY_SCHEMAS = ['npc_idle', 'room_event', 'look_detail', 'rift_room'];
 
   // isAllowedEndpoint accepts https anywhere, or http only on this
   // computer, with no user info, query or fragment.

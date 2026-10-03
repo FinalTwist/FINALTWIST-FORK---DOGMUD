@@ -551,6 +551,16 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 		return Cast(castCmd, user, room, flags)
 	}
 
+	// A module's own words: a command nothing above claimed (a lens place
+	// typed at a rift's lens table, say), before it is tried as a way out.
+	if !userDisabled && !user.InputBlocked() {
+		for _, h := range fallbackHandlers {
+			if h(cmd, rest, user, room) {
+				return true, nil
+			}
+		}
+	}
+
 	// "go" attempt
 	start := time.Now()
 	defer func() {
@@ -564,6 +574,18 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 
 	return false, nil
 }
+
+// FallbackHandler gets a command no registered command, emote or spell
+// claimed, before it is tried as a way out. It returns true when it handled
+// it. It is for words a module recognises only in some places (a lens place
+// such as `1c` at a rift's lens table), which would otherwise have to be
+// registered as commands everywhere.
+type FallbackHandler func(cmd string, rest string, user *users.UserRecord, room *rooms.Room) bool
+
+var fallbackHandlers []FallbackHandler
+
+// AddFallbackHandler adds h (a module, at init).
+func AddFallbackHandler(h FallbackHandler) { fallbackHandlers = append(fallbackHandlers, h) }
 
 // GetAllUserCommands returns the names of all registered user commands.
 func GetAllUserCommands() []string {

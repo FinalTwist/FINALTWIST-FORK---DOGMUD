@@ -1176,3 +1176,11 @@ the copies.
 `(*Mob).WalkItems` walks the mob's character (`Character.WalkItems`). A
 mob's pack exists only in memory (instance files keep equipment only), so
 the bauble sweep sees it through this live walk alone.
+
+## RestoreInstance
+
+`RestoreInstance(m)` puts a mob taken out with `DestroyInstance` back into
+the registry under its own instance id, unchanged. With `DestroyInstance` it
+lets a caller park a mob out of the world and bring the same creature back
+(internal/rifts: the Facet Hunter following its quarry room to room).
+Placing it in a room is the caller's.

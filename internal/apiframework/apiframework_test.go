@@ -733,7 +733,8 @@ func TestRecordConsumerFeedsOnlyItsOwnBreaker(t *testing.T) {
 func TestLivelyPurposes(t *testing.T) {
 	if LivelyPurpose(`npcidle`) != PurposeNPCIdle || !IsLively(PurposeNPCIdle) ||
 		LivelyPurpose(`roomlife`) != PurposeRoomLife || !IsLively(PurposeRoomLife) ||
-		LivelyPurpose(`lookdetail`) != PurposeLookDetail || !IsLively(PurposeLookDetail) || !IsLively(LivelyPurpose(`crier`)) {
+		LivelyPurpose(`lookdetail`) != PurposeLookDetail || !IsLively(PurposeLookDetail) ||
+		LivelyPurpose(`rifts`) != PurposeRifts || !IsLively(PurposeRifts) || !IsLively(LivelyPurpose(`crier`)) {
 		t.Fatal("a lively feature's purpose is lively")
 	}
 	for _, p := range []string{PurposeLively, PurposeLively + `:`, PurposeFinds, `livelyx:npcidle`, ``} {

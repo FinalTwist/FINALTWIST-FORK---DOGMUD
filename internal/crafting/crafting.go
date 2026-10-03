@@ -653,3 +653,37 @@ func SkillMinimumsFor(recipeIds []string) []int {
 	}
 	return out
 }
+
+// OutputCount is how many of its output item one successful craft of r makes:
+// output.quantity, at least 1 (a recipe that names an output makes one when
+// it does not say how many).
+func (r *RecipeSpec) OutputCount() int {
+	if r.Output.Quantity < 1 {
+		return 1
+	}
+	return r.Output.Quantity
+}
+
+// SalvageIngredients is what one unit of r's output is made of, the
+// ingredients salvage may give back: a recipe that makes several (three
+// lenses from one shard) gives each unit its share, a fraction becoming a
+// chance (rng(n) < remainder). On average salvaging every unit returns no
+// more than the craft consumed; each unit rolls on its own, so a lucky run
+// can return more, but never reliably (and salvage itself can fail).
+func (r *RecipeSpec) SalvageIngredients(rng func(int) int) []RecipeIngredient {
+	n := r.OutputCount()
+	if n == 1 {
+		return r.Ingredients
+	}
+	var out []RecipeIngredient
+	for _, ing := range r.Ingredients {
+		q := ing.Quantity / n
+		if rem := ing.Quantity % n; rem > 0 && rng(n) < rem {
+			q++
+		}
+		if q > 0 {
+			out = append(out, RecipeIngredient{ItemTag: ing.ItemTag, Quantity: q})
+		}
+	}
+	return out
+}

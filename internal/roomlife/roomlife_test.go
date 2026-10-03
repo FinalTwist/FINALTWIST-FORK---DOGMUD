@@ -333,3 +333,30 @@ func asleep(t *testing.T, c *characters.Character) {
 		t.Fatalf("sleeping: %v", err)
 	}
 }
+
+// A place hook (a rift) sets its own chance, so long as the module's is on,
+// and its setting; a timeless place has no time of day.
+func TestAPlaceHookSetsChanceAndSetting(t *testing.T) {
+	g := &fakeGen{chance: 10, allow: map[int]bool{keyholder: true}, res: Result{Kind: KindSeen, Text: seenEvent}}
+	room := street(t, g)
+	roll = func() int { return 15 } // above the world's 10, below the rift's 20
+	t.Cleanup(func() { SetPlaceHook(nil) })
+
+	if TryReplace(room, setLine, []string{setLine}) {
+		t.Fatal("an ordinary room keeps the module's chance")
+	}
+	SetPlaceHook(func(r *rooms.Room) (Place, bool) {
+		return Place{Chance: 20, Setting: `A maze of black crystal.`, Timeless: true}, r.RoomId == testRoom
+	})
+	if !TryReplace(room, setLine, []string{setLine}) {
+		t.Fatal("the place's own chance is used")
+	}
+	if g.req.Setting != `A maze of black crystal.` || g.req.TimeOfDay != `` {
+		t.Fatalf("setting sent, no time of day: %+v", g.req)
+	}
+
+	g.chance = 0
+	if TryReplace(room, setLine, []string{setLine}) {
+		t.Fatal("turning generation off turns it off in the place too")
+	}
+}

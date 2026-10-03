@@ -647,22 +647,25 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 										if !user.Character.CraftMaterialsSaved() {
 											user.Character.Items, user.Character.ComponentItems = crafting.ConsumeIngredients(user.Character.Items, user.Character.ComponentItems, recipe)
 										}
-										// Normal crafting: produce output item
-										newItem := items.New(recipe.Output.ItemId)
-										newItem.CraftedRound = util.GetRoundCount()
-										newItem.CraftSkill = user.Character.CraftQualityLevel(user.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))) // Faithwrought quality lift
-										if bottleAgingMult > 0 {
-											newItem.BottleMultiplier = bottleAgingMult
+										// Normal crafting: produce the output, as many as
+										// the recipe makes (output.quantity).
+										for n := 0; n < recipe.OutputCount(); n++ {
+											newItem := items.New(recipe.Output.ItemId)
+											newItem.CraftedRound = util.GetRoundCount()
+											newItem.CraftSkill = user.Character.CraftQualityLevel(user.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))) // Faithwrought quality lift
+											if bottleAgingMult > 0 {
+												newItem.BottleMultiplier = bottleAgingMult
+											}
+											// Maker's mark for skilled crafters — see
+											// crafting.ShouldStampMakerName for the policy (components
+											// stamp regardless of Type; plain Objects don't).
+											newSpec := newItem.GetSpec()
+											if crafting.ShouldStampMakerName(newItem.CraftSkill, newSpec) {
+												newItem.MakerName = user.Character.Name
+											}
+											user.Character.StoreItem(newItem)
+											events.AddToQueue(events.ItemOwnership{UserId: user.UserId, Item: newItem, Gained: true})
 										}
-										// Maker's mark for skilled crafters — see
-										// crafting.ShouldStampMakerName for the policy (components
-										// stamp regardless of Type; plain Objects don't).
-										newSpec := newItem.GetSpec()
-										if crafting.ShouldStampMakerName(newItem.CraftSkill, newSpec) {
-											newItem.MakerName = user.Character.Name
-										}
-										user.Character.StoreItem(newItem)
-										events.AddToQueue(events.ItemOwnership{UserId: user.UserId, Item: newItem, Gained: true})
 									}
 									successRoles := recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
 										ActorName:      user.Character.GetCharacterName(true),

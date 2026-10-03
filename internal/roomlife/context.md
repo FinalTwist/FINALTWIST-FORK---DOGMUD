@@ -23,6 +23,12 @@ Only ever on a player's own key, for an awake player in the room who left
 - **request.go**: `Request`, `Snapshot`, `KindSeen`, `KindHeard`,
   `ReplySchemaName` (`room_event`), `ReplySchema`, `ParseReply`,
   `CleanResult`, `ErrUnusable`, `MinTextRunes`, `MaxTextRunes`.
+- **place.go**: `Place` (`Chance`, `Setting`, `Timeless`), `PlaceHook`,
+  `SetPlaceHook`. A subsystem that owns rooms somewhere other than the usual
+  world (`modules/rifts`) says so: its `Chance` replaces the generator's for
+  that room (only while the generator's own is above zero, so turning
+  generation off still turns it off), `Setting` goes into the request
+  (`Request.Setting`) and `Timeless` drops `TimeOfDay`.
 
 ## Light: the existing rails
 

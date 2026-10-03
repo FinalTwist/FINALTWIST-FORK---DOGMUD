@@ -1955,6 +1955,18 @@ blocks, and a person `(*rooms.Room).CanPvp` refuses to the owner or who is
 in the owner's party. With the aicompanion module off nothing is bonded and
 nothing changes.
 
+A wild caster's area harm (uncharmed, not bonded) also skips players who
+are hidden: it does not know an undetected sneaker is there.
+
+A spell with `spares_allies` (`mobAreaHarmTargetsSparing`, opt-in per spell)
+also misses the caster's own side: an uncharmed mob sharing one of its
+`Groups` and not fighting it (a rift boss's Convergence spares its adds).
+
+A mob's harmful cast with `hits` above 1 (a volley) resolves against each
+target that many times, one contest each; follow-up hits stop on a fallen
+target. While a mob channels, a spell's own `wait_observer` replaces the
+generic "weaves magic" line.
+
 ## Spell Duration System
 
 `calcSpellDuration` lives here, in `spell_resolution.go`, not in

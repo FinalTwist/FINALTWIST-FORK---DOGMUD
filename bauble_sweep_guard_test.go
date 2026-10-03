@@ -78,6 +78,10 @@ var itemStoreVars = map[string]string{
 	`internal/pets.petTypes`:          `authored pet templates; no runtime item is ever put in one`,
 	`internal/rooms.templateCache`:    `authored room templates, cached read-only; no runtime item is ever put in one`,
 	`modules/auctions.npcBuyers`:      `NPC bidders; a shopkeeper's bound shop is in the shops registry, walked by the shops live source`,
+	`internal/rifts.runs`:             `rift runs: their rooms and mobs live in the rooms and mobs registries (walked there); the only mob a run holds itself is a hunter between rooms, which carries no items and is back in the mobs registry whenever it stands anywhere`,
+	`internal/rifts.runByRoom`:        `indexes the same *Run values as rifts.runs`,
+	`internal/rifts.lostItems`:        `the rifts live source (rifts.WalkLostItems)`,
+	`internal/rifts.sites`:            `portal sites: each points at its pending *Run, the same values as rifts.runs`,
 }
 
 // itemScan is what scanItemHolders finds in a source tree.

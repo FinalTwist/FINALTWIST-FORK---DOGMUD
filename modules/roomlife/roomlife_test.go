@@ -133,3 +133,20 @@ func TestThePromptKeepsPlayersOut(t *testing.T) {
 		t.Fatal("travellers are counted")
 	}
 }
+
+// A place outside Gaius (a rift) sends its setting and no time of day, and
+// the prompt says the setting overrides the world.
+func TestThePromptCarriesAnotherWorldsSetting(t *testing.T) {
+	req := place(true)
+	req.Setting, req.TimeOfDay = `A maze of black crystal in another dimension. No animals.`, ``
+	msgs := buildMessages(req)
+	if !strings.Contains(msgs[0].Content, `overrides the world above`) {
+		t.Fatal("the system prompt lets a setting override Gaius")
+	}
+	if !strings.Contains(msgs[1].Content, `"setting": "A maze of black crystal`) || strings.Contains(msgs[1].Content, `time_of_day`) {
+		t.Fatalf("setting sent, no time of day: %s", msgs[1].Content)
+	}
+	if strings.Contains(buildMessages(place(true))[1].Content, `"setting"`) {
+		t.Fatal("an ordinary place sends no setting")
+	}
+}

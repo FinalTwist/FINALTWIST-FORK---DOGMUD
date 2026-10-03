@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/housing"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rifts"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/shops"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -56,6 +57,9 @@ func sweepRoots() []sweepRoot {
 		}},
 		{`mobs`, reflect.TypeOf((*mobs.Mob)(nil)).Elem(), func(v reflect.Value, fn func(*items.Item)) {
 			v.Addr().Interface().(*mobs.Mob).WalkItems(fn)
+		}},
+		{`rifts`, reflect.TypeOf((*rifts.LostRecord)(nil)).Elem(), func(v reflect.Value, fn func(*items.Item)) {
+			v.Interface().(rifts.LostRecord).WalkItems(fn)
 		}},
 		{`rooms`, reflect.TypeOf((*rooms.Room)(nil)).Elem(), func(v reflect.Value, fn func(*items.Item)) {
 			v.Addr().Interface().(*rooms.Room).WalkItems(fn)

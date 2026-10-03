@@ -152,6 +152,7 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// -- Room/zone ambient narration. --
 	"idlemessages": {narration, "internal/rooms/rooms.go Room.IdleMessages and internal/rooms/zoneconfig.go ZoneConfig.IdleMessages -- room/zone ambient flavour lines, 1,285 occurrences, the largest narration surface in the game. Read by internal/hooks/NewRound_UserRoundTick.go."},
 	"message":      {narration, "internal/rooms/spawninfo.go SpawnInfo.Message -- custom line narrated to the room when a spawn-list creature appears, replacing the default spawn announcement; 57 room files."},
+	"messages":     {narration, "internal/rifts/data.go Profile.Messages -- a rift profile's narration lines by role (portal open/close, sealed and locked door refusals, key spent, boss key, puzzle unsealed, leaving), keyed by rifts.RequiredMessages; rifts/profiles/*.yaml."},
 
 	// -- Combat/attack/defence/taunt message triad. All nine of these keys
 	// are structural selector/audience keys rather than prose themselves --

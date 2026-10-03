@@ -1073,6 +1073,13 @@ limit never locks a player out of a quest item. On a find the request names the 
 (`GenRequest.Container`), carries its authored description
 (`ContainerDescription`), and `SearchFeature.Spot()` ("on the bookshelf",
 "beside the chest" for a container) is where it lies if left in the room.
+A feature a subsystem owns as a cache (a rift's rubble pile) is settled by
+`SetFeatureCacheHook(FeatureCacheHook)` instead of the feature's roll: the
+hook is asked first for a player's feature search, and when it reports
+`handled` its `found` becomes `BaubleFound`, no roll is taken, and
+`SearchResult.FeatureSettled` keeps the generic "nothing of interest" line
+from following the hook's own line (the cache is in plain view, so that
+reveals nothing hidden). Unset, or `handled` false, changes nothing.
 Rules:
 
 - Anti-oracle: an undiscovered hidden noun or container never matches, so it
@@ -1873,3 +1880,13 @@ the rest are ordinary verbs.
 **The actor seam is the point of this package.** `actions.Actor` lets one
 implementation serve both players and mobs, which is what keeps user and mob
 commands in parity instead of drifting apart.
+
+## SpotHiddenPlayer (move.go)
+
+`SpotHiddenPlayer(watcher, room, userId)`: a watcher standing in a room
+rolls to spot one hidden player, the same contest as entry detection
+(`CalcDetectionScore` against `CalcSneakScoreVsObserver`, the room's light).
+On success the player is revealed through the Awareness machine and told
+("... turns, and its attention settles on you."). True for a player not
+hidden. Used by the rift hunter, which stays put and keeps looking. The
+area drain (`ExecuteDrainArea`) also skips hidden players.

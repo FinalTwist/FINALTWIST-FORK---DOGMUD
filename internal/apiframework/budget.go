@@ -56,6 +56,7 @@ const (
 	DimNPCIdleKeyholder      = `npcidle.keyholder`      // townsfolk idle moments on one player's key
 	DimRoomLifeKeyholder     = `roomlife.keyholder`     // ambient room events on one player's key
 	DimLookDetailKeyholder   = `lookdetail.keyholder`   // closer looks on one player's key
+	DimRiftsKeyholder        = `rifts.keyholder`        // new rift rooms on one player's key
 )
 
 // Charge names one per-user daily allowance a reservation also counts
@@ -109,6 +110,7 @@ const (
 	ConsumerNPCIdle    = `npcidle`
 	ConsumerRoomLife   = `roomlife`
 	ConsumerLookDetail = `lookdetail`
+	ConsumerRifts      = `rifts`
 )
 
 // Hold is one call's reservation, returned by Reserve and given back to
