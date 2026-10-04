@@ -43,7 +43,7 @@ const (
 	Jewelcrafting SkillTag = `jewelcrafting` // Rings, pendants, gemwork
 	Enchanting    SkillTag = `enchanting`    // Imbuing items with magic (31.6)
 	Salvage       SkillTag = `salvage`       // Breaking down items for materials
-	Carpentry     SkillTag = `carpentry`     // Woodworking: lumber, bows and arrows, shields, furniture
+	Woodwork      SkillTag = `woodwork`      // Woodworking: lumber, bows and arrows, shields, furniture
 	Manifestation SkillTag = `manifestation` // Companion summoning, charming, necromancy
 )
 
@@ -67,7 +67,7 @@ var skillBlurbs = map[SkillTag]string{
 	Jewelcrafting: "Rings, pendants, and gemwork.",
 	Enchanting:    "Imbuing items with magic.",
 	Salvage:       "Breaking items down into materials.",
-	Carpentry:     "Woodworking: lumber, bows and arrows, shields and furniture.",
+	Woodwork:      "Woodworking: lumber, bows and arrows, shields and furniture.",
 	Manifestation: "Summoning companions, charming, and necromancy.",
 }
 
@@ -131,11 +131,11 @@ var (
 			Search,
 			Salvage,
 		},
-		"carpenter": {
-			Carpentry,
+		"woodworker": {
+			Woodwork,
 		},
 		"bowyer": {
-			Carpentry,
+			Woodwork,
 			RangedCombat,
 		},
 	}
@@ -348,7 +348,7 @@ var SkillPrimaryStats = map[string]string{
 	"jewelcrafting":  "dexterity",
 	"enchanting":     "perception",
 	"salvage":        "perception",
-	"carpentry":      "dexterity",
+	"woodwork":       "dexterity",
 	"manifestation":  "charisma",
 }
 
@@ -444,9 +444,9 @@ var SkillProgressionMultipliers = map[SkillTag]float64{
 	Cooking:       1.56,
 	Jewelcrafting: 1.56,
 	Enchanting:    1.56,
-	// Carpentry is a craft like the others and takes the same anchor until
+	// Woodwork is a craft like the others and takes the same anchor until
 	// play gives it its own rate.
-	Carpentry: 1.56,
+	Woodwork: 1.56,
 }
 
 // GetSkillRankDescription converts a numeric skill level to a qualitative
@@ -508,7 +508,7 @@ func init() {
 		WeaponCombat, UnarmedCombat, RangedCombat, Spellcasting, Rhetoric,
 		Skullduggery, Search, Bartering,
 		Blacksmithing, Alchemy, Tailoring, Cooking, Jewelcrafting, Enchanting, Salvage,
-		Carpentry,
+		Woodwork,
 		Manifestation,
 	} {
 		if _, ok := skillNameSet[sk]; !ok {

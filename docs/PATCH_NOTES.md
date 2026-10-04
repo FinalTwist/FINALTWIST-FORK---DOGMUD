@@ -1,9 +1,44 @@
 # DOGMud Patch Notes
 
-## 2026-10-04: Wilderness trades, phases 4 and 5: lumberjacking and carpentry
+## 2026-10-04: Wilderness trades review: tools, trappers and trophies
+
+- **Carpentry is now woodwork.** Your rank carries over automatically, and
+  the recipes, help and merchants follow the new name (`help woodwork`).
+- **Tools are made, not bought.** Merchants sell only crude tools: a flint
+  skinning knife, a camp hatchet, a butcher's chopper, a rough bone saw, a
+  rough bucksaw, a flint scraper, a flint sickle, a rough whittling blade.
+  Iron, steel and masterwork tools come only from a smith's forge, and
+  merchants who buy one sell it on for scrap, never to you. Forged tools come
+  out graded by the smith's skill: a pristine iron knife works like steel.
+- **New tools**: steel cleavers, bone saws, bow saws, hide scrapers, sickles
+  and whittling knives (blacksmithing 15 to 22), and masterwork versions of
+  every tool (blacksmithing 45 to 55) forged from **crucible steel** (steel,
+  basalt-iron ore and coal dust, blacksmithing 40) on **ironwood hafts**
+  (woodwork 35, from ironwood you need a steel axe to fell).
+- **Tools wear out.** Every job wears a tool; crude ones last about thirty
+  jobs, masterwork ones hundreds. They show `(worn)` and `(badly worn)`
+  before they break.
+- **Better tools, better finds.** A better tool raises your odds of rare
+  parts, and some prizes need one: a prime wolf pelt, trophy antlers and
+  trophy tusks need steel, a great bear pelt needs masterwork. Yew and black
+  walnut need an iron axe, ironwood a steel one. A sickle in your pack now
+  helps you forage more and rarer herbs.
+- **Trappers and hunting camps** buy anything off a carcass at the usual
+  shop prices and sell the crude tools: Hunter Delk at Hunter's Hollow in
+  Pothole Coulee, and two new traders, Trapper Maudry at the Stillwater
+  travelers' camp and Trapper Ottar at the Fernway's eastern trailhead.
+  Woodcutter Hagen on the North Road now buys logs and sells hatchets, saws
+  and planks.
+- **More workbenches**: a woodworking bench in Thornwall's Craftsmen's
+  Quarter, the New Plymouth cooperage and the Confluence cooperage, and a
+  forge in the New Plymouth forge yard.
+- Raw meat, hides and pelts left lying on the ground rot away once they
+  spoil.
+
+## 2026-10-04: Wilderness trades, phases 4 and 5: lumberjacking and woodwork
 
 Fell trees, haul the logs home, then sell them or work them yourself
-(`help lumberjacking`, `help chop`, `help carpentry`).
+(`help lumberjacking`, `help chop`, `help woodwork`).
 
 - **`survey trees`** shows what grows in a forest, deep wood or marsh, what
   the wood is good for and how many good trees are left. Rare woods (yew,
@@ -16,14 +51,14 @@ Fell trees, haul the logs home, then sell them or work them yourself
   may come back as something else. The Fernway grows oak and ash, Cascade
   Pass pine, spruce and the odd yew, the Fernway South a rare ironwood.
 - Camp-Foreman Bertt at the Cascade Pass lumber camp buys logs and sells
-  axes, bow saws and planks. Corwin Ashlade, Amber Valley's woodworker, is now
-  a bowyer: he buys bows and woodwork and sells shafts, bowstrings, arrows,
-  self bows and whittling knives.
-- **Carpentry** recipes: saw planks, boards and arrow shafts, split bow
+  crude axes and saws and planks. Corwin Ashlade, Amber Valley's woodworker,
+  is now a bowyer: he buys bows and woodwork and sells shafts, bowstrings,
+  arrows, self bows and rough whittling blades.
+- **Woodwork** recipes: saw planks, boards and arrow shafts, split bow
   staves, whittle shafts from branches; make a self bow, hunting bow, longbow
   or horn composite bow; fletch arrows and bolts; make a quarterstaff, a
   wooden shield or a kite shield. Smiths can forge iron arrowheads.
-- **Furniture**: a carpenter can make a wooden chest, a bed frame or a
+- **Furniture**: a woodworker can make a wooden chest, a bed frame or a
   workbench. Carry it home and `use` it in your lodging to set it up as a
   container, a bed or a woodworking bench.
 
@@ -79,11 +114,11 @@ Groundwork for hunting, butchery and lumberjacking as ways to play
 - Pack-hide pelts can be tanned into leather strips at a tanning rack
   (tailoring 5). Tanning racks are in the New Plymouth tannery, the
   Stillwater tannery shed, Kilnreach and Amber Valley.
-- New skill: **carpentry** (dexterity), worked at a woodworking bench in
+- New skill: **woodwork** (dexterity), worked at a woodworking bench in
   Amber Valley, Kilnreach, the Cascade Pass lumber camp, the North Road
   woodcutter's camp and the Fletcher's Ledge. First recipe: the wooden club.
-  Bows and arrows now count as carpentry goods as well as smithing goods.
-  New professions: carpenter, bowyer.
+  Bows and arrows now count as woodwork goods as well as smithing goods.
+  New professions: woodworker, bowyer.
 - Tools: smiths can forge skinning knives, a cleaver, a bone saw, a hide
   scraper, a woodcutter's axe, a steel felling axe, a bow saw, a whittling
   knife and a sickle (`help tools`). The Fernway handaxe and the obsidian

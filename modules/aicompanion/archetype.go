@@ -34,7 +34,7 @@ var knownSkills = map[skills.SkillTag]bool{
 	skills.Jewelcrafting: true,
 	skills.Enchanting:    true,
 	skills.Salvage:       true,
-	skills.Carpentry:     true,
+	skills.Woodwork:      true,
 	skills.Manifestation: true,
 }
 

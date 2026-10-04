@@ -47,7 +47,7 @@ func UseItem(user *users.UserRecord, room *rooms.Room, itm items.Item, args stri
 		return true
 	}
 
-	// Crafted furniture (carpentry) goes in any lodging, like the deed it
+	// Crafted furniture (woodwork) goes in any lodging, like the deed it
 	// stands in for.
 	if kind := furnishingKind(itm.ItemId); kind != `` {
 		useCraftedFurnishing(user, room, itm, h, b, kind, args, rest, send)

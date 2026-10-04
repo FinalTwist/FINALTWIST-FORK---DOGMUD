@@ -58,6 +58,15 @@ func Chop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, nil
 	}
 
+	if axe.Tier < items.ToolTier(sp.MinAxe()) {
+		if actions.SpeciesKnown(&actions.UserActor{User: user, Room: room}, sp) {
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">`+actions.AxeTooPoor(sp)+`</ansi>`)
+		} else {
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">This wood is too hard for your axe: it would only chip the edge. You need a better axe.</ansi>`)
+		}
+		return true, nil
+	}
+
 	rounds := gather.Rounds(actions.ChopRounds(sp.Tier), axe, true)
 	if err := user.Character.Activity.TransitionToSalvaging(
 		activity.SalvagingData{

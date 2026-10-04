@@ -59,3 +59,14 @@ Called from the multi-round craft completion in
 `hooks/NewRound_UserRoundTick.go` and the instant path in `actions/craft.go`.
 
 `JobChop` (strength and vitality, axe required, no skill) is the felling job.
+
+## Rare finds, wear and forged tools (wilderness trades review)
+
+- `RareMult(tier)` is Balance `RareToolMult*`: the multiplier a tool tier
+  puts on rare part and rare forage odds.
+- `WearTool(c, tool)` adds one job's wear to the character's own copy of the
+  tool (equipped first, then carried) and removes it when it breaks,
+  returning its name. Improvised weapons never wear.
+- `CraftGradeOutput(cr, consumed, hasTool, toolTier, outputIsTool)` is
+  `CraftGrade` with the output in view: a tool output is always graded by
+  the margin, with no tool cap. `CraftGrade` calls it with false.

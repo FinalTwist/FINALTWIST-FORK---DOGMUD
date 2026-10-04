@@ -3,7 +3,7 @@
 Hunting, butchery, lumberjacking and forage as real ways to play: go out,
 hunt or chop, bring the materials home, then sell them to a merchant or
 craft them yourself. Results depend mostly on the player's stats and the
-quality of their tool; an existing skill gives a modest edge. Carpentry is
+quality of their tool; an existing skill gives a modest edge. Woodwork is
 the only new skill.
 
 ## Phases
@@ -11,11 +11,11 @@ the only new skill.
 | # | Phase | Status |
 |---|---|---|
 | 0 | Data fixes: species salvage fallback, forage biome fill, iron ore, dead-end recipes, trophy tags | shipped 2026-10-03 |
-| 1 | Foundations: item grades, tools, the gather roll, the carpentry skill, harvest tables, new stations, tool recipes | shipped 2026-10-03 |
+| 1 | Foundations: item grades, tools, the gather roll, the woodwork skill, harvest tables, new stations, tool recipes | shipped 2026-10-03 |
 | 2 | Hunting: `skin`, `butcher`, `harvest`; corpse states; species tables and mob overrides; animal materials; spoilage; furrier and butcher merchants; the scarcity pricing fix | shipped 2026-10-03 |
 | 3 | Processing: scrape, cure, tan, dress; cord, glue, tallow, smoked meat; bone and horn carving; leather and fur garments; crafted grades | shipped 2026-10-03 |
 | 4 | Lumberjacking: timber tables, `survey trees`, `chop`, logs, grove depletion and regrowth, lumber yard | shipped 2026-10-04 |
-| 5 | Carpentry crafts: sawing, bows, arrows and bolts, staves, wooden shields, furniture for housing, bowyer | shipped 2026-10-04 |
+| 5 | Woodwork crafts: sawing, bows, arrows and bolts, staves, wooden shields, furniture for housing, bowyer | shipped 2026-10-04 |
 | 6 | Forage revamp: categories, survey, seasons, room richness, tool-driven finds | next |
 | 7 | Depth: `hunt` spawning, bundling, felling hazards, wanted species, bounties, caravans | planned |
 
@@ -53,7 +53,7 @@ the only new skill.
   `GatherBaseDifficulty + target tier`, through the salvage contest and its
   mercy floor, paying the sight ramp. Grade comes from the margin in roll
   standard deviations. Knobs are in `config.yaml` under GATHERING.
-- **Carpentry** is wired through every skill list, the progression tables,
+- **Woodwork** is wired through every skill list, the progression tables,
   the chrysifier drift, the homunculus, companions, vendor categories and
   help. Stations `woodworking_bench` and `tanning_rack` exist in nine rooms.
 - **Harvest tables** (`internal/species/harvest.go`): `harvest:` on species
@@ -144,10 +144,10 @@ the only new skill.
 - **Stands**: each choppable room holds 6 to 10 trees in its long-term data,
   regrowing one per game day (`TimberRegrowRounds` 900), re-rolled toward the
   neighbours' species when regrown from stumps.
-- **Merchants**: Camp-Foreman Bertt (Cascade Pass lumber camp) buys carpentry
-  goods and sells the woodcutter's axe, bow saw and planks.
+- **Merchants**: Camp-Foreman Bertt (Cascade Pass lumber camp) buys woodwork
+  goods and sells planks and (since the review) crude axes and saws.
 
-## What phase 5 added (carpentry crafts)
+## What phase 5 added (woodwork crafts)
 
 - **Lumber**: `saw-planks` (softwood log to 4 planks, saw), `saw-boards`
   (hardwood log to 2 hardwood boards, saw), `split-staves` (bow-wood log to 2
@@ -161,15 +161,62 @@ the only new skill.
   `iron-arrowheads` (blacksmithing, 40421) or phase 3's bone arrowheads.
 - **Arms**: `quarterstaff` (new 10060), `wooden-shield` (20004), `kite-shield`
   (new 20113).
-- **Furniture**: `wooden-chest`, `bed-frame`, `carpenters-workbench` (40430
+- **Furniture**: `wooden-chest`, `bed-frame`, `woodworking-bench` (40430
   to 40432, `furnishing:` chest, bed, workbench). `use` one in your own
   lodging to place it as a container, a bed or a woodworking bench, through
   the housing deed paths (`internal/housing/crafted.go`).
 - **Bark**: `birch-bark-liquor` makes tanning liquor from birch bark.
 - **Merchants**: Corwin Ashlade (Amber Valley woodworker) is the bowyer: he
-  buys carpentry goods and sells shafts, bowstrings, quivers, self bows and
-  whittling knives. Both wood-trade keepers carry lanterns so their shops can
+  buys woodwork goods and sells shafts, bowstrings, quivers, self bows and
+  (since the review) rough whittling blades. Both wood-trade keepers carry lanterns so their shops can
   trade at night.
+
+## What the review added
+
+- **Woodwork**: the skill once called carpentry is `woodwork` (tag, recipes
+  directory, vendor category, help). `characters.validateSkillMigrations`
+  folds a saved `carpentry` rank into `woodwork` on load; `reconcileShop`
+  moves saved shops' craft support with their template.
+- **Tool ladder**: every tool type (knife, cleaver, bone saw, axe, saw,
+  scraper, sickle, carving knife) has a crude item (10061 to 10064, 40241 to
+  40244) sold by merchants, and iron, steel (10065, 10066, 40245 to 40248,
+  blacksmithing 15 to 22) and masterwork (10067 to 10070, 40249 to 40252,
+  blacksmithing 45 to 55) items made only at a forge. Masterwork takes
+  `crucible-steel` (40253, blacksmithing 40: steel, basalt-iron ore, coal
+  dust) and an `ironwood-haft` (40254, woodwork 35 with a saw, from the
+  ironwood log, now tagged `ironwood-log`). A recipe whose output is a tool is
+  always graded (`gather.CraftGradeOutput`), so the smith's margin sets how
+  well it works (`EffectiveToolTier`) and how long it lasts.
+- **No resale**: `items.NeverResold` (iron and better tools). `sell.go`
+  never shelves one; `reconcileShop` takes any off saved shelves;
+  `TestToolLadderContent` refuses one in any shop list.
+- **Wear**: `Item.Wear` against `ToolDurability` (Balance
+  `ToolDurability*` 30 / 80 / 160 / 320 by tier, times grade 0.75 to 2.0).
+  Skinning, butchering, harvesting, felling, foraging with a sickle and
+  crafting with a recipe tool each add one; the tool breaks at its
+  durability. Improvised weapons do not wear.
+- **Rare access**: `HarvestEntry.min_tool` gates a part on the tool tier
+  (checked after the rare roll; misses are reported as prizes the tool could
+  not take). Trophy parts: prime wolf pelt (40255, canine, steel knife),
+  trophy antlers (40256, deer, steel bone saw), trophy tusks (40258, boar,
+  steel bone saw), great bear pelt (40257, bear, masterwork knife). Rare
+  chances are multiplied by `RareToolMult*` (0.5 / 1.0 / 1.5 / 2.0).
+  `timber.Species.MinAxe`: yew and walnut need iron, ironwood steel. A
+  sickle multiplies forage score by its tier multiplier (never below 1) and
+  draws extra candidates, keeping the dearest.
+- **Field merchants** (`hunting` craft support and vendor category on raw
+  animal goods and crude tools): Hunter Delk (Pothole Coulee, Hunter's
+  Hollow), Trapper Maudry (new 9840, Stillwater travelers' camp 4142),
+  Trapper Ottar (new 9841, Fernway eastern trailhead 4147). Woodcutter
+  Hagen (North Road 4059) now trades in woodwork. Each carries a lantern for
+  night trade. They buy at the ordinary walk-in prices.
+- **Stations**: woodworking benches in Thornwall (469), the New Plymouth
+  cooperage (5720) and the Confluence cooperage (6234); a forge in the New
+  Plymouth forge yard (5709). `TestToolLadderContent` checks every recipe
+  station exists in some room. The field crafts (cut leather, rawhide cord,
+  whittle shafts, fletch arrows) stay station-free but need their tool.
+- **Rot on the floor**: `rooms.removeSpoiledGoods` removes spoiled raw goods
+  lying in a room or its stash each round tick.
 
 ## Deferred
 
@@ -177,8 +224,10 @@ the only new skill.
   killing blow recorded on the corpse; not done.
 - NPC salvagers and the companion's butcher pastime still use corpse
   salvage, not skin and butcher.
-- A shop resells bought goods ungraded.
+- A shop resells bought goods ungraded (forged tools are no longer resold
+  at all).
 - Crafted grade raises value only; superb and pristine weapons and armour do
   not yet get a stat bump.
-- No Thornwall bowyer or lumber yard yet; only the two above.
+- No Thornwall bowyer or lumber merchant yet, though Thornwall now has a
+  woodworking bench.
 - Felling hazards and the `hunt` command are phase 7.

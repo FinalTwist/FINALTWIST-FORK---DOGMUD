@@ -40,6 +40,7 @@ disabledslots: []  # companion-gearable (steppe spirit wolf summon); see PATCH_N
 harvest:
   skin:
     - {itemid: 40301, qty: 1}                       # wolf pelt
+    - {itemid: 40255, qty: 1, rare: true, chance: 0.25, min_tool: 3}   # prime wolf pelt: steel knife or better
   butcher:
     - {item: raw-meat, qty: 2}
     - {item: sinew, qty: 1}

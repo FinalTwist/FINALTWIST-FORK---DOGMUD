@@ -2,6 +2,9 @@ package main
 
 import (
 	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -175,5 +178,146 @@ func TestTimberContent(t *testing.T) {
 	}
 	if items.FindSpecByComponentTag(`branch`) == nil {
 		t.Error("no item carries the branch tag that felling gives")
+	}
+}
+
+// TestToolLadderContent pins the wilderness trades review: shops sell only
+// crude tools, every better tool is a smith's recipe, the best are hard to
+// make, every recipe's station exists in some room, and the field merchants
+// can trade.
+func TestToolLadderContent(t *testing.T) {
+	mudlog.SetupLogger(nil, `LOW`, ``, false)
+	configs.SetConfigForTest(t, configs.GetConfig())
+	if err := configs.ReloadConfig(); err != nil {
+		t.Fatalf("ReloadConfig: %v", err)
+	}
+	t.Cleanup(items.SeedItemsForTest(nil))
+	items.LoadDataFiles()
+	crafting.LoadRecipeFiles()
+
+	dataRoot := configs.GetFilePathsConfig().DataFiles.String()
+	templates, err := fileloader.LoadAllFlatFiles[int, *mobs.Mob](dataRoot + `/mobs`)
+	if err != nil {
+		t.Fatalf("loading mobs: %v", err)
+	}
+
+	// Which tool items any merchant stocks.
+	sold := map[int]bool{}
+	for id, m := range templates {
+		stocked := append([]int{}, m.CrafterRestockMaterials...)
+		for _, si := range m.Character.Shop {
+			stocked = append(stocked, si.ItemId)
+		}
+		for _, itemId := range stocked {
+			spec := items.GetItemSpec(itemId)
+			if spec == nil || spec.Tool == nil {
+				continue
+			}
+			sold[itemId] = true
+			if items.NeverResold(*spec) {
+				t.Errorf("mob %d %s sells %s (%s tool): only crude tools may be bought", id, m.Character.Name, spec.Name, spec.Tool.Tier)
+			}
+		}
+	}
+
+	// Which items a smith (or any recipe) makes, and at what skill.
+	made := map[int]*crafting.RecipeSpec{}
+	for _, r := range crafting.GetAll() {
+		made[r.Output.ItemId] = r
+	}
+
+	// Every tool type that has items at all has the whole ladder.
+	byType := map[items.ToolType]map[items.ToolTier][]*items.ItemSpec{}
+	for _, spec := range items.GetAllItemSpecs() {
+		spec := spec
+		if spec.Tool == nil {
+			continue
+		}
+		if byType[spec.Tool.Type] == nil {
+			byType[spec.Tool.Type] = map[items.ToolTier][]*items.ItemSpec{}
+		}
+		byType[spec.Tool.Type][spec.Tool.Tier] = append(byType[spec.Tool.Type][spec.Tool.Tier], &spec)
+	}
+	for _, tt := range items.AllToolTypes {
+		tiers := byType[tt]
+		if len(tiers) == 0 {
+			continue // a tool type nothing uses yet (trowel)
+		}
+		crudeSold := false
+		for _, spec := range tiers[items.ToolTierCrude] {
+			if sold[spec.ItemId] {
+				crudeSold = true
+			}
+		}
+		if !crudeSold {
+			t.Errorf("tool type %s: no merchant sells a crude one", tt)
+		}
+		for _, tier := range []items.ToolTier{items.ToolTierIron, items.ToolTierSteel, items.ToolTierMasterwork} {
+			forged := false
+			for _, spec := range tiers[tier] {
+				r := made[spec.ItemId]
+				if r == nil {
+					continue
+				}
+				forged = true
+				if r.Skill != `blacksmithing` {
+					t.Errorf("%s is made by %s; tools are a smith's work", spec.Name, r.Skill)
+				}
+				if tier == items.ToolTierMasterwork && r.SkillMinimum < 40 {
+					t.Errorf("%s needs only skill %d; the best tools should be hard to make", spec.Name, r.SkillMinimum)
+				}
+			}
+			if !forged {
+				t.Errorf("tool type %s: no recipe makes a %s one", tt, tier)
+			}
+		}
+	}
+
+	// Every recipe station exists in some room.
+	stations := map[string]bool{}
+	stationLine := regexp.MustCompile(`(?m)^station:\s*"?([a-z_]+)"?\s*$`)
+	err = filepath.WalkDir(dataRoot+`/rooms`, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, `.yaml`) {
+			return err
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if m := stationLine.FindSubmatch(raw); m != nil {
+			stations[string(m[1])] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking rooms: %v", err)
+	}
+	for _, r := range crafting.GetAll() {
+		if r.Station != `` && !stations[r.Station] {
+			t.Errorf("recipe %s needs a %s, and no room has one", r.RecipeId, r.Station)
+		}
+	}
+
+	// The field merchants: hunting camps, trappers and lumber camps.
+	for _, id := range []int{9137, 9840, 9841, 9536, 328, 9337, 9399} {
+		m, ok := templates[id]
+		if !ok {
+			t.Errorf("field merchant %d is missing", id)
+			continue
+		}
+		if !m.HasShop() {
+			t.Errorf("mob %d %s has no shop", id, m.Character.Name)
+		}
+		if m.MaxWander != 0 || !m.IsNonCombatant() {
+			t.Errorf("mob %d %s must stay put and stay out of fights (maxwander %d, non_combatant %v)", id, m.Character.Name, m.MaxWander, m.IsNonCombatant())
+		}
+		if m.Character.Equipment.Light.ItemId == 0 {
+			t.Errorf("mob %d %s carries no light, so cannot trade at night", id, m.Character.Name)
+		}
+	}
+	for _, id := range []int{9137, 9840, 9841} {
+		if m, ok := templates[id]; ok && m.ShopCraftSupport != `hunting` {
+			t.Errorf("mob %d %s is a hunting merchant, craft_support %q", id, m.Character.Name, m.ShopCraftSupport)
+		}
 	}
 }

@@ -320,6 +320,30 @@ func (c *Character) validateSkillMigrations() {
 		delete(c.Skills, "stealth")
 	}
 
+	// carpentry → woodwork rename (wilderness trades review). Idempotent: a
+	// save that already has woodwork keeps the higher rank.
+	if v, ok := c.Skills["carpentry"]; ok {
+		if v > c.Skills["woodwork"] {
+			c.Skills["woodwork"] = v
+		}
+		delete(c.Skills, "carpentry")
+		if c.SkillUseCount != nil {
+			if u, ok := c.SkillUseCount["carpentry"]; ok {
+				c.SkillUseCount["woodwork"] += u
+				delete(c.SkillUseCount, "carpentry")
+			}
+		}
+	}
+	// The carpenter's workbench recipe became the woodworking bench.
+	if v, ok := c.KnownRecipes["carpenters-workbench"]; ok {
+		if v > c.KnownRecipes["woodworking-bench"] {
+			c.KnownRecipes["woodworking-bench"] = v
+		} else if _, has := c.KnownRecipes["woodworking-bench"]; !has {
+			c.KnownRecipes["woodworking-bench"] = v
+		}
+		delete(c.KnownRecipes, "carpenters-workbench")
+	}
+
 	// tracking + foraging → search merge.
 	if _, hasTracking := c.Skills["tracking"]; hasTracking {
 		trackRank := c.Skills["tracking"]

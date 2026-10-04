@@ -105,3 +105,51 @@ func better(a, b Tool) bool {
 	}
 	return a.Speed > b.Speed
 }
+
+// RareMult is the Balance multiplier a tool tier puts on the chance of a rare
+// find (RareToolMult*). ToolTierNone is treated as crude.
+func RareMult(tier items.ToolTier) float64 {
+	b := configs.GetBalanceConfig()
+	switch tier {
+	case items.ToolTierIron:
+		return float64(b.RareToolMultIron)
+	case items.ToolTierSteel:
+		return float64(b.RareToolMultSteel)
+	case items.ToolTierMasterwork:
+		return float64(b.RareToolMultMasterwork)
+	}
+	return float64(b.RareToolMultCrude)
+}
+
+// WearTool adds one finished job's wear to the tool t names, on the
+// character's own copy of it (wielded, worn or carried). When that wears the
+// tool out it is taken away and its name returned; otherwise "". An
+// improvised weapon never wears as a tool.
+func WearTool(c *characters.Character, t Tool) (brokenName string) {
+	if c == nil || t.Improvised || t.Item.ItemId < 1 {
+		return ``
+	}
+	for _, p := range c.Equipment.GetAllItemPtrs() {
+		if !p.Equals(t.Item) {
+			continue
+		}
+		if p.AddToolWear(1) {
+			name := p.NameSimple()
+			c.RemoveFromBody(*p)
+			return name
+		}
+		return ``
+	}
+	for j := range c.Items {
+		if !c.Items[j].Equals(t.Item) {
+			continue
+		}
+		if c.Items[j].AddToolWear(1) {
+			name := c.Items[j].NameSimple()
+			c.RemoveItem(c.Items[j])
+			return name
+		}
+		return ``
+	}
+	return ``
+}

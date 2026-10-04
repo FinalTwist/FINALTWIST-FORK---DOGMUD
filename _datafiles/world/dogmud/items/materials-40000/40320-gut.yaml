@@ -13,6 +13,7 @@ rarity_tier: 40
 is_component: true
 vendor_categories:
 - tailoring
-- carpentry
+- woodwork
+- hunting
 material_tier: 1
 spoil_after: 2 days

@@ -30,6 +30,10 @@ type HarvestEntry struct {
 	// gatherer's Perception scales it. 0 means Balance.GatherRareBaseChance.
 	// Ignored on entries that are not rare.
 	Chance float64 `yaml:"chance,omitempty"`
+	// MinTool is the poorest tool tier that can take this part at all
+	// (2 iron, 3 steel, 4 masterwork; 0 = any). A trophy pelt or an intact
+	// set of antlers needs an edge good enough not to ruin it.
+	MinTool items.ToolTier `yaml:"min_tool,omitempty"`
 }
 
 // ToolOrDefault is the entry's tool, or knife when none is authored.
@@ -127,6 +131,9 @@ func (h *HarvestTable) Validate(tagExists func(tag string) bool, itemExists func
 			}
 			if e.Tool != `` && !items.IsKnownToolType(e.Tool) {
 				return fmt.Errorf("harvest %s[%d] %q: unknown tool %q", section, i, e.Item, e.Tool)
+			}
+			if e.MinTool != items.ToolTierNone && !e.MinTool.Valid() {
+				return fmt.Errorf("harvest %s[%d] %q: min_tool must be 1..4, got %d", section, i, e.Item, e.MinTool)
 			}
 			if e.Chance < 0 || e.Chance > 1 {
 				return fmt.Errorf("harvest %s[%d] %q: chance must be 0..1, got %v", section, i, e.Item, e.Chance)

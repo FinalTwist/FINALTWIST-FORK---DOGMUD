@@ -44,6 +44,10 @@ func SameStack(a, b Item) bool {
 	if a.Quality != b.Quality {
 		return false
 	}
+	// Tool wear: a fresh knife and a worn one are not interchangeable.
+	if a.Wear != b.Wear {
+		return false
+	}
 	// Spoiling raw goods: two cuts harvested at different times rot at
 	// different times, and storage keeps one representative per stack, so
 	// merging them would reset or advance every cut's clock.

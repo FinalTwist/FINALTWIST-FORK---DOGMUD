@@ -56,8 +56,6 @@ recipe|bowstring|success_actor => <ansi fg="green">You twist the sinew tight, wa
 recipe|bowstring|failure_actor => <ansi fg="red">The sinew frays as you twist it. It is wasted.</ansi>
 recipe|carapace-ward|success_actor => <ansi fg="green">Chitinous patterns spiral across the fabric, hardening it with Chrysalis resilience. The armor gleams with natural protection.</ansi>
 recipe|carapace-ward|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the armor is unharmed.</ansi>
-recipe|carpenters-workbench|success_actor => <ansi fg="green">You build a heavy bench, fit an iron vise and a tool rack. A carpenter's workbench!</ansi>
-recipe|carpenters-workbench|failure_actor => <ansi fg="red">The top will not lie flat. The materials are wasted.</ansi>
 recipe|carve-bone-needles|success_actor => <ansi fg="green">You split the bone, grind two slim needles and drill their eyes. Bone needles!</ansi>
 recipe|carve-bone-needles|failure_actor => <ansi fg="red">The bone splinters. It is wasted.</ansi>
 recipe|cat-pelt-hood|success_actor => <ansi fg="green">You cure the pelts and shape a close hood that hardly rustles. A cat-pelt hood!</ansi>
@@ -100,6 +98,8 @@ recipe|conviction-draught|success_actor => <ansi fg="green">Root and thistle ble
 recipe|conviction-draught|failure_actor => <ansi fg="red">The ingredients refuse to combine properly. The materials are wasted.</ansi>
 recipe|copper-ring|success_actor => <ansi fg="green">You twist the copper wire into a neat ring and press gem dust into the setting. A copper ring!</ansi>
 recipe|copper-ring|failure_actor => <ansi fg="red">The wire snaps as you try to close the loop. The materials are ruined.</ansi>
+recipe|crucible-steel|success_actor => <ansi fg="green">You seal steel and basalt-iron in a crucible, hold it white-hot for hours and let it cool slow. Crucible steel!</ansi>
+recipe|crucible-steel|failure_actor => <ansi fg="red">The crucible cracks in the fire and the melt runs into the coals.</ansi>
 recipe|crystalline-decanter|success_actor => <ansi fg="green">You fuse the gemstone dust into molten glass and shape a flawless vessel. The chrysalis seal locks with a soft chime. A crystalline decanter!</ansi>
 recipe|crystalline-decanter|failure_actor => <ansi fg="red">The glass fractures as the gemstone refuses to bond. The materials are lost.</ansi>
 recipe|cure-hide|success_actor => <ansi fg="green">You pin the hide, scrape it clean of flesh and fat, and pack it in salt. A cured hide!</ansi>
@@ -186,6 +186,8 @@ recipe|ironblood|success_actor => <ansi fg="green">Twin settings spiral with mol
 recipe|ironblood|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the amulet is unharmed.</ansi>
 recipe|ironhide-brew|success_actor => <ansi fg="green">The ironbark dissolves into a dark, gritty solution. An ironhide brew!</ansi>
 recipe|ironhide-brew|failure_actor => <ansi fg="red">The ironbark refuses to dissolve. The materials are wasted.</ansi>
+recipe|ironwood-haft|success_actor => <ansi fg="green">You saw the ironwood along its grain, slowly, and shave two hafts round and true.</ansi>
+recipe|ironwood-haft|failure_actor => <ansi fg="red">The saw binds and splits the log across a check. The ironwood is wasted.</ansi>
 recipe|kite-shield|success_actor => <ansi fg="green">You glue the boards into a tall kite shape and face it with leather. A kite shield!</ansi>
 recipe|kite-shield|failure_actor => <ansi fg="red">The boards warp as the glue cures. The shield is ruined.</ansi>
 recipe|lake-iron-hook-spear|success_actor => <ansi fg="green">You smelt the lake-iron nodules in a hot fire and draw the metal out long and keen, then weld a back-curving hook to the socket. You wrap the haft in leather and lash it tight with sinew. The leaf-blade rings true on the anvil. A lake-iron hook-spear!</ansi>
@@ -212,10 +214,26 @@ recipe|master-lockpicks|success_actor => <ansi fg="green">You draw the silver wi
 recipe|master-lockpicks|failure_actor => <ansi fg="red">The silver wire snaps during drawing -- the tolerances are too fine to recover. The materials are lost.</ansi>
 recipe|masters-component-case|success_actor => <ansi fg="green">You line the rigid case with silk, carve labeled dividers, and fit the interlocking seal. A master's component case!</ansi>
 recipe|masters-component-case|failure_actor => <ansi fg="red">The bone reinforcement cracks and the silk lining tears. The materials are ruined.</ansi>
+recipe|masterwork-bone-saw|success_actor => <ansi fg="green">You cut a hundred fine teeth into crucible steel, set and temper them and fit ironwood. A masterwork bone saw!</ansi>
+recipe|masterwork-bone-saw|failure_actor => <ansi fg="red">The teeth shear off in the temper. The crucible steel is ruined.</ansi>
+recipe|masterwork-bow-saw|success_actor => <ansi fg="green">You draw a long crucible steel blade, set its teeth by hand and string it in ironwood. A masterwork bow saw!</ansi>
+recipe|masterwork-bow-saw|failure_actor => <ansi fg="red">The blade cracks under tension. The crucible steel is ruined.</ansi>
+recipe|masterwork-cleaver|success_actor => <ansi fg="green">You forge a broad crucible steel blade, temper the spine soft and the edge hard, and hang it on ironwood. A masterwork cleaver!</ansi>
+recipe|masterwork-cleaver|failure_actor => <ansi fg="red">The blade cracks along the spine. The crucible steel is ruined.</ansi>
+recipe|masterwork-felling-axe|success_actor => <ansi fg="green">You forge a great crucible steel head, thin behind the bit, and hang it on an ironwood haft. A masterwork felling axe!</ansi>
+recipe|masterwork-felling-axe|failure_actor => <ansi fg="red">The eye of the axe splits as you drift it. The crucible steel is ruined.</ansi>
 recipe|masterwork-gem-pendant|success_actor => <ansi fg="green">You cut both gems to perfection and mount them in an elaborate gold frame. A masterwork gem pendant!</ansi>
 recipe|masterwork-gem-pendant|failure_actor => <ansi fg="red">A gem fractures along a hidden flaw, ruining the piece. The materials are wasted.</ansi>
+recipe|masterwork-hide-scraper|success_actor => <ansi fg="green">You grind a flawless crucible steel curve and fit two ironwood handles. A masterwork hide scraper!</ansi>
+recipe|masterwork-hide-scraper|failure_actor => <ansi fg="red">The curve cracks in the temper. The crucible steel is ruined.</ansi>
 recipe|masterwork-plate-helm|success_actor => <ansi fg="green">Through hours of patient shaping and tempering, you craft a magnificent helm. A masterwork plate helm!</ansi>
 recipe|masterwork-plate-helm|failure_actor => <ansi fg="red">A crack forms in the visor during final shaping. The materials are ruined.</ansi>
+recipe|masterwork-sickle|success_actor => <ansi fg="green">You forge a crucible steel crescent, temper it to spring and hang it on ironwood. A masterwork sickle!</ansi>
+recipe|masterwork-sickle|failure_actor => <ansi fg="red">The crescent snaps in the temper. The crucible steel is ruined.</ansi>
+recipe|masterwork-skinning-knife|success_actor => <ansi fg="green">You forge the crucible steel thin, temper it for an hour and polish it to a mirror. A masterwork skinning knife!</ansi>
+recipe|masterwork-skinning-knife|failure_actor => <ansi fg="red">The edge checks in the temper. The crucible steel is ruined.</ansi>
+recipe|masterwork-whittling-knife|success_actor => <ansi fg="green">You forge a slender crucible steel blade with a point fine as a needle and set it in ironwood. A masterwork whittling knife!</ansi>
+recipe|masterwork-whittling-knife|failure_actor => <ansi fg="red">The point snaps in the temper. The crucible steel is ruined.</ansi>
 recipe|mindshield-elixir|success_actor => <ansi fg="green">Moonpetal and chrysalis fuse into a silvery elixir. A mindshield elixir!</ansi>
 recipe|mindshield-elixir|failure_actor => <ansi fg="red">The moonpetal wilts on contact with the chrysalis. The materials are wasted.</ansi>
 recipe|mindweave|success_actor => <ansi fg="green">All elements converge in a cascade of Chrysalis insight, weaving through the helm's crown. Your thoughts sharpen to crystalline clarity.</ansi>
@@ -320,18 +338,30 @@ recipe|sporeweave|success_actor => <ansi fg="green">Spores bloom and weave throu
 recipe|sporeweave|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the armor is unharmed.</ansi>
 recipe|stamina-tonic|success_actor => <ansi fg="green">You steep the thistle until the liquid turns sharp green. A stamina tonic!</ansi>
 recipe|stamina-tonic|failure_actor => <ansi fg="red">The brew turns sour and you pour it out. The materials are wasted.</ansi>
+recipe|steel-bone-saw|success_actor => <ansi fg="green">You cut and set the teeth, harden the blade and fit the grip. A steel bone saw!</ansi>
+recipe|steel-bone-saw|failure_actor => <ansi fg="red">The teeth crack as you set them. The steel is ruined.</ansi>
+recipe|steel-bow-saw|success_actor => <ansi fg="green">You draw a long steel blade, cut and set the teeth and string it in a hardwood frame. A steel bow saw!</ansi>
+recipe|steel-bow-saw|failure_actor => <ansi fg="red">The blade kinks as you tension it. The materials are ruined.</ansi>
 recipe|steel-buckler|success_actor => <ansi fg="green">You shape the steel into a gleaming buckler and set it on a wooden grip. A steel buckler!</ansi>
 recipe|steel-buckler|failure_actor => <ansi fg="red">The steel dishing is uneven and the buckler warps. The materials are ruined.</ansi>
+recipe|steel-cleaver|success_actor => <ansi fg="green">You draw out the steel, harden the spine and grind a clean edge. A steel cleaver!</ansi>
+recipe|steel-cleaver|failure_actor => <ansi fg="red">The blade warps in the quench. The steel is ruined.</ansi>
 recipe|steel-felling-axe|success_actor => <ansi fg="green">You forge a heavy wedge of steel, temper the bit, and hang it on a long hickory haft. A steel felling axe!</ansi>
 recipe|steel-felling-axe|failure_actor => <ansi fg="red">The bit chips in the temper and the head is useless. The steel is lost.</ansi>
+recipe|steel-hide-scraper|success_actor => <ansi fg="green">You forge and grind a smooth steel curve and fit two hardwood handles. A steel hide scraper!</ansi>
+recipe|steel-hide-scraper|failure_actor => <ansi fg="red">The blade cracks in the quench. The steel is ruined.</ansi>
 recipe|steel-ingot|success_actor => <ansi fg="green">You fold the iron with coal dust, working it through many heats. A steel ingot!</ansi>
 recipe|steel-ingot|failure_actor => <ansi fg="red">The carbon mix is uneven and the metal becomes brittle. The materials are lost.</ansi>
 recipe|steel-lockpicks|success_actor => <ansi fg="green">You draw the iron into fine blanks, grind precise tips, and bind them in a tight roll. Steel lockpicks!</ansi>
 recipe|steel-lockpicks|failure_actor => <ansi fg="red">The picks snap during tempering -- the tips are too brittle to salvage. The materials are lost.</ansi>
 recipe|steel-longsword|success_actor => <ansi fg="green">You forge the steel into a long, keen blade and wrap the hilt in leather. A steel longsword!</ansi>
 recipe|steel-longsword|failure_actor => <ansi fg="red">The steel cracks along a hidden flaw. The materials are ruined.</ansi>
+recipe|steel-sickle|success_actor => <ansi fg="green">You draw out a thin steel crescent, harden it and fit the haft. A steel sickle!</ansi>
+recipe|steel-sickle|failure_actor => <ansi fg="red">The crescent warps in the quench. The steel is ruined.</ansi>
 recipe|steel-skinning-knife|success_actor => <ansi fg="green">You forge the steel thin, harden the curved edge, and polish it until it shaves. A steel skinning knife!</ansi>
 recipe|steel-skinning-knife|failure_actor => <ansi fg="red">The edge cracks in the hardening. The steel is ruined.</ansi>
+recipe|steel-whittling-knife|success_actor => <ansi fg="green">You forge a slim steel blade, harden the point and set it in hardwood. A steel whittling knife!</ansi>
+recipe|steel-whittling-knife|failure_actor => <ansi fg="red">The point snaps in the hardening. The steel is ruined.</ansi>
 recipe|stillwater-lake-chowder|success_actor => <ansi fg="green">You shuck the clams over the pot, soften the root vegetables in the broth, and float the mint leaves in at the last moment. The chowder smells of the lake on a fair morning. Stillwater lake chowder!</ansi>
 recipe|stillwater-lake-chowder|failure_actor => <ansi fg="red">The clams oversteep and the chowder turns grey and stringy. The pot is ruined.</ansi>
 recipe|stillwater-pearl-pendant|success_actor => <ansi fg="green">You set the dark pearl in a silver bezel and weave the chain fine, finishing with the small clasp. The pearl seems to drink the lamplight as you work. A stillwater pearl pendant!</ansi>
@@ -378,5 +408,7 @@ recipe|wooden-club|success_actor => <ansi fg="green">You glue up the planks, sha
 recipe|wooden-club|failure_actor => <ansi fg="red">The glue line splits as you shape the head. The wood is wasted.</ansi>
 recipe|wooden-shield|success_actor => <ansi fg="green">You glue up the planks, cut them round and fit a leather strap. A wooden shield!</ansi>
 recipe|wooden-shield|failure_actor => <ansi fg="red">The planks spring apart. The shield is ruined.</ansi>
+recipe|woodworking-bench|success_actor => <ansi fg="green">You build a heavy bench, fit an iron vise and a tool rack. A woodworking bench!</ansi>
+recipe|woodworking-bench|failure_actor => <ansi fg="red">The top will not lie flat. The materials are wasted.</ansi>
 recipe|wool-cloak|success_actor => <ansi fg="green">You layer the cloth and stitch a broad cloak with a bone toggle clasp. A wool cloak!</ansi>
 recipe|wool-cloak|failure_actor => <ansi fg="red">The heavy fabric bunches and the stitching fails. The materials are ruined.</ansi>

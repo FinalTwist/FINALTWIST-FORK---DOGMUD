@@ -8,7 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// Crafted furniture (wilderness trades, phase 5). A carpenter's chest, bed
+// Crafted furniture (wilderness trades, phase 5). A woodworker's chest, bed
 // frame or workbench is an item whose spec names a furnishing kind
 // (items.ItemSpec.Furnishing). Its owner places it in their own lodging with
 // "use", exactly as they would place the deed it stands in for, in any

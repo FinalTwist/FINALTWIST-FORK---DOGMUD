@@ -212,3 +212,62 @@ func TestCraftGrade(t *testing.T) {
 		t.Errorf("a floor-granted win is crude, got %v", g)
 	}
 }
+
+// A forged tool is graded by the smith's margin even from ungraded ingots,
+// and no tool cap applies.
+func TestCraftGradeOutput_ToolsAlwaysGraded(t *testing.T) {
+	won := func(s float64) *contest.Result { r := win(s); return &r }
+	if g := CraftGradeOutput(won(3), []items.Item{{ItemId: 1}}, false, items.ToolTierNone, true); g != items.QualityPristine {
+		t.Errorf("a three-sigma forging of a tool is pristine, got %v", g)
+	}
+	if g := CraftGradeOutput(nil, nil, false, items.ToolTierNone, true); g != items.QualityStandard {
+		t.Errorf("an instant tool recipe comes out standard, got %v", g)
+	}
+}
+
+// Tools wear with each job and break at their durability; a well-graded
+// tool lasts longer; an improvised weapon never wears.
+func TestWearTool(t *testing.T) {
+	seedTools(t)
+	knife := items.Item{ItemId: 1}
+	knife.UUID = items.NewItemUUID()
+	c := &characters.Character{Items: []items.Item{knife}}
+	tool, ok := BestTool(c, items.ToolKnife)
+	if !ok {
+		t.Fatal("no knife found")
+	}
+	d := c.Items[0].ToolDurability()
+	if d <= 0 {
+		t.Fatalf("an iron knife has a durability, got %d", d)
+	}
+	for i := 1; i < d; i++ {
+		if name := WearTool(c, tool); name != `` {
+			t.Fatalf("broke after %d of %d jobs", i, d)
+		}
+	}
+	if c.Items[0].Wear != d-1 {
+		t.Fatalf("wear %d, want %d", c.Items[0].Wear, d-1)
+	}
+	if name := WearTool(c, tool); name == `` {
+		t.Fatal("the last job should break it")
+	}
+	if len(c.Items) != 0 {
+		t.Errorf("a broken tool is gone, still carrying %+v", c.Items)
+	}
+
+	pristine := items.Item{ItemId: 1, Quality: items.QualityPristine}
+	if pristine.ToolDurability() != 2*d {
+		t.Errorf("a pristine knife lasts twice as long: %d vs %d", pristine.ToolDurability(), d)
+	}
+
+	dagger := items.Item{ItemId: 3}
+	dagger.UUID = items.NewItemUUID()
+	c = &characters.Character{Items: []items.Item{dagger}}
+	tool, _ = BestTool(c, items.ToolKnife)
+	for i := 0; i < 500; i++ {
+		WearTool(c, tool)
+	}
+	if len(c.Items) != 1 || c.Items[0].Wear != 0 {
+		t.Errorf("an improvised dagger never wears as a tool, got %+v", c.Items)
+	}
+}

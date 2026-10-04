@@ -1904,11 +1904,29 @@ activity keyed `HarvestActivityPrefix` + `<section>:<mobId>`, with
 pure `planHarvest` (tool gate per entry, rare parts on Perception, size and
 strength quantities, per-entry tool cap, stale-carcass penalties).
 `HarvestResult` is transient (listed in the bauble sweep guard).
+`HarvestEntry.MinTool` gates a part on the tool tier (checked after the rare
+roll, so a miss is real); such misses land in `HarvestResult.TooPoor`, not
+`Missed`. Rare chances are multiplied by `gather.RareMult` of the entry's
+tool. After narrating, the job's tool and each other tool a part used wear
+(`WearUsedTool`).
 
 **craft.go**: `ToolSatisfied`, `RecipeToolTier` and `ToolName` are the one
 statement of the recipe tool rule; `InitiateCraft` returns `MissingTool` /
 `ToolNeeded`, and the instant path grades its output with
-`gather.CraftGrade` read before the ingredients are consumed.
+`RecipeGrade` (`gather.CraftGradeOutput`: a recipe whose output is a tool is
+always graded) read before the ingredients are consumed. `WearRecipeTool`
+wears a recipe's tool on completion (both craft paths).
+
+**toolwear.go**: `WearUsedTool(actor, tool, has)` records one job on a tool
+(`gather.WearTool`) and tells the actor when it breaks.
+
+**forage.go** (wilderness trades review): a carried sickle (player forage
+only) multiplies the search score by `max(1, gather.TierMult)` and draws
+`SickleExtraDraws` extra candidates, keeping the best by `betterForageFind`
+(material tier, then value); the sickle wears per roll.
+
+**sell.go**: `items.NeverResold` tools (iron and better) are bought but never
+added to shop stock.
 
 ## Lumberjacking (wilderness trades)
 
@@ -1917,5 +1935,8 @@ writes it back; reads the room's own biome or its zone default, never the
 registry fallback), `SurveyTrees`, `ResolveChop` (finishes a felling job on
 the Salvaging activity keyed `ChopActivityPrefix`: `gather.Roll` with
 `gather.JobChop`, then logs, branches and bark graded by the roll),
-`ChopTarget`, `ChopRounds`, `LogsFor`, `SpeciesKnown` (a sight-paying,
+`AxeTooPoor` (the refusal when the best axe is below
+`timber.Species.MinAxe`, checked by `chop` and by `ResolveChop`; the axe
+wears per felling attempt), `ChopTarget`, `ChopRounds`, `LogsFor`,
+`SpeciesKnown` (a sight-paying,
 unfloored static-difficulty read; exempt in the floor and contest-site guards).

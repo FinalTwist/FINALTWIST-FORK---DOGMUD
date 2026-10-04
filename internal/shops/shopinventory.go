@@ -21,12 +21,18 @@ const (
 	CraftSupportCooking       = "cooking"
 	CraftSupportJewelcrafting = "jewelcrafting"
 	CraftSupportEnchanting    = "enchanting"
-	CraftSupportCarpentry     = "carpentry"
-	CraftSupportGeneral       = "general"
+	CraftSupportWoodwork      = "woodwork"
+	// CraftSupportHunting is a trade, not a skill: the hunting camps and
+	// trappers (wilderness trades) who buy anything off a carcass and sell
+	// crude field tools.
+	CraftSupportHunting = "hunting"
+	CraftSupportGeneral = "general"
 )
 
 // ValidCraftSupports is the canonical set. Mirrors the player crafting
-// skills in internal/skills/skills.go plus "general" for mixed shops.
+// skills in internal/skills/skills.go, plus "hunting" (the raw goods of the
+// wilderness trades, which no single craft owns) and "general" for mixed
+// shops.
 var ValidCraftSupports = []string{
 	CraftSupportBlacksmithing,
 	CraftSupportAlchemy,
@@ -34,7 +40,8 @@ var ValidCraftSupports = []string{
 	CraftSupportCooking,
 	CraftSupportJewelcrafting,
 	CraftSupportEnchanting,
-	CraftSupportCarpentry,
+	CraftSupportWoodwork,
+	CraftSupportHunting,
 	CraftSupportGeneral,
 }
 
@@ -53,7 +60,8 @@ var ValidVendorCategories = []string{
 	CraftSupportCooking,
 	CraftSupportJewelcrafting,
 	CraftSupportEnchanting,
-	CraftSupportCarpentry,
+	CraftSupportWoodwork,
+	CraftSupportHunting,
 }
 
 // IsValidVendorCategory reports whether v is one of ValidVendorCategories.

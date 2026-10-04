@@ -211,3 +211,41 @@ func TestResolveHarvest_MarksCarcassAndStoresGradedGoods(t *testing.T) {
 		t.Error("a skinned and butchered carcass with no loot is removed")
 	}
 }
+
+func TestPlanHarvest_MinToolGatesTrophies(t *testing.T) {
+	entries := []species.HarvestEntry{
+		{Item: "hide", Qty: 1},
+		{Item: "trophy-pelt", Qty: 1, Rare: true, Chance: 0.5, MinTool: items.ToolTierSteel},
+	}
+	takes, missed := planHarvest(planInputs{
+		Entries: entries, Size: species.Medium, Grade: items.QualityStandard,
+		Perception: 100, ToolTier: allTools(items.ToolTierIron), Rand: func() float64 { return 0 },
+	})
+	if len(takes) != 1 || len(missed) != 1 || missed[0].Item != "trophy-pelt" {
+		t.Fatalf("an iron knife leaves the steel-only trophy behind: takes %+v missed %+v", takes, missed)
+	}
+	takes, missed = planHarvest(planInputs{
+		Entries: entries, Size: species.Medium, Grade: items.QualityStandard,
+		Perception: 100, ToolTier: allTools(items.ToolTierSteel), Rand: func() float64 { return 0 },
+	})
+	if len(takes) != 2 || len(missed) != 0 {
+		t.Fatalf("a steel knife takes the trophy: takes %+v missed %+v", takes, missed)
+	}
+}
+
+func TestPlanHarvest_BetterToolFindsMoreRares(t *testing.T) {
+	entries := []species.HarvestEntry{{Item: "fang", Qty: 1, Rare: true, Chance: 0.3}}
+	// Perception 100: crude 0.15, iron 0.30, masterwork 0.60. A roll of 0.4
+	// misses with iron and lands with masterwork.
+	roll := func() float64 { return 0.4 }
+	takes, _ := planHarvest(planInputs{Entries: entries, Size: species.Small, Grade: items.QualityStandard,
+		Perception: 100, ToolTier: allTools(items.ToolTierIron), Rand: roll})
+	if len(takes) != 0 {
+		t.Errorf("iron: chance 0.30 should miss a 0.4 roll, got %+v", takes)
+	}
+	takes, _ = planHarvest(planInputs{Entries: entries, Size: species.Small, Grade: items.QualityStandard,
+		Perception: 100, ToolTier: allTools(items.ToolTierMasterwork), Rand: roll})
+	if len(takes) != 1 {
+		t.Errorf("masterwork: chance 0.60 should land a 0.4 roll, got %+v", takes)
+	}
+}

@@ -640,6 +640,24 @@ type Balance struct {
 	TimberChopRoundsBase ConfigInt   `yaml:"TimberChopRoundsBase"` // rounds for a tier 1 tree before axe speed; +1 per tier (default 4)
 	TimberMaxLogs        ConfigInt   `yaml:"TimberMaxLogs"`        // most logs one felling yields (default 4)
 
+	// Tool wear (wilderness trades review). Every finished job a real tool
+	// does adds one point of wear; at its durability the tool breaks. A
+	// tool's durability is ToolDurability<Tier> (unless the item authors its
+	// own), scaled by the instance grade (crude 0.75 .. pristine 2.0).
+	// Improvised weapons never wear here.
+	ToolDurabilityCrude      ConfigInt `yaml:"ToolDurabilityCrude"`      // default 30
+	ToolDurabilityIron       ConfigInt `yaml:"ToolDurabilityIron"`       // default 80
+	ToolDurabilitySteel      ConfigInt `yaml:"ToolDurabilitySteel"`      // default 160
+	ToolDurabilityMasterwork ConfigInt `yaml:"ToolDurabilityMasterwork"` // default 320
+
+	// Rare finds by tool tier: the chance of a rare part (and of a rare
+	// forage find) is multiplied by the tool's RareToolMult<Tier>. Separately,
+	// a harvest entry or a timber species may set a minimum tool tier.
+	RareToolMultCrude      ConfigFloat `yaml:"RareToolMultCrude"`      // default 0.5
+	RareToolMultIron       ConfigFloat `yaml:"RareToolMultIron"`       // default 1.0
+	RareToolMultSteel      ConfigFloat `yaml:"RareToolMultSteel"`      // default 1.5
+	RareToolMultMasterwork ConfigFloat `yaml:"RareToolMultMasterwork"` // default 2.0
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.

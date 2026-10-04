@@ -24,6 +24,21 @@ by <ansi fg="yellow">Strength</ansi> — heavier work demands a stronger hand.
   <ansi fg="yellow">Steel Buckler</ansi>      Skill 30  2x steel-ingot, 1x wooden-plank      5 rounds
   <ansi fg="yellow">Masterwork Plate Helm</ansi>  Skill 38 3x steel-ingot, 1x coal-dust         8 rounds
 
+<ansi fg="yellow">━━━ Tools for the Wild ━━━</ansi>
+
+Merchants sell only crude tools. Every better skinning knife, cleaver, bone
+saw, axe, saw, scraper, sickle and whittling knife comes from a smith, and a
+forged tool comes out graded by how well the smith did: a pristine iron
+knife works like steel, a crude steel one like iron.
+
+  <ansi fg="yellow">Iron</ansi>        Skill 0-8    iron ingots and a plank or leather strip
+  <ansi fg="yellow">Steel</ansi>       Skill 15-22  steel ingots and hardwood boards
+  <ansi fg="yellow">Masterwork</ansi>  Skill 45-55  <ansi fg="command">crucible-steel</ansi> (skill 40: steel, basalt-iron
+              ore and coal dust) and an <ansi fg="command">ironwood-haft</ansi> (woodwork 35)
+
+Merchants buy forged tools for scrap but never resell them. See
+<ansi fg="command">help tools</ansi> for what each tier does.
+
 <ansi fg="yellow">━━━ Skill Progression ━━━</ansi>
 
 Blacksmithing improves through use. Each successful craft has a chance to advance your

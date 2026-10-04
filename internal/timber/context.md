@@ -36,3 +36,9 @@ The commands live elsewhere: `actions/chop.go` (`RoomStand`, `SurveyTrees`,
 
 `timber_test.go` covers parsing and validation, pools, the stand round trip,
 felling, regrowth and the re-roll signal, and the neighbour lean.
+
+## Axe tiers (wilderness trades review)
+
+`Species.MinAxe` is the poorest axe tier (as an int, `items.ToolTier` values)
+that can fell a species: crude for tiers 1 and 2, iron for tier 3 (yew,
+walnut), steel for tier 4 (ironwood).

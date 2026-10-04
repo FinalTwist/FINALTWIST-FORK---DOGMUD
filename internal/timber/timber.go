@@ -41,6 +41,16 @@ type Species struct {
 	Note       string `yaml:"note"` // one line for survey: what the wood is good for
 }
 
+// MinAxe is the poorest axe tier (items.ToolTier: 1 crude .. 4 masterwork)
+// that can fell this species at all: one below its own tier, so common woods
+// take any axe, yew and walnut want iron and ironwood wants steel.
+func (s *Species) MinAxe() int {
+	if s.Tier <= 2 {
+		return 1
+	}
+	return s.Tier - 1
+}
+
 // Weighted is one entry of a pool.
 type Weighted struct {
 	Species string `yaml:"species"`

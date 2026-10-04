@@ -157,11 +157,11 @@ When a character loads from disk:
 
 - `strings` - String manipulation for skill tags and profession names
 
-## Carpentry
+## Woodwork
 
-`Carpentry` (`carpentry`, primary stat dexterity, progression 1.56) is the
+`Woodwork` (`woodwork`, primary stat dexterity, progression 1.56) is the
 woodworking craft: lumber, bows and arrows, shields and furniture. It is in
-the carpenter and bowyer professions and is a valid vendor category. Adding
+the woodworker and bowyer professions and is a valid vendor category. Adding
 a skill touches: skills.go, config.yaml SkillProgressionMultipliers,
 planners/skill_training_table.go, hooks/chrysifier_homunculus.go,
 mutations/graph.go, modules/aicompanion/archetype.go, shops/shopinventory.go,

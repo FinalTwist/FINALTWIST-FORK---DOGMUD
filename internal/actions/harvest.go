@@ -59,6 +59,7 @@ type HarvestResult struct {
 	Roll       gather.Result
 	Taken      []items.Item
 	Missed     []string // entry display names skipped for want of the right tool
+	TooPoor    []string // parts that were there but wanted a better tool than the one at hand
 	HideRuined bool     // butchering an unskinned carcass ruined its hide
 }
 
@@ -240,11 +241,19 @@ func planHarvest(in planInputs) (takes []HarvestTake, missed []species.HarvestEn
 			if base <= 0 {
 				base = float64(b.GatherRareBaseChance)
 			}
-			chance := base * float64(in.Perception) / 100.0
+			// Perception notices the part; a better tool gets it off whole.
+			chance := base * float64(in.Perception) / 100.0 * gather.RareMult(tier)
 			chance = math.Max(0.02, math.Min(0.9, chance))
 			if in.Rand() >= chance {
 				continue
 			}
+		}
+		// A part that wants a better tool than this one (a trophy pelt wants
+		// a steel edge) stays on the carcass. A rare part is checked only
+		// once it was there to be noticed, so the miss is real.
+		if e.MinTool != items.ToolTierNone && tier < e.MinTool {
+			missed = append(missed, e)
+			continue
 		}
 		qty := species.ScaleHarvestQty(e.Qty, in.Size)
 		if !e.Rare && !bonusGiven {
@@ -413,7 +422,15 @@ func ResolveHarvest(actor Actor, opts HarvestOptions) HarvestResult {
 		}
 	}
 	for _, e := range missed {
-		res.Missed = append(res.Missed, HarvestEntryName(e))
+		name := HarvestEntryName(e)
+		if e.MinTool != items.ToolTierNone {
+			if t, ok := gather.BestTool(char, e.ToolOrDefault()); ok && t.Tier < e.MinTool {
+				res.TooPoor = append(res.TooPoor, fmt.Sprintf(`%s (it wants a %s %s or better)`,
+					name, e.MinTool, ToolName(e.ToolOrDefault())))
+				continue
+			}
+		}
+		res.Missed = append(res.Missed, name)
 	}
 
 	// One award per job, won on whether anything came off.
@@ -424,6 +441,20 @@ func ResolveHarvest(actor Actor, opts HarvestOptions) HarvestResult {
 	}
 
 	narrateHarvest(actor, room, carcassName, section, opts.Part != ``, res)
+
+	// Wear: the job's own tool, plus each other tool a part needed.
+	WearUsedTool(actor, roll.Tool, roll.HasTool)
+	worn := map[items.ToolType]bool{job.Tool: true}
+	for _, t := range takes {
+		tt := t.Entry.ToolOrDefault()
+		if worn[tt] {
+			continue
+		}
+		worn[tt] = true
+		if tool, ok := gather.BestTool(char, tt); ok {
+			WearUsedTool(actor, tool, true)
+		}
+	}
 	return res
 }
 
@@ -474,6 +505,11 @@ func narrateHarvest(actor Actor, room *rooms.Room, carcass, section string, targ
 			actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 				`<ansi fg="yellow">Without the right tool you leave behind: %s. (<ansi fg="command">help tools</ansi>)</ansi>`,
 				strings.Join(res.Missed, `, `)))
+		}
+		if len(res.TooPoor) > 0 {
+			actor.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="yellow">There was a prize here your tools could not take whole: %s. (<ansi fg="command">help tools</ansi>)</ansi>`,
+				strings.Join(res.TooPoor, `, `)))
 		}
 	}
 }

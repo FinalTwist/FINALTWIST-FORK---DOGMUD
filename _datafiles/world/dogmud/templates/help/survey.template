@@ -9,7 +9,8 @@ cut back, it tells you roughly when it will be ready again.
 Common woods anyone can name. The rare ones, yew, black walnut and ironwood,
 take a sharp eye to recognise: your <ansi fg="yellow">Perception</ansi> and <ansi fg="yellow">search</ansi> skill decide
 whether you know what you are looking at. You can fell a tree you cannot
-name; you just will not know what you have until it is down.
+name; you just will not know what you have until it is down. Survey also
+tells you when the wood is too hard for your axe.
 
 <ansi fg="yellow">See Also:</ansi>
 

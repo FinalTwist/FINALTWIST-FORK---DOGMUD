@@ -2,7 +2,7 @@ itemid: 10054
 name: Steel Felling Axe
 vendor_categories:
 - blacksmithing
-- carpentry
+- woodwork
 namesimple: axe
 description: >
   A heavy two-handed axe with a long hickory haft and a wedge-shaped steel

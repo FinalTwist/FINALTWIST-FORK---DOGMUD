@@ -13,5 +13,6 @@ rarity_tier: 40
 is_component: true
 vendor_categories:
 - alchemy
+- hunting
 material_tier: 4
 spoil_after: 3 days

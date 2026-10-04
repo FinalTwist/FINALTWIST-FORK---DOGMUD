@@ -14,5 +14,6 @@ is_component: true
 vendor_categories:
 - tailoring
 - alchemy
+- hunting
 material_tier: 3
 spoil_after: 3 days

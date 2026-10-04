@@ -2765,6 +2765,9 @@ func (r *Room) RoundTick() {
 
 	// Found baubles left untaken too long vanish (baubles_untaken.go).
 	r.removeUntakenBaubles(time.Now())
+
+	// Harvested raw goods left lying about rot away (spoilage.go).
+	r.removeSpoiledGoods(roundNow)
 }
 
 func (r *Room) AddPlayer(userId int) int {

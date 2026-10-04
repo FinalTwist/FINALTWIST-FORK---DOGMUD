@@ -1,5 +1,7 @@
 package items
 
+import "github.com/GoMudEngine/GoMud/internal/configs"
+
 // ToolType names the job a tool does. A gathering or processing job asks for
 // one ToolType and is served by the best tool of that type the character has.
 type ToolType string
@@ -76,6 +78,87 @@ type ToolSpec struct {
 	Type  ToolType `yaml:"type"`
 	Tier  ToolTier `yaml:"tier"`
 	Speed float64  `yaml:"speed,omitempty"`
+	// Durability is how many jobs the tool lasts before it breaks, before
+	// the instance grade scales it. 0 = Balance.ToolDurability<Tier>.
+	Durability int `yaml:"durability,omitempty"`
+}
+
+// DefaultToolDurability is Balance.ToolDurability<Tier>.
+func DefaultToolDurability(t ToolTier) int {
+	b := configs.GetBalanceConfig()
+	switch t {
+	case ToolTierIron:
+		return int(b.ToolDurabilityIron)
+	case ToolTierSteel:
+		return int(b.ToolDurabilitySteel)
+	case ToolTierMasterwork:
+		return int(b.ToolDurabilityMasterwork)
+	}
+	return int(b.ToolDurabilityCrude)
+}
+
+// toolGradeDurability scales durability by the instance grade: a pristine
+// tool lasts twice as long as a standard one, a crude one three quarters.
+func toolGradeDurability(q Quality) float64 {
+	switch q {
+	case QualityCrude:
+		return 0.75
+	case QualityFine:
+		return 1.25
+	case QualitySuperb:
+		return 1.5
+	case QualityPristine:
+		return 2.0
+	}
+	return 1.0
+}
+
+// ToolDurability is how many jobs this tool instance lasts in all. 0 when the
+// item is not a tool (an improvised weapon never wears as a tool).
+func (i *Item) ToolDurability() int {
+	spec := i.GetSpec()
+	if spec.Tool == nil {
+		return 0
+	}
+	base := spec.Tool.Durability
+	if base <= 0 {
+		base = DefaultToolDurability(spec.Tool.Tier)
+	}
+	d := int(float64(base) * toolGradeDurability(i.Quality))
+	if d < 1 {
+		d = 1
+	}
+	return d
+}
+
+// AddToolWear records one finished job on a tool and reports whether that
+// wore it out. Non-tools never wear and never break.
+func (i *Item) AddToolWear(n int) (broken bool) {
+	d := i.ToolDurability()
+	if d <= 0 || n <= 0 {
+		return false
+	}
+	i.Wear += n
+	return i.Wear >= d
+}
+
+// wearSuffix marks a tool that is wearing out: "(worn)" past 60% of its
+// durability, "(badly worn)" past 85%.
+func (i *Item) wearSuffix() string {
+	if i.Wear <= 0 {
+		return ``
+	}
+	d := i.ToolDurability()
+	if d <= 0 {
+		return ``
+	}
+	switch {
+	case i.Wear*100 >= d*85:
+		return ` <ansi fg="item-quality">(badly worn)</ansi>`
+	case i.Wear*100 >= d*60:
+		return ` <ansi fg="item-quality">(worn)</ansi>`
+	}
+	return ``
 }
 
 // IsKnownToolType reports whether t is one of AllToolTypes.
@@ -134,7 +217,7 @@ func ImprovisedTool(spec ItemSpec, want ToolType) (ToolTier, bool) {
 	return ToolTierNone, false
 }
 
-// Furnishings are crafted pieces of furniture (carpentry) a lodger places in
+// Furnishings are crafted pieces of furniture (woodwork) a lodger places in
 // their own lodging with "use", the way a bought deed is placed. internal/housing
 // does the placing.
 const (
@@ -154,4 +237,12 @@ func IsKnownFurnishing(kind string) bool {
 		}
 	}
 	return false
+}
+
+// NeverResold reports whether a merchant who buys this item must not put it
+// back on the shelf: a real tool of iron or better. Good tools come only from
+// a player smith (wilderness trades review); shops sell crude ones and buy
+// the rest for scrap.
+func NeverResold(spec ItemSpec) bool {
+	return spec.Tool != nil && spec.Tool.Tier > ToolTierCrude
 }

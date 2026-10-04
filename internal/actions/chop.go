@@ -161,10 +161,19 @@ func SurveyTrees(actor Actor) {
 	} else if sp.Tier >= 3 {
 		lines = append(lines, `It is hard, close-grained wood, slow to fell.`)
 	}
-	if _, has := gather.BestTool(actor.GetCharacter(), items.ToolAxe); !has {
+	if axe, has := gather.BestTool(actor.GetCharacter(), items.ToolAxe); !has {
 		lines = append(lines, `You'll need an axe to fell any of it. (<ansi fg="command">help tools</ansi>)`)
+	} else if known && axe.Tier < items.ToolTier(sp.MinAxe()) {
+		lines = append(lines, AxeTooPoor(sp))
 	}
 	actor.SendText(messaging.CategorySystem, strings.Join(lines, "\n"))
+}
+
+// AxeTooPoor is what a woodcutter is told when their best axe cannot bite
+// into this species.
+func AxeTooPoor(sp *timber.Species) string {
+	return fmt.Sprintf(`The %s is too hard for your axe: it would only chip the edge. You need a %s axe or better.`,
+		sp.Name, items.ToolTier(sp.MinAxe()))
 }
 
 // roughWait turns rounds into words a player can plan by.
@@ -214,6 +223,12 @@ func ResolveChop(actor Actor) ChopResult {
 		return res
 	}
 
+	if axe, has := gather.BestTool(char, items.ToolAxe); has && axe.Tier < items.ToolTier(sp.MinAxe()) {
+		actor.SendText(messaging.CategoryError, `<ansi fg="red">`+AxeTooPoor(sp)+`</ansi>`)
+		res.Reason = `axe too poor`
+		return res
+	}
+
 	roll := gather.Roll(char, room, gather.JobChop, ChopTarget(sp.Tier))
 	res.Roll = roll
 	if roll.NoTool {
@@ -221,6 +236,7 @@ func ResolveChop(actor Actor) ChopResult {
 		res.Reason = `no tool`
 		return res
 	}
+	defer WearUsedTool(actor, roll.Tool, roll.HasTool)
 
 	taken := []items.Item{}
 	if roll.Success {

@@ -12,28 +12,50 @@ and only a little on practice.
   <ansi fg="yellow">axe</ansi>            felling trees
   <ansi fg="yellow">saw</ansi>            ripping logs into planks, staves and shafts
   <ansi fg="yellow">scraper</ansi>        fleshing hides before curing
-  <ansi fg="yellow">sickle</ansi>         herbs, reeds and fibre
-  <ansi fg="yellow">carving knife</ansi>  bone, horn and fine woodwork
+  <ansi fg="yellow">sickle</ansi>         carried while you forage, finds more and rarer herbs
+  <ansi fg="yellow">carving knife</ansi>  bone, horn and fine woodwork (any whittling knife)
 
 <ansi fg="yellow">━━━ Tool Quality ━━━</ansi>
 
-A better tool works better and can produce better material. The tier caps
-the best grade you can bring home:
+A better tool works better and brings home better material. The tier caps
+the best grade you can take, and raises your odds of rare parts and herbs:
 
-  <ansi fg="yellow">crude</ansi>        up to standard   (a weapon pressed into service)
-  <ansi fg="yellow">iron</ansi>         up to fine
-  <ansi fg="yellow">steel</ansi>        up to superb
-  <ansi fg="yellow">masterwork</ansi>   up to pristine
+  <ansi fg="yellow">crude</ansi>        up to standard   half the usual chance of a rare part
+  <ansi fg="yellow">iron</ansi>         up to fine       the usual chance
+  <ansi fg="yellow">steel</ansi>        up to superb     half again; trophy parts need steel
+  <ansi fg="yellow">masterwork</ansi>   up to pristine   double; a great bear pelt needs masterwork
 
-A one-handed dagger or sword will do as a crude knife, and a hatchet as a
-crude axe or cleaver, but a real tool is far better. Smiths forge them at a
-forge. You only need to carry the tool; the best one you have is used.
+The hardest woods want a good axe too: yew and black walnut need iron, and
+ironwood needs steel.
+
+<ansi fg="yellow">━━━ Getting Tools ━━━</ansi>
+
+Merchants sell only <ansi fg="yellow">crude</ansi> tools: a flint knife, a camp hatchet, a
+butcher's chopper, a rough saw, a flint scraper or sickle. Hunters, trappers
+and lumber camps carry them: Hunter Delk at Hunter's Hollow in Pothole
+Coulee, Trapper Maudry at the Stillwater travelers' camp, Trapper Ottar at
+the Fernway's eastern trailhead, Camp-Foreman Bertt at the Cascade Pass
+lumber camp, Woodcutter Hagen on the North Road, Corwin the Tanner in New
+Plymouth and Corwin Ashlade in Amber Valley. They also buy what you bring
+back.
+
+Iron, steel and masterwork tools are made only by smiths (<ansi fg="command">help blacksmithing</ansi>).
+A forged tool comes out graded: a pristine iron tool works like steel, a
+crude steel one like iron. A one-handed dagger or sword will do as a crude
+knife, and a hatchet as a crude axe or cleaver.
+
+<ansi fg="yellow">━━━ Wear ━━━</ansi>
+
+Every job wears a tool a little. A crude tool lasts about thirty jobs, iron
+eighty, steel a hundred and sixty and masterwork over three hundred, longer
+for a well-graded one. A tool shows <ansi fg="item-quality">(worn)</ansi> and then <ansi fg="item-quality">(badly worn)</ansi>
+before it breaks. Weapons pressed into service as tools do not wear this way.
 
 Some recipes need a tool too: a scraper to cure a hide, a knife to cut
 leather, a carving knife to work bone. A recipe made with a tool, or from
 graded materials, comes out graded itself, and the tool caps that grade.
-Corwin the Tanner in New Plymouth sells skinning knives and scrapers.
+You only need to carry a tool; the best one you have is used.
 
 <ansi fg="yellow">See Also:</ansi>
 
-  <ansi fg="command">help skin</ansi>, <ansi fg="command">help butcher</ansi>, <ansi fg="command">help carpentry</ansi>, <ansi fg="command">help blacksmithing</ansi>
+  <ansi fg="command">help skin</ansi>, <ansi fg="command">help butcher</ansi>, <ansi fg="command">help woodwork</ansi>, <ansi fg="command">help blacksmithing</ansi>

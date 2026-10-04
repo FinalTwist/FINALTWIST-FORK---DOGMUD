@@ -22,7 +22,7 @@ func seedFurniture(t *testing.T) {
 	}
 	all[testChestId] = &items.ItemSpec{ItemId: testChestId, Name: `Wooden Chest`, NameSimple: `chest`, Type: items.Object, Furnishing: items.FurnishingChest}
 	all[testBedFrameId] = &items.ItemSpec{ItemId: testBedFrameId, Name: `Bed Frame`, NameSimple: `frame`, Type: items.Object, Furnishing: items.FurnishingBed}
-	all[testWorkbenchId] = &items.ItemSpec{ItemId: testWorkbenchId, Name: `Carpenter's Workbench`, NameSimple: `workbench`, Type: items.Object, Furnishing: items.FurnishingWorkbench}
+	all[testWorkbenchId] = &items.ItemSpec{ItemId: testWorkbenchId, Name: `Woodworking Bench`, NameSimple: `workbench`, Type: items.Object, Furnishing: items.FurnishingWorkbench}
 	t.Cleanup(items.SeedItemsForTest(all))
 }
 

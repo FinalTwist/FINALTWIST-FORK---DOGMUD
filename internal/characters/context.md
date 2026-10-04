@@ -2098,3 +2098,9 @@ gear; owner 2026-09-29: no pre-detune bows are carried by companions on
 prod, so that closed a coverage gap with no live behaviour change). A new item field on Character, Worn, Pet or CompanionInfo must be
 walked here: `TestItemWalkersVisitEveryItemField` (repo root) fails naming
 it otherwise.
+
+## Skill rename: carpentry to woodwork
+
+`validateSkillMigrations` folds a saved `carpentry` rank (and use count)
+into `woodwork`, keeping the higher rank. It is idempotent and unmarked, so
+it is safe on every load.

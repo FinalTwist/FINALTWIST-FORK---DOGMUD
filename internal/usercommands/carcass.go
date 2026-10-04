@@ -168,10 +168,17 @@ func harvestPart(user *users.UserRecord, room *rooms.Room, corpseName, partWord 
 			partWord, corpse.Character.Name, strings.ToLower(corpse.Character.Name)))
 		return true, nil
 	}
-	if _, has := gather.BestTool(user.Character, entry.ToolOrDefault()); !has {
+	tool, has := gather.BestTool(user.Character, entry.ToolOrDefault())
+	if !has {
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">You need a %s to take the %s.</ansi> (<ansi fg="command">help tools</ansi>)`,
 			strings.ReplaceAll(string(entry.ToolOrDefault()), `_`, ` `), actions.HarvestEntryName(entry)))
+		return true, nil
+	}
+	if entry.MinTool != items.ToolTierNone && tool.Tier < entry.MinTool {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="red">Your %s would ruin the %s. It wants a %s %s or better.</ansi> (<ansi fg="command">help tools</ansi>)`,
+			tool.Item.NameSimple(), actions.HarvestEntryName(entry), entry.MinTool, actions.ToolName(entry.ToolOrDefault())))
 		return true, nil
 	}
 	return startCarcassJob(user, room, corpseName, section, entry.Key())
@@ -190,8 +197,10 @@ func listCarcass(user *users.UserRecord, room *rooms.Room, corpseName string) (b
 			listed = true
 			tool := strings.ReplaceAll(string(e.ToolOrDefault()), `_`, ` `)
 			note := ``
-			if _, has := gather.BestTool(user.Character, e.ToolOrDefault()); !has {
+			if t, has := gather.BestTool(user.Character, e.ToolOrDefault()); !has {
 				note = ` <ansi fg="red">(you have no ` + tool + `)</ansi>`
+			} else if e.MinTool != items.ToolTierNone && t.Tier < e.MinTool {
+				note = ` <ansi fg="red">(needs a ` + e.MinTool.String() + ` ` + tool + `)</ansi>`
 			}
 			rare := ``
 			if e.Rare {

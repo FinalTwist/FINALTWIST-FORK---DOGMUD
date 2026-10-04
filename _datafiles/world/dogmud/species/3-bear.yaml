@@ -39,6 +39,7 @@ disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', '
 harvest:
   skin:
     - {item: bear-fur, qty: 1}                      # large: two furs
+    - {itemid: 40257, qty: 1, rare: true, chance: 0.3, min_tool: 4}    # great bear pelt: masterwork knife
   butcher:
     - {item: raw-meat, qty: 2}
     - {item: sinew, qty: 1}

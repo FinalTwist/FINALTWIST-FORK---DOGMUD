@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/gather"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -239,8 +240,7 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 		// An instant recipe runs no contest, so its grade comes from its
 		// inputs and tool alone (gather.CraftGrade with no result). Read the
 		// inputs BEFORE they are consumed.
-		toolTier, _ := RecipeToolTier(char, recipe)
-		grade := gather.CraftGrade(nil, crafting.SelectIngredients(char.Items, char.ComponentItems, recipe), recipe.Tool != ``, toolTier)
+		grade := RecipeGrade(char, recipe, nil, crafting.SelectIngredients(char.Items, char.ComponentItems, recipe))
 		// Provident Hands may preserve the materials entirely (efficient craft).
 		if !char.CraftMaterialsSaved() {
 			char.Items, char.ComponentItems = crafting.ConsumeIngredients(
@@ -260,6 +260,7 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 			char.StoreItem(newItem)
 			res.OutputName = newItem.DisplayName()
 		}
+		WearRecipeTool(actor, recipe)
 		res.ImmediateComplete = true
 		return res
 	}
@@ -310,6 +311,29 @@ func RecipeToolTier(char *characters.Character, recipe *crafting.RecipeSpec) (it
 		return items.ToolTierNone, true
 	}
 	return t.Tier, true
+}
+
+// RecipeGrade is the grade a craft gives its output (gather.CraftGradeOutput):
+// graded inputs, a recipe tool and a tool as the output each make it graded.
+// cr is nil for an instant recipe. consumed is what the craft will spend.
+func RecipeGrade(char *characters.Character, recipe *crafting.RecipeSpec, cr *contest.Result, consumed []items.Item) items.Quality {
+	toolTier, hasTool := RecipeToolTier(char, recipe)
+	outputIsTool := false
+	if recipe != nil {
+		if spec := items.GetItemSpec(recipe.Output.ItemId); spec != nil && spec.Tool != nil {
+			outputIsTool = true
+		}
+	}
+	return gather.CraftGradeOutput(cr, consumed, hasTool, toolTier, outputIsTool)
+}
+
+// WearRecipeTool wears the tool a finished craft used, if the recipe has one.
+func WearRecipeTool(actor Actor, recipe *crafting.RecipeSpec) {
+	if recipe == nil || recipe.Tool == `` || actor == nil {
+		return
+	}
+	t, ok := gather.BestTool(actor.GetCharacter(), recipe.Tool)
+	WearUsedTool(actor, t, ok)
 }
 
 // ToolName is a tool type as a player reads it ("bone saw").

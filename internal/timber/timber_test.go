@@ -103,3 +103,13 @@ func TestPickSpecies_NeighboursLean(t *testing.T) {
 		t.Error("empty pool")
 	}
 }
+
+// Common woods take any axe; yew and walnut want iron, ironwood steel.
+func TestMinAxe(t *testing.T) {
+	for tier, want := range map[int]int{1: 1, 2: 1, 3: 2, 4: 3} {
+		sp := Species{Tier: tier}
+		if got := sp.MinAxe(); got != want {
+			t.Errorf("tier %d: MinAxe %d, want %d", tier, got, want)
+		}
+	}
+}

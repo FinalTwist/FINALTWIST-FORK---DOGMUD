@@ -12,5 +12,6 @@ rarity_tier: 40
 is_component: true
 vendor_categories:
 - cooking
+- hunting
 material_tier: 1
 spoil_after: 2 days

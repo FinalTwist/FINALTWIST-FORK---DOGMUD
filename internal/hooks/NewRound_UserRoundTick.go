@@ -16,7 +16,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
-	"github.com/GoMudEngine/GoMud/internal/gather"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -616,8 +615,10 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								// give the output a grade (gather.CraftGrade;
 								// ungraded otherwise). Read from the same
 								// selection the roll priced, before it is spent.
-								toolTier, recipeHasTool := actions.RecipeToolTier(user.Character, recipe)
-								craftGrade := gather.CraftGrade(&craftResult, consumed, recipeHasTool, toolTier)
+								craftGrade := actions.RecipeGrade(user.Character, recipe, &craftResult, consumed)
+								// The recipe's tool wears whether the work
+								// came out or not.
+								actions.WearRecipeTool(&actions.UserActor{User: user, Room: room}, recipe)
 
 								// U10b-1 Task 16: awarded HERE, above the branch,
 								// so a FAILED craft trains at

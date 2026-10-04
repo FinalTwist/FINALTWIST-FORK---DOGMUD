@@ -111,4 +111,30 @@ func (b *Balance) validateGathering() {
 	if b.TimberMaxLogs <= 0 {
 		b.TimberMaxLogs = 4
 	}
+
+	if b.ToolDurabilityCrude <= 0 {
+		b.ToolDurabilityCrude = 30
+	}
+	if b.ToolDurabilityIron <= 0 {
+		b.ToolDurabilityIron = 80
+	}
+	if b.ToolDurabilitySteel <= 0 {
+		b.ToolDurabilitySteel = 160
+	}
+	if b.ToolDurabilityMasterwork <= 0 {
+		b.ToolDurabilityMasterwork = 320
+	}
+
+	if b.RareToolMultCrude <= 0 {
+		b.RareToolMultCrude = 0.5
+	}
+	if b.RareToolMultIron <= 0 {
+		b.RareToolMultIron = 1.0
+	}
+	if b.RareToolMultSteel <= 0 {
+		b.RareToolMultSteel = 1.5
+	}
+	if b.RareToolMultMasterwork <= 0 {
+		b.RareToolMultMasterwork = 2.0
+	}
 }

@@ -27,7 +27,7 @@ species:
   - {id: cypress, name: cypress, log: 40411, tier: 2, note: "Straight, light and close to rot-proof."}
   - {id: yew, name: yew, log: 40412, tier: 3, note: "The finest bow wood there is: springy heartwood backed by pale sapwood."}
   - {id: walnut, name: black walnut, log: 40413, tier: 3, note: "Dark, dense and handsome: fine furniture and stocks."}
-  - {id: ironwood, name: ironwood, log: 40414, tier: 4, note: "So dense it sinks: the hardest wood a carpenter will ever work."}
+  - {id: ironwood, name: ironwood, log: 40414, tier: 4, note: "So dense it sinks: the hardest wood a woodworker will ever work."}
 
 biomes:
   forest:       [{species: pine, weight: 4}, {species: birch, weight: 4}, {species: alder, weight: 3}, {species: oak, weight: 2}, {species: ash, weight: 1}, {species: yew, weight: 1}]

@@ -1408,7 +1408,7 @@ Balance:
     cooking: 1.56
     jewelcrafting: 1.56
     enchanting: 1.56
-    carpentry: 1.56
+    woodwork: 1.56
 
   # ── SALVAGE ────────────────────────────────────────────────────────────────
   SalvageMinChance: 0.15      # Per-ingredient recovery chance at skill 1
@@ -1849,6 +1849,17 @@ Balance:
   TimberRegrowRounds: 900
   TimberChopRoundsBase: 4
   TimberMaxLogs: 4
+  # Tool wear: each finished job adds one wear; the tool breaks at its
+  # durability (by tier, times the tool's grade: crude 0.75 .. pristine 2.0).
+  ToolDurabilityCrude: 30
+  ToolDurabilityIron: 80
+  ToolDurabilitySteel: 160
+  ToolDurabilityMasterwork: 320
+  # Rare finds: rare part and rare forage chances times this, by tool tier.
+  RareToolMultCrude: 0.5
+  RareToolMultIron: 1.0
+  RareToolMultSteel: 1.5
+  RareToolMultMasterwork: 2.0
 
   # ── RECIPE DISCOVERY ──────────────────────────────────────────────────────
   # Chance to learn a new recipe on a successful craft.

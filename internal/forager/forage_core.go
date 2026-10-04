@@ -113,6 +113,12 @@ type ForageAttempt struct {
 	// duplicates raising their odds. A room with extras is forageable even
 	// when its biome is not.
 	RoomExtra []int
+	// ExtraDraws (player-forage only) draws that many more candidates from
+	// the pool and keeps the one Prefer ranks best: a good sickle turns up
+	// the rarer plant in a patch (wilderness trades review). Zero, or a nil
+	// Prefer, draws once as before.
+	ExtraDraws int
+	Prefer     func(a, b int) bool // reports whether item a is a better find than item b
 }
 
 // RoomExtraYieldsKey is the room temp-data key ([]int of item ids) that adds
@@ -174,5 +180,13 @@ func ForageCore(a ForageAttempt) ForageResult {
 	if !contest.AgainstDifficulty(a.SearchScore, difficulty).Success {
 		return ForageResult{}
 	}
-	return ForageResult{Found: true, ItemId: pool[util.Rand(len(pool))]}
+	pick := pool[util.Rand(len(pool))]
+	if a.Prefer != nil {
+		for i := 0; i < a.ExtraDraws; i++ {
+			if alt := pool[util.Rand(len(pool))]; a.Prefer(alt, pick) {
+				pick = alt
+			}
+		}
+	}
+	return ForageResult{Found: true, ItemId: pick}
 }

@@ -13,5 +13,6 @@ rarity_tier: 40
 is_component: true
 vendor_categories:
 - tailoring
+- hunting
 material_tier: 2
 spoil_after: 4 days

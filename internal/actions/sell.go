@@ -430,6 +430,7 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 
 	// Stock update (merchant side). Living-economy shops store the exact affixed
 	// item for resale; legacy shops (shopInv == nil) melt it.
+	noResale := items.NeverResold(itemSpec)
 	if item.Affixed {
 		if shopInv != nil {
 			c := int(configs.GetBalanceConfig().ShopAffixedStockCap)
@@ -439,6 +440,13 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 			if err := shops.SaveShop(shopInv.Zone, shopInv.MobId, shopInv.RoomId); err != nil {
 				mudlog.Error("SELL", "msg", "SaveShop failed", "error", err)
 			}
+		}
+	} else if shopInv != nil && noResale {
+		// A forged tool (iron and better) is bought for its metal and never
+		// shelved: good tools come only from a smith's own hands.
+		shopInv.BuysCount++
+		if err := shops.SaveShop(mob.Zone, int(mob.MobId), mob.HomeRoomId); err != nil {
+			mudlog.Error("SELL", "msg", "SaveShop failed", "error", err)
 		}
 	} else if shopInv != nil {
 		shopInv.BuysCount++
@@ -478,7 +486,7 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 		if err := shops.SaveShop(mob.Zone, int(mob.MobId), mob.HomeRoomId); err != nil {
 			mudlog.Error("SELL", "msg", "SaveShop failed", "error", err)
 		}
-	} else {
+	} else if !noResale {
 		mob.Character.Shop.StockItem(item.ItemId)
 	}
 

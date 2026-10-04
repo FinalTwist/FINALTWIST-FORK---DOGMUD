@@ -13,5 +13,6 @@ rarity_tier: 40
 is_component: true
 vendor_categories:
 - tailoring
-- carpentry
+- woodwork
+- hunting
 material_tier: 1

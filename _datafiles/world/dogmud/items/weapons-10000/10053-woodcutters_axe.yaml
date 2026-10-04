@@ -2,7 +2,7 @@ itemid: 10053
 name: Woodcutter's Axe
 vendor_categories:
 - blacksmithing
-- carpentry
+- woodwork
 namesimple: axe
 description: >
   A long-hafted single-bit axe with an iron head, balanced for the steady overhead swing that fells a tree rather than the quick chop of a fight.

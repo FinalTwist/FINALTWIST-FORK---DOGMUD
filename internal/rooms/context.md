@@ -704,3 +704,9 @@ sweep prunes its record later as lost.
 has been cut from a carcass; `PartTaken`, `Spent`, `Staleness` (fraction of
 `CorpseDecayTime` elapsed) and `ProcessedNote` (the line `look` adds). Mutate
 through `room.Corpses[i]`, never the copy `FindCorpse` returns.
+
+## Spoiled goods on the floor (wilderness trades review)
+
+`spoilage.go`: `removeSpoiledGoods(roundNow)` runs at the end of
+`RoundTick` and removes spoiling items (`items.Item.IsSpoiled`) lying in the
+room or its stash, with a line to the room. Containers are not swept.

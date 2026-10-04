@@ -249,13 +249,23 @@ func Rounds(base int, t Tool, hasTool bool) int {
 //     made from crude hides by mixing in one good one;
 //   - by the tool's tier, when the recipe has a tool.
 func CraftGrade(cr *contest.Result, consumed []items.Item, recipeHasTool bool, toolTier items.ToolTier) items.Quality {
+	return CraftGradeOutput(cr, consumed, recipeHasTool, toolTier, false)
+}
+
+// CraftGradeOutput is CraftGrade with the output in view. outputIsTool marks
+// a recipe that makes a tool (a forged knife, a felling axe): a tool is always
+// graded, even from ungraded ingots, because its grade is what sets how well
+// it works and how long it lasts (items.EffectiveToolTier, ToolDurability).
+// The smith's margin decides it, so a master smith's steel knife can come out
+// pristine and work like a masterwork one.
+func CraftGradeOutput(cr *contest.Result, consumed []items.Item, recipeHasTool bool, toolTier items.ToolTier, outputIsTool bool) items.Quality {
 	worst := items.QualityNone
 	for _, itm := range consumed {
 		if itm.Quality.Valid() && (worst == items.QualityNone || itm.Quality < worst) {
 			worst = itm.Quality
 		}
 	}
-	if worst == items.QualityNone && !recipeHasTool {
+	if worst == items.QualityNone && !recipeHasTool && !outputIsTool {
 		return items.QualityNone
 	}
 

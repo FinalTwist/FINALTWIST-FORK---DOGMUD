@@ -52,6 +52,7 @@ type Item struct {
 	BottleMultiplier float64        `yaml:"bottle_multiplier,omitempty"` // Aging speed from the bottle used during crafting
 	MakerName        string         `yaml:"maker_name,omitempty"`        // Cosmetic crafter attribution (skill 30+)
 	Quality          Quality        `yaml:"quality,omitempty"`           // Material grade (crude..pristine) from gathering; 0 = ungraded. See quality.go
+	Wear             int            `yaml:"wear,omitempty"`              // Tool wear: finished jobs done with this tool; breaks at ToolDurability. See tools.go
 	Spec             *ItemSpec      `yaml:"overrides,omitempty"`
 	Affixed          bool           `yaml:"affixed,omitempty"`         // Instance-loot affix-scaled item (sellable + value-scaled; distinct from enchanted)
 	Uncursed         bool           `yaml:"uncursed,omitempty"`        // Is this item uncursed?
@@ -561,7 +562,7 @@ func (i *Item) displayNameFrom(spec ItemSpec) string {
 		prefix = `<ansi fg="questflag">★</ansi>`
 	}
 
-	suffix := i.Quality.qualitySuffix()
+	suffix := i.Quality.qualitySuffix() + i.wearSuffix()
 	if adjLen := len(i.Adjectives); adjLen > 0 {
 		suffix += ` <ansi fg="black-bold">(`
 		for i, adj := range i.Adjectives {

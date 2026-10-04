@@ -192,3 +192,9 @@ time; once fill drops to ≤ `ChestBackpressureResumePct`, the forager resumes.
 (plains and dense forest also get the night Moonpetal). Caves and mountains
 yield iron ore (40236) where they used to yield the finished iron ingot;
 ore is smelted at a forge (`smelt-iron-ore`) and sits in the base bucket.
+
+## Sickle draws (wilderness trades review)
+
+`ForageAttempt.ExtraDraws` and `Prefer` (player forage only, set by
+`actions.Forage` from a carried sickle) draw more candidates from the pool
+and keep the one `Prefer` ranks best. Zero or a nil `Prefer` draws once.

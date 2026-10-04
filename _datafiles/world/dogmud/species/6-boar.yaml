@@ -46,3 +46,4 @@ harvest:
     - {item: bone, qty: 2, tool: cleaver}
     - {item: animal-fat, qty: 2, tool: cleaver}
     - {item: tusk, qty: 1, tool: bone_saw, rare: true, chance: 0.4}
+    - {itemid: 40258, qty: 1, tool: bone_saw, rare: true, chance: 0.25, min_tool: 3}  # trophy tusks: steel saw or better

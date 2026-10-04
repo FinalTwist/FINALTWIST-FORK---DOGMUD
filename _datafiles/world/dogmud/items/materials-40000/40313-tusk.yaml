@@ -13,4 +13,5 @@ rarity_tier: 40
 is_component: true
 vendor_categories:
 - jewelcrafting
+- hunting
 material_tier: 2

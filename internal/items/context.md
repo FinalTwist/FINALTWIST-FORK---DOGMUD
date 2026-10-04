@@ -1469,6 +1469,12 @@ sweep (`internal/baubles/sweep.go`) reads every live item through them.
   `ImprovisedTool` (one-handed stabbing or slashing weapons as crude knives,
   one-handed cleaving weapons as crude cleavers and axes).
   `ItemSpec.Validate` rejects an unknown tool type or tier.
+  Wear (review): `ToolSpec.Durability` (0 = `DefaultToolDurability`, Balance
+  `ToolDurability*` by tier), `Item.ToolDurability` (scaled by the instance
+  grade, crude 0.75 to pristine 2.0), `Item.AddToolWear`, `Item.Wear` (saved;
+  `SameStack` keeps different wear apart) and the `(worn)` / `(badly worn)`
+  display suffix. `NeverResold` marks iron-and-better tools, which shops buy
+  but never shelve.
 
 **spoilage.go** (wilderness trades): `ItemSpec.SpoilAfter` (a game-time
 period) puts harvested raw goods on a clock that starts at

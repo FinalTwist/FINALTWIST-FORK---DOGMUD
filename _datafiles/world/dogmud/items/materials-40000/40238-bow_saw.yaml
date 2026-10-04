@@ -10,7 +10,7 @@ value: 16
 rarity_tier: 40
 vendor_categories:
 - blacksmithing
-- carpentry
+- woodwork
 tool:
   type: saw
   tier: 2
