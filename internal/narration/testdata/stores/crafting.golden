@@ -38,8 +38,12 @@ recipe|battle-trance|success_actor => <ansi fg="green">The brew turns pitch-blac
 recipe|battle-trance|failure_actor => <ansi fg="red">The ironbark and chrysalis resist each other. The brew fails. The materials are wasted.</ansi>
 recipe|bear-fur-mantle|success_actor => <ansi fg="green">You cure the heavy furs and build them into a mantle over a leather yoke. A bear-fur mantle!</ansi>
 recipe|bear-fur-mantle|failure_actor => <ansi fg="red">The heavy fur pulls the seams apart. The furs are ruined.</ansi>
+recipe|bed-frame|success_actor => <ansi fg="green">You mortise the posts and rails and lace the frame with cord. A bed frame!</ansi>
+recipe|bed-frame|failure_actor => <ansi fg="red">A mortise splits and the frame will not stand. The wood is wasted.</ansi>
 recipe|berserker-elixir|success_actor => <ansi fg="green">The brew turns blood-red and seems to throb with fury. A berserker elixir!</ansi>
 recipe|berserker-elixir|failure_actor => <ansi fg="red">The hive fragment rejects the venom and cracks apart. The materials are wasted.</ansi>
+recipe|birch-bark-liquor|success_actor => <ansi fg="green">You steep the birch bark until the liquor runs dark. Bark liquor!</ansi>
+recipe|birch-bark-liquor|failure_actor => <ansi fg="red">The pot boils over and the liquor is weak and bitter.</ansi>
 recipe|bone-arrowheads|success_actor => <ansi fg="green">You grind small barbed points from the bone. Bone arrowheads!</ansi>
 recipe|bone-arrowheads|failure_actor => <ansi fg="red">The points chip as you grind them. The bone is wasted.</ansi>
 recipe|bone-glue|success_actor => <ansi fg="green">You boil the bones for hours and reduce the broth to a thick glue. Bone glue!</ansi>
@@ -52,6 +56,8 @@ recipe|bowstring|success_actor => <ansi fg="green">You twist the sinew tight, wa
 recipe|bowstring|failure_actor => <ansi fg="red">The sinew frays as you twist it. It is wasted.</ansi>
 recipe|carapace-ward|success_actor => <ansi fg="green">Chitinous patterns spiral across the fabric, hardening it with Chrysalis resilience. The armor gleams with natural protection.</ansi>
 recipe|carapace-ward|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the armor is unharmed.</ansi>
+recipe|carpenters-workbench|success_actor => <ansi fg="green">You build a heavy bench, fit an iron vise and a tool rack. A carpenter's workbench!</ansi>
+recipe|carpenters-workbench|failure_actor => <ansi fg="red">The top will not lie flat. The materials are wasted.</ansi>
 recipe|carve-bone-needles|success_actor => <ansi fg="green">You split the bone, grind two slim needles and drill their eyes. Bone needles!</ansi>
 recipe|carve-bone-needles|failure_actor => <ansi fg="red">The bone splinters. It is wasted.</ansi>
 recipe|cat-pelt-hood|success_actor => <ansi fg="green">You cure the pelts and shape a close hood that hardly rustles. A cat-pelt hood!</ansi>
@@ -100,6 +106,8 @@ recipe|cure-hide|success_actor => <ansi fg="green">You pin the hide, scrape it c
 recipe|cure-hide|failure_actor => <ansi fg="red">The scraper tears through the hide. It is ruined.</ansi>
 recipe|cut-leather|success_actor => <ansi fg="green">You cut the hide into even strips. Leather strips!</ansi>
 recipe|cut-leather|failure_actor => <ansi fg="red">Your knife wanders and the strips come out ragged and useless.</ansi>
+recipe|cut-shafts|success_actor => <ansi fg="green">You rip the log into blanks and round them into shafts. Arrow shafts!</ansi>
+recipe|cut-shafts|failure_actor => <ansi fg="red">The blanks twist as they dry and none of them are straight.</ansi>
 recipe|drowned-veil|success_actor => <ansi fg="green">The two pearls dissolve into the cloak's weave with a long slow sigh. A pearl-grey sheen spreads through the fabric and settles. The cloak is heavier in the hand; nothing in the world is heavier on the eye.</ansi>
 recipe|drowned-veil|failure_actor => <ansi fg="red">The pearls refuse the binding, dimming and going dark. The catalyst burns out. The materials are lost; the cloak is unharmed.</ansi>
 recipe|elixir-of-renewal|success_actor => <ansi fg="green">The liquid shifts through every color before settling into a prismatic glow. An elixir of renewal!</ansi>
@@ -120,6 +128,8 @@ recipe|firebomb|success_actor => <ansi fg="green">The coal ignites briefly then 
 recipe|firebomb|failure_actor => <ansi fg="red">The mixture sputters and goes inert. The materials are lost.</ansi>
 recipe|flashbang|success_actor => <ansi fg="green">The mixture crystallizes into a volatile sphere that glows faintly. A flashbang!</ansi>
 recipe|flashbang|failure_actor => <ansi fg="red">The compounds fizzle and separate. The materials are wasted.</ansi>
+recipe|fletch-arrows|success_actor => <ansi fg="green">You set the heads, fletch the shafts and fill a quiver. A quiver of arrows!</ansi>
+recipe|fletch-arrows|failure_actor => <ansi fg="red">The fletching goes on crooked and the arrows will never fly true.</ansi>
 recipe|fur-lined-boots|success_actor => <ansi fg="green">You line a pair of leather boots with soft cured pelts. Fur-lined boots!</ansi>
 recipe|fur-lined-boots|failure_actor => <ansi fg="red">The lining bunches and the boots will not close. The materials are wasted.</ansi>
 recipe|gem-set-necklace|success_actor => <ansi fg="green">You twist silver wire into a delicate chain and seat the gem in a wire cradle. A gem-set necklace!</ansi>
@@ -146,6 +156,8 @@ recipe|hide-scraper|success_actor => <ansi fg="green">You bend a strip of iron i
 recipe|hide-scraper|failure_actor => <ansi fg="red">The strip cracks at the bend. The iron is wasted.</ansi>
 recipe|honed-edge|success_actor => <ansi fg="green">The paste bonds to the blade and hardens. When you test the edge, it cuts cleaner than before.</ansi>
 recipe|honed-edge|failure_actor => <ansi fg="red">The paste dries and flakes away without taking hold. The materials are wasted, but the weapon is unharmed.</ansi>
+recipe|horn-bow|success_actor => <ansi fg="green">You laminate horn to the belly and sinew to the back, cure it and string it. A horn composite bow!</ansi>
+recipe|horn-bow|failure_actor => <ansi fg="red">The laminations delaminate as the glue cures. The materials are lost.</ansi>
 recipe|horsehair-bowstring|success_actor => <ansi fg="green">You braid the horsehair into a tight bowstring. A bowstring!</ansi>
 recipe|horsehair-bowstring|failure_actor => <ansi fg="red">The braid slips loose. The hair is wasted.</ansi>
 recipe|hungering-guard|success_actor => <ansi fg="green">You set the claw deep in bright metal and the hollow around it seems to darken on its own. A hungering guard!</ansi>
@@ -154,6 +166,10 @@ recipe|hungering-touch|success_actor => <ansi fg="green">Twin catalysts writhe w
 recipe|hungering-touch|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the weapon is unharmed.</ansi>
 recipe|hunter-eel-scale-vest|success_actor => <ansi fg="green">You overlap the hunter-eel scales loose along thin leather backing and stitch each row with patient care. The slick scales lay perfectly flat. A hunter-eel scale vest!</ansi>
 recipe|hunter-eel-scale-vest|failure_actor => <ansi fg="red">The scales bunch and slide against each other no matter how you stitch them. The hide tears at the seams and the work is wasted.</ansi>
+recipe|hunting-bow|success_actor => <ansi fg="green">You glue and recurve the limbs, wrap the grip in leather and string it. A hunting bow!</ansi>
+recipe|hunting-bow|failure_actor => <ansi fg="red">The glue lets go as you bend the tips. The bow is ruined.</ansi>
+recipe|iron-arrowheads|success_actor => <ansi fg="green">You draw out the iron, cut small heads and punch their sockets. Iron arrowheads!</ansi>
+recipe|iron-arrowheads|failure_actor => <ansi fg="red">The heads come out lopsided and blunt.</ansi>
 recipe|iron-buckler|success_actor => <ansi fg="green">You beat the iron plates into a round shield and bolt the grip. An iron buckler!</ansi>
 recipe|iron-buckler|failure_actor => <ansi fg="red">The iron warps badly. The materials are wasted.</ansi>
 recipe|iron-cleaver|success_actor => <ansi fg="green">You hammer out a broad, thick-spined blade and fit it to a stout wooden handle. An iron cleaver!</ansi>
@@ -170,6 +186,8 @@ recipe|ironblood|success_actor => <ansi fg="green">Twin settings spiral with mol
 recipe|ironblood|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the amulet is unharmed.</ansi>
 recipe|ironhide-brew|success_actor => <ansi fg="green">The ironbark dissolves into a dark, gritty solution. An ironhide brew!</ansi>
 recipe|ironhide-brew|failure_actor => <ansi fg="red">The ironbark refuses to dissolve. The materials are wasted.</ansi>
+recipe|kite-shield|success_actor => <ansi fg="green">You glue the boards into a tall kite shape and face it with leather. A kite shield!</ansi>
+recipe|kite-shield|failure_actor => <ansi fg="red">The boards warp as the glue cures. The shield is ruined.</ansi>
 recipe|lake-iron-hook-spear|success_actor => <ansi fg="green">You smelt the lake-iron nodules in a hot fire and draw the metal out long and keen, then weld a back-curving hook to the socket. You wrap the haft in leather and lash it tight with sinew. The leaf-blade rings true on the anvil. A lake-iron hook-spear!</ansi>
 recipe|lake-iron-hook-spear|failure_actor => <ansi fg="red">The lake-iron will not weld evenly to the socket. The hook tears free under the first hammer-blow and the work is wasted.</ansi>
 recipe|lake-tonic-of-steady-hand|success_actor => <ansi fg="green">You steep the willow bark to a clear pale broth and crush the mint leaves in at the last moment, then decant the tonic before the colour can fade. A lake-tonic of steady hand!</ansi>
@@ -186,6 +204,10 @@ recipe|leather-vest|success_actor => <ansi fg="green">You punch holes along the 
 recipe|leather-vest|failure_actor => <ansi fg="red">The needle snaps and the leather splits. The materials are wasted.</ansi>
 recipe|linen-tunic|success_actor => <ansi fg="green">You cut the linen to shape and stitch the panels together. A linen tunic!</ansi>
 recipe|linen-tunic|failure_actor => <ansi fg="red">The stitching pulls apart and the cloth tears. The materials are ruined.</ansi>
+recipe|longbow|success_actor => <ansi fg="green">You join the staves, tiller the long limbs for days and string it tall. A longbow!</ansi>
+recipe|longbow|failure_actor => <ansi fg="red">The long limbs twist out of true. The staves are ruined.</ansi>
+recipe|make-bolts|success_actor => <ansi fg="green">You cut the shafts short and stout, set the heads and pack them in a leather case. A case of bolts!</ansi>
+recipe|make-bolts|failure_actor => <ansi fg="red">The bolts come out unbalanced and tumble in flight.</ansi>
 recipe|master-lockpicks|success_actor => <ansi fg="green">You draw the silver wire to hair-gauge, grind diamond-tipped points, and seat each pick in a fitted case. Master lockpicks!</ansi>
 recipe|master-lockpicks|failure_actor => <ansi fg="red">The silver wire snaps during drawing -- the tolerances are too fine to recover. The materials are lost.</ansi>
 recipe|masters-component-case|success_actor => <ansi fg="green">You line the rigid case with silk, carve labeled dividers, and fit the interlocking seal. A master's component case!</ansi>
@@ -226,6 +248,8 @@ recipe|preservation-runes|success_actor => <ansi fg="green">You bind the root's 
 recipe|preservation-runes|failure_actor => <ansi fg="red">The etching wavers and the binding slips away uncaught. The materials are wasted.</ansi>
 recipe|purging-draught|success_actor => <ansi fg="green">The concoction seethes and hisses before settling into an acrid, potent draught. A purging draught!</ansi>
 recipe|purging-draught|failure_actor => <ansi fg="red">The veilbloom destabilizes and the mixture becomes inert. The materials are wasted.</ansi>
+recipe|quarterstaff|success_actor => <ansi fg="green">You glue up the boards, turn them round and shoe both ends. A quarterstaff!</ansi>
+recipe|quarterstaff|failure_actor => <ansi fg="red">The glue line opens when you test it. The staff is ruined.</ansi>
 recipe|quicksilver-soles|success_actor => <ansi fg="green">You render moonpetal and venom down over coals until the mixture pools bright and restless, never quite sitting still. Quicksilver soles!</ansi>
 recipe|quicksilver-soles|failure_actor => <ansi fg="red">The mixture boils over and spills across the bench before it can set. The materials are ruined.</ansi>
 recipe|rawhide-cord|success_actor => <ansi fg="green">You split the gut, twist it into cord and hang it to dry. Rawhide cord!</ansi>
@@ -256,12 +280,18 @@ recipe|rootwalker|success_actor => <ansi fg="green">Root-like soles form beneath
 recipe|rootwalker|failure_actor => <ansi fg="red">The setting rejects the boot leather. The materials crumble to dust, but the boots are unharmed.</ansi>
 recipe|savants-infusion|success_actor => <ansi fg="green">Amber liquid flecked with crystallized knowledge. A savant's infusion!</ansi>
 recipe|savants-infusion|failure_actor => <ansi fg="red">The herbs lose potency during infusion. The materials are wasted.</ansi>
+recipe|saw-boards|success_actor => <ansi fg="green">You saw the dense log into two thick boards and plane a face flat. Hardwood boards!</ansi>
+recipe|saw-boards|failure_actor => <ansi fg="red">The blade overheats in the hard wood and the boards split.</ansi>
+recipe|saw-planks|success_actor => <ansi fg="green">You saw the log into four even planks. Wooden planks!</ansi>
+recipe|saw-planks|failure_actor => <ansi fg="red">The saw binds and wanders, and the planks come out warped and useless.</ansi>
 recipe|scab-hide-jerkin|success_actor => <ansi fg="green">You scrape the pelts down, cut the panels, and stitch the tough hide into a fitted jerkin. A scab-hide jerkin!</ansi>
 recipe|scab-hide-jerkin|failure_actor => <ansi fg="red">The hide is too green and the seams pull apart. The materials are wasted.</ansi>
 recipe|scale-vest|success_actor => <ansi fg="green">You lace row after row of scales onto a leather vest. A scale vest!</ansi>
 recipe|scale-vest|failure_actor => <ansi fg="red">The scales will not lie flat and the lacing tears. The materials are lost.</ansi>
 recipe|sealed-phial|success_actor => <ansi fg="green">You wrap the vial in copper wire and press a chrysalis-infused stopper into place. The seal shimmers faintly. A sealed phial!</ansi>
 recipe|sealed-phial|failure_actor => <ansi fg="red">The stopper cracks and the chrysalis shard crumbles. The materials are wasted.</ansi>
+recipe|self-bow|success_actor => <ansi fg="green">You shape the stave, tiller the limbs until they bend evenly, and string it. A self bow!</ansi>
+recipe|self-bow|failure_actor => <ansi fg="red">A limb cracks as you tiller it. The stave is ruined.</ansi>
 recipe|serpents-edge|success_actor => <ansi fg="green">Chrysalis energy flows through the setting and into the blade. The metal shimmers with an iridescent sheen.</ansi>
 recipe|serpents-edge|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the weapon is unharmed.</ansi>
 recipe|shadowweave|success_actor => <ansi fg="green">Shadows pour from the settings into the cloak's fabric, weaving a darkness that drinks in light and magic alike.</ansi>
@@ -282,6 +312,8 @@ recipe|spatial-stitching|success_actor => <ansi fg="green">You bind the setting'
 recipe|spatial-stitching|failure_actor => <ansi fg="red">The binding folds in on itself and the enchantment collapses inward. The materials are lost.</ansi>
 recipe|spiced-wine|success_actor => <ansi fg="green">You mull the herbs and salt into a dark, warming wine. Spiced wine!</ansi>
 recipe|spiced-wine|failure_actor => <ansi fg="red">The mixture ferments wrong and turns to vinegar. The materials are lost.</ansi>
+recipe|split-staves|success_actor => <ansi fg="green">You split the log along the grain into two clean staves. Bow staves!</ansi>
+recipe|split-staves|failure_actor => <ansi fg="red">The split runs out of the grain and the staves are ruined.</ansi>
 recipe|spore-mantle|success_actor => <ansi fg="green">Luminous spores bloom across the pauldrons, forming a living ward. Magic crackles and dies against the fungal barrier.</ansi>
 recipe|spore-mantle|failure_actor => <ansi fg="red">The spores fail to take root. The materials crumble to dust, but the armor is unharmed.</ansi>
 recipe|sporeweave|success_actor => <ansi fg="green">Spores bloom and weave through the fibers, creating a web of mutation that pulses with dormant potential. The armor grows organic and supple.</ansi>
@@ -328,6 +360,8 @@ recipe|voice-amber-housing|success_actor => <ansi fg="green">You facet the amber
 recipe|voice-amber-housing|failure_actor => <ansi fg="red">The amber fractures along a hidden seam. The materials are wasted.</ansi>
 recipe|warriors-brew|success_actor => <ansi fg="green">The herbs fuse into a rust-colored brew that radiates warmth. A warrior's brew!</ansi>
 recipe|warriors-brew|failure_actor => <ansi fg="red">The mixture thickens and burns. The materials are wasted.</ansi>
+recipe|whittle-shafts|success_actor => <ansi fg="green">You whittle the branches straight and round. Arrow shafts!</ansi>
+recipe|whittle-shafts|failure_actor => <ansi fg="red">Your knife slips and the shafts come out crooked.</ansi>
 recipe|whittling-knife|success_actor => <ansi fg="green">You forge a short, stiff blade with a fine point and set it in a wooden handle. A whittling knife!</ansi>
 recipe|whittling-knife|failure_actor => <ansi fg="red">The point snaps off in the grinding. The materials are lost.</ansi>
 recipe|windlace-bindings|success_actor => <ansi fg="green">You bind bark and setting into cord too fine to trust with the eye, leaning it a half-beat ahead of the step. Windlace bindings!</ansi>
@@ -338,7 +372,11 @@ recipe|wolf-fur-cloak|success_actor => <ansi fg="green">You scrape and salt the 
 recipe|wolf-fur-cloak|failure_actor => <ansi fg="red">The pelts were not cured enough and the seams split. They are ruined.</ansi>
 recipe|woodcutters-axe|success_actor => <ansi fg="green">You forge a single-bit axe head, punch the eye, and hang it on a long haft. A woodcutter's axe!</ansi>
 recipe|woodcutters-axe|failure_actor => <ansi fg="red">The eye splits as you drift it open. The head is scrap.</ansi>
+recipe|wooden-chest|success_actor => <ansi fg="green">You dovetail the planks, fit a lid and hang it on iron hinges. A wooden chest!</ansi>
+recipe|wooden-chest|failure_actor => <ansi fg="red">The joints will not close square. The wood is wasted.</ansi>
 recipe|wooden-club|success_actor => <ansi fg="green">You glue up the planks, shape a heavy head and a narrow grip, and wrap the handle in leather. A wooden club!</ansi>
 recipe|wooden-club|failure_actor => <ansi fg="red">The glue line splits as you shape the head. The wood is wasted.</ansi>
+recipe|wooden-shield|success_actor => <ansi fg="green">You glue up the planks, cut them round and fit a leather strap. A wooden shield!</ansi>
+recipe|wooden-shield|failure_actor => <ansi fg="red">The planks spring apart. The shield is ruined.</ansi>
 recipe|wool-cloak|success_actor => <ansi fg="green">You layer the cloth and stitch a broad cloak with a bone toggle clasp. A wool cloak!</ansi>
 recipe|wool-cloak|failure_actor => <ansi fg="red">The heavy fabric bunches and the stitching fails. The materials are ruined.</ansi>

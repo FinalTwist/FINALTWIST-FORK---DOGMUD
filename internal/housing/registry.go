@@ -303,6 +303,9 @@ func LandlordBuildings(mobId int) []Building {
 // extension deed, redecorating voucher, guest key, container deed or
 // strongbox deed.
 func IsHousingItem(itemId int) bool {
+	if IsCraftedFurnishing(itemId) {
+		return true
+	}
 	mu.RLock()
 	defer mu.RUnlock()
 	for _, b := range buildings {

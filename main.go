@@ -89,6 +89,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/suggestions"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/timber"
 	"github.com/GoMudEngine/GoMud/internal/tips"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -1899,6 +1900,12 @@ func loadAllDataFiles(isReload bool) {
 	moderation.LoadDataFiles()
 	housing.LoadDataFiles() // after rooms, mobs and factions: it validates against them
 	ferry.LoadDataFiles()
+	// Wilderness trades: tree species and the pools that say where they grow.
+	// After items (every log is checked) and rooms (every zone is checked).
+	timber.LoadDataFiles(timber.World{
+		ItemExists: func(itemId int) bool { return items.GetItemSpec(itemId) != nil },
+		ZoneExists: func(zone string) bool { return rooms.GetZoneConfig(zone) != nil },
+	})
 	// City scavengers (the loot goblin's replacement). After rooms and mobs,
 	// since every pool is resolved against the zones and the mapper. Their
 	// rooms are exempt from the daily floor decay: the scavengers keep them.

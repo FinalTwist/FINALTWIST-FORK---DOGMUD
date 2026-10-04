@@ -713,3 +713,6 @@ activity for `actions.ResolveHarvestJob`. `harvest <corpse>` lists what is
 left; `harvest <part> from <corpse>` takes one part. `salvage <corpse>`
 redirects to them when the carcass has a harvest table. `craft` reports a
 missing recipe tool, and the list shows it.
+
+**chop.go**: `Chop` (`chop`, alias `fell`; needs an axe, sight, a stand with
+trees left) and `Survey` (`survey`, `survey trees`).

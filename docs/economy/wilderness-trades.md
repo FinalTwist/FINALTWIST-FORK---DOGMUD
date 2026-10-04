@@ -14,9 +14,9 @@ the only new skill.
 | 1 | Foundations: item grades, tools, the gather roll, the carpentry skill, harvest tables, new stations, tool recipes | shipped 2026-10-03 |
 | 2 | Hunting: `skin`, `butcher`, `harvest`; corpse states; species tables and mob overrides; animal materials; spoilage; furrier and butcher merchants; the scarcity pricing fix | shipped 2026-10-03 |
 | 3 | Processing: scrape, cure, tan, dress; cord, glue, tallow, smoked meat; bone and horn carving; leather and fur garments; crafted grades | shipped 2026-10-03 |
-| 4 | Lumberjacking: timber tables, `survey trees`, `chop`, logs, grove depletion and regrowth, lumber yard | next |
-| 5 | Carpentry crafts: sawing, bows, arrows and bolts, staves, wooden shields, furniture for housing, bowyer | planned |
-| 6 | Forage revamp: categories, survey, seasons, room richness, tool-driven finds | planned |
+| 4 | Lumberjacking: timber tables, `survey trees`, `chop`, logs, grove depletion and regrowth, lumber yard | shipped 2026-10-04 |
+| 5 | Carpentry crafts: sawing, bows, arrows and bolts, staves, wooden shields, furniture for housing, bowyer | shipped 2026-10-04 |
+| 6 | Forage revamp: categories, survey, seasons, room richness, tool-driven finds | next |
 | 7 | Depth: `hunt` spawning, bundling, felling hazards, wanted species, bounties, caravans | planned |
 
 ## What phase 0 changed
@@ -122,6 +122,55 @@ the only new skill.
   rawhide cord, bone glue, tallow, bark liquor, bone arrowheads. Foods
   30069 to 30071; garments 20104 to 20112.
 
+## What phase 4 added (lumberjacking)
+
+- **Data**: `_datafiles/world/dogmud/timber.yaml` (code `internal/timber`):
+  fifteen species in three wood classes, each with a log item (40400 to
+  40414), tier 1 to 4 and a survey note; pools for the forest, dense forest
+  and swamp biomes, and zone pools for the Fernway, Fernway South (rare
+  ironwood), Cascade Pass Road (rare yew), Pothole Coulee, Ashwick and
+  Stillwater Marsh.
+- **Commands**: `survey` / `survey trees` (what grows, what it is good for,
+  how many trees are left, when a cut stand will be ready; tier 3 and 4 woods
+  need a Perception and Search read to name) and `chop [tree]` (alias
+  `fell`), a timed job of 4 to 7 rounds shortened by the axe's speed.
+- **The roll**: `gather.JobChop`, Strength and Vitality times the axe, no
+  skill, against `GatherBaseDifficulty - TimberEase + (tier - 1) *
+  TimberTierDifficulty`. Logs: one, plus one per 50 Strength above 100, plus
+  one for a fine felling, up to `TimberMaxLogs`; graded by the roll and capped
+  by the axe. One or two branches, and bark (pine pitch, oak bark, birch bark)
+  four times in ten. Logs weigh 8 to 14 and are not bag components: weight is
+  the haul.
+- **Stands**: each choppable room holds 6 to 10 trees in its long-term data,
+  regrowing one per game day (`TimberRegrowRounds` 900), re-rolled toward the
+  neighbours' species when regrown from stumps.
+- **Merchants**: Camp-Foreman Bertt (Cascade Pass lumber camp) buys carpentry
+  goods and sells the woodcutter's axe, bow saw and planks.
+
+## What phase 5 added (carpentry crafts)
+
+- **Lumber**: `saw-planks` (softwood log to 4 planks, saw), `saw-boards`
+  (hardwood log to 2 hardwood boards, saw), `split-staves` (bow-wood log to 2
+  bow staves, axe), `cut-shafts` (softwood log to 3 bundles of arrow shafts,
+  saw), `whittle-shafts` (2 branches, carving knife, anywhere).
+- **Bows**: `self-bow` (new 10057), `hunting-bow` (10041), `longbow` (new
+  10058, Strength 110), `horn-bow` (new 10059, uses horn and sinew). The new
+  bows sit on the U10d line and are listed in `postDetuneBows`.
+- **Ammunition**: `fletch-arrows` (quiver 30062: shafts, feathers,
+  arrowheads; anywhere) and `make-bolts` (case 30063). Arrowheads come from
+  `iron-arrowheads` (blacksmithing, 40421) or phase 3's bone arrowheads.
+- **Arms**: `quarterstaff` (new 10060), `wooden-shield` (20004), `kite-shield`
+  (new 20113).
+- **Furniture**: `wooden-chest`, `bed-frame`, `carpenters-workbench` (40430
+  to 40432, `furnishing:` chest, bed, workbench). `use` one in your own
+  lodging to place it as a container, a bed or a woodworking bench, through
+  the housing deed paths (`internal/housing/crafted.go`).
+- **Bark**: `birch-bark-liquor` makes tanning liquor from birch bark.
+- **Merchants**: Corwin Ashlade (Amber Valley woodworker) is the bowyer: he
+  buys carpentry goods and sells shafts, bowstrings, quivers, self bows and
+  whittling knives. Both wood-trade keepers carry lanterns so their shops can
+  trade at night.
+
 ## Deferred
 
 - The kill-damage penalty (fire, acid or overkill spoiling a hide) needs the
@@ -129,3 +178,7 @@ the only new skill.
 - NPC salvagers and the companion's butcher pastime still use corpse
   salvage, not skin and butcher.
 - A shop resells bought goods ungraded.
+- Crafted grade raises value only; superb and pristine weapons and armour do
+  not yet get a stat bump.
+- No Thornwall bowyer or lumber yard yet; only the two above.
+- Felling hazards and the `hunt` command are phase 7.

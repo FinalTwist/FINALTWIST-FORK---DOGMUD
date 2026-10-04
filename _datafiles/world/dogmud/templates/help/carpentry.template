@@ -1,6 +1,6 @@
 <ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="skill">carpentry</ansi> (skill)
 
-Carpentry is woodworking: turning planks and timber into weapons, shields,
+Carpentry is woodworking: turning logs and timber into weapons, shields,
 bows and arrows, furniture and fittings. It is governed by
 <ansi fg="yellow">Dexterity</ansi>, since joinery and shaping reward a steady, precise hand.
 
@@ -11,14 +11,26 @@ bows and arrows, furniture and fittings. It is governed by
              Timber Yard at Kilnreach, the Lumber Camp on Cascade Pass Road,
              the Woodcutter's Camp on the North Road, and the Fletcher's Ledge
              in Pothole Coulee.
-  Materials: Wooden planks, with leather strips for grips and bindings.
+  Materials: Logs you fell yourself (<ansi fg="command">help chop</ansi>) or buy, sawn into lumber.
+  Tools:     A saw for planks, boards and shafts, an axe to split staves, a
+             carving knife for bows and arrows (<ansi fg="command">help tools</ansi>).
 
-<ansi fg="yellow">━━━ Known Recipes ━━━</ansi>
+<ansi fg="yellow">━━━ Recipes ━━━</ansi>
 
-  <ansi fg="command">wooden-club</ansi>   A simple hardwood club (minimum 0).
+  <ansi fg="yellow">Lumber</ansi>      <ansi fg="command">saw-planks</ansi>, <ansi fg="command">saw-boards</ansi>, <ansi fg="command">split-staves</ansi>, <ansi fg="command">cut-shafts</ansi>,
+              <ansi fg="command">whittle-shafts</ansi> (from branches, anywhere)
+  <ansi fg="yellow">Bows</ansi>        <ansi fg="command">self-bow</ansi>, <ansi fg="command">hunting-bow</ansi>, <ansi fg="command">longbow</ansi>, <ansi fg="command">horn-bow</ansi>
+  <ansi fg="yellow">Ammunition</ansi>  <ansi fg="command">fletch-arrows</ansi> (anywhere), <ansi fg="command">make-bolts</ansi>
+  <ansi fg="yellow">Arms</ansi>        <ansi fg="command">wooden-club</ansi>, <ansi fg="command">quarterstaff</ansi>, <ansi fg="command">wooden-shield</ansi>, <ansi fg="command">kite-shield</ansi>
+  <ansi fg="yellow">Furniture</ansi>   <ansi fg="command">wooden-chest</ansi>, <ansi fg="command">bed-frame</ansi>, <ansi fg="command">carpenters-workbench</ansi>
 
-More carpentry is on the way: sawing logs into planks and staves, bows,
-arrows, wooden shields and furniture.
+Furniture goes home with you: <ansi fg="command">use</ansi> a chest, bed frame or workbench inside your
+own lodging to set it up, the same as a deed from the letting agent.
+
+Bowstrings come from tailoring (sinew or horsehair), glue from cooking (bone),
+horn from butchering, feathers from birds, and arrowheads from a smith or a
+jeweler (iron or bone). The grade of your lumber, and of your tools, carries
+into what you make.
 
 <ansi fg="yellow">━━━ Skill Progression ━━━</ansi>
 
@@ -33,4 +45,4 @@ failure) has a chance to advance the skill.
 
 <ansi fg="yellow">See Also:</ansi>
 
-  <ansi fg="command">help craft</ansi>, <ansi fg="command">help skills</ansi>, <ansi fg="command">help tools</ansi>
+  <ansi fg="command">help craft</ansi>, <ansi fg="command">help skills</ansi>, <ansi fg="command">help tools</ansi>, <ansi fg="command">help lumberjacking</ansi>

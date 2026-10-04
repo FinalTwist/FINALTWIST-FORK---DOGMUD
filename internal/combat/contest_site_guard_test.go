@@ -81,6 +81,7 @@ var contestSiteOwners = map[string]string{
 	"internal/actions/search.go:Search":            "U10b-1b Phase A: four static-difficulty search tiers (125/125/135/175)",
 	"internal/actions/search.go:spotsHider":        "U10b-1b Phase C: hidden detection reconciled onto the OPPOSED form usercommands/go.go already used — the flat 135 threshold never read the hider's score",
 	"internal/forager/forage_core.go:ForageCore":   "U10b-1b Phase A: the per-biome forage difficulty. ForageCore is pure, so this is the whole of its uncertainty",
+	"internal/actions/chop.go:SpeciesKnown":        "wilderness trades phase 4: survey's static-difficulty recognition of a rare tree, a read like search and forage",
 	"internal/actions/track.go:resolveTrailDetail": "U10b-1b: the nested 125/135/175 trail-read ladder, static difficulty like search and forage",
 	"internal/actions/track.go:Track":              "U10b-1b: the OPPOSED contest against a named quarry (owner ruling) — a careful mover is genuinely harder to follow",
 

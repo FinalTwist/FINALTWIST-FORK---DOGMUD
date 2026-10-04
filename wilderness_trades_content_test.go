@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -10,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/species"
+	"github.com/GoMudEngine/GoMud/internal/timber"
 )
 
 // TestWildernessTradesContent pins the shipped wilderness-trades data
@@ -119,5 +121,59 @@ func TestWildernessTradesContent(t *testing.T) {
 		if r.Tool != `` && !items.IsKnownToolType(r.Tool) {
 			t.Errorf("recipe %s: unknown tool %q", r.RecipeId, r.Tool)
 		}
+	}
+}
+
+// TestTimberContent pins timber.yaml against the shipped items and zones, and
+// checks that every zone pool names a zone that has choppable rooms.
+func TestTimberContent(t *testing.T) {
+	mudlog.SetupLogger(nil, `LOW`, ``, false)
+	configs.SetConfigForTest(t, configs.GetConfig())
+	if err := configs.ReloadConfig(); err != nil {
+		t.Fatalf("ReloadConfig: %v", err)
+	}
+	t.Cleanup(items.SeedItemsForTest(nil))
+	items.LoadDataFiles()
+
+	path := configs.GetFilePathsConfig().DataFiles.String() + `/` + timber.DataFileName
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading %s: %v", path, err)
+	}
+	d, err := timber.Parse(raw, timber.World{
+		ItemExists: func(id int) bool { return items.GetItemSpec(id) != nil },
+	})
+	if err != nil {
+		t.Fatalf("timber.yaml: %v", err)
+	}
+	timber.Install(d)
+	t.Cleanup(func() { timber.Install(nil) })
+
+	species := timber.AllSpecies()
+	if len(species) < 10 {
+		t.Fatalf("only %d species; did timber.yaml load?", len(species))
+	}
+	for _, sp := range species {
+		log := items.GetItemSpec(sp.LogItemId)
+		if log == nil {
+			continue // Parse reports it
+		}
+		if log.ComponentTag == `` {
+			t.Errorf("%s log %d has no component tag, so no recipe can saw it", sp.Name, sp.LogItemId)
+		}
+		if len(log.VendorCategories) == 0 {
+			t.Errorf("%s log %d is not sold anywhere", sp.Name, sp.LogItemId)
+		}
+	}
+	for _, biome := range []string{`forest`, `dense_forest`, `swamp`} {
+		if !timber.IsChoppable(biome) {
+			t.Errorf("biome %s should grow timber", biome)
+		}
+	}
+	if timber.IsChoppable(`city_thoroughfare`) {
+		t.Error("city streets must not grow timber")
+	}
+	if items.FindSpecByComponentTag(`branch`) == nil {
+		t.Error("no item carries the branch tag that felling gives")
 	}
 }

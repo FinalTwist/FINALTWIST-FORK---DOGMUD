@@ -133,3 +133,25 @@ func ImprovisedTool(spec ItemSpec, want ToolType) (ToolTier, bool) {
 	}
 	return ToolTierNone, false
 }
+
+// Furnishings are crafted pieces of furniture (carpentry) a lodger places in
+// their own lodging with "use", the way a bought deed is placed. internal/housing
+// does the placing.
+const (
+	FurnishingChest     = `chest`     // a container, like a container deed
+	FurnishingBed       = `bed`       // a bed, like a bed deed
+	FurnishingWorkbench = `workbench` // a woodworking bench station
+)
+
+// AllFurnishings is every furnishing kind, in a stable order.
+var AllFurnishings = []string{FurnishingChest, FurnishingBed, FurnishingWorkbench}
+
+// IsKnownFurnishing reports whether kind is one of AllFurnishings.
+func IsKnownFurnishing(kind string) bool {
+	for _, k := range AllFurnishings {
+		if k == kind {
+			return true
+		}
+	}
+	return false
+}

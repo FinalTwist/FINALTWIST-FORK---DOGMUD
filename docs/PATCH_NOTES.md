@@ -1,5 +1,32 @@
 # DOGMud Patch Notes
 
+## 2026-10-04: Wilderness trades, phases 4 and 5: lumberjacking and carpentry
+
+Fell trees, haul the logs home, then sell them or work them yourself
+(`help lumberjacking`, `help chop`, `help carpentry`).
+
+- **`survey trees`** shows what grows in a forest, deep wood or marsh, what
+  the wood is good for and how many good trees are left. Rare woods (yew,
+  black walnut, ironwood) take a sharp eye to name.
+- **`chop`** (or `fell`) needs an axe. Your Strength, your Vitality and your
+  axe decide how it goes; a strong woodcutter gets more logs, and a better
+  axe is quicker and makes better logs. Felled trees also give branches and
+  sometimes bark. Logs are heavy.
+- Each stand of trees can be felled out. It regrows about a tree an hour, and
+  may come back as something else. The Fernway grows oak and ash, Cascade
+  Pass pine, spruce and the odd yew, the Fernway South a rare ironwood.
+- Camp-Foreman Bertt at the Cascade Pass lumber camp buys logs and sells
+  axes, bow saws and planks. Corwin Ashlade, Amber Valley's woodworker, is now
+  a bowyer: he buys bows and woodwork and sells shafts, bowstrings, arrows,
+  self bows and whittling knives.
+- **Carpentry** recipes: saw planks, boards and arrow shafts, split bow
+  staves, whittle shafts from branches; make a self bow, hunting bow, longbow
+  or horn composite bow; fletch arrows and bolts; make a quarterstaff, a
+  wooden shield or a kite shield. Smiths can forge iron arrowheads.
+- **Furniture**: a carpenter can make a wooden chest, a bed frame or a
+  workbench. Carry it home and `use` it in your lodging to set it up as a
+  container, a bed or a woodworking bench.
+
 ## 2026-10-03: Wilderness trades, phases 2 and 3: hunting and processing
 
 Hunt it, skin it, butcher it, then sell it or make something of it

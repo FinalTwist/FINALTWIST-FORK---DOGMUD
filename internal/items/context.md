@@ -1476,3 +1476,7 @@ period) puts harvested raw goods on a clock that starts at
 `FreshnessValueMultiplier`. An unstamped instance (`CraftedRound` 0: shop
 stock, legacy items) never spoils. `SameStack` keeps spoiling items with
 different harvest rounds apart.
+
+`ItemSpec.Furnishing` (`furnishing:`) marks crafted furniture; `Validate`
+rejects an unknown kind. `postDetuneBows` (detune_migration.go) lists bows
+authored after U10d that need no migration entry.

@@ -57,3 +57,5 @@ one per `GatherGradeStepSigma` of margin (floored win crude, nil contest
 standard); capped one above the worst graded input and by the tool tier.
 Called from the multi-round craft completion in
 `hooks/NewRound_UserRoundTick.go` and the instant path in `actions/craft.go`.
+
+`JobChop` (strength and vitality, axe required, no skill) is the felling job.

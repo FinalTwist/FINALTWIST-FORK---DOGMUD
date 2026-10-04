@@ -521,10 +521,13 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// Salvaging tick — advance round via Activity machine.
 						sd, complete := user.Character.Activity.AdvanceSalvagingRound()
 						isCarcassJob := strings.HasPrefix(sd.ItemUuid, actions.HarvestActivityPrefix)
+						isChopJob := strings.HasPrefix(sd.ItemUuid, actions.ChopActivityPrefix)
 						if !complete {
 							progress := `You continue salvaging...`
 							if isCarcassJob {
 								progress = `You keep working at the carcass...`
+							} else if isChopJob {
+								progress = `Chips fly as you keep chopping...`
 							}
 							user.SendText(messaging.CategorySystem, fmt.Sprintf(
 								`<ansi fg="yellow">%s (%d/%d)</ansi>`,
@@ -532,7 +535,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						} else {
 							// Determine salvage type from ItemUuid prefix.
 							const corpsePrefix = "corpse:"
-							if isCarcassJob {
+							if isChopJob {
+								// Wilderness trades: felling a tree.
+								_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
+									Trigger: activity.TriggerSalvageComplete,
+									Actor:   user.Character.Activity.Self(),
+								})
+								actions.ResolveChop(&actions.UserActor{
+									User: user,
+									Room: rooms.LoadRoom(user.Character.RoomId),
+								})
+							} else if isCarcassJob {
 								// Wilderness trades: skin, butcher or harvest.
 								_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
 									Trigger: activity.TriggerSalvageComplete,

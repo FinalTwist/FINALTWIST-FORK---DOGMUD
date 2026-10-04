@@ -86,4 +86,29 @@ func (b *Balance) validateGathering() {
 	if b.ShopWalkInDevaluePerUnit <= 0 {
 		b.ShopWalkInDevaluePerUnit = 0.02
 	}
+
+	if b.TimberEase <= 0 {
+		b.TimberEase = 10
+	}
+	if b.TimberTierDifficulty <= 0 {
+		b.TimberTierDifficulty = 15
+	}
+	if b.TimberStandMin <= 0 {
+		b.TimberStandMin = 6
+	}
+	if b.TimberStandMax < b.TimberStandMin {
+		b.TimberStandMax = 10
+		if b.TimberStandMax < b.TimberStandMin {
+			b.TimberStandMax = b.TimberStandMin
+		}
+	}
+	if b.TimberRegrowRounds <= 0 {
+		b.TimberRegrowRounds = 900
+	}
+	if b.TimberChopRoundsBase <= 0 {
+		b.TimberChopRoundsBase = 4
+	}
+	if b.TimberMaxLogs <= 0 {
+		b.TimberMaxLogs = 4
+	}
 }

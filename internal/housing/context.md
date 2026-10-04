@@ -576,3 +576,11 @@ strongbox window in `TryCommand`; `unlock` for `open`), `internal/mobcommands`
 `internal/usercommands`. `internal/rooms` (`Container.Sealed`) and
 `internal/actions` (steal, plant, `baubleRoomAllowed`) honour strongboxes and
 private rooms without importing housing.
+
+## Crafted furniture (wilderness trades)
+
+**crafted.go**: an item whose spec sets `furnishing:` (chest, bed or
+workbench; `items.AllFurnishings`) is crafted furniture. `IsHousingItem`
+counts it, so only housing spends it, and `UseItem` places it in the owner's
+own lodging through the deed paths: a chest as a container, a bed frame as a
+bed, a workbench as a woodworking bench station. `IsCraftedFurnishing`.

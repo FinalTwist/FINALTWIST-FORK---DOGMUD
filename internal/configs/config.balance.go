@@ -626,6 +626,20 @@ type Balance struct {
 	// selling and stops the second from paying four times the first.
 	ShopWalkInDevaluePerUnit ConfigFloat `yaml:"ShopWalkInDevaluePerUnit"` // default 0.02
 
+	// Lumberjacking (wilderness trades, phase 4). A chop scores
+	// avg(strength, vitality) * axeMult against GatherBaseDifficulty -
+	// TimberEase + (species tier - 1) * TimberTierDifficulty. Each forest room
+	// holds a stand of TimberStandMin..TimberStandMax fellable trees that
+	// regrows one tree every TimberRegrowRounds (900 = one game day at the
+	// shipped Timing.RoundsPerDay).
+	TimberEase           ConfigFloat `yaml:"TimberEase"`           // default 10
+	TimberTierDifficulty ConfigFloat `yaml:"TimberTierDifficulty"` // default 15
+	TimberStandMin       ConfigInt   `yaml:"TimberStandMin"`       // default 6
+	TimberStandMax       ConfigInt   `yaml:"TimberStandMax"`       // default 10
+	TimberRegrowRounds   ConfigInt   `yaml:"TimberRegrowRounds"`   // default 900
+	TimberChopRoundsBase ConfigInt   `yaml:"TimberChopRoundsBase"` // rounds for a tier 1 tree before axe speed; +1 per tier (default 4)
+	TimberMaxLogs        ConfigInt   `yaml:"TimberMaxLogs"`        // most logs one felling yields (default 4)
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.

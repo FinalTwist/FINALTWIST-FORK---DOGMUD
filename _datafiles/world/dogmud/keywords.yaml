@@ -119,6 +119,8 @@ help:
       - skin
       - butcher
       - harvest
+      - chop
+      - survey
     information:
       - biome
       - exits
@@ -271,6 +273,7 @@ help-aliases:
   skin:             [skinning, pelt, pelts, hides, fur, furs]
   butcher:          [butchering, butchery, meat, bone, carve, carving]
   spoilage:         [spoil, spoiled, rot, rotten, freshness, fresh]
+  lumberjacking:    [lumberjack, woodcutting, woodcutter, timber, logging, lumber, trees, wood]
   tailoring:        [tailor, sewing, weaving, clothwork]
   cooking:          [cook, baking, food, meals]
   jewelcrafting:    [jeweler, jewelry, gemwork, gemcutting, jewel]
@@ -365,6 +368,7 @@ command-aliases:
   'rank front':       ['frontrank']
   defuse:             ['disarm']
   butcher:            ['carve', 'dress']
+  chop:               ['fell']
   suggest:            ['idea']
   'help about':       ['about']
   'set screenreader': ['screenreader']

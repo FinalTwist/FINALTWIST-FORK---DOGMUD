@@ -2243,3 +2243,5 @@ Conventions:
 outputs with `gather.CraftGrade`, and calls `sweepSpoiledGoods`
 (**spoilage.go**), which every ten rounds throws out a player's rotten
 harvested goods.
+A finished Salvaging activity keyed `actions.ChopActivityPrefix` goes to
+`actions.ResolveChop`.

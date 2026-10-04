@@ -1909,3 +1909,13 @@ strength quantities, per-entry tool cap, stale-carcass penalties).
 statement of the recipe tool rule; `InitiateCraft` returns `MissingTool` /
 `ToolNeeded`, and the instant path grades its output with
 `gather.CraftGrade` read before the ingredients are consumed.
+
+## Lumberjacking (wilderness trades)
+
+**chop.go**: `RoomStand` (seeds or regrows the room's `timber.Stand` and
+writes it back; reads the room's own biome or its zone default, never the
+registry fallback), `SurveyTrees`, `ResolveChop` (finishes a felling job on
+the Salvaging activity keyed `ChopActivityPrefix`: `gather.Roll` with
+`gather.JobChop`, then logs, branches and bark graded by the roll),
+`ChopTarget`, `ChopRounds`, `LogsFor`, `SpeciesKnown` (a sight-paying,
+unfloored static-difficulty read; exempt in the floor and contest-site guards).

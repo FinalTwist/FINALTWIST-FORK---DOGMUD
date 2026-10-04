@@ -1,0 +1,35 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="skill">lumberjacking</ansi>
+
+Timber is a trade. Go out with an axe, fell trees, haul the logs home, then
+sell them or saw them into lumber and make something.
+
+<ansi fg="yellow">━━━ Where the trees are ━━━</ansi>
+
+  <ansi fg="yellow">The Fernway</ansi>        birch, oak, alder, ash, elm, black walnut
+  <ansi fg="yellow">Fernway South</ansi>      the same, and rarely ironwood
+  <ansi fg="yellow">Cascade Pass Road</ansi>  pine, spruce, larch, cedar, and rarely yew
+  <ansi fg="yellow">Pothole Coulee</ansi>     juniper, pine, willow
+  <ansi fg="yellow">Ashwick</ansi>            elm, oak, birch, willow
+  <ansi fg="yellow">Marshes</ansi>            willow, alder, cypress
+  Other woods grow pine, birch, alder and oak, and deep woods spruce, oak,
+  elm and the odd yew or walnut.
+
+<ansi fg="yellow">━━━ What the wood is for ━━━</ansi>
+
+  <ansi fg="yellow">softwood</ansi>   pine, spruce, birch, alder, willow, juniper, cedar, larch,
+             cypress: saw into planks and arrow shafts
+  <ansi fg="yellow">bow wood</ansi>   ash, elm and yew: split into bow staves
+  <ansi fg="yellow">hardwood</ansi>   oak, black walnut, ironwood: saw into boards for shields,
+             staves and furniture
+
+Rarer woods are worth more and are harder to fell and to work.
+
+<ansi fg="yellow">━━━ Buying and selling ━━━</ansi>
+
+  Camp-Foreman Bertt at the Cascade Pass lumber camp buys logs and sells
+  axes, bow saws and planks. Corwin Ashlade, the Amber Valley woodworker,
+  buys bows and bowyer's goods and sells shafts, bowstrings and bows.
+
+<ansi fg="yellow">See Also:</ansi>
+
+  <ansi fg="command">help chop</ansi>, <ansi fg="command">help survey</ansi>, <ansi fg="command">help carpentry</ansi>, <ansi fg="command">help tools</ansi>

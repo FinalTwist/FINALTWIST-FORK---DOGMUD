@@ -364,6 +364,7 @@ type ItemSpec struct {
 	SalvageReturns    []SalvageReturn `yaml:"salvage_returns,omitempty"`    // Custom salvage returns for non-crafted items
 	Tool              *ToolSpec       `yaml:"tool,omitempty"`               // Marks this item as a gathering/processing tool (knife, axe, saw...). See tools.go
 	SpoilAfter        string          `yaml:"spoil_after,omitempty"`        // Raw goods: game-time period after harvest at which the item rots ("1 day"). See spoilage.go
+	Furnishing        string          `yaml:"furnishing,omitempty"`         // Crafted furniture placed in a lodging with "use": chest, bed or workbench (internal/housing)
 	RarityTier        int             `yaml:"rarity_tier,omitempty"`        // Vendor stock cap tier (50/40/30/20/10). Used by shops.EffectiveMaxStock with mob.StockMultiplier. 0 = untiered (quest items, defer-to-3.0e items). NOT a difficulty signal — see MaterialTier.
 	// MaterialTier is how RARE/DEMANDING a crafting material is, 1 (common) to
 	// 5 (rarest). It scales craft difficulty via items.MaterialTierMultiplier.
@@ -765,6 +766,10 @@ func (i *ItemSpec) Validate() error {
 
 	if i.Value < 1 {
 		i.AutoCalculateValue()
+	}
+
+	if i.Furnishing != `` && !IsKnownFurnishing(i.Furnishing) {
+		return fmt.Errorf("item %d: unknown furnishing %q (known: %v)", i.ItemId, i.Furnishing, AllFurnishings)
 	}
 
 	if i.Tool != nil {

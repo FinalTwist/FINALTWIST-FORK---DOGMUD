@@ -56,6 +56,12 @@ var (
 		Name: `butcher`, StatA: `strength`, StatB: `dexterity`,
 		Skill: skills.Salvage, Tool: items.ToolKnife, ToolRequired: true,
 	}
+	// JobChop is pure labour: strength to drive the axe, vitality to keep
+	// swinging. No skill.
+	JobChop = Job{
+		Name: `chop`, StatA: `strength`, StatB: `vitality`,
+		Tool: items.ToolAxe, ToolRequired: true,
+	}
 )
 
 // Result is the outcome of one gathering roll.

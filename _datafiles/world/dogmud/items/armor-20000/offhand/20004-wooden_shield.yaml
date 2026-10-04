@@ -1,6 +1,7 @@
 itemid: 20004
 name: Wooden Shield
 vendor_categories:
+- carpentry
 - blacksmithing
 namesimple: shield
 description: A simple wooden shield.

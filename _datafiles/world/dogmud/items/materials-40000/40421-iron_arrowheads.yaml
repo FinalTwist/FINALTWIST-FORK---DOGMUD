@@ -1,0 +1,16 @@
+itemid: 40421
+name: Iron Arrowheads
+namesimple: arrowheads
+description: >
+  A handful of small iron arrowheads, socketed and sharp.
+type: object
+subtype: mundane
+component_tag: arrowhead
+weight: 0.3
+value: 5
+rarity_tier: 40
+is_component: true
+vendor_categories:
+- carpentry
+- blacksmithing
+material_tier: 1

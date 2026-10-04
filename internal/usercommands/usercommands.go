@@ -197,6 +197,8 @@ var (
 		`skin`:            {Skin, false, false, false},    // Wilderness trades: not in combat
 		`butcher`:         {Butcher, false, false, false}, // Wilderness trades: not in combat
 		`harvest`:         {Harvest, false, false, false}, // Wilderness trades: not in combat
+		`chop`:            {Chop, false, false, false},    // Wilderness trades: fell a tree, not in combat
+		`survey`:          {Survey, false, true, false},   // Wilderness trades: read the timber here
 		`say`:             {Say, true, true, false},
 		`scan`:            {Scan, false, true, false},
 		`search`:          {Search, false, true, false},

@@ -21,12 +21,13 @@ There are seven crafting skills, each with its own station and recipes:
   <ansi fg="skill">cooking</ansi>        Food and meals with temporary benefits. Station: hearth.
   <ansi fg="skill">jewelcrafting</ansi>  Rings, pendants, chrysalis settings. Station: jeweler bench.
   <ansi fg="skill">enchanting</ansi>     Chrysalis enchantments bound to gear. Station: enchanting circle.
-  <ansi fg="skill">carpentry</ansi>      Woodwork: clubs, and soon bows, arrows and furniture. Station: woodworking bench.
+  <ansi fg="skill">carpentry</ansi>      Lumber, bows, arrows, shields, furniture.
+                 Station: woodworking bench.
 
-Blacksmithing, alchemy, tailoring, cooking and carpentry are standalone trades. Jewelcrafting and enchanting
-together form the <ansi fg="yellow">artificer</ansi> profession — jewelcrafting produces
-chrysalis settings that enchanting consumes to bind living mutations
-into equipment.
+Blacksmithing, alchemy, tailoring, cooking and carpentry are standalone
+trades. Jewelcrafting and enchanting together form the <ansi fg="yellow">artificer</ansi>
+profession: jewelcrafting produces chrysalis settings that enchanting
+consumes to bind living mutations into equipment.
 
 <ansi fg="yellow">━━━ Enchanting Targets ━━━</ansi>
 
@@ -72,8 +73,10 @@ idea. The more you know, the harder new discoveries come.
   <ansi fg="yellow">hearth</ansi>             Kitchen or tavern hearth.
   <ansi fg="yellow">jeweler_bench</ansi>      Jeweler's Workshop — Thornwall City.
   <ansi fg="yellow">enchanting_circle</ansi>  Enchanter's Circle — east of Jeweler's Workshop.
-  <ansi fg="yellow">woodworking_bench</ansi>  Carpentry station: Amber Valley, Kilnreach, Cascade Pass, North Road, Pothole Coulee.
-  <ansi fg="yellow">tanning_rack</ansi>       Tanning hides (tailoring): New Plymouth, Stillwater, Kilnreach, Amber Valley.
+  <ansi fg="yellow">woodworking_bench</ansi>  Carpentry: Amber Valley, Kilnreach, Cascade Pass,
+                     North Road, Pothole Coulee.
+  <ansi fg="yellow">tanning_rack</ansi>       Tanning (tailoring): New Plymouth, Stillwater,
+                     Kilnreach, Amber Valley.
 
 <ansi fg="yellow">━━━ Getting Ingredients ━━━</ansi>
 
