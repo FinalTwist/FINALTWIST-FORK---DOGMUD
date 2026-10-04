@@ -4,6 +4,8 @@
 # before M3 item 6; *_observer rows appear only once one is authored.
 # dimensions: recipe id x authored key; source only, a craft has no target
 
+recipe|alloy-bronze|success_actor => <ansi fg="green">You melt the copper, stir in the tin and pour two golden-brown ingots of bronze.</ansi>
+recipe|alloy-bronze|failure_actor => <ansi fg="red">The alloy separates as it cools. The metal is wasted.</ansi>
 recipe|anti-corrosion-quench|success_actor => <ansi fg="green">You cut the bath mineral-sharp and cap it tight before its potency can thin. An anti-corrosion quench!</ansi>
 recipe|anti-corrosion-quench|failure_actor => <ansi fg="red">The bath clouds over and separates before it can cure. The materials are wasted.</ansi>
 recipe|antidote-broth|success_actor => <ansi fg="green">You boil the vegetables and root into a sharp medicinal broth. Antidote broth!</ansi>
@@ -60,6 +62,14 @@ recipe|bow-saw|success_actor => <ansi fg="green">You draw out a long thin blade,
 recipe|bow-saw|failure_actor => <ansi fg="red">The thin blade kinks under tension and snaps. The materials are lost.</ansi>
 recipe|bowstring|success_actor => <ansi fg="green">You twist the sinew tight, wax it and loop the ends. A bowstring!</ansi>
 recipe|bowstring|failure_actor => <ansi fg="red">The sinew frays as you twist it. It is wasted.</ansi>
+recipe|bronze-buckler|success_actor => <ansi fg="green">You work the bronze into shape. A bronze buckler!</ansi>
+recipe|bronze-buckler|failure_actor => <ansi fg="red">The bronze tears as you work it. The metal is wasted.</ansi>
+recipe|bronze-dagger|success_actor => <ansi fg="green">You work the bronze into shape. A bronze dagger!</ansi>
+recipe|bronze-dagger|failure_actor => <ansi fg="red">The bronze tears as you work it. The metal is wasted.</ansi>
+recipe|bronze-helm|success_actor => <ansi fg="green">You work the bronze into shape. A bronze helm!</ansi>
+recipe|bronze-helm|failure_actor => <ansi fg="red">The bronze tears as you work it. The metal is wasted.</ansi>
+recipe|bronze-short-sword|success_actor => <ansi fg="green">You work the bronze into shape. A bronze short sword!</ansi>
+recipe|bronze-short-sword|failure_actor => <ansi fg="red">The bronze tears as you work it. The metal is wasted.</ansi>
 recipe|carapace-ward|success_actor => <ansi fg="green">Chitinous patterns spiral across the fabric, hardening it with Chrysalis resilience. The armor gleams with natural protection.</ansi>
 recipe|carapace-ward|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the armor is unharmed.</ansi>
 recipe|carve-bone-needles|success_actor => <ansi fg="green">You split the bone, grind two slim needles and drill their eyes. Bone needles!</ansi>
@@ -104,8 +114,16 @@ recipe|containment-lattice|success_actor => <ansi fg="green">You bind the settin
 recipe|containment-lattice|failure_actor => <ansi fg="red">The rings won't close true and the binding slips its cage. The materials are lost.</ansi>
 recipe|conviction-draught|success_actor => <ansi fg="green">Root and thistle blend into a bittersweet draught. A conviction draught!</ansi>
 recipe|conviction-draught|failure_actor => <ansi fg="red">The ingredients refuse to combine properly. The materials are wasted.</ansi>
+recipe|copper-buckler|success_actor => <ansi fg="green">You work the copper into shape. A copper buckler!</ansi>
+recipe|copper-buckler|failure_actor => <ansi fg="red">The copper tears as you work it. The metal is wasted.</ansi>
+recipe|copper-dagger|success_actor => <ansi fg="green">You work the copper into shape. A copper dagger!</ansi>
+recipe|copper-dagger|failure_actor => <ansi fg="red">The copper tears as you work it. The metal is wasted.</ansi>
+recipe|copper-helm|success_actor => <ansi fg="green">You work the copper into shape. A copper helm!</ansi>
+recipe|copper-helm|failure_actor => <ansi fg="red">The copper tears as you work it. The metal is wasted.</ansi>
 recipe|copper-ring|success_actor => <ansi fg="green">You twist the copper wire into a neat ring and press gem dust into the setting. A copper ring!</ansi>
 recipe|copper-ring|failure_actor => <ansi fg="red">The wire snaps as you try to close the loop. The materials are ruined.</ansi>
+recipe|copper-short-sword|success_actor => <ansi fg="green">You work the copper into shape. A copper short sword!</ansi>
+recipe|copper-short-sword|failure_actor => <ansi fg="red">The copper tears as you work it. The metal is wasted.</ansi>
 recipe|crucible-plate-helm|success_actor => <ansi fg="green">You raise a helm from crucible steel and line it with great bear fur. A crucible plate helm!</ansi>
 recipe|crucible-plate-helm|failure_actor => <ansi fg="red">The crown of the helm cracks under the hammer. The crucible steel is ruined.</ansi>
 recipe|crucible-steel|success_actor => <ansi fg="green">You seal steel and basalt-iron in a crucible, hold it white-hot for hours and let it cool slow. Crucible steel!</ansi>
@@ -118,6 +136,12 @@ recipe|cut-leather|success_actor => <ansi fg="green">You cut the hide into even 
 recipe|cut-leather|failure_actor => <ansi fg="red">Your knife wanders and the strips come out ragged and useless.</ansi>
 recipe|cut-shafts|success_actor => <ansi fg="green">You rip the log into blanks and round them into shafts. Arrow shafts!</ansi>
 recipe|cut-shafts|failure_actor => <ansi fg="red">The blanks twist as they dry and none of them are straight.</ansi>
+recipe|draw-copper-wire|success_actor => <ansi fg="green">You draw the copper through the plate, finer each pass, into three coils of wire.</ansi>
+recipe|draw-copper-wire|failure_actor => <ansi fg="red">The wire snaps and tangles. The copper is wasted.</ansi>
+recipe|draw-gold-wire|success_actor => <ansi fg="green">You draw the gold into two soft, gleaming coils of wire.</ansi>
+recipe|draw-gold-wire|failure_actor => <ansi fg="red">The wire snaps and tangles. The gold is wasted.</ansi>
+recipe|draw-silver-wire|success_actor => <ansi fg="green">You draw the silver into four fine, bright coils of wire.</ansi>
+recipe|draw-silver-wire|failure_actor => <ansi fg="red">The wire snaps and tangles. The silver is wasted.</ansi>
 recipe|drowned-veil|success_actor => <ansi fg="green">The two pearls dissolve into the cloak's weave with a long slow sigh. A pearl-grey sheen spreads through the fabric and settles. The cloak is heavier in the hand; nothing in the world is heavier on the eye.</ansi>
 recipe|drowned-veil|failure_actor => <ansi fg="red">The pearls refuse the binding, dimming and going dark. The catalyst burns out. The materials are lost; the cloak is unharmed.</ansi>
 recipe|elixir-of-renewal|success_actor => <ansi fg="green">The liquid shifts through every color before settling into a prismatic glow. An elixir of renewal!</ansi>
@@ -138,6 +162,8 @@ recipe|firebomb|success_actor => <ansi fg="green">The coal ignites briefly then 
 recipe|firebomb|failure_actor => <ansi fg="red">The mixture sputters and goes inert. The materials are lost.</ansi>
 recipe|flashbang|success_actor => <ansi fg="green">The mixture crystallizes into a volatile sphere that glows faintly. A flashbang!</ansi>
 recipe|flashbang|failure_actor => <ansi fg="red">The compounds fizzle and separate. The materials are wasted.</ansi>
+recipe|flawless-gem-ring|success_actor => <ansi fg="green">You set the flawless gem in a gold band so fine it seems to float. A flawless gem ring!</ansi>
+recipe|flawless-gem-ring|failure_actor => <ansi fg="red">The setting slips and the stone is chipped. The materials are wasted.</ansi>
 recipe|fletch-arrows|success_actor => <ansi fg="green">You set the heads, fletch the shafts and fill a quiver. A quiver of arrows!</ansi>
 recipe|fletch-arrows|failure_actor => <ansi fg="red">The fletching goes on crooked and the arrows will never fly true.</ansi>
 recipe|fur-lined-boots|success_actor => <ansi fg="green">You line a pair of leather boots with soft cured pelts. Fur-lined boots!</ansi>
@@ -150,6 +176,14 @@ recipe|glass-scale-hauberk|success_actor => <ansi fg="green">You weave the chain
 recipe|glass-scale-hauberk|failure_actor => <ansi fg="red">Halfway down the back the rows will not lie flat. One lens cracks against its neighbour, then the next, and the cracks run through the scales like frost. The work is lost.</ansi>
 recipe|glass-scale-helm|success_actor => <ansi fg="green">You raise a close steel cap and scale it over in black lenses, brow to nape, each one seated a hair's breadth over the last. A glass-scale helm!</ansi>
 recipe|glass-scale-helm|failure_actor => <ansi fg="red">The steel cools a breath too fast under the lenses and they spring loose one after another, ringing on the floor. The materials are ruined.</ansi>
+recipe|gold-buckler|success_actor => <ansi fg="green">You work the gold into shape. A gold buckler!</ansi>
+recipe|gold-buckler|failure_actor => <ansi fg="red">The gold tears as you work it. The metal is wasted.</ansi>
+recipe|gold-dagger|success_actor => <ansi fg="green">You work the gold into shape. A gold dagger!</ansi>
+recipe|gold-dagger|failure_actor => <ansi fg="red">The gold tears as you work it. The metal is wasted.</ansi>
+recipe|gold-helm|success_actor => <ansi fg="green">You work the gold into shape. A gold helm!</ansi>
+recipe|gold-helm|failure_actor => <ansi fg="red">The gold tears as you work it. The metal is wasted.</ansi>
+recipe|gold-short-sword|success_actor => <ansi fg="green">You work the gold into shape. A gold short sword!</ansi>
+recipe|gold-short-sword|failure_actor => <ansi fg="red">The gold tears as you work it. The metal is wasted.</ansi>
 recipe|gold-signet-ring|success_actor => <ansi fg="green">You shape the gold into a heavy band and engrave a crest in gem dust. A gold signet ring!</ansi>
 recipe|gold-signet-ring|failure_actor => <ansi fg="red">The soft gold deforms under your tool and the engraving is ruined. The materials are wasted.</ansi>
 recipe|great-bearskin-cloak|success_actor => <ansi fg="green">You flesh and salt the great pelt, back it with bear fur and shape it to the shoulders. A great bearskin cloak!</ansi>
@@ -240,6 +274,8 @@ recipe|masterwork-gem-pendant|success_actor => <ansi fg="green">You cut both gem
 recipe|masterwork-gem-pendant|failure_actor => <ansi fg="red">A gem fractures along a hidden flaw, ruining the piece. The materials are wasted.</ansi>
 recipe|masterwork-hide-scraper|success_actor => <ansi fg="green">You grind a flawless crucible steel curve and fit two ironwood handles. A masterwork hide scraper!</ansi>
 recipe|masterwork-hide-scraper|failure_actor => <ansi fg="red">The curve cracks in the temper. The crucible steel is ruined.</ansi>
+recipe|masterwork-pick|success_actor => <ansi fg="green">You forge a crucible steel head, temper it to spring, and hang it on ironwood. A masterwork pick!</ansi>
+recipe|masterwork-pick|failure_actor => <ansi fg="red">The head checks in the temper. The crucible steel is ruined.</ansi>
 recipe|masterwork-plate-helm|success_actor => <ansi fg="green">Through hours of patient shaping and tempering, you craft a magnificent helm. A masterwork plate helm!</ansi>
 recipe|masterwork-plate-helm|failure_actor => <ansi fg="red">A crack forms in the visor during final shaping. The materials are ruined.</ansi>
 recipe|masterwork-sickle|success_actor => <ansi fg="green">You forge a crucible steel crescent, temper it to spring and hang it on ironwood. A masterwork sickle!</ansi>
@@ -252,6 +288,8 @@ recipe|mindshield-elixir|success_actor => <ansi fg="green">Moonpetal and chrysal
 recipe|mindshield-elixir|failure_actor => <ansi fg="red">The moonpetal wilts on contact with the chrysalis. The materials are wasted.</ansi>
 recipe|mindweave|success_actor => <ansi fg="green">All elements converge in a cascade of Chrysalis insight, weaving through the helm's crown. Your thoughts sharpen to crystalline clarity.</ansi>
 recipe|mindweave|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the helm is unharmed.</ansi>
+recipe|miners-pick|success_actor => <ansi fg="green">You draw an iron head to a point and a chisel and hang it on an ash haft. A miner's pick!</ansi>
+recipe|miners-pick|failure_actor => <ansi fg="red">The head cracks in the quench. The iron is ruined.</ansi>
 recipe|minor-antidote|success_actor => <ansi fg="green">You steep the herbs and decant the murky liquid into a vial. A minor antidote!</ansi>
 recipe|minor-antidote|failure_actor => <ansi fg="red">The mixture curdles into useless sludge. The materials are wasted.</ansi>
 recipe|mire-renewal-draught|success_actor => <ansi fg="green">You steep the willow-bark and mint together, fold in the root, and seal the peat-dark tonic in the bottle. A mire renewal draught!</ansi>
@@ -330,16 +368,32 @@ recipe|serpents-edge|success_actor => <ansi fg="green">Chrysalis energy flows th
 recipe|serpents-edge|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the weapon is unharmed.</ansi>
 recipe|shadowweave|success_actor => <ansi fg="green">Shadows pour from the settings into the cloak's fabric, weaving a darkness that drinks in light and magic alike.</ansi>
 recipe|shadowweave|failure_actor => <ansi fg="red">The catalyst rejects the binding. The materials crumble to dust, but the cloak is unharmed.</ansi>
+recipe|silver-buckler|success_actor => <ansi fg="green">You work the silver into shape. A silver buckler!</ansi>
+recipe|silver-buckler|failure_actor => <ansi fg="red">The silver tears as you work it. The metal is wasted.</ansi>
+recipe|silver-dagger|success_actor => <ansi fg="green">You work the silver into shape. A silver dagger!</ansi>
+recipe|silver-dagger|failure_actor => <ansi fg="red">The silver tears as you work it. The metal is wasted.</ansi>
+recipe|silver-helm|success_actor => <ansi fg="green">You work the silver into shape. A silver helm!</ansi>
+recipe|silver-helm|failure_actor => <ansi fg="red">The silver tears as you work it. The metal is wasted.</ansi>
 recipe|silver-ring|success_actor => <ansi fg="green">You shape the silver into a gleaming band and fuse gem dust along the edge. A silver ring!</ansi>
 recipe|silver-ring|failure_actor => <ansi fg="red">The silver warps under uneven pressure and the band buckles. The materials are ruined.</ansi>
+recipe|silver-short-sword|success_actor => <ansi fg="green">You work the silver into shape. A silver short sword!</ansi>
+recipe|silver-short-sword|failure_actor => <ansi fg="red">The silver tears as you work it. The metal is wasted.</ansi>
 recipe|silver-tongue-oil|success_actor => <ansi fg="green">An opalescent oil forms on the surface, shimmering with persuasive energy. A silver tongue oil!</ansi>
 recipe|silver-tongue-oil|failure_actor => <ansi fg="red">The oil separates and refuses to blend. The materials are wasted.</ansi>
 recipe|simple-pendant|success_actor => <ansi fg="green">You wrap the polished stone in a cradle of copper wire and shape a hanging loop. A simple pendant!</ansi>
 recipe|simple-pendant|failure_actor => <ansi fg="red">The stone slips free of the wire cage and cracks on the bench. The materials are ruined.</ansi>
 recipe|skitter-shell-bracer|success_actor => <ansi fg="green">You pierce each shell, overlap them like scales, and lace them onto a leather backing with copper wire. A skitter-shell bracer!</ansi>
 recipe|skitter-shell-bracer|failure_actor => <ansi fg="red">The brittle shells crack under the awl one after another. The materials are wasted.</ansi>
+recipe|smelt-copper-ore|success_actor => <ansi fg="green">You melt the copper out of the rock and pour a small red ingot.</ansi>
+recipe|smelt-copper-ore|failure_actor => <ansi fg="red">The melt slags over. The ore is wasted.</ansi>
+recipe|smelt-gold-ore|success_actor => <ansi fg="green">You melt the gold from the quartz and pour a small, heavy ingot.</ansi>
+recipe|smelt-gold-ore|failure_actor => <ansi fg="red">The gold runs into the slag and is lost.</ansi>
 recipe|smelt-iron-ore|success_actor => <ansi fg="green">You bed the ore in the coals and work the bellows until slag runs off and a rough bar of iron is left behind. An iron ingot!</ansi>
 recipe|smelt-iron-ore|failure_actor => <ansi fg="red">The fire never gets hot enough, and the ore crumbles into useless slag.</ansi>
+recipe|smelt-silver-ore|success_actor => <ansi fg="green">You smelt the silver out over a hot coal fire and pour a bright ingot.</ansi>
+recipe|smelt-silver-ore|failure_actor => <ansi fg="red">The silver burns off in the slag. The ore is wasted.</ansi>
+recipe|smelt-tin-ore|success_actor => <ansi fg="green">You melt the tin out of the rock and pour a pale ingot.</ansi>
+recipe|smelt-tin-ore|failure_actor => <ansi fg="red">The melt slags over. The ore is wasted.</ansi>
 recipe|smoke-meat|success_actor => <ansi fg="green">You salt the meat and hang it in the smoke until it turns dark and dry. Smoked meat!</ansi>
 recipe|smoke-meat|failure_actor => <ansi fg="red">The fire flares and chars the meat to cinders.</ansi>
 recipe|spatial-stitching|success_actor => <ansi fg="green">You bind the setting's hollow into the paste and coax it to hold more than its size should allow. Spatial stitching!</ansi>
@@ -374,6 +428,8 @@ recipe|steel-lockpicks|success_actor => <ansi fg="green">You draw the iron into 
 recipe|steel-lockpicks|failure_actor => <ansi fg="red">The picks snap during tempering -- the tips are too brittle to salvage. The materials are lost.</ansi>
 recipe|steel-longsword|success_actor => <ansi fg="green">You forge the steel into a long, keen blade and wrap the hilt in leather. A steel longsword!</ansi>
 recipe|steel-longsword|failure_actor => <ansi fg="red">The steel cracks along a hidden flaw. The materials are ruined.</ansi>
+recipe|steel-pick|success_actor => <ansi fg="green">You forge a hardened steel head and fit it to a hardwood haft. A steel pick!</ansi>
+recipe|steel-pick|failure_actor => <ansi fg="red">The point snaps in the hardening. The steel is ruined.</ansi>
 recipe|steel-sickle|success_actor => <ansi fg="green">You draw out a thin steel crescent, harden it and fit the haft. A steel sickle!</ansi>
 recipe|steel-sickle|failure_actor => <ansi fg="red">The crescent warps in the quench. The steel is ruined.</ansi>
 recipe|steel-skinning-knife|success_actor => <ansi fg="green">You forge the steel thin, harden the curved edge, and polish it until it shaves. A steel skinning knife!</ansi>

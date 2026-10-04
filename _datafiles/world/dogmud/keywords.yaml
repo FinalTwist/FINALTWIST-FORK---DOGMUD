@@ -121,6 +121,8 @@ help:
       - harvest
       - chop
       - survey
+      - mine
+      - prospect
     information:
       - biome
       - exits
@@ -274,6 +276,7 @@ help-aliases:
   butcher:          [butchering, butchery, meat, bone, carve, carving]
   spoilage:         [spoil, spoiled, rot, rotten, freshness, fresh]
   lumberjacking:    [lumberjack, woodcutting, woodcutter, timber, logging, lumber, trees, wood]
+  mining:           [miner, ore, ores, smelting, smelt, metals, metal, gems, picks]
   tailoring:        [tailor, sewing, weaving, clothwork]
   cooking:          [cook, baking, food, meals]
   jewelcrafting:    [jeweler, jewelry, gemwork, gemcutting, jewel]

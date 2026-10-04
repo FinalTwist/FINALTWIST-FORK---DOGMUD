@@ -48,3 +48,23 @@ func TestCraftWood(t *testing.T) {
 		t.Errorf("nothing wooden, got %q", w)
 	}
 }
+
+// Harder ore is harder to dig and slower; more strength brings out more,
+// never past the cap; gem odds stay small.
+func TestMineNumbers(t *testing.T) {
+	if !(MineTarget(1) < MineTarget(2) && MineTarget(2) < MineTarget(4)) {
+		t.Error("difficulty rises with ore tier")
+	}
+	if MineRounds(4) <= MineRounds(1) {
+		t.Error("harder ore takes longer")
+	}
+	if OreFor(100, items.QualityStandard) != 1 || OreFor(300, items.QualityPristine) > 3 {
+		t.Error("ore yield: one for a baseline miner, capped at MiningMaxOre")
+	}
+	if c := gemChance(100, items.ToolTierIron); c <= 0 || c > 0.25 {
+		t.Errorf("gem chance %v should be small and positive", c)
+	}
+	if gemChance(100, items.ToolTierMasterwork) <= gemChance(100, items.ToolTierCrude) {
+		t.Error("a better pick finds more gems")
+	}
+}

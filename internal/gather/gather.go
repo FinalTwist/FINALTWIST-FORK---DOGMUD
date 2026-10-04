@@ -62,6 +62,12 @@ var (
 		Name: `chop`, StatA: `strength`, StatB: `vitality`,
 		Tool: items.ToolAxe, ToolRequired: true,
 	}
+	// JobMine is labour too: strength to drive the pick, vitality to keep at
+	// it underground. No skill.
+	JobMine = Job{
+		Name: `mine`, StatA: `strength`, StatB: `vitality`,
+		Tool: items.ToolPick, ToolRequired: true,
+	}
 )
 
 // Result is the outcome of one gathering roll.

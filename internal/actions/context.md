@@ -1948,3 +1948,13 @@ and piece of gear. `chamberNextRound` records the nocked arrow's wood on the
 weapon (`Item.LoadedWood`) and, by the wood's recovery chance, spends no
 arrow (`ReloadResult.Recovered`); `ExecuteFire` multiplies the shot's attack
 by the bow's and arrow's accuracy and its damage by the arrow's.
+
+## Mining (wilderness trades)
+
+**mine.go**: `RoomVein` (seeds or refills the room's `mining.Vein` and writes
+it back; reads the room's own biome or its zone default), `Prospect`,
+`ResolveMine` (finishes a mining job on the Salvaging activity keyed
+`MineActivityPrefix`: `gather.Roll` with `gather.JobMine`, ore graded by the
+roll and capped by the pick, a small gem chance, pick wear), `MineTarget`,
+`MineRounds`, `OreFor`, `OreKnown` (a Perception threshold times the sight
+ramp, no roll), `PickTooPoor`. `MineResult` holds no items.

@@ -1878,6 +1878,19 @@ Balance:
   GradeArmorFine: 1.08
   GradeArmorSuperb: 1.16
   GradeArmorPristine: 1.25
+  # Mining: avg(strength, vitality) * pick multiplier against
+  # GatherBaseDifficulty - MiningEase + (ore tier - 1) * MiningTierDifficulty.
+  # Veins of MiningVeinMin..MiningVeinMax loads refill one per
+  # MiningRegrowRounds (1800 = two game days). A success finds a gem with
+  # chance MiningGemChance * Perception/100 * the pick's RareToolMult.
+  MiningEase: 5
+  MiningTierDifficulty: 15
+  MiningVeinMin: 4
+  MiningVeinMax: 8
+  MiningRegrowRounds: 1800
+  MiningRoundsBase: 4
+  MiningMaxOre: 3
+  MiningGemChance: 0.04
 
   # ── RECIPE DISCOVERY ──────────────────────────────────────────────────────
   # Chance to learn a new recipe on a successful craft.

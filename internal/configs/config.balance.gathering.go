@@ -186,4 +186,32 @@ func (b *Balance) validateGathering() {
 	if b.GradeArmorPristine <= 0 {
 		b.GradeArmorPristine = 1.25
 	}
+
+	if b.MiningEase <= 0 {
+		b.MiningEase = 5
+	}
+	if b.MiningTierDifficulty <= 0 {
+		b.MiningTierDifficulty = 15
+	}
+	if b.MiningVeinMin <= 0 {
+		b.MiningVeinMin = 4
+	}
+	if b.MiningVeinMax < b.MiningVeinMin {
+		b.MiningVeinMax = 8
+		if b.MiningVeinMax < b.MiningVeinMin {
+			b.MiningVeinMax = b.MiningVeinMin
+		}
+	}
+	if b.MiningRegrowRounds <= 0 {
+		b.MiningRegrowRounds = 1800
+	}
+	if b.MiningRoundsBase <= 0 {
+		b.MiningRoundsBase = 4
+	}
+	if b.MiningMaxOre <= 0 {
+		b.MiningMaxOre = 3
+	}
+	if b.MiningGemChance <= 0 {
+		b.MiningGemChance = 0.04
+	}
 }

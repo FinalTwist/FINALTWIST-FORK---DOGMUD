@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mining"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -362,6 +363,104 @@ func TestToolLadderContent(t *testing.T) {
 	for _, id := range []int{9137, 9840, 9841} {
 		if m, ok := templates[id]; ok && m.ShopCraftSupport != `hunting` {
 			t.Errorf("mob %d %s is a hunting merchant, craft_support %q", id, m.Character.Name, m.ShopCraftSupport)
+		}
+	}
+}
+
+// TestMiningContent pins mining.yaml against the shipped items and recipes:
+// every ore and gem exists and is sold somewhere, and every metal any recipe
+// asks for can be reached from mined ore through the smelting and drawing
+// recipes, so nothing a smith or jeweler needs is shop-only.
+func TestMiningContent(t *testing.T) {
+	mudlog.SetupLogger(nil, `LOW`, ``, false)
+	configs.SetConfigForTest(t, configs.GetConfig())
+	if err := configs.ReloadConfig(); err != nil {
+		t.Fatalf("ReloadConfig: %v", err)
+	}
+	t.Cleanup(items.SeedItemsForTest(nil))
+	items.LoadDataFiles()
+	crafting.LoadRecipeFiles()
+
+	path := configs.GetFilePathsConfig().DataFiles.String() + `/` + mining.DataFileName
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading %s: %v", path, err)
+	}
+	d, err := mining.Parse(raw, mining.World{
+		ItemExists: func(id int) bool { return items.GetItemSpec(id) != nil },
+	})
+	if err != nil {
+		t.Fatalf("mining.yaml: %v", err)
+	}
+	mining.Install(d)
+	t.Cleanup(func() { mining.Install(nil) })
+
+	mined := map[string]bool{}
+	for _, o := range mining.AllOres() {
+		spec := items.GetItemSpec(o.ItemId)
+		if spec == nil {
+			continue // Parse reports it
+		}
+		if spec.ComponentTag == `` || len(spec.VendorCategories) == 0 {
+			t.Errorf("ore %s item %d needs a component tag and a vendor category", o.Id, o.ItemId)
+		}
+		mined[spec.ComponentTag] = true
+	}
+	for _, g := range mining.Gems() {
+		if spec := items.GetItemSpec(g.ItemId); spec != nil {
+			mined[spec.ComponentTag] = true
+		}
+	}
+	for _, want := range []string{`coal`, `copper`, `tin`, `iron`, `silver`, `gold`, `basalt-iron`, `lake-iron`} {
+		if mining.GetOre(want) == nil {
+			t.Errorf("no %s ore", want)
+		}
+	}
+	for _, biome := range []string{`cave`, `mountains`, `cliffs`} {
+		if !mining.IsMineableBiome(biome) {
+			t.Errorf("biome %s should hold ore", biome)
+		}
+	}
+
+	// Metals: every tag below is reachable from mined ore. Other ingredients
+	// (planks, leather) are taken as available.
+	metals := map[string]bool{
+		`iron-ore`: true, `iron-ingot`: true, `steel-ingot`: true, `coal-dust`: true,
+		`copper-ore`: true, `copper-ingot`: true, `copper-wire`: true,
+		`tin-ore`: true, `tin-ingot`: true, `bronze-ingot`: true,
+		`silver-ore`: true, `silver-ingot`: true, `silver-wire`: true,
+		`gold-ore`: true, `gold-ingot`: true, `gold-wire`: true,
+		`basalt-iron`: true, `lake-iron-nodule`: true, `crucible-steel`: true,
+		`raw-gem`: true, `gem-dust`: true, `polished-stone`: true, `flawless-gem`: true,
+	}
+	have := func(tag string) bool { return mined[tag] || !metals[tag] }
+	for changed := true; changed; {
+		changed = false
+		for _, r := range crafting.GetAll() {
+			out := items.GetItemSpec(r.Output.ItemId)
+			if out == nil || out.ComponentTag == `` || mined[out.ComponentTag] {
+				continue
+			}
+			ok := len(r.Ingredients) > 0
+			for _, ing := range r.Ingredients {
+				if !have(ing.ItemTag) {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				mined[out.ComponentTag] = true
+				changed = true
+			}
+		}
+	}
+	for tag := range metals {
+		if items.FindSpecByComponentTag(tag) == nil {
+			t.Errorf("no item carries metal tag %q", tag)
+			continue
+		}
+		if !mined[tag] {
+			t.Errorf("%s cannot be reached from mined ore", tag)
 		}
 	}
 }

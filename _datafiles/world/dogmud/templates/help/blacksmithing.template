@@ -36,7 +36,12 @@ knife works like steel, a crude steel one like iron.
   <ansi fg="yellow">Masterwork</ansi>  Skill 45-55  <ansi fg="command">crucible-steel</ansi> (skill 40: steel, basalt-iron
               ore and coal dust) and an <ansi fg="command">ironwood-haft</ansi> (woodwork 35)
 
-Merchants buy forged tools for scrap but never resell them.
+Merchants buy forged tools for scrap but never resell them. Picks for mining
+are on the same ladder: <ansi fg="command">miners-pick</ansi> (5), <ansi fg="command">steel-pick</ansi> (18), <ansi fg="command">masterwork-pick</ansi> (50).
+
+Smelting and metals (<ansi fg="command">help mining</ansi>): ingots of copper, tin, silver and gold from
+mined ore, bronze from copper and tin, and a dagger, short sword, buckler
+or helm in copper, bronze, silver or gold (gold looks rich and fights poorly).
 
 The hunter's smithing: <ansi fg="command">antler-hilt-hunting-sword</ansi> (28) takes an antler grip;
 the best crucible steel pieces need trophies only good tools take whole:

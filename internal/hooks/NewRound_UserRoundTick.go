@@ -521,12 +521,15 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						sd, complete := user.Character.Activity.AdvanceSalvagingRound()
 						isCarcassJob := strings.HasPrefix(sd.ItemUuid, actions.HarvestActivityPrefix)
 						isChopJob := strings.HasPrefix(sd.ItemUuid, actions.ChopActivityPrefix)
+						isMineJob := strings.HasPrefix(sd.ItemUuid, actions.MineActivityPrefix)
 						if !complete {
 							progress := `You continue salvaging...`
 							if isCarcassJob {
 								progress = `You keep working at the carcass...`
 							} else if isChopJob {
 								progress = `Chips fly as you keep chopping...`
+							} else if isMineJob {
+								progress = `Rock chips fly as you keep at the seam...`
 							}
 							user.SendText(messaging.CategorySystem, fmt.Sprintf(
 								`<ansi fg="yellow">%s (%d/%d)</ansi>`,
@@ -534,7 +537,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						} else {
 							// Determine salvage type from ItemUuid prefix.
 							const corpsePrefix = "corpse:"
-							if isChopJob {
+							if isMineJob {
+								// Wilderness trades: mining a load of ore.
+								_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
+									Trigger: activity.TriggerSalvageComplete,
+									Actor:   user.Character.Activity.Self(),
+								})
+								actions.ResolveMine(&actions.UserActor{
+									User: user,
+									Room: rooms.LoadRoom(user.Character.RoomId),
+								})
+							} else if isChopJob {
 								// Wilderness trades: felling a tree.
 								_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
 									Trigger: activity.TriggerSalvageComplete,

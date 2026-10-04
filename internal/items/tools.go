@@ -16,12 +16,13 @@ const (
 	ToolSickle       ToolType = "sickle"        // herbs and fibre
 	ToolCarvingKnife ToolType = "carving_knife" // bone, horn and fine woodwork
 	ToolTrowel       ToolType = "trowel"        // roots and tubers
+	ToolPick         ToolType = "pick"          // mining ore, coal and gems
 )
 
 // AllToolTypes is every ToolType, in a stable order (validation, help text).
 var AllToolTypes = []ToolType{
 	ToolKnife, ToolCleaver, ToolBoneSaw, ToolAxe, ToolSaw,
-	ToolScraper, ToolSickle, ToolCarvingKnife, ToolTrowel,
+	ToolScraper, ToolSickle, ToolCarvingKnife, ToolTrowel, ToolPick,
 }
 
 // ToolTier is how good a tool is. It multiplies the user's stat term on a

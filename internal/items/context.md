@@ -1467,7 +1467,8 @@ sweep (`internal/baubles/sweep.go`) reads every live item through them.
   item: type, tier, speed), `IsKnownToolType`, `EffectiveToolTier` (a
   pristine tool works one tier up, a crude one one tier down) and
   `ImprovisedTool` (one-handed stabbing or slashing weapons as crude knives,
-  one-handed cleaving weapons as crude cleavers and axes).
+  one-handed cleaving weapons as crude cleavers and axes; nothing stands in
+  for `ToolPick`, the mining pick).
   `ItemSpec.Validate` rejects an unknown tool type or tier.
   Wear (review): `ToolSpec.Durability` (0 = `DefaultToolDurability`, Balance
   `ToolDurability*` by tier), `Item.ToolDurability` (scaled by the instance

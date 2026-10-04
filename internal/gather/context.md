@@ -70,3 +70,5 @@ Called from the multi-round craft completion in
 - `CraftGradeOutput(cr, consumed, hasTool, toolTier, outputIsTool)` is
   `CraftGrade` with the output in view: a tool output is always graded by
   the margin, with no tool cap. `CraftGrade` calls it with false.
+
+`JobMine` (strength and vitality, pick required, no skill) is the mining job.

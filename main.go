@@ -68,6 +68,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/merchantchests"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mining"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/moderation"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -1905,6 +1906,13 @@ func loadAllDataFiles(isReload bool) {
 	timber.LoadDataFiles(timber.World{
 		ItemExists: func(itemId int) bool { return items.GetItemSpec(itemId) != nil },
 		ZoneExists: func(zone string) bool { return rooms.GetZoneConfig(zone) != nil },
+	})
+	// Wilderness trades: ores, gems and the pools that say where they lie.
+	// After items and rooms, for the same reasons as timber.
+	mining.LoadDataFiles(mining.World{
+		ItemExists: func(itemId int) bool { return items.GetItemSpec(itemId) != nil },
+		ZoneExists: func(zone string) bool { return rooms.GetZoneConfig(zone) != nil },
+		RoomExists: func(roomId int) bool { return rooms.LoadRoom(roomId) != nil },
 	})
 	// City scavengers (the loot goblin's replacement). After rooms and mobs,
 	// since every pool is resolved against the zones and the mapper. Their

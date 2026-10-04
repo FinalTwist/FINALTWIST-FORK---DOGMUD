@@ -681,6 +681,21 @@ type Balance struct {
 	GradeArmorSuperb    ConfigFloat `yaml:"GradeArmorSuperb"`    // default 1.16
 	GradeArmorPristine  ConfigFloat `yaml:"GradeArmorPristine"`  // default 1.25
 
+	// Mining (wilderness trades). A mining job scores avg(strength,
+	// vitality) * pickMult against GatherBaseDifficulty - MiningEase + (ore
+	// tier - 1) * MiningTierDifficulty. Each mineable room holds a vein of
+	// MiningVeinMin..MiningVeinMax loads that refills one load per
+	// MiningRegrowRounds. A success also turns up a gem with chance
+	// MiningGemChance * Perception/100 * the pick's RareToolMult.
+	MiningEase           ConfigFloat `yaml:"MiningEase"`           // default 5
+	MiningTierDifficulty ConfigFloat `yaml:"MiningTierDifficulty"` // default 15
+	MiningVeinMin        ConfigInt   `yaml:"MiningVeinMin"`        // default 4
+	MiningVeinMax        ConfigInt   `yaml:"MiningVeinMax"`        // default 8
+	MiningRegrowRounds   ConfigInt   `yaml:"MiningRegrowRounds"`   // default 1800 (two game days)
+	MiningRoundsBase     ConfigInt   `yaml:"MiningRoundsBase"`     // rounds for a tier 1 ore before pick speed; +1 per tier (default 4)
+	MiningMaxOre         ConfigInt   `yaml:"MiningMaxOre"`         // most ore one job yields (default 3)
+	MiningGemChance      ConfigFloat `yaml:"MiningGemChance"`      // default 0.04
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.

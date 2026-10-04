@@ -14,6 +14,7 @@ and only a little on practice.
   <ansi fg="yellow">scraper</ansi>        fleshing hides before curing
   <ansi fg="yellow">sickle</ansi>         carried while you forage, finds more and rarer herbs
   <ansi fg="yellow">carving knife</ansi>  bone, horn and fine woodwork (any whittling knife)
+  <ansi fg="yellow">pick</ansi>           mining ore, coal and gems (<ansi fg="command">help mining</ansi>)
 
 <ansi fg="yellow">━━━ Tool Quality ━━━</ansi>
 
@@ -26,18 +27,20 @@ the best grade you can take, and raises your odds of rare parts and herbs:
   <ansi fg="yellow">masterwork</ansi>   up to pristine   double; a great bear pelt needs masterwork
 
 The hardest woods want a good axe too: yew and black walnut need iron, and
-ironwood needs steel.
+ironwood needs steel. The harder ores want a good pick: silver, basalt-iron
+and lake-iron need iron, and gold needs steel.
 
 <ansi fg="yellow">━━━ Getting Tools ━━━</ansi>
 
 Merchants sell only <ansi fg="yellow">crude</ansi> tools: a flint knife, a camp hatchet, a
-butcher's chopper, a rough saw, a flint scraper or sickle. Hunters, trappers
-and lumber camps carry them: Hunter Delk at Hunter's Hollow in Pothole
-Coulee, Trapper Maudry at the Stillwater travelers' camp, Trapper Ottar at
-the Fernway's eastern trailhead, Camp-Foreman Bertt at the Cascade Pass
-lumber camp, Woodcutter Hagen on the North Road, Corwin the Tanner in New
-Plymouth and Corwin Ashlade in Amber Valley. They also buy what you bring
-back.
+butcher's chopper, a rough saw, a flint scraper or sickle, a rough pick.
+Hunters, trappers, lumber camps and smiths carry them: Hunter Delk at
+Hunter's Hollow in Pothole Coulee, Trapper Maudry at the Stillwater
+travelers' camp, Trapper Ottar at the Fernway's eastern trailhead,
+Camp-Foreman Bertt at the Cascade Pass lumber camp, Woodcutter Hagen on the
+North Road, Corwin the Tanner in New Plymouth and Corwin Ashlade in Amber
+Valley. Rough picks come from Mine Foreman Dagna at the Pothole Coulee mine,
+Smith Rusk and Smith Brindle. They also buy what you bring back.
 
 Iron, steel and masterwork tools are made only by smiths (<ansi fg="command">help blacksmithing</ansi>).
 A forged tool comes out graded: a pristine iron tool works like steel, a

@@ -1,5 +1,34 @@
 # DOGMud Patch Notes
 
+## 2026-10-04: Mining
+
+Dig your own ore (`help mining`, `help mine`, `help prospect`).
+
+- **`prospect`** reads the rock in a cave, on a mountainside or along a cliff:
+  what ore runs there, how much is left, and whether your pick can work it.
+  Silver and basalt-iron take a sharp eye to recognise, and gold a sharper one.
+- **`mine`** needs a pick. Your Strength, your Vitality and your pick decide
+  how it goes; there is no mining skill. A strong miner brings out more ore,
+  and a better pick is quicker and digs better ore. Coal, copper, tin and iron
+  take any pick; silver, basalt-iron and lake-iron an iron pick; gold a steel
+  one. Now and then the rock gives up a gem, and very rarely a flawless one.
+- **Where**: Pothole Coulee (and the guarded drifts of its basalt-iron mine,
+  where the silver and gold are richest), the Low Tunnels, the Ironwind
+  Steppe, the Eastern Highlands, Cascade Pass Road and the Stillwater caves.
+  Seams run out and refill over a couple of days.
+- **Picks**: rough picks from Mine Foreman Dagna at the Pothole Coulee Mine
+  Mouth (new), Smith Rusk and Smith Brindle; miner's, steel and masterwork
+  picks only from a smith.
+- **Smelting**: copper, tin, silver and gold ingots, bronze from copper and
+  tin, and copper, silver and gold wire drawn at a jeweler's bench. Every
+  metal a smith or jeweler uses can now come from your own pick.
+- **Metal gear**: daggers, short swords, bucklers and helms in copper,
+  bronze, silver and gold. Copper is cheap and soft, bronze nearly iron,
+  silver quick in the hand and warding against magic, and gold a poor thing
+  to fight with that is worth a small fortune and makes its wearer more
+  charismatic.
+- A flawless gem ring for master jewelers.
+
 ## 2026-10-04: Gear grades matter, and bows know their wood
 
 - **Grades now change how gear works**, not only what it sells for. Every
