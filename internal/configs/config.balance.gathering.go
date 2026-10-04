@@ -214,4 +214,35 @@ func (b *Balance) validateGathering() {
 	if b.MiningGemChance <= 0 {
 		b.MiningGemChance = 0.04
 	}
+
+	if b.GearDurabilityWeapon <= 0 {
+		b.GearDurabilityWeapon = 60
+	}
+	if b.GearDurabilityArmor <= 0 {
+		b.GearDurabilityArmor = 30
+	}
+	if b.GearCritWearChance <= 0 {
+		b.GearCritWearChance = 0.5
+	}
+	if b.GearArmorCritWearChance <= 0 {
+		b.GearArmorCritWearChance = 0.5
+	}
+	if b.BowShotWearChance <= 0 {
+		b.BowShotWearChance = 0.04
+	}
+	if b.GearWornMult <= 0 {
+		b.GearWornMult = 0.95
+	}
+	if b.GearBadlyWornMult <= 0 {
+		b.GearBadlyWornMult = 0.85
+	}
+	if b.GearBrokenMult <= 0 {
+		b.GearBrokenMult = 0.25
+	}
+	if b.RepairCostRatio <= 0 {
+		b.RepairCostRatio = 0.5
+	}
+	if b.WornSellPenalty <= 0 {
+		b.WornSellPenalty = 0.6
+	}
 }

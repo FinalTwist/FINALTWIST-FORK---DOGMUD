@@ -63,6 +63,12 @@ func IsBow(spec ItemSpec) bool {
 	return spec.Type == Weapon && spec.Subtype == Shooting && spec.AmmoTag == `arrows`
 }
 
+// IsShooter reports whether a spec is a ranged weapon that shoots (a bow,
+// crossbow or sling): it wears per shot, never on a strike.
+func IsShooter(spec ItemSpec) bool {
+	return spec.Type == Weapon && spec.Subtype == Shooting
+}
+
 // scaleInt scales a whole-number rating, rounding half away from zero.
 func scaleInt(v int, m float64) int {
 	if v == 0 || m == 1 {
@@ -94,6 +100,25 @@ func applyGrade(spec ItemSpec, q Quality) ItemSpec {
 	if spec.Weight > 0 {
 		spec.Weight *= m.Weight
 	}
+	return spec
+}
+
+// applyCondition scales worn gear by Item.ConditionMult: weapon damage, and
+// armour and shield protection.
+func applyCondition(spec ItemSpec, mult float64) ItemSpec {
+	if mult == 1 || !IsWearableGear(spec) {
+		return spec
+	}
+	if spec.Type == Weapon {
+		if spec.DamageMultiplier > 0 {
+			spec.DamageMultiplier *= mult
+		}
+		return spec
+	}
+	spec.PhysicalMitigation = scaleInt(spec.PhysicalMitigation, mult)
+	spec.MagicalMitigation = scaleInt(spec.MagicalMitigation, mult)
+	spec.ConvictionMitigation = scaleInt(spec.ConvictionMitigation, mult)
+	spec.BlockRating = scaleInt(spec.BlockRating, mult)
 	return spec
 }
 

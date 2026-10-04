@@ -1958,3 +1958,8 @@ it back; reads the room's own biome or its zone default), `Prospect`,
 roll and capped by the pick, a small gem chance, pick wear), `MineTarget`,
 `MineRounds`, `OreFor`, `OreKnown` (a Perception threshold times the sight
 ramp, no roll), `PickTooPoor`. `MineResult` holds no items.
+
+**repair.go**: `RepairDiscipline`, `RepairRecipe` (could the character craft
+it here: recipe known, skill, station, tool), `RepairCost`, `Repairer` (a
+merchant here of that craft support), `ListRepairs`, `Repair`. `ExecuteFire`
+wears a player's bow per shot (`Character.WearBowOnShot`).

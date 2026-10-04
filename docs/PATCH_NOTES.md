@@ -1,5 +1,23 @@
 # DOGMud Patch Notes
 
+## 2026-10-04: Gear wears out, and can be mended
+
+- **Weapons, armour, shields and tools now wear with use** (`help repair`).
+  A weapon wears a little when it lands a critical hit, and one piece of
+  your armour when you take one. Bows never strike, so they wear a little
+  with each arrow fired instead. Tools wear with every job. Wear is slow,
+  and well-made gear lasts longer.
+- Worn gear works a little worse, badly worn gear worse, and broken gear
+  barely at all: a broken weapon hits feebly, broken armour hardly protects,
+  and a broken tool cannot be used. Broken things are no longer lost; they
+  wait to be mended. Merchants pay less for worn gear.
+- **`repair`** lists what needs mending and who here can do it, and
+  **`repair <item>`** mends it. If you could craft the piece here (you know
+  its recipe, have the skill, and stand at its workbench with its tool), you
+  mend it yourself for free. Otherwise a merchant of its trade mends it for
+  gold: a smith for metal weapons, armour and tools, a woodworker for bows
+  and staves, a tailor for leather and cloth.
+
 ## 2026-10-04: Mining
 
 Dig your own ore (`help mining`, `help mine`, `help prospect`).

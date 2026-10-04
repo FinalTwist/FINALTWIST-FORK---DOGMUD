@@ -696,6 +696,20 @@ type Balance struct {
 	MiningMaxOre         ConfigInt   `yaml:"MiningMaxOre"`         // most ore one job yields (default 3)
 	MiningGemChance      ConfigFloat `yaml:"MiningGemChance"`      // default 0.04
 
+	// Gear wear and repair (wilderness trades). Weapons wear on critical hits
+	// they deal, armour on critical hits taken, bows on shots fired; worn gear
+	// works a little worse and broken gear badly until repaired.
+	GearDurabilityWeapon    ConfigInt   `yaml:"GearDurabilityWeapon"`    // wear a weapon takes before it breaks (default 60)
+	GearDurabilityArmor     ConfigInt   `yaml:"GearDurabilityArmor"`     // wear an armour piece or shield takes (default 30)
+	GearCritWearChance      ConfigFloat `yaml:"GearCritWearChance"`      // chance a critical hit dealt wears the striking weapon (default 0.5)
+	GearArmorCritWearChance ConfigFloat `yaml:"GearArmorCritWearChance"` // chance a critical hit taken wears one armour piece (default 0.5)
+	BowShotWearChance       ConfigFloat `yaml:"BowShotWearChance"`       // chance each arrow fired wears the bow (default 0.04)
+	GearWornMult            ConfigFloat `yaml:"GearWornMult"`            // damage or protection of worn gear, past 60% wear (default 0.95)
+	GearBadlyWornMult       ConfigFloat `yaml:"GearBadlyWornMult"`       // past 85% wear (default 0.85)
+	GearBrokenMult          ConfigFloat `yaml:"GearBrokenMult"`          // broken gear (default 0.25)
+	RepairCostRatio         ConfigFloat `yaml:"RepairCostRatio"`         // an NPC repair costs value x wear fraction x this (default 0.5)
+	WornSellPenalty         ConfigFloat `yaml:"WornSellPenalty"`         // a shop pays value x (1 - wear fraction x this) for worn gear (default 0.6)
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.

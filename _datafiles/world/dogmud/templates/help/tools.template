@@ -51,8 +51,9 @@ knife, and a hatchet as a crude axe or cleaver.
 
 Every job wears a tool a little. A crude tool lasts about thirty jobs, iron
 eighty, steel a hundred and sixty and masterwork over three hundred, longer
-for a well-graded one. A tool shows <ansi fg="item-quality">(worn)</ansi> and then <ansi fg="item-quality">(badly worn)</ansi>
-before it breaks. Weapons pressed into service as tools do not wear this way.
+for a well-graded one. A tool shows <ansi fg="item-quality">(worn)</ansi> and then <ansi fg="item-quality">(badly worn)</ansi>, and
+when it shows <ansi fg="red">(broken)</ansi> it cannot be used until it is mended
+(<ansi fg="command">help repair</ansi>). Weapons pressed into service as tools do not wear this way.
 
 Some recipes need a tool too: a scraper to cure a hide, a knife to cut
 leather, a carving knife to work bone. A recipe made with a tool, or from

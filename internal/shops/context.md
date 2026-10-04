@@ -411,3 +411,6 @@ abundance, and `items.NeverResold` tools are taken off the shelf. Walk-in
 entries the template does not name are kept.
 `EvaluateCraftOptions` skips any recipe whose output is a forged tool
 (`items.NeverResold`), so an NPC crafter never makes one.
+
+`EvaluateBuyRules` pays less for worn gear: value x (1 - wear fraction x
+Balance.WornSellPenalty).

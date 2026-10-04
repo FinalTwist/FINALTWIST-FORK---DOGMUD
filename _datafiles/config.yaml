@@ -1891,6 +1891,22 @@ Balance:
   MiningRoundsBase: 4
   MiningMaxOre: 3
   MiningGemChance: 0.04
+  # Gear wear: a weapon wears on critical hits it deals (GearCritWearChance),
+  # one armour piece on critical hits taken (GearArmorCritWearChance), a bow
+  # on each arrow fired (BowShotWearChance). Past 60% / 85% wear and when
+  # broken, gear works at the Worn / BadlyWorn / Broken multiplier. An NPC
+  # repair costs value x wear fraction x RepairCostRatio.
+  GearDurabilityWeapon: 60
+  GearDurabilityArmor: 30
+  GearCritWearChance: 0.5
+  GearArmorCritWearChance: 0.5
+  BowShotWearChance: 0.04
+  GearWornMult: 0.95
+  GearBadlyWornMult: 0.85
+  GearBrokenMult: 0.25
+  RepairCostRatio: 0.5
+  # A shop pays value x (1 - wear fraction x WornSellPenalty) for worn gear.
+  WornSellPenalty: 0.6
 
   # ── RECIPE DISCOVERY ──────────────────────────────────────────────────────
   # Chance to learn a new recipe on a successful craft.

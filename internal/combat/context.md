@@ -2191,3 +2191,7 @@ own identical terms (converging that is not Task 17's mandate).
 
 All damage flows through `damage_pipeline.go`. Never emit a raw number to a
 player — use `descriptions.go`.
+
+`OnCritLanded` (skill_moves.go) is called after a skill move or shot lands a
+damaging critical hit; `internal/hooks` sets it to wear gear (gear_wear.go).
+Nil in this package's tests.

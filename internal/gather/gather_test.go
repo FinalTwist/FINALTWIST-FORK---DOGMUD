@@ -251,8 +251,15 @@ func TestWearTool(t *testing.T) {
 	if name := WearTool(c, tool); name == `` {
 		t.Fatal("the last job should break it")
 	}
-	if len(c.Items) != 0 {
-		t.Errorf("a broken tool is gone, still carrying %+v", c.Items)
+	if len(c.Items) != 1 || !c.Items[0].IsBroken() {
+		t.Fatalf("a broken tool stays in the pack, broken: %+v", c.Items)
+	}
+	if _, ok := BestTool(c, items.ToolKnife); ok {
+		t.Error("a broken tool cannot be used")
+	}
+	c.Items[0].Repair()
+	if _, ok := BestTool(c, items.ToolKnife); !ok {
+		t.Error("a repaired tool works again")
 	}
 
 	pristine := items.Item{ItemId: 1, Quality: items.QualityPristine}

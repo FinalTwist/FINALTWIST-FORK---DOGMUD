@@ -71,8 +71,8 @@ func bestToolFrom(candidates []items.Item, want items.ToolType) (Tool, bool) {
 }
 
 func asTool(itm items.Item, want items.ToolType) (Tool, bool) {
-	if itm.ItemId < 1 {
-		return Tool{}, false
+	if itm.ItemId < 1 || itm.IsBroken() {
+		return Tool{}, false // a broken tool is no use until it is repaired
 	}
 	spec := itm.GetSpec()
 	if spec.Tool != nil {
@@ -122,9 +122,9 @@ func RareMult(tier items.ToolTier) float64 {
 }
 
 // WearTool adds one finished job's wear to the tool t names, on the
-// character's own copy of it (wielded, worn or carried). When that wears the
-// tool out it is taken away and its name returned; otherwise "". An
-// improvised weapon never wears as a tool.
+// character's own copy of it (wielded, worn or carried). When that breaks the
+// tool its name is returned; otherwise "". A broken tool stays where it is,
+// useless until repaired. An improvised weapon never wears as a tool.
 func WearTool(c *characters.Character, t Tool) (brokenName string) {
 	if c == nil || t.Improvised || t.Item.ItemId < 1 {
 		return ``
@@ -134,9 +134,7 @@ func WearTool(c *characters.Character, t Tool) (brokenName string) {
 			continue
 		}
 		if p.AddToolWear(1) {
-			name := p.NameSimple()
-			c.RemoveFromBody(*p)
-			return name
+			return p.NameSimple()
 		}
 		return ``
 	}
@@ -145,9 +143,7 @@ func WearTool(c *characters.Character, t Tool) (brokenName string) {
 			continue
 		}
 		if c.Items[j].AddToolWear(1) {
-			name := c.Items[j].NameSimple()
-			c.RemoveItem(c.Items[j])
-			return name
+			return c.Items[j].NameSimple()
 		}
 		return ``
 	}

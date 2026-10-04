@@ -123,6 +123,7 @@ help:
       - survey
       - mine
       - prospect
+      - repair
     information:
       - biome
       - exits
@@ -277,6 +278,7 @@ help-aliases:
   spoilage:         [spoil, spoiled, rot, rotten, freshness, fresh]
   lumberjacking:    [lumberjack, woodcutting, woodcutter, timber, logging, lumber, trees, wood]
   mining:           [miner, ore, ores, smelting, smelt, metals, metal, gems, picks]
+  repair:           [mend, mending, durability, broken, worn]
   tailoring:        [tailor, sewing, weaving, clothwork]
   cooking:          [cook, baking, food, meals]
   jewelcrafting:    [jeweler, jewelry, gemwork, gemcutting, jewel]

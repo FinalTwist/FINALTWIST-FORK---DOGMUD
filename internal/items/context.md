@@ -1498,3 +1498,11 @@ shaft or arrow bundle came from; shown as a name suffix; `SameStack` keeps
 woods apart) and `Item.LoadedWood` (the wood of the arrow a ranged weapon
 has nocked). `ItemSpec.CarriesWood` (`carries_wood`) marks items that take a
 wood when crafted.
+
+**Wear** (tools.go): `Durability` (tool, else gear), `ToolDurability`,
+`GearDurability`, `IsWearableGear`, `AddWear` / `AddToolWear` (report the
+moment of breaking), `IsBroken`, `WearFraction`, `Repair`, `ConditionMult`;
+`ItemSpec.Durability` (`durability`) overrides the Balance default for a
+weapon or armour piece. Durability reads `GetRawSpec`, never `GetSpec`,
+which itself applies `applyCondition` (grade_effects.go) to worn gear.
+`IsShooter` marks bows, crossbows and slings, which wear per shot.

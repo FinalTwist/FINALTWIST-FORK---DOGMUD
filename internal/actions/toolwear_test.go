@@ -68,3 +68,31 @@ func TestMineNumbers(t *testing.T) {
 		t.Error("a better pick finds more gems")
 	}
 }
+
+// A bow goes to a woodworker; a sword to a smith; the cost follows the wear.
+func TestRepairDisciplineAndCost(t *testing.T) {
+	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
+		1: {ItemId: 1, Name: "Bow", Type: items.Weapon, Subtype: items.Shooting, Value: 100},
+		2: {ItemId: 2, Name: "Sword", Type: items.Weapon, Subtype: items.Slashing, Value: 100, VendorCategories: []string{`blacksmithing`}},
+		3: {ItemId: 3, Name: "Jerkin", Type: items.Body, Value: 100, VendorCategories: []string{`tailoring`}},
+	}))
+	if d := RepairDiscipline(items.Item{ItemId: 1}); d != `woodwork` {
+		t.Errorf("a bow goes to a woodworker, got %q", d)
+	}
+	if d := RepairDiscipline(items.Item{ItemId: 2}); d != `blacksmithing` {
+		t.Errorf("a sword goes to a smith, got %q", d)
+	}
+	if d := RepairDiscipline(items.Item{ItemId: 3}); d != `tailoring` {
+		t.Errorf("a jerkin goes to a tailor, got %q", d)
+	}
+	sword := items.Item{ItemId: 2}
+	if RepairCost(sword) != 0 {
+		t.Error("an unworn sword costs nothing")
+	}
+	sword.Wear = sword.Durability() / 2
+	half := RepairCost(sword)
+	sword.Wear = sword.Durability()
+	if full := RepairCost(sword); half <= 0 || full <= half {
+		t.Errorf("repair costs more the worse the wear: half %d, broken %d", half, full)
+	}
+}

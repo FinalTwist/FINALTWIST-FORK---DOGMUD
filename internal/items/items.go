@@ -349,7 +349,11 @@ func (i *Item) GetSpec() ItemSpec {
 		return spec
 	}
 	spec = applyGrade(spec, i.Quality)
-	return applyBowWood(spec, i.Wood)
+	spec = applyBowWood(spec, i.Wood)
+	if i.Wear > 0 {
+		spec = applyCondition(spec, i.ConditionMult())
+	}
+	return spec
 }
 
 // GetRawSpec is the override or template as authored, with no grade or wood

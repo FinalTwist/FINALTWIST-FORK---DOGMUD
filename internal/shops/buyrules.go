@@ -85,6 +85,10 @@ func EvaluateBuyRules(
 		return BuyOffer{}
 	}
 	value := GradedValue(item)
+	// Worn gear sells for less: down to 1 - WornSellPenalty when broken.
+	if f := item.WearFraction(); f > 0 {
+		value = int(math.Ceil(float64(value) * (1 - f*float64(configs.GetBalanceConfig().WornSellPenalty))))
+	}
 	if item.Spoils() {
 		value = int(math.Ceil(float64(value) * item.FreshnessValueMultiplier(now)))
 	}

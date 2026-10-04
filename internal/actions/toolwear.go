@@ -19,5 +19,5 @@ func WearUsedTool(actor Actor, t gather.Tool, has bool) {
 		return
 	}
 	actor.SendText(messaging.CategoryWarning, fmt.Sprintf(
-		`<ansi fg="red">Your <ansi fg="itemname">%s</ansi> gives out: the edge is gone and the haft has split. It is no use to anyone now.</ansi>`, name))
+		`<ansi fg="red">Your <ansi fg="itemname">%s</ansi> gives out: the edge is gone and the haft has split. It is no use until it is repaired.</ansi> (<ansi fg="command">help repair</ansi>)`, name))
 }

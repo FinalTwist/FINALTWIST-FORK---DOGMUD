@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -421,6 +422,15 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 		MitigationMultiplier: 1.0,
 	})
 	result.Executed = true
+
+	// Gear wear (wilderness trades): a bow never strikes, so it wears per
+	// shot rather than on critical hits. Only players' bows wear.
+	if actor.IsPlayer() {
+		if name, broke := char.WearBowOnShot(weapon); broke {
+			actor.SendText(messaging.CategoryWarning, fmt.Sprintf(
+				`<ansi fg="red">Your <ansi fg="itemname">%s</ansi> is broken!</ansi> It will serve you poorly until it is repaired. (<ansi fg="command">help repair</ansi>)`, name))
+		}
+	}
 
 	// U6b Task 10: a crit-defended shot earns the defender a counter-swing,
 	// REACH-GATED — only when the shooter shares the room. The cross-room

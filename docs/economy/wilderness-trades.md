@@ -259,6 +259,39 @@ ingredient somewhere.
   accuracy, and its `recovery` is the chance chambering spends no arrow.
   Bows do not wear, so a wood's toughness shows in its arrows.
 
+## Gear wear and repair
+
+- **Wear** (`internal/items/tools.go`): `Item.Wear` against `Durability`: a
+  tool's `ToolDurability`, else `GearDurability` for weapons and armour
+  (`IsWearableGear`: weapons, shields, every armour slot; not jewelry) from
+  `ItemSpec.Durability` or Balance `GearDurabilityWeapon` (60) and
+  `GearDurabilityArmor` (30), times the grade (crude 0.75 to pristine 2.0).
+  `AddWear` reports the moment it breaks; a broken item stays put.
+  `ConditionMult` (Balance `GearWornMult` 0.95 past 60%, `GearBadlyWornMult`
+  0.85 past 85%, `GearBrokenMult` 0.25 broken) scales a weapon's damage
+  multiplier and armour's mitigation and block in `GetSpec`. A broken tool is
+  skipped by `gather.BestTool`.
+- **Where it wears**: a melee round with a landed critical hit
+  (`hooks.dispatchCritAndMessaging`, `roundLandedCrit`) and a skill move or
+  shot that lands one (`combat.OnCritLanded`, set by `internal/hooks`) roll
+  `GearCritWearChance` (0.5) to wear the attacker's weapon and
+  `GearArmorCritWearChance` (0.5) to wear one random armour piece of the
+  defender (`Character.CritWearWeapon`, `CritWearArmor`). Shooters (bows,
+  crossbows, slings) never wear on crits; `ExecuteFire` rolls
+  `BowShotWearChance` (0.04) per shot (`WearBowOnShot`). Only players' gear
+  wears. The rolls use `math/rand/v2`, not `util.Rand`, so seeded combat
+  tests see the same sequence. At about one critical hit in twenty swings, a
+  standard weapon lasts some 2,400 hits and a bow some 1,500 shots.
+- **Repair** (`internal/actions/repair.go`, command `repair`): self-repair is
+  free when `RepairRecipe` finds a known recipe making the item with the
+  skill, the station (`StationSatisfied`) and the tool (`ToolSatisfied`);
+  otherwise a merchant in the room whose craft support is the item's trade
+  (`RepairDiscipline`: a recipe's skill, else woodwork for shooters, else the
+  item's vendor categories, else blacksmithing) charges `RepairCost` (graded
+  value x wear fraction x `RepairCostRatio` 0.5, at least 1), paid into the
+  shop's gold. Shops pay `1 - wear x WornSellPenalty` (0.6) of value for
+  worn gear.
+
 ## Deferred
 
 - The kill-damage penalty (fire, acid or overkill spoiling a hide) needs the

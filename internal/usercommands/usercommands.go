@@ -201,6 +201,7 @@ var (
 		`survey`:          {Survey, false, true, false},   // Wilderness trades: read the timber here
 		`mine`:            {Mine, false, false, false},    // Wilderness trades: dig ore, not in combat
 		`prospect`:        {Prospect, false, true, false}, // Wilderness trades: read the ore here
+		`repair`:          {Repair, false, false, false},  // Wilderness trades: mend worn gear, not in combat
 		`say`:             {Say, true, true, false},
 		`scan`:            {Scan, false, true, false},
 		`search`:          {Search, false, true, false},

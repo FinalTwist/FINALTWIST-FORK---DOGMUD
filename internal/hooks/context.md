@@ -2245,3 +2245,7 @@ outputs with `gather.CraftGrade`, and calls `sweepSpoiledGoods`
 harvested goods.
 A finished Salvaging activity keyed `actions.ChopActivityPrefix` goes to
 `actions.ResolveChop`.
+
+**gear_wear.go** (wilderness trades): sets `combat.OnCritLanded` and provides
+`gearWearOnCrit` (players only; tells a player when gear breaks) and
+`roundLandedCrit`, called from `dispatchCritAndMessaging` for melee rounds.

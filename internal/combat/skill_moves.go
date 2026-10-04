@@ -135,6 +135,7 @@ type SkillMoveParams struct {
 // The validator forces the value into (0, 1], so an absent or zero key reads as
 // 1.0 (unchanged) rather than as "disable all knockdowns". The guards below are
 // defensive only.
+
 func knockdownSurvivesGlobalDamper() bool {
 	return rollKnockdownDamper(float64(configs.GetBalanceConfig().KnockdownFrequencyScale))
 }
@@ -251,6 +252,9 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 	if result.Damage > 0 {
 		p.Defender.ApplyHarm(characters.PoolHealth, result.Damage,
 			state.ActorRef{UserId: p.Attacker.GetUserId(), MobInstanceId: p.Attacker.MobInstanceId})
+		if result.Crit && OnCritLanded != nil {
+			OnCritLanded(p.Attacker, p.Defender)
+		}
 	}
 
 	if result.Hit {
@@ -327,3 +331,9 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 
 	return result
 }
+
+// OnCritLanded, when set, runs after a skill move or shot lands a critical
+// hit that dealt damage. internal/hooks sets it to wear the attacker's weapon
+// and the defender's armour (wilderness trades gear wear); it is nil in this
+// package's own tests.
+var OnCritLanded func(attacker, defender *characters.Character)

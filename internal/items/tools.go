@@ -114,10 +114,28 @@ func toolGradeDurability(q Quality) float64 {
 	return 1.0
 }
 
+// Wear and durability (wilderness trades). Item.Wear counts points of wear;
+// at Durability the item is broken. A tool wears one point per finished job
+// (gather.WearTool); weapons and armour wear on critical hits and bows on
+// shots (characters.CritWearWeapon and friends). A broken item stays in the
+// inventory: a broken tool cannot be used and broken gear works badly
+// (applyCondition) until it is repaired (actions.Repair).
+
+// Durability is how much wear this item takes before it breaks: a tool's
+// ToolDurability, else a weapon's or armour piece's GearDurability, else 0
+// (it never wears).
+func (i *Item) Durability() int {
+	if d := i.ToolDurability(); d > 0 {
+		return d
+	}
+	return i.GearDurability()
+}
+
 // ToolDurability is how many jobs this tool instance lasts in all. 0 when the
-// item is not a tool (an improvised weapon never wears as a tool).
+// item is not a tool (an improvised weapon never wears as a tool). Read from
+// the raw spec: GetSpec itself asks for durability.
 func (i *Item) ToolDurability() int {
-	spec := i.GetSpec()
+	spec := i.GetRawSpec()
 	if spec.Tool == nil {
 		return 0
 	}
@@ -132,31 +150,115 @@ func (i *Item) ToolDurability() int {
 	return d
 }
 
-// AddToolWear records one finished job on a tool and reports whether that
-// wore it out. Non-tools never wear and never break.
-func (i *Item) AddToolWear(n int) (broken bool) {
-	d := i.ToolDurability()
-	if d <= 0 || n <= 0 {
+// IsWearableGear reports whether a spec wears in a fight: any weapon, and
+// armour and shields (not jewelry, lights, bags or tails).
+func IsWearableGear(spec ItemSpec) bool {
+	switch spec.Type {
+	case Weapon, Offhand, Head, Body, Belt, Gloves, Wrist, Back, Shoulders, Legs, Feet:
+		return true
+	}
+	return false
+}
+
+// GearDurability is how much wear a weapon or armour piece takes before it
+// breaks: ItemSpec.Durability when authored, else Balance
+// GearDurabilityWeapon or GearDurabilityArmor, scaled by the instance grade.
+// 0 for anything else.
+func (i *Item) GearDurability() int {
+	spec := i.GetRawSpec()
+	if !IsWearableGear(spec) {
+		return 0
+	}
+	base := spec.Durability
+	if base <= 0 {
+		b := configs.GetBalanceConfig()
+		if spec.Type == Weapon {
+			base = int(b.GearDurabilityWeapon)
+		} else {
+			base = int(b.GearDurabilityArmor)
+		}
+	}
+	d := int(float64(base) * toolGradeDurability(i.Quality))
+	if d < 1 {
+		d = 1
+	}
+	return d
+}
+
+// AddWear adds n points of wear and reports whether that just broke the
+// item. Items that never wear, and items already broken, report false.
+func (i *Item) AddWear(n int) (justBroke bool) {
+	d := i.Durability()
+	if d <= 0 || n <= 0 || i.Wear >= d {
 		return false
 	}
 	i.Wear += n
-	return i.Wear >= d
+	if i.Wear >= d {
+		i.Wear = d
+		return true
+	}
+	return false
 }
 
-// wearSuffix marks a tool that is wearing out: "(worn)" past 60% of its
-// durability, "(badly worn)" past 85%.
+// AddToolWear records one finished job on a tool; see AddWear.
+func (i *Item) AddToolWear(n int) (justBroke bool) {
+	return i.AddWear(n)
+}
+
+// IsBroken reports whether the item has worn out and needs repairing.
+func (i *Item) IsBroken() bool {
+	d := i.Durability()
+	return d > 0 && i.Wear >= d
+}
+
+// WearFraction is how worn the item is, 0 (new) to 1 (broken).
+func (i *Item) WearFraction() float64 {
+	d := i.Durability()
+	if d <= 0 || i.Wear <= 0 {
+		return 0
+	}
+	f := float64(i.Wear) / float64(d)
+	if f > 1 {
+		f = 1
+	}
+	return f
+}
+
+// Repair clears all wear.
+func (i *Item) Repair() { i.Wear = 0 }
+
+// ConditionMult is the multiplier wear puts on how well gear works: 1 until
+// it is worn (60%), then Balance GearWornMult, GearBadlyWornMult (85%) and
+// GearBrokenMult when broken.
+func (i *Item) ConditionMult() float64 {
+	f := i.WearFraction()
+	if f <= 0 {
+		return 1
+	}
+	b := configs.GetBalanceConfig()
+	switch {
+	case f >= 1:
+		return float64(b.GearBrokenMult)
+	case f >= 0.85:
+		return float64(b.GearBadlyWornMult)
+	case f >= 0.60:
+		return float64(b.GearWornMult)
+	}
+	return 1
+}
+
+// wearSuffix marks an item that is wearing out: "(worn)" past 60% of its
+// durability, "(badly worn)" past 85%, "(broken)" when worn out.
 func (i *Item) wearSuffix() string {
 	if i.Wear <= 0 {
 		return ``
 	}
-	d := i.ToolDurability()
-	if d <= 0 {
-		return ``
-	}
-	switch {
-	case i.Wear*100 >= d*85:
+	switch f := i.WearFraction(); {
+	case f >= 1:
+		return ` <ansi fg="red">(broken)</ansi>`
+	case f >= 0.85:
 		return ` <ansi fg="item-quality">(badly worn)</ansi>`
-	case i.Wear*100 >= d*60:
+	case f >= 0.60:
 		return ` <ansi fg="item-quality">(worn)</ansi>`
 	}
 	return ``
