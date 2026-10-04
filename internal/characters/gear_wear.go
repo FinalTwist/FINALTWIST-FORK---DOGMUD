@@ -38,7 +38,7 @@ func (c *Character) CritWearStriker(strike *items.Item) (name string, broke bool
 	if !chance(float64(configs.GetBalanceConfig().GearCritWearChance)) {
 		return ``, false
 	}
-	return strike.NameSimple(), strike.AddWear(1)
+	return strike.WearName(), strike.AddWear(1)
 }
 
 // EquippedItemPtr finds the equipped item matching itm (same instance) and
@@ -99,7 +99,7 @@ func (c *Character) CritWearArmor() (name string, broke bool) {
 		return ``, false
 	}
 	a := picks[rand.IntN(len(picks))]
-	return a.NameSimple(), a.AddWear(1)
+	return a.WearName(), a.AddWear(1)
 }
 
 // WearBowOnShot rolls Balance.BowShotWearChance for the bow (or crossbow or
@@ -111,5 +111,5 @@ func (c *Character) WearBowOnShot(bow *items.Item) (name string, broke bool) {
 	if !chance(float64(configs.GetBalanceConfig().BowShotWearChance)) {
 		return ``, false
 	}
-	return bow.NameSimple(), bow.AddWear(1)
+	return bow.WearName(), bow.AddWear(1)
 }

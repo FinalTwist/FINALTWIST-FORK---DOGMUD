@@ -205,6 +205,15 @@ func (i *Item) AddToolWear(n int) (justBroke bool) {
 	return i.AddWear(n)
 }
 
+// WearName is the name wear messages use: the short name, else the full
+// name for an item authored without one.
+func (i *Item) WearName() string {
+	if n := i.NameSimple(); n != `` {
+		return n
+	}
+	return i.GetRawSpec().Name
+}
+
 // IsBroken reports whether the item has worn out and needs repairing.
 func (i *Item) IsBroken() bool {
 	d := i.Durability()

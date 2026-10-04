@@ -76,3 +76,15 @@ func SetConfigWithLookupsForTest(t *testing.T, c Config) string {
 	})
 	return overridePath
 }
+
+// TuneBalanceForTest installs a copy of the current config whose Balance has
+// been changed by tune, restored when the test ends (SetConfigForTest). For
+// tests outside this package that rely on a knob whose zero is meaningful
+// (config.balance.gathering.go): a test binary never loads config.yaml, so
+// such a knob reads 0, which turns its feature off.
+func TuneBalanceForTest(t *testing.T, tune func(b *Balance)) {
+	t.Helper()
+	c := GetConfig()
+	tune(&c.Balance)
+	SetConfigForTest(t, c)
+}

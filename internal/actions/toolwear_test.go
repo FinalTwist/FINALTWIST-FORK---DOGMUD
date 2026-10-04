@@ -3,6 +3,7 @@ package actions
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/timber"
 )
@@ -52,6 +53,7 @@ func TestCraftWood(t *testing.T) {
 // Harder ore is harder to dig and slower; more strength brings out more,
 // never past the cap; gem odds stay small.
 func TestMineNumbers(t *testing.T) {
+	configs.TuneBalanceForTest(t, func(b *configs.Balance) { b.MiningGemChance = 0.04 })
 	if !(MineTarget(1) < MineTarget(2) && MineTarget(2) < MineTarget(4)) {
 		t.Error("difficulty rises with ore tier")
 	}
@@ -71,6 +73,7 @@ func TestMineNumbers(t *testing.T) {
 
 // A bow goes to a woodworker; a sword to a smith; the cost follows the wear.
 func TestRepairDisciplineAndCost(t *testing.T) {
+	configs.TuneBalanceForTest(t, func(b *configs.Balance) { b.RepairCostRatio = 0.5 })
 	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
 		1: {ItemId: 1, Name: "Bow", Type: items.Weapon, Subtype: items.Shooting, Value: 100},
 		2: {ItemId: 2, Name: "Sword", Type: items.Weapon, Subtype: items.Slashing, Value: 100, VendorCategories: []string{`blacksmithing`}},

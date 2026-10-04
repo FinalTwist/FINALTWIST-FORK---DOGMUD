@@ -134,7 +134,7 @@ func WearTool(c *characters.Character, t Tool) (brokenName string) {
 			continue
 		}
 		if p.AddToolWear(1) {
-			return p.NameSimple()
+			return p.WearName()
 		}
 		return ``
 	}
@@ -143,7 +143,7 @@ func WearTool(c *characters.Character, t Tool) (brokenName string) {
 			continue
 		}
 		if c.Items[j].AddToolWear(1) {
-			return c.Items[j].NameSimple()
+			return c.Items[j].WearName()
 		}
 		return ``
 	}

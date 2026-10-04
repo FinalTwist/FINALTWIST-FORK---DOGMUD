@@ -64,15 +64,15 @@ out graded by how well the work went: <ansi fg="item-quality">crude</ansi>, stan
 Goods bought from a shop have lost their grade and count as standard, so
 the finest work needs fine or better materials you gathered yourself.
 
-                 damage   speed   weight   protection
-  crude          -15%     -15%    +5%      -15%
-  fine           +8%      +5%     -3%      +8%
-  superb         +16%     +10%    -6%      +16%
-  pristine       +25%     +15%    -10%     +25%
+  <ansi fg="item-quality">crude</ansi>      hits softer, swings slower, protects less, a little heavier
+  standard   as the piece was meant to be
+  <ansi fg="item-quality">fine</ansi>       a little better in every way
+  <ansi fg="item-quality">superb</ansi>     clearly better
+  <ansi fg="item-quality">pristine</ansi>   the best work: hits much harder, quicker, lighter,
+             and protects much better
 
-Damage and speed apply to weapons; protection (physical, magical and
-conviction mitigation, and a shield's block) to armour and shields;
-weight to all of them.
+Damage and speed apply to weapons; protection (against blows, magic and
+words, and a shield's block) to armour and shields; weight to all of them.
 
 A bow or a bundle of arrows also names its wood, as in a longbow (yew).
 Each wood has its own character (<ansi fg="command">help woodwork</ansi>).

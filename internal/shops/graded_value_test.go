@@ -3,6 +3,7 @@ package shops
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
@@ -30,6 +31,7 @@ func TestGradedValue(t *testing.T) {
 // The walk-in bug: the second unit of an item the shop does not stock used to
 // price on the scarcity curve at about four times the first.
 func TestWalkInBuyPrice_NeverRisesAndSlidesGently(t *testing.T) {
+	configs.TuneBalanceForTest(t, func(b *configs.Balance) { b.ShopWalkInDevaluePerUnit = 0.02 })
 	cfg := DefaultPricingConfig()
 	first := WalkInBuyPrice(100, 0, cfg)
 	second := WalkInBuyPrice(100, 1, cfg)
@@ -87,6 +89,7 @@ func TestEvaluateBuyRules_WalkInNoBuyBackProfit(t *testing.T) {
 // Review fix: goods a shop scraps (forged tools, broken gear) still slide in
 // price per recent unit, and the memory wears off with time.
 func TestScrapSlidesAndWearsOff(t *testing.T) {
+	configs.TuneBalanceForTest(t, func(b *configs.Balance) { b.ShopWalkInDevaluePerUnit = 0.02 })
 	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
 		501: {ItemId: 501, Name: "Steel Pick", Value: 200, Type: items.Object, VendorCategories: []string{"blacksmithing"}},
 	})

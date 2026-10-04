@@ -3,11 +3,13 @@ package characters
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
 // Critical hits wear swords and armour but never bows; bows wear on shots.
 func TestCritWear(t *testing.T) {
+	tuneWearChances(t)
 	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
 		1: {ItemId: 1, Name: "Sword", Type: items.Weapon, Subtype: items.Slashing, DamageMultiplier: 1.0},
 		2: {ItemId: 2, Name: "Bow", Type: items.Weapon, Subtype: items.Shooting, AmmoTag: `arrows`, DamageMultiplier: 1.0},
@@ -43,6 +45,7 @@ func TestCritWear(t *testing.T) {
 // Review fix: a critical kick (no striking item) wears nothing, a shield
 // bash wears the shield, and only the given hand wears when dual wielding.
 func TestCritWearStriker_RightItem(t *testing.T) {
+	tuneWearChances(t)
 	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
 		1: {ItemId: 1, Name: "Sword", Type: items.Weapon, Subtype: items.Slashing, DamageMultiplier: 1.0},
 		4: {ItemId: 4, Name: "Dagger", Type: items.Weapon, Subtype: items.Stabbing, DamageMultiplier: 1.0},
@@ -74,4 +77,15 @@ func TestCritWearStriker_RightItem(t *testing.T) {
 	if d.Equipment.Offhand.Wear == 0 || d.Equipment.Weapon.Wear != 0 {
 		t.Errorf("only the critting dagger wears: dagger %d, sword %d", d.Equipment.Offhand.Wear, d.Equipment.Weapon.Wear)
 	}
+}
+
+// tuneWearChances sets the shipped wear chances: a test binary never loads
+// config.yaml, and a zero chance means that gear never wears.
+func tuneWearChances(t *testing.T) {
+	t.Helper()
+	configs.TuneBalanceForTest(t, func(b *configs.Balance) {
+		b.GearCritWearChance = 0.5
+		b.GearArmorCritWearChance = 0.5
+		b.BowShotWearChance = 0.04
+	})
 }
