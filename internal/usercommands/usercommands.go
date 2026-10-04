@@ -194,6 +194,9 @@ var (
 		`room`:            {Room, false, true, true},        // Admin only
 		`save`:            {Save, true, true, false},
 		`salvage`:         {Salvage, false, false, false}, // Can't salvage in combat
+		`skin`:            {Skin, false, false, false},    // Wilderness trades: not in combat
+		`butcher`:         {Butcher, false, false, false}, // Wilderness trades: not in combat
+		`harvest`:         {Harvest, false, false, false}, // Wilderness trades: not in combat
 		`say`:             {Say, true, true, false},
 		`scan`:            {Scan, false, true, false},
 		`search`:          {Search, false, true, false},

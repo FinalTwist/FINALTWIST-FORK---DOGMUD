@@ -46,4 +46,44 @@ func (b *Balance) validateGathering() {
 	if b.QualityValuePristine <= 0 {
 		b.QualityValuePristine = 4.0
 	}
+
+	if b.GatherStatPoolDifficulty <= 0 {
+		b.GatherStatPoolDifficulty = 0.2
+	}
+	if b.GatherCarcassEase <= 0 {
+		b.GatherCarcassEase = 20
+	}
+	if b.GatherSizeDifficultyMedium <= 0 {
+		b.GatherSizeDifficultyMedium = 5
+	}
+	if b.GatherSizeDifficultyLarge <= 0 {
+		b.GatherSizeDifficultyLarge = 15
+	}
+	if b.GatherTargetedDifficulty <= 0 {
+		b.GatherTargetedDifficulty = 15
+	}
+	if b.GatherJobRoundsSmall <= 0 {
+		b.GatherJobRoundsSmall = 2
+	}
+	if b.GatherJobRoundsMedium <= 0 {
+		b.GatherJobRoundsMedium = 4
+	}
+	if b.GatherJobRoundsLarge <= 0 {
+		b.GatherJobRoundsLarge = 6
+	}
+	if b.GatherRareBaseChance <= 0 {
+		b.GatherRareBaseChance = 0.15
+	}
+	if b.GatherStatPerBonusUnit <= 0 {
+		b.GatherStatPerBonusUnit = 50
+	}
+	if b.CorpseStaleGradeAt <= 0 {
+		b.CorpseStaleGradeAt = 0.5
+	}
+	if b.CorpseMeatLostAt <= 0 {
+		b.CorpseMeatLostAt = 0.75
+	}
+	if b.ShopWalkInDevaluePerUnit <= 0 {
+		b.ShopWalkInDevaluePerUnit = 0.02
+	}
 }

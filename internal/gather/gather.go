@@ -228,3 +228,55 @@ func Rounds(base int, t Tool, hasTool bool) int {
 	}
 	return r
 }
+
+// CraftGrade is the grade of a crafted output (wilderness trades, phase 3).
+//
+// Grading only applies when it means something: when at least one consumed
+// input carries a grade, or the recipe needs a tool. Otherwise the output is
+// ungraded (QualityNone), so every existing recipe behaves exactly as before.
+//
+// cr is the craft contest; nil for an instant recipe, which runs none and
+// starts at standard. A win is standard plus one grade per
+// GatherGradeStepSigma of margin; a win granted by the mercy floor is crude.
+// The result is then capped twice:
+//   - one grade above the WORST graded input, so a pristine output cannot be
+//     made from crude hides by mixing in one good one;
+//   - by the tool's tier, when the recipe has a tool.
+func CraftGrade(cr *contest.Result, consumed []items.Item, recipeHasTool bool, toolTier items.ToolTier) items.Quality {
+	worst := items.QualityNone
+	for _, itm := range consumed {
+		if itm.Quality.Valid() && (worst == items.QualityNone || itm.Quality < worst) {
+			worst = itm.Quality
+		}
+	}
+	if worst == items.QualityNone && !recipeHasTool {
+		return items.QualityNone
+	}
+
+	grade := items.QualityStandard
+	if cr != nil {
+		if cr.Floored {
+			grade = items.QualityCrude
+		} else if sd := cr.AttackRoll.StdDev * math.Sqrt2; sd > 0 && cr.Margin > 0 {
+			step := float64(configs.GetBalanceConfig().GatherGradeStepSigma)
+			if step <= 0 {
+				step = 1.0
+			}
+			grade += items.Quality(int((cr.Margin / sd) / step))
+		}
+	}
+
+	if worst != items.QualityNone && grade > worst+1 {
+		grade = worst + 1
+	}
+	if recipeHasTool {
+		tier := toolTier
+		if tier == items.ToolTierNone {
+			tier = items.ToolTierCrude
+		}
+		if m := tier.MaxGrade(); grade > m {
+			grade = m
+		}
+	}
+	return grade.Clamp()
+}

@@ -593,6 +593,39 @@ type Balance struct {
 	QualityValueSuperb   ConfigFloat `yaml:"QualityValueSuperb"`   // default 2.5
 	QualityValuePristine ConfigFloat `yaml:"QualityValuePristine"` // default 4.0
 
+	// Carcass work (skin, butcher, harvest). Difficulty for a carcass is
+	// GatherBaseDifficulty + mob statpool * GatherStatPoolDifficulty + a size
+	// term. Statpool is the mob template's power budget (a steppe wolf is 70),
+	// the closest thing a mob has to a level.
+	GatherStatPoolDifficulty ConfigFloat `yaml:"GatherStatPoolDifficulty"` // per point of mob statpool (default 0.2)
+	// GatherCarcassEase is subtracted from every carcass difficulty, so a
+	// baseline gatherer (stats 100, iron knife) wins about half the time on a
+	// steppe wolf (statpool 70, medium) and nearly always on a hare.
+	GatherCarcassEase          ConfigFloat `yaml:"GatherCarcassEase"`          // default 20
+	GatherSizeDifficultyMedium ConfigFloat `yaml:"GatherSizeDifficultyMedium"` // medium body (default 5); small adds 0
+	GatherSizeDifficultyLarge  ConfigFloat `yaml:"GatherSizeDifficultyLarge"`  // large body (default 15)
+	GatherTargetedDifficulty   ConfigFloat `yaml:"GatherTargetedDifficulty"`   // extra difficulty for `harvest <corpse> <part>`, which also lifts that part one grade (default 15)
+	GatherJobRoundsSmall       ConfigInt   `yaml:"GatherJobRoundsSmall"`       // rounds to skin or butcher a small body before tool speed (default 2)
+	GatherJobRoundsMedium      ConfigInt   `yaml:"GatherJobRoundsMedium"`      // default 4
+	GatherJobRoundsLarge       ConfigInt   `yaml:"GatherJobRoundsLarge"`       // default 6
+	// A rare part (fang, gland, organ) is noticed with chance
+	// entry.chance (or GatherRareBaseChance) * Perception/100, clamped 0.02..0.9.
+	GatherRareBaseChance ConfigFloat `yaml:"GatherRareBaseChance"` // default 0.15
+	// Every GatherStatPerBonusUnit points of the job's first stat above 100
+	// adds one unit to the first entry of the section (more meat for the strong).
+	GatherStatPerBonusUnit ConfigInt `yaml:"GatherStatPerBonusUnit"` // default 50
+	// A carcass this far through its decay gives one grade worse; past the
+	// second mark its meat and organs are gone.
+	CorpseStaleGradeAt ConfigFloat `yaml:"CorpseStaleGradeAt"` // default 0.5
+	CorpseMeatLostAt   ConfigFloat `yaml:"CorpseMeatLostAt"`   // default 0.75
+
+	// Shops: an item the shop does not authored-stock is priced flat
+	// (value * BuyRatio) minus this fraction per unit already on hand, floored
+	// at ShopPriceFloor. Raw goods arrive in bulk; the gentle slope (after
+	// CoffeeMud's raw-resource devaluation) keeps a hunter's tenth pelt worth
+	// selling and stops the second from paying four times the first.
+	ShopWalkInDevaluePerUnit ConfigFloat `yaml:"ShopWalkInDevaluePerUnit"` // default 0.02
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.

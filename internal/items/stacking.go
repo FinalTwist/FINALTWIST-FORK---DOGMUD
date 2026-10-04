@@ -44,6 +44,12 @@ func SameStack(a, b Item) bool {
 	if a.Quality != b.Quality {
 		return false
 	}
+	// Spoiling raw goods: two cuts harvested at different times rot at
+	// different times, and storage keeps one representative per stack, so
+	// merging them would reset or advance every cut's clock.
+	if a.CraftedRound != b.CraftedRound && (a.Spoils() || b.Spoils()) {
+		return false
+	}
 	if a.EnchantType != b.EnchantType {
 		return false
 	}

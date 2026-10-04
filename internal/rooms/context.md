@@ -698,3 +698,9 @@ floor finds that old and may prune their records. At boot,
 `factions.ValidateHoldingCells` loads some rooms before `baubles.Load`; a
 find removed then is not marked vanished (no record is loaded yet) and the
 sweep prunes its record later as lost.
+## Carcass state (wilderness trades)
+
+`Corpse.Skinned`, `Corpse.Butchered` and `Corpse.HarvestedParts` record what
+has been cut from a carcass; `PartTaken`, `Spent`, `Staleness` (fraction of
+`CorpseDecayTime` elapsed) and `ProcessedNote` (the line `look` adds). Mutate
+through `room.Corpses[i]`, never the copy `FindCorpse` returns.

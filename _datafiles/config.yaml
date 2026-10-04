@@ -1817,6 +1817,27 @@ Balance:
   QualityValueFine: 1.6
   QualityValueSuperb: 2.5
   QualityValuePristine: 4.0
+  # Carcass work: difficulty = GatherBaseDifficulty - GatherCarcassEase + mob
+  # statpool * GatherStatPoolDifficulty + size (medium/large). A baseline
+  # gatherer with an iron knife wins about half the time on a steppe wolf. `harvest <corpse> <part>` adds GatherTargetedDifficulty
+  # and lifts that part one grade. Rare parts: chance * Perception/100.
+  GatherStatPoolDifficulty: 0.2
+  GatherCarcassEase: 20
+  GatherSizeDifficultyMedium: 5
+  GatherSizeDifficultyLarge: 15
+  GatherTargetedDifficulty: 15
+  GatherJobRoundsSmall: 2
+  GatherJobRoundsMedium: 4
+  GatherJobRoundsLarge: 6
+  GatherRareBaseChance: 0.15
+  GatherStatPerBonusUnit: 50
+  # Corpse freshness (fraction of CorpseDecayTime): one grade worse at the
+  # first mark, meat and organs gone at the second.
+  CorpseStaleGradeAt: 0.5
+  CorpseMeatLostAt: 0.75
+  # Shops price an item they do not stock flat, less this per unit on hand
+  # (floored at ShopPriceFloor), so bulk raw goods slide gently.
+  ShopWalkInDevaluePerUnit: 0.02
 
   # ── RECIPE DISCOVERY ──────────────────────────────────────────────────────
   # Chance to learn a new recipe on a successful craft.

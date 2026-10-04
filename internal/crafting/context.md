@@ -445,3 +445,6 @@ set, physical, mitigated by the attacker's armour).
 group table first and then `speciesCorpseSalvage`, keyed by species name.
 Only warm-blooded game is listed. Every caller with a mob spec uses the
 `ForMob` form so the command, the resolver and the companion agree.
+
+`RecipeSpec.Tool` (`tool:`) names a tool the crafter must carry; unknown
+tool types panic at load. See `actions.ToolSatisfied` and `gather.CraftGrade`.

@@ -1754,7 +1754,7 @@ func loadAllDataFiles(isReload bool) {
 	species.ValidateSpeciesConditionIds(conditions.HasSpec)
 	// Wilderness trades: every harvest entry on a species or a mob must name
 	// a material some item supplies.
-	species.ValidateSpeciesHarvest(mobs.HarvestTagExists)
+	species.ValidateSpeciesHarvest(mobs.HarvestTagExists, mobs.HarvestItemExists)
 	mobs.ValidateMobHarvest()
 
 	// Slice C: a non-secret condition without authored start/end text still speaks

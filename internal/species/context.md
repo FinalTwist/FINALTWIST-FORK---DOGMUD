@@ -139,3 +139,7 @@ sections, `Empty`, `Validate`), `MergeHarvest` (a mob's non-empty section
 replaces the species section), `ScaleHarvestQty` (small halves, large
 doubles, never below one) and `ValidateSpeciesHarvest`, called from main
 after items load. `Species.Harvest` is authored as `harvest:`.
+`HarvestEntry.ItemId` names an exact item (wins over the tag), `Key` names
+the entry for bookkeeping, and `Chance` is a rare entry's base chance.
+`Validate` and `ValidateSpeciesHarvest` take a tag and an item-id callback.
+Seventeen species ship a table (see the species yaml files).

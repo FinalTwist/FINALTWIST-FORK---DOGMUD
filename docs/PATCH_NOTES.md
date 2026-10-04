@@ -1,5 +1,41 @@
 # DOGMud Patch Notes
 
+## 2026-10-03: Wilderness trades, phases 2 and 3: hunting and processing
+
+Hunt it, skin it, butcher it, then sell it or make something of it
+(`docs/economy/wilderness-trades.md`, `help skin`, `help butcher`).
+
+- **`skin <corpse>`** takes the hide, pelt, fur, scales or chitin;
+  **`butcher <corpse>`** (or `carve`) takes the meat, bone, sinew, fat and
+  more; **`harvest <corpse>`** shows what is left, and **`harvest fang from
+  wolf`** takes one part with extra care for a better grade. You need a
+  knife; a cleaver gets bone and fat; a bone saw gets horn, antler, tusks,
+  fangs and claws. Skin before you butcher.
+- What comes off is graded crude to pristine. Your Dexterity, Strength and
+  Perception matter most, then your tools, then a little salvage skill.
+  Rare parts (fangs, glands, a bear's bile) are found only by a sharp eye.
+  An old carcass gives worse.
+- Every warm-blooded animal and most beasts now have hides and parts:
+  wolves, hounds, bears, boars, deer, cats, otters, horses, birds, snakes,
+  lizards, fish, insects and spiders. The pack-hide and predator pelts, the
+  apex claw and the heat-pit organ are cut from the carcass now rather than
+  dropped as loot.
+- Raw meat, organs and raw hides **spoil** after a day or a few of game
+  time. Cure, smoke or sell them. Shop-bought goods never spoil.
+- Merchants pay by grade and freshness. Selling several of the same thing
+  to a shop that does not normally stock it no longer pays more for the
+  second than the first.
+- Corwin the Tanner sells skinning knives, hide scrapers, salt and bark
+  liquor.
+- **Processing**: cure and tan hides into leather and cut it into strips;
+  twist sinew, horsehair or gut into bowstrings and cord; smoke meat, dry
+  jerky, roast fowl, render tallow, boil bone glue and steep bark liquor;
+  carve bone needles, arrowheads and fang necklaces; make wolf, bear, cat
+  and otter fur garments, fur-lined boots, a hide jerkin, a scale vest and
+  chitin bracers. Each fur lends its garment something of its animal.
+- Recipes can need a tool now, and a crafted item made with one, or from
+  graded materials, is graded too.
+
 ## 2026-10-03: Wilderness trades, phases 0 and 1
 
 Groundwork for hunting, butchery and lumberjacking as ways to play

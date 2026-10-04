@@ -392,3 +392,10 @@ sale under the mud lock; a caller that changes a living shop saves it.
 material grade before `EvaluateBuyRules` prices it, on both the stocked and
 the flat path. `CraftSupportCarpentry` is a valid craft support and vendor
 category.
+
+`EvaluateBuyRules` refuses rotten goods and scales spoiling ones by
+freshness. Items the shop does not authored-stock (no entry, or an entry with
+RestockQty 0) are priced by `WalkInBuyPrice`: flat value times BuyRatio, less
+`ShopWalkInDevaluePerUnit` per unit on hand, floored at PriceFloor. This
+replaced the scarcity curve for those entries, which priced the second unit
+of a walk-in good at about four times the first.

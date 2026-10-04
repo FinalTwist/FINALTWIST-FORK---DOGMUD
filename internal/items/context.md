@@ -1469,3 +1469,10 @@ sweep (`internal/baubles/sweep.go`) reads every live item through them.
   `ImprovisedTool` (one-handed stabbing or slashing weapons as crude knives,
   one-handed cleaving weapons as crude cleavers and axes).
   `ItemSpec.Validate` rejects an unknown tool type or tier.
+
+**spoilage.go** (wilderness trades): `ItemSpec.SpoilAfter` (a game-time
+period) puts harvested raw goods on a clock that starts at
+`Item.CraftedRound`. `Spoils`, `SpoilRound`, `IsSpoiled`, `Freshness` and
+`FreshnessValueMultiplier`. An unstamped instance (`CraftedRound` 0: shop
+stock, legacy items) never spoils. `SameStack` keeps spoiling items with
+different harvest rounds apart.

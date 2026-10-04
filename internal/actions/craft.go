@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
+	"github.com/GoMudEngine/GoMud/internal/gather"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -35,6 +36,10 @@ type CraftResult struct {
 	WrongStation bool
 	// MissingIngredients is true when the actor lacks one or more ingredients.
 	MissingIngredients bool
+	// MissingTool is true when the recipe needs a tool (RecipeSpec.Tool) the
+	// actor is not carrying; ToolNeeded names it for the message.
+	MissingTool bool
+	ToolNeeded  string
 	// ForeignComponent is true when the recipe requires self-crafted
 	// components (RequireOwnComponents) and a matching ingredient in the
 	// actor's pools was made by someone else (or has no maker at all).
@@ -199,6 +204,13 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 		return res
 	}
 
+	// ── Tool check (wilderness trades) ────────────────────────────────────────
+	if !ToolSatisfied(char, recipe) {
+		res.ToolNeeded = ToolName(recipe.Tool)
+		res.MissingTool = true
+		return res
+	}
+
 	// ── Ingredient check ──────────────────────────────────────────────────────
 	ok, missingTag := crafting.HasIngredients(char.Items, char.ComponentItems, recipe)
 	if !ok {
@@ -224,6 +236,11 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 
 	// ── Immediate completion (TimeRounds <= 0) ────────────────────────────────
 	if recipe.TimeRounds <= 0 {
+		// An instant recipe runs no contest, so its grade comes from its
+		// inputs and tool alone (gather.CraftGrade with no result). Read the
+		// inputs BEFORE they are consumed.
+		toolTier, _ := RecipeToolTier(char, recipe)
+		grade := gather.CraftGrade(nil, crafting.SelectIngredients(char.Items, char.ComponentItems, recipe), recipe.Tool != ``, toolTier)
 		// Provident Hands may preserve the materials entirely (efficient craft).
 		if !char.CraftMaterialsSaved() {
 			char.Items, char.ComponentItems = crafting.ConsumeIngredients(
@@ -231,6 +248,7 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 		}
 		for n := 0; n < recipe.OutputCount(); n++ {
 			newItem := items.New(recipe.Output.ItemId)
+			newItem.Quality = grade
 			newItem.CraftSkill = char.CraftQualityLevel(skillLevel) // Faithwrought quality lift
 			// Maker's mark — same policy as the async completion path
 			// (crafting.ShouldStampMakerName): components stamp regardless of
@@ -268,4 +286,33 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 
 	res.Initiated = true
 	return res
+}
+
+// ToolSatisfied reports whether char carries the tool a recipe needs (or the
+// recipe needs none). The one statement of the rule: InitiateCraft, the craft
+// list status and the ready/locked buckets all ask it.
+func ToolSatisfied(char *characters.Character, recipe *crafting.RecipeSpec) bool {
+	if recipe == nil || recipe.Tool == `` {
+		return true
+	}
+	_, ok := gather.BestTool(char, recipe.Tool)
+	return ok
+}
+
+// RecipeToolTier is the tier of the best tool char has for the recipe, and
+// whether the recipe needs one.
+func RecipeToolTier(char *characters.Character, recipe *crafting.RecipeSpec) (items.ToolTier, bool) {
+	if recipe == nil || recipe.Tool == `` {
+		return items.ToolTierNone, false
+	}
+	t, ok := gather.BestTool(char, recipe.Tool)
+	if !ok {
+		return items.ToolTierNone, true
+	}
+	return t.Tier, true
+}
+
+// ToolName is a tool type as a player reads it ("bone saw").
+func ToolName(t items.ToolType) string {
+	return strings.ReplaceAll(string(t), `_`, ` `)
 }

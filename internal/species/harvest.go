@@ -17,10 +17,19 @@ import (
 //
 // Tool defaults to knife when empty: every carcass job needs a blade.
 type HarvestEntry struct {
-	Item string         `yaml:"item"`
-	Qty  int            `yaml:"qty"`
-	Tool items.ToolType `yaml:"tool,omitempty"`
-	Rare bool           `yaml:"rare,omitempty"`
+	// Item is a component tag. ItemId, when set, names one exact item and
+	// wins over the tag: several hides share the `hide` tag so one tanning
+	// recipe takes them all, and a deer must still give a deer hide, not
+	// whichever hide is cheapest.
+	Item   string         `yaml:"item,omitempty"`
+	ItemId int            `yaml:"itemid,omitempty"`
+	Qty    int            `yaml:"qty"`
+	Tool   items.ToolType `yaml:"tool,omitempty"`
+	Rare   bool           `yaml:"rare,omitempty"`
+	// Chance is a rare entry's base chance to be noticed at all, before the
+	// gatherer's Perception scales it. 0 means Balance.GatherRareBaseChance.
+	// Ignored on entries that are not rare.
+	Chance float64 `yaml:"chance,omitempty"`
 }
 
 // ToolOrDefault is the entry's tool, or knife when none is authored.
@@ -88,17 +97,30 @@ func ScaleHarvestQty(qty int, size Size) int {
 	return n
 }
 
-// Validate checks every entry: a known material tag, a positive quantity and
-// a known tool type. tagExists is a callback so this package does not need
-// the item registry loaded (pass a func over items.FindSpecByComponentTag).
-func (h *HarvestTable) Validate(tagExists func(tag string) bool) error {
+// Key names the entry for matching and bookkeeping: its tag, or "#<id>" for
+// an entry authored by item id alone.
+func (e HarvestEntry) Key() string {
+	if e.Item != `` {
+		return e.Item
+	}
+	return fmt.Sprintf("#%d", e.ItemId)
+}
+
+// Validate checks every entry: a known material tag or item id, a positive
+// quantity, a known tool type and a sane chance. tagExists and itemExists are
+// callbacks so this package does not need the item registry loaded; either
+// may be nil to skip that check.
+func (h *HarvestTable) Validate(tagExists func(tag string) bool, itemExists func(itemId int) bool) error {
 	if h == nil {
 		return nil
 	}
 	for section, entries := range map[string][]HarvestEntry{`skin`: h.Skin, `butcher`: h.Butcher} {
 		for i, e := range entries {
-			if e.Item == `` {
-				return fmt.Errorf("harvest %s[%d]: no item tag", section, i)
+			if e.Item == `` && e.ItemId == 0 {
+				return fmt.Errorf("harvest %s[%d]: needs an item tag or an itemid", section, i)
+			}
+			if e.ItemId != 0 && itemExists != nil && !itemExists(e.ItemId) {
+				return fmt.Errorf("harvest %s[%d]: item %d does not exist", section, i, e.ItemId)
 			}
 			if e.Qty <= 0 {
 				return fmt.Errorf("harvest %s[%d] %q: qty must be positive, got %d", section, i, e.Item, e.Qty)
@@ -106,7 +128,10 @@ func (h *HarvestTable) Validate(tagExists func(tag string) bool) error {
 			if e.Tool != `` && !items.IsKnownToolType(e.Tool) {
 				return fmt.Errorf("harvest %s[%d] %q: unknown tool %q", section, i, e.Item, e.Tool)
 			}
-			if tagExists != nil && !tagExists(e.Item) {
+			if e.Chance < 0 || e.Chance > 1 {
+				return fmt.Errorf("harvest %s[%d] %q: chance must be 0..1, got %v", section, i, e.Item, e.Chance)
+			}
+			if e.ItemId == 0 && tagExists != nil && !tagExists(e.Item) {
 				return fmt.Errorf("harvest %s[%d]: no item carries component_tag %q", section, i, e.Item)
 			}
 		}
@@ -119,9 +144,9 @@ func (h *HarvestTable) Validate(tagExists func(tag string) bool) error {
 // are loaded, the same shape as ValidateSpeciesConditionIds. Panicking at boot
 // is the point: a harvest entry that silently yields nothing is the bug the
 // phase 0 corpse fix was cleaning up.
-func ValidateSpeciesHarvest(tagExists func(tag string) bool) {
+func ValidateSpeciesHarvest(tagExists func(tag string) bool, itemExists func(itemId int) bool) {
 	for _, sp := range allSpecies {
-		if err := sp.Harvest.Validate(tagExists); err != nil {
+		if err := sp.Harvest.Validate(tagExists, itemExists); err != nil {
 			panic(fmt.Sprintf("species %q (id %d): %v", sp.Name, sp.SpeciesId, err))
 		}
 	}

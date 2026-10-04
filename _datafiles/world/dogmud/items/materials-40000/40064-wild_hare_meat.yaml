@@ -18,3 +18,4 @@ vendor_categories:
 - alchemy
 - cooking
 material_tier: 1
+spoil_after: 2 days

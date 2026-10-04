@@ -188,3 +188,27 @@ func TestRoll_UsesCarriedTool(t *testing.T) {
 		t.Errorf("should skin with the carried steel knife, got %+v", res)
 	}
 }
+
+func TestCraftGrade(t *testing.T) {
+	won := func(s float64) *contest.Result { r := win(s); return &r }
+
+	if g := CraftGrade(won(3), []items.Item{{ItemId: 1}}, false, items.ToolTierNone); g != items.QualityNone {
+		t.Errorf("ungraded inputs and no tool leave the output ungraded, got %v", g)
+	}
+	if g := CraftGrade(won(3), []items.Item{{ItemId: 1, Quality: items.QualityCrude}, {ItemId: 2, Quality: items.QualityPristine}}, false, items.ToolTierNone); g != items.QualityStandard {
+		t.Errorf("capped one above the worst input (crude), got %v", g)
+	}
+	if g := CraftGrade(won(3), []items.Item{{ItemId: 1, Quality: items.QualityPristine}}, true, items.ToolTierIron); g != items.QualityFine {
+		t.Errorf("an iron tool caps at fine, got %v", g)
+	}
+	if g := CraftGrade(won(0.2), nil, true, items.ToolTierMasterwork); g != items.QualityStandard {
+		t.Errorf("a narrow win with a tool is standard, got %v", g)
+	}
+	if g := CraftGrade(nil, []items.Item{{ItemId: 1, Quality: items.QualityFine}}, false, items.ToolTierNone); g != items.QualityStandard {
+		t.Errorf("an instant recipe starts at standard, got %v", g)
+	}
+	floored := contest.Result{Contested: true, Success: true, Floored: true, Margin: 1}
+	if g := CraftGrade(&floored, nil, true, items.ToolTierSteel); g != items.QualityCrude {
+		t.Errorf("a floor-granted win is crude, got %v", g)
+	}
+}

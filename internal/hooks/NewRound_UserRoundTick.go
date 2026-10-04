@@ -16,6 +16,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/gather"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -510,20 +511,38 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					}
 				}
 
+				// Wilderness trades: harvested raw goods rot on their clock.
+				sweepSpoiledGoods(user)
+
 				// Stage 13.1: Crafting/Salvaging tick — advance or complete via Activity machine.
 				if user.Character.Activity != nil {
 					switch user.Character.Activity.State() {
 					case activity.Salvaging:
 						// Salvaging tick — advance round via Activity machine.
 						sd, complete := user.Character.Activity.AdvanceSalvagingRound()
+						isCarcassJob := strings.HasPrefix(sd.ItemUuid, actions.HarvestActivityPrefix)
 						if !complete {
+							progress := `You continue salvaging...`
+							if isCarcassJob {
+								progress = `You keep working at the carcass...`
+							}
 							user.SendText(messaging.CategorySystem, fmt.Sprintf(
-								`<ansi fg="yellow">You continue salvaging... (%d/%d)</ansi>`,
-								sd.RoundsComplete, sd.RoundsTotal))
+								`<ansi fg="yellow">%s (%d/%d)</ansi>`,
+								progress, sd.RoundsComplete, sd.RoundsTotal))
 						} else {
 							// Determine salvage type from ItemUuid prefix.
 							const corpsePrefix = "corpse:"
-							if strings.HasPrefix(sd.ItemUuid, corpsePrefix) {
+							if isCarcassJob {
+								// Wilderness trades: skin, butcher or harvest.
+								_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
+									Trigger: activity.TriggerSalvageComplete,
+									Actor:   user.Character.Activity.Self(),
+								})
+								actions.ResolveHarvestJob(&actions.UserActor{
+									User: user,
+									Room: rooms.LoadRoom(user.Character.RoomId),
+								}, strings.TrimPrefix(sd.ItemUuid, actions.HarvestActivityPrefix))
+							} else if strings.HasPrefix(sd.ItemUuid, corpsePrefix) {
 								mobIdStr := strings.TrimPrefix(sd.ItemUuid, corpsePrefix)
 								_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
 									Trigger: activity.TriggerSalvageComplete,
@@ -578,7 +597,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								craftScore *= messaging.SightMult(user.Character, room)
 								craftDiff := crafting.CraftDifficulty(
 									recipe.SkillMinimum, crafting.DearestMaterialTier(consumed))
-								won := crafting.RunCraftContest(craftScore, craftDiff).Success
+								craftResult := crafting.RunCraftContest(craftScore, craftDiff)
+								won := craftResult.Success
+								// Wilderness trades: graded inputs or a tool
+								// give the output a grade (gather.CraftGrade;
+								// ungraded otherwise). Read from the same
+								// selection the roll priced, before it is spent.
+								toolTier, recipeHasTool := actions.RecipeToolTier(user.Character, recipe)
+								craftGrade := gather.CraftGrade(&craftResult, consumed, recipeHasTool, toolTier)
 
 								// U10b-1 Task 16: awarded HERE, above the branch,
 								// so a FAILED craft trains at
@@ -651,6 +677,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 										// the recipe makes (output.quantity).
 										for n := 0; n < recipe.OutputCount(); n++ {
 											newItem := items.New(recipe.Output.ItemId)
+											newItem.Quality = craftGrade
 											newItem.CraftedRound = util.GetRoundCount()
 											newItem.CraftSkill = user.Character.CraftQualityLevel(user.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))) // Faithwrought quality lift
 											if bottleAgingMult > 0 {

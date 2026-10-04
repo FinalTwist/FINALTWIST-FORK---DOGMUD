@@ -116,6 +116,9 @@ help:
       - disenchant
       - forage
       - salvage
+      - skin
+      - butcher
+      - harvest
     information:
       - biome
       - exits
@@ -263,7 +266,11 @@ help-aliases:
   blacksmithing:    [blacksmith, smith, smithing, forge, metalwork]
   alchemy:          [alchemist, potion, potions, brewing, brew, herbalism]
   toxicity:         [toxic, poison, poisoned, tolerance]
-  foraging:         [forage, gather, gathering, harvest, harvesting]
+  foraging:         [forage, gather, gathering]
+  harvest:          [harvesting, carcass, corpse parts, parts]
+  skin:             [skinning, pelt, pelts, hides, fur, furs]
+  butcher:          [butchering, butchery, meat, bone, carve, carving]
+  spoilage:         [spoil, spoiled, rot, rotten, freshness, fresh]
   tailoring:        [tailor, sewing, weaving, clothwork]
   cooking:          [cook, baking, food, meals]
   jewelcrafting:    [jeweler, jewelry, gemwork, gemcutting, jewel]
@@ -357,6 +364,7 @@ command-aliases:
   'rank back':        ['backrank']
   'rank front':       ['frontrank']
   defuse:             ['disarm']
+  butcher:            ['carve', 'dress']
   suggest:            ['idea']
   'help about':       ['about']
   'set screenreader': ['screenreader']

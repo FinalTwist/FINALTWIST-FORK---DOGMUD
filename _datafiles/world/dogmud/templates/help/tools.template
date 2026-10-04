@@ -29,6 +29,11 @@ A one-handed dagger or sword will do as a crude knife, and a hatchet as a
 crude axe or cleaver, but a real tool is far better. Smiths forge them at a
 forge. You only need to carry the tool; the best one you have is used.
 
+Some recipes need a tool too: a scraper to cure a hide, a knife to cut
+leather, a carving knife to work bone. A recipe made with a tool, or from
+graded materials, comes out graded itself, and the tool caps that grade.
+Corwin the Tanner in New Plymouth sells skinning knives and scrapers.
+
 <ansi fg="yellow">See Also:</ansi>
 
-  <ansi fg="command">help carpentry</ansi>, <ansi fg="command">help blacksmithing</ansi>, <ansi fg="command">help salvage</ansi>
+  <ansi fg="command">help skin</ansi>, <ansi fg="command">help butcher</ansi>, <ansi fg="command">help carpentry</ansi>, <ansi fg="command">help blacksmithing</ansi>

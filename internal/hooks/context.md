@@ -2235,3 +2235,11 @@ Conventions:
 - Behaviour-tree combat events fire **before** the legacy AI.
 - A handler returns `events.Continue` unless it genuinely means to stop the
   event reaching later listeners.
+
+## Wilderness trades
+
+`NewRound_UserRoundTick.go` hands a finished Salvaging activity keyed
+`actions.HarvestActivityPrefix` to `actions.ResolveHarvestJob`, grades crafted
+outputs with `gather.CraftGrade`, and calls `sweepSpoiledGoods`
+(**spoilage.go**), which every ten rounds throws out a player's rotten
+harvested goods.

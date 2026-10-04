@@ -703,3 +703,13 @@ words it recognises only in some places. `TryCommand` consults them after
 registered commands, emotes and spells miss, before the `go` attempt, and
 not for a dead or input-blocked player. `modules/rifts` uses one for lens
 places (`1c`) at a rift's lens table.
+
+## Carcass commands (wilderness trades)
+
+**carcass.go**: `Skin`, `Butcher` and `Harvest` (registered as `skin`,
+`butcher`, `harvest`; not in combat). They validate the corpse (mob, loot
+rights, a harvest table), the knife and sight, then start the Salvaging
+activity for `actions.ResolveHarvestJob`. `harvest <corpse>` lists what is
+left; `harvest <part> from <corpse>` takes one part. `salvage <corpse>`
+redirects to them when the carcass has a harvest table. `craft` reports a
+missing recipe tool, and the list shows it.

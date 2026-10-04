@@ -13,8 +13,11 @@ func HarvestTagExists(tag string) bool {
 	return items.FindSpecByComponentTag(tag) != nil
 }
 
-// harvestTagExists is the unexported alias used by ValidateMobSpec.
-var harvestTagExists = HarvestTagExists
+// HarvestItemExists reports whether an item id is defined. It is the
+// itemExists callback for species.HarvestTable.Validate.
+func HarvestItemExists(itemId int) bool {
+	return items.GetItemSpec(itemId) != nil
+}
 
 // ResolveHarvest is what this mob's carcass gives: its species table with the
 // mob's own harvest overriding it per section (species.MergeHarvest). A mob of
@@ -37,7 +40,7 @@ func ValidateMobHarvest() {
 	mobsMu.RLock()
 	defer mobsMu.RUnlock()
 	for id, m := range mobs {
-		if err := m.Harvest.Validate(HarvestTagExists); err != nil {
+		if err := m.Harvest.Validate(HarvestTagExists, HarvestItemExists); err != nil {
 			panic(fmt.Sprintf("mob %d (%s): %v", id, m.Character.Name, err))
 		}
 	}

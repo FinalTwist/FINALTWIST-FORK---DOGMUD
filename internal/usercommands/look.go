@@ -447,6 +447,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				descTxt, _ := templates.Process("character/description-corpse", &corpse.Character, user.UserId)
 				user.SendText(messaging.CategoryRoomDescription, descTxt)
 			}
+			if note := corpse.ProcessedNote(); note != `` {
+				user.SendText(messaging.CategoryRoomDescription, note)
+			}
 
 			// Corpse-loot redesign (2026-07-07): show what can be looted,
 			// mirroring the room-container listing.

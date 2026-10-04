@@ -1890,3 +1890,22 @@ On success the player is revealed through the Awareness machine and told
 ("... turns, and its attention settles on you."). True for a player not
 hidden. Used by the rift hunter, which stays put and keeps looking. The
 area drain (`ExecuteDrainArea`) also skips hidden players.
+
+## Carcass work (wilderness trades)
+
+**harvest.go**: `ResolveHarvest` / `ResolveHarvestJob` finish a `skin`,
+`butcher` or `harvest <part>` job started by the user commands (the Salvaging
+activity keyed `HarvestActivityPrefix` + `<section>:<mobId>`, with
+`HarvestRoundKey` and `HarvestPartKey` in MiscData). Helpers: `CarcassTable`
+(merged species and mob table plus body size), `SectionEntries`,
+`FindHarvestPart`, `HarvestEntrySpec`, `HarvestEntryName`,
+`CarcassDifficulty` (mob statpool and size, less `GatherCarcassEase`),
+`CarcassRounds`, `JobForSection`, `StatBonusUnits`, `SpoiledItems`, and the
+pure `planHarvest` (tool gate per entry, rare parts on Perception, size and
+strength quantities, per-entry tool cap, stale-carcass penalties).
+`HarvestResult` is transient (listed in the bauble sweep guard).
+
+**craft.go**: `ToolSatisfied`, `RecipeToolTier` and `ToolName` are the one
+statement of the recipe tool rule; `InitiateCraft` returns `MissingTool` /
+`ToolNeeded`, and the instant path grades its output with
+`gather.CraftGrade` read before the ingredients are consumed.

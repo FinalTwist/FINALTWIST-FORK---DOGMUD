@@ -39,6 +39,7 @@ type RecipeSpec struct {
 	RequireOwnComponents bool               `yaml:"require_own_components,omitempty"` // crafted-component ingredients must carry the crafter's MakerName
 	LearnOnly            bool               `yaml:"learn_only,omitempty"`             // excluded from craft-discovery; taught only via quest learn_recipe (or admin learn)
 	Station              string             `yaml:"station"`                          // "" = no station required
+	Tool                 items.ToolType     `yaml:"tool,omitempty"`                   // wilderness trades: a tool the crafter must carry ("" = none); grades the output, capped by the tool's tier
 	TimeRounds           int                `yaml:"time_rounds"`
 	Ingredients          []RecipeIngredient `yaml:"ingredients"`
 	Output               RecipeOutput       `yaml:"output"`
@@ -97,6 +98,13 @@ func LoadRecipeFiles() {
 	}
 
 	allRecipes = tmpAll
+
+	// Every tool a recipe names must be a known tool type.
+	for _, r := range allRecipes {
+		if r.Tool != "" && !items.IsKnownToolType(r.Tool) {
+			panic(fmt.Sprintf("recipe %s: unknown tool %q (known: %v)", r.RecipeId, r.Tool, items.AllToolTypes))
+		}
+	}
 
 	// Validate alias uniqueness within the recipe namespace and ensure no alias
 	// collides with any RecipeId (panic on violation, mirroring the spell validator).

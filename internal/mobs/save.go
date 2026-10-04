@@ -153,7 +153,7 @@ func ValidateMobSpec(m *Mob) error {
 			return fmt.Errorf("loot_pool item %d does not exist", iid)
 		}
 	}
-	if err := m.Harvest.Validate(harvestTagExists); err != nil {
+	if err := m.Harvest.Validate(HarvestTagExists, HarvestItemExists); err != nil {
 		return err
 	}
 	for _, si := range m.Character.Shop {

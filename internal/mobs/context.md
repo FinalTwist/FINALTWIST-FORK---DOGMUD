@@ -1188,6 +1188,6 @@ Placing it in a room is the caller's.
 ## Harvest (wilderness trades)
 
 `Mob.Harvest` (`harvest:`) overrides the species harvest table per section.
-**harvest.go**: `HarvestTagExists`, `ResolveHarvest` (species table merged
+**harvest.go**: `HarvestTagExists`, `HarvestItemExists`, `ResolveHarvest` (species table merged
 with the mob's) and `ValidateMobHarvest`, called from main after mobs load.
 `ValidateMobSpec` also validates the table for builder saves.

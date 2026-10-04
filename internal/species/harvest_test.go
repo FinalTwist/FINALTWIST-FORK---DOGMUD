@@ -77,7 +77,7 @@ func TestScaleHarvestQty(t *testing.T) {
 func TestHarvestTable_Validate(t *testing.T) {
 	known := func(tag string) bool { return tag == "raw-meat" || tag == "bone" }
 	ok := &HarvestTable{Butcher: []HarvestEntry{{Item: "raw-meat", Qty: 1}, {Item: "bone", Qty: 2, Tool: items.ToolCleaver}}}
-	if err := ok.Validate(known); err != nil {
+	if err := ok.Validate(known, nil); err != nil {
 		t.Errorf("valid table rejected: %v", err)
 	}
 	bad := []*HarvestTable{
@@ -85,14 +85,15 @@ func TestHarvestTable_Validate(t *testing.T) {
 		{Skin: []HarvestEntry{{Item: "raw-meat", Qty: 0}}},
 		{Skin: []HarvestEntry{{Item: "raw-meat", Qty: 1, Tool: "spoon"}}},
 		{Skin: []HarvestEntry{{Item: "unicorn-horn", Qty: 1}}},
+		{Skin: []HarvestEntry{{Item: "raw-meat", Qty: 1, Rare: true, Chance: 1.5}}},
 	}
 	for i, h := range bad {
-		if err := h.Validate(known); err == nil {
+		if err := h.Validate(known, nil); err == nil {
 			t.Errorf("bad table %d accepted: %+v", i, h)
 		}
 	}
 	var nilTable *HarvestTable
-	if err := nilTable.Validate(known); err != nil {
+	if err := nilTable.Validate(known, nil); err != nil {
 		t.Error("a nil table is valid (it yields nothing)")
 	}
 }

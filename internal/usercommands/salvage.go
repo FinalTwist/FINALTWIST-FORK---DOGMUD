@@ -157,6 +157,16 @@ func startCorpseSalvage(user *users.UserRecord, corpse rooms.Corpse) (bool, erro
 		return true, nil
 	}
 
+	// Wilderness trades: a carcass with a harvest table is skinned and
+	// butchered, not salvaged. Salvage stays for bodies with no table
+	// (humanoids, whose cloth and leather come off their gear).
+	if table, _, ok := actions.CarcassTable(corpse); ok && !table.Empty() {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`A carcass is worked with a knife: try <ansi fg="command">skin %s</ansi> and <ansi fg="command">butcher %s</ansi>, or <ansi fg="command">harvest %s</ansi> to see what it holds.`,
+			strings.ToLower(corpse.Character.Name), strings.ToLower(corpse.Character.Name), strings.ToLower(corpse.Character.Name)))
+		return true, nil
+	}
+
 	returns := crafting.LookupCorpseSalvageForMob(mobSpec.Groups, mobSpec.Character.SpeciesId)
 	if len(returns) == 0 {
 		user.SendText(messaging.CategorySystem, `<ansi fg="red">There's nothing useful to recover here.</ansi>`)

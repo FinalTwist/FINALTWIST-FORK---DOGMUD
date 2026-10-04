@@ -12,9 +12,9 @@ the only new skill.
 |---|---|---|
 | 0 | Data fixes: species salvage fallback, forage biome fill, iron ore, dead-end recipes, trophy tags | shipped 2026-10-03 |
 | 1 | Foundations: item grades, tools, the gather roll, the carpentry skill, harvest tables, new stations, tool recipes | shipped 2026-10-03 |
-| 2 | Hunting: `skin`, `butcher`, `harvest`; corpse states; species tables and mob overrides; animal materials; spoilage; furrier and butcher merchants; the scarcity pricing fix | next |
-| 3 | Processing: scrape, cure, tan, dress; cord, glue, tallow, smoked meat; bone and horn carving; leather and fur garments; crafted grades | planned |
-| 4 | Lumberjacking: timber tables, `survey trees`, `chop`, logs, grove depletion and regrowth, lumber yard | planned |
+| 2 | Hunting: `skin`, `butcher`, `harvest`; corpse states; species tables and mob overrides; animal materials; spoilage; furrier and butcher merchants; the scarcity pricing fix | shipped 2026-10-03 |
+| 3 | Processing: scrape, cure, tan, dress; cord, glue, tallow, smoked meat; bone and horn carving; leather and fur garments; crafted grades | shipped 2026-10-03 |
+| 4 | Lumberjacking: timber tables, `survey trees`, `chop`, logs, grove depletion and regrowth, lumber yard | next |
 | 5 | Carpentry crafts: sawing, bows, arrows and bolts, staves, wooden shields, furniture for housing, bowyer | planned |
 | 6 | Forage revamp: categories, survey, seasons, room richness, tool-driven finds | planned |
 | 7 | Depth: `hunt` spawning, bundling, felling hazards, wanted species, bounties, caravans | planned |
@@ -61,3 +61,71 @@ the only new skill.
   tool, rare flag). `mobs.ResolveHarvest` merges a mob's table over its
   species per section. Both are validated at boot. No data is authored yet;
   phase 2 authors the tables and the commands that read them.
+
+## What phase 2 added (hunting)
+
+- **Commands** (`internal/usercommands/carcass.go`, `internal/actions/harvest.go`):
+  `skin <corpse>`, `butcher <corpse>` (alias `carve`), `harvest <corpse>`
+  (list what is left) and `harvest <part> from <corpse>` (one part, harder
+  roll, one grade better). Each is a timed job of 2, 4 or 6 rounds by body
+  size, shortened by the knife's speed, run on the Salvaging activity.
+  Needs a knife (any one-handed blade is a crude one), sight, no combat and
+  loot rights. `salvage <corpse>` points at them when the carcass has a table.
+- **The roll**: `gather.Roll` with Dexterity and Perception (skin) or
+  Strength and Dexterity (butcher), the knife, and a little Salvage skill,
+  against `GatherBaseDifficulty - GatherCarcassEase + statpool *
+  GatherStatPoolDifficulty + size`. A baseline gatherer with an iron knife
+  wins about half the time on a steppe wolf.
+- **Per entry**: a cleaver is needed for bone and fat, a bone saw for horn,
+  antler, tusk, fangs and claws; each entry is capped by its own tool's tier.
+  Rare parts (fangs, glands, organs) need a Perception roll. Size scales
+  quantities; Strength adds meat. A carcass past `CorpseStaleGradeAt` of its
+  decay gives one grade worse, past `CorpseMeatLostAt` no meat or organs.
+  Butchering before skinning ruins the hide; a botched job spends the section.
+- **Tables**: seventeen species carry a `harvest:` block. Mob overrides move
+  hand-authored loot onto the carcass: the pack hounds' pack-hide, the
+  Cascade Pass and Eastern Highlands predators' thick pelt, the Pass-Apex
+  claw, the Blind Stalker and Pale Lurker heat-pit organ, venom sacs. The
+  roe deer, hares and feral boar no longer carry meat or sinew as loot. The
+  Pronghorn keeps its raw meat: quest 42 depends on it.
+- **Materials**: 29 new raw goods (40300 to 40328): pelts, hides, fur,
+  scales, chitin, bone, horn, antler, tusk, fang, claw, feathers, talons, fat,
+  gut, glands, bear bile, roe, ichor, horsehair, venison, fowl. Deer, boar and
+  horse hides share the `hide` tag; harvest entries name them by item id.
+- **Spoilage** (`items/spoilage.go`, `hooks/spoilage.go`): `spoil_after` on
+  raw meat, organs, fat, gut and raw hides; harvested goods are stamped and
+  rot on the game clock; rotten goods are thrown out; merchants pay less as
+  goods age and nothing for rotten ones.
+- **Merchants**: tailoring merchants buy hides and furs, cooks buy meat,
+  jewelers buy bone and horn, apothecaries glands. Corwin the Tanner (New
+  Plymouth) now sells the iron skinning knife, the hide scraper, salt and
+  bark liquor. The walk-in pricing fix stops a shop paying four times as much
+  for the second pelt as the first.
+
+## What phase 3 added (processing)
+
+- **Recipe tools**: `tool:` on a recipe; the crafter must carry it. Craft
+  lists show it and refuse without it.
+- **Crafted grades** (`gather.CraftGrade`): an output is graded when an input
+  is graded or the recipe has a tool; capped one above the worst input and by
+  the tool.
+- **Recipes** (23): cure-hide, tan-leather, cut-leather (leather strips are
+  now craftable from hides); bowstring, horsehair-bowstring, rawhide-cord;
+  wolf-fur-cloak, bear-fur-mantle, cat-pelt-hood, fine-fur-collar,
+  fur-lined-boots, hide-jerkin, scale-vest (tailoring); chitin-bracers,
+  carve-bone-needles, bone-arrowheads, fang-necklace (jewelcrafting);
+  smoke-meat, venison-jerky, roast-fowl, render-tallow, bone-glue,
+  bark-liquor (cooking).
+- **Hide traits** are carried by the garments: wolf gives Perception, bear
+  Vitality, cat Skullduggery, fine fur Charisma, scales Dexterity.
+- **Processed goods** (40350 to 40357): cured hide, leather hide, bowstring,
+  rawhide cord, bone glue, tallow, bark liquor, bone arrowheads. Foods
+  30069 to 30071; garments 20104 to 20112.
+
+## Deferred
+
+- The kill-damage penalty (fire, acid or overkill spoiling a hide) needs the
+  killing blow recorded on the corpse; not done.
+- NPC salvagers and the companion's butcher pastime still use corpse
+  salvage, not skin and butcher.
+- A shop resells bought goods ungraded.

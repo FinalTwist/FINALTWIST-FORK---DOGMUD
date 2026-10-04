@@ -77,18 +77,33 @@ func EvaluateBuyRules(
 	// The material grade scales the base value before either path: a pristine
 	// pelt is worth four standard ones whether or not the shop stocks pelts.
 	// Ungraded items (everything that predates grading) scale by 1.0.
+	//
+	// Raw goods on a spoilage clock: rotten ones are not bought at all, and a
+	// fresh one pays full price sliding to half as it nears spoiling.
+	now := util.GetRoundCount()
+	if item.IsSpoiled(now) {
+		return BuyOffer{}
+	}
 	value := GradedValue(item)
+	if item.Spoils() {
+		value = int(math.Ceil(float64(value) * item.FreshnessValueMultiplier(now)))
+	}
 
 	var price int
 	entry := shopInv.GetStock(spec.ItemId)
-	if entry != nil {
+	if entry != nil && entry.RestockQty > 0 {
 		price = CalcBuyPrice(value, entry.Current, PricingBaseline(entry, cfg), cfg)
 	} else {
-		flat := int(math.Ceil(float64(value) * cfg.BuyRatio))
-		if flat < 1 {
-			flat = 1
+		// Walk-in goods: the shop does not authored-stock this item, though it
+		// may be holding some it bought or made (an entry with RestockQty 0).
+		// These used to fall onto the scarcity curve once the first unit was
+		// sold, whose baseline of 3 priced the SECOND unit at about four times
+		// the first. Now they stay flat, sliding gently per unit on hand.
+		current := 0
+		if entry != nil {
+			current = entry.Current
 		}
-		price = flat
+		price = WalkInBuyPrice(value, current, cfg)
 	}
 
 	// Gold-reserve gate.
@@ -165,4 +180,21 @@ func GradedValue(item items.Item) int {
 		v = 1
 	}
 	return v
+}
+
+// WalkInBuyPrice is what a shop pays for an item it does not authored-stock:
+// value * BuyRatio, less Balance.ShopWalkInDevaluePerUnit for each unit it
+// already holds, never below PriceFloor of the flat price and never below 1.
+// Rounded up, as every sell price is.
+func WalkInBuyPrice(value int, current int, cfg PricingConfig) int {
+	per := float64(configs.GetBalanceConfig().ShopWalkInDevaluePerUnit)
+	mult := 1.0 - per*float64(current)
+	if mult < cfg.PriceFloor {
+		mult = cfg.PriceFloor
+	}
+	price := int(math.Ceil(float64(value) * cfg.BuyRatio * mult))
+	if price < 1 {
+		price = 1
+	}
+	return price
 }

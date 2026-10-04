@@ -48,3 +48,12 @@ The roll leans on the gatherer's body and tool, not their skill:
 `gather_test.go` pins the grade ladder, the tool caps, floored outcomes,
 that stats and tools outweigh skill, tool selection (tier, improvised,
 grade nudges) and the missing-tool refusal.
+
+## Crafted grades
+
+`CraftGrade(cr, consumed, recipeHasTool, toolTier)` grades a crafted output:
+ungraded unless an input is graded or the recipe has a tool; standard plus
+one per `GatherGradeStepSigma` of margin (floored win crude, nil contest
+standard); capped one above the worst graded input and by the tool tier.
+Called from the multi-round craft completion in
+`hooks/NewRound_UserRoundTick.go` and the instant path in `actions/craft.go`.
