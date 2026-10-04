@@ -218,6 +218,26 @@ the only new skill.
 - **Rot on the floor**: `rooms.removeSpoiledGoods` removes spoiled raw goods
   lying in a room or its stash each round tick.
 
+## Hunter's gear (after the review)
+
+Rare and trophy parts feed top-tier recipes, so a better tool pays off in
+better gear and not only in coin. `TestToolLadderContent` checks that every
+trophy part and the bone-saw rares (antler, tusk, claw, talons) are an
+ingredient somewhere.
+
+- Jewelcrafting (jeweler bench, carving knife): `claw-bracelet` (14, 20114),
+  `talon-ring` (16, 20115), `antler-amulet` (18, 20116), `tusk-armlet` (24,
+  20117); `tuskbound-torc` (42, 20118, trophy tusks), `antler-circlet` (45,
+  20119, a head piece, trophy antlers), `hunt-kings-pendant` (55, 20120, both
+  trophies).
+- Blacksmithing (forge): `antler-hilt-hunting-sword` (28, 10071);
+  `tusk-knuckle-gauntlets` (48, 20122), `crucible-plate-helm` (50, 20121,
+  great bear pelt), `stag-hilted-crucible-blade` (52, 10072, trophy antlers).
+- Tailoring (loom, scraper): `prime-wolf-cloak` (35, 20123) and
+  `great-bearskin-cloak` (55, 20124).
+- Values sit at roughly 1.4 times the materials' value, above the stat-implied
+  value (`tools/item_value_audit.py` flags them as pinnacle pieces).
+
 ## Deferred
 
 - The kill-damage penalty (fire, acid or overkill spoiling a hide) needs the
@@ -231,3 +251,6 @@ the only new skill.
 - No Thornwall bowyer or lumber merchant yet, though Thornwall now has a
   woodworking bench.
 - Felling hazards and the `hunt` command are phase 7.
+- Still unused: flight feathers, musk gland, silk gland and bear bile (no
+  recipe), and the trowel tool (no item). Yew and black walnut share their
+  tags with ash and oak, so a yew bow is no better than an ash one.

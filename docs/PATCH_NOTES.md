@@ -1,5 +1,22 @@
 # DOGMud Patch Notes
 
+## 2026-10-04: Hunter's gear: rare parts in jewelry, smithing and tailoring
+
+The rare parts you take off a carcass now go into some of the best gear in
+the game, and the very best needs trophies only a good tool takes whole.
+
+- **Jewelcrafting**: claw bracelet, talon ring, carved antler amulet and tusk
+  armlet (skill 14 to 24, from claws, talons, antler and tusks a bone saw
+  takes); the tuskbound torc, the antler circlet and the Hunt-King's Pendant
+  (skill 42 to 55) need trophy tusks and antlers, which only a steel bone saw
+  or better takes whole.
+- **Blacksmithing**: the antler-hilt hunting sword (skill 28); and from
+  crucible steel, tusk-knuckle gauntlets (48, trophy tusks), the crucible
+  plate helm (50, lined with a great bear pelt, which only a masterwork knife
+  takes) and the stag-hilted crucible blade (52, trophy antlers).
+- **Tailoring**: the prime wolf cloak (35, prime wolf pelts: steel knife) and
+  the great bearskin cloak (55, a great bear pelt: masterwork knife).
+
 ## 2026-10-04: Wilderness trades review: tools, trappers and trophies
 
 - **Carpentry is now woodwork.** Your rank carries over automatically, and

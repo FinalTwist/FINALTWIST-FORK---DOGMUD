@@ -298,6 +298,26 @@ func TestToolLadderContent(t *testing.T) {
 		}
 	}
 
+	// Every trophy part (taken only with a steel or masterwork tool) and every
+	// rare carcass part a bone saw takes feeds at least one recipe, so the
+	// better tool pays off in better gear, not only in coin.
+	usedTags := map[string]bool{}
+	for _, r := range crafting.GetAll() {
+		for _, ing := range r.Ingredients {
+			usedTags[ing.ItemTag] = true
+		}
+	}
+	for _, id := range []int{40255, 40256, 40257, 40258, 40312, 40313, 40315, 40318} {
+		spec := items.GetItemSpec(id)
+		if spec == nil {
+			t.Errorf("rare part %d is missing", id)
+			continue
+		}
+		if !usedTags[spec.ComponentTag] {
+			t.Errorf("%s (%s) is in no recipe", spec.Name, spec.ComponentTag)
+		}
+	}
+
 	// The field merchants: hunting camps, trappers and lumber camps.
 	for _, id := range []int{9137, 9840, 9841, 9536, 328, 9337, 9399} {
 		m, ok := templates[id]

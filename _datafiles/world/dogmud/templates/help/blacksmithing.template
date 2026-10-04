@@ -36,7 +36,12 @@ knife works like steel, a crude steel one like iron.
   <ansi fg="yellow">Masterwork</ansi>  Skill 45-55  <ansi fg="command">crucible-steel</ansi> (skill 40: steel, basalt-iron
               ore and coal dust) and an <ansi fg="command">ironwood-haft</ansi> (woodwork 35)
 
-Merchants buy forged tools for scrap but never resell them. See
+Merchants buy forged tools for scrap but never resell them.
+
+The hunter's smithing: <ansi fg="command">antler-hilt-hunting-sword</ansi> (28) takes an antler grip;
+the best crucible steel pieces need trophies only good tools take whole:
+<ansi fg="command">tusk-knuckle-gauntlets</ansi> (48, trophy tusks), <ansi fg="command">crucible-plate-helm</ansi> (50, a
+great bear pelt) and <ansi fg="command">stag-hilted-crucible-blade</ansi> (52, trophy antlers). See
 <ansi fg="command">help tools</ansi> for what each tier does.
 
 <ansi fg="yellow">━━━ Skill Progression ━━━</ansi>
