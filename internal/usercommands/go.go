@@ -92,11 +92,16 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 	if user.Character.Activity != nil && !user.Character.Activity.IsFree() {
 		switch user.Character.Activity.State() {
 		case activity.Crafting:
+			// Wilderness trades review: walking away ruins the work and
+			// its materials.
+			if cd, ok := user.Character.Activity.CraftingData(); ok {
+				actions.AbandonCraft(user.Character, cd.RecipeId)
+			}
 			_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
 				Trigger: activity.TriggerMovementInterrupt,
 				Actor:   state.ActorRef{UserId: user.UserId},
 			})
-			user.SendText(messaging.CategorySystem, `<ansi fg="red">Your movement interrupts your crafting.</ansi>`)
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">You walk away from your crafting, and the half-worked materials are ruined.</ansi>`)
 		case activity.Salvaging:
 			_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
 				Trigger: activity.TriggerMovementInterrupt,

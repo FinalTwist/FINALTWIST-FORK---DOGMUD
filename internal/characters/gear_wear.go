@@ -21,30 +21,63 @@ func chance(p float64) bool {
 	return p > 0 && rand.Float64() < p
 }
 
-// CritWearWeapon rolls Balance.GearCritWearChance for the weapon that just
-// landed a critical hit and wears it one point. Wielding two weapons, either
-// may take it. Bows and other shooters are skipped (they wear per shot). It returns the weapon's
-// name and whether that wear broke it; name is "" when nothing wore.
-func (c *Character) CritWearWeapon() (name string, broke bool) {
-	if c == nil || !chance(float64(configs.GetBalanceConfig().GearCritWearChance)) {
+// CritWearStriker rolls Balance.GearCritWearChance for the item that just
+// landed a critical hit and wears it one point: the weapon that swung, or the
+// shield of a shield bash. strike points into this character's equipment;
+// nil (a kick, a bite, a bare fist) wears nothing. Bows and other shooters
+// are skipped (they wear per shot). It returns the item's name and whether
+// that wear broke it; name is "" when nothing wore.
+func (c *Character) CritWearStriker(strike *items.Item) (name string, broke bool) {
+	if c == nil || strike == nil || strike.ItemId < 1 || strike.IsBroken() {
 		return ``, false
 	}
-	var picks []*items.Item
-	for _, p := range []*items.Item{&c.Equipment.Weapon, &c.Equipment.Offhand} {
+	spec := strike.GetRawSpec()
+	if items.IsShooter(spec) || (spec.Type != items.Weapon && !items.IsWearableGear(spec)) {
+		return ``, false
+	}
+	if !chance(float64(configs.GetBalanceConfig().GearCritWearChance)) {
+		return ``, false
+	}
+	return strike.NameSimple(), strike.AddWear(1)
+}
+
+// EquippedItemPtr finds the equipped item matching itm (same instance) and
+// returns a pointer into the equipment, or nil.
+func (c *Character) EquippedItemPtr(itm items.Item) *items.Item {
+	if c == nil || itm.ItemId < 1 {
+		return nil
+	}
+	for _, p := range c.Equipment.GetAllItemPtrs() {
+		if p.ItemId > 0 && p.Equals(itm) {
+			return p
+		}
+	}
+	return nil
+}
+
+// WieldedWeaponPtr is the main-hand weapon, or nil when the hand is empty.
+func (c *Character) WieldedWeaponPtr() *items.Item {
+	if c == nil || c.Equipment.Weapon.ItemId < 1 {
+		return nil
+	}
+	return &c.Equipment.Weapon
+}
+
+// ShieldPtr is the equipped shield (an offhand piece that blocks), or nil.
+func (c *Character) ShieldPtr() *items.Item {
+	if c == nil {
+		return nil
+	}
+	for _, p := range c.Equipment.GetAllItemPtrs() {
 		if p.ItemId < 1 {
 			continue
 		}
 		spec := p.GetRawSpec()
-		if spec.Type != items.Weapon || items.IsShooter(spec) || p.IsBroken() {
-			continue
+		if spec.Type == items.Offhand && (spec.PhysicalMitigation > 0 || spec.Subtype == items.Wearable) {
+			return p
 		}
-		picks = append(picks, p)
 	}
-	if len(picks) == 0 {
-		return ``, false
-	}
-	w := picks[rand.IntN(len(picks))]
-	return w.NameSimple(), w.AddWear(1)
+	return nil
 }
 
 // CritWearArmor rolls Balance.GearArmorCritWearChance for a critical hit just

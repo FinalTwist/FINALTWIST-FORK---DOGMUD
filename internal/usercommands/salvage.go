@@ -191,6 +191,7 @@ func startCorpseSalvage(user *users.UserRecord, corpse rooms.Corpse) (bool, erro
 	corpseData := activity.SalvagingData{
 		ItemUuid:    fmt.Sprintf("corpse:%d", corpse.MobId),
 		RoundsTotal: rounds,
+		RoomId:      user.Character.RoomId,
 	}
 	if err := user.Character.Activity.TransitionToSalvaging(
 		corpseData,

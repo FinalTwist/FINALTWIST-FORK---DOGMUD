@@ -4,6 +4,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/economy"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -143,6 +144,12 @@ type ShopInventory struct {
 	// still depleted. Cleared when the item refills (event pushed to
 	// StockEvents). Items not present here are not currently depleted.
 	CurrentDepletion map[int]uint64 `yaml:"current_depletion,omitempty"`
+
+	// Scrap counts goods the shop bought but never shelves (forged tools,
+	// broken and badly worn gear), per item id, so what it pays for them
+	// slides per unit like any walk-in good. Each count wears off one unit
+	// per Balance.ShopScrapDecayRounds (wilderness trades review).
+	Scrap map[int]ScrapCount `yaml:"scrap,omitempty"`
 
 	// Location fields (not persisted — set at registration time for save path)
 	Zone   string `yaml:"-"`
@@ -432,4 +439,44 @@ func (si *ShopInventory) RestockTier(rarityTier int) bool {
 // the given reserve floor.
 func (si *ShopInventory) CanAfford(amount int, reserveFloor int) bool {
 	return si.Gold-amount >= reserveFloor
+}
+
+// ScrapCount is a shop's recent scrap buys of one item: Count units, as of
+// round Round.
+type ScrapCount struct {
+	Count int    `yaml:"count"`
+	Round uint64 `yaml:"round"`
+}
+
+// ScrapHeld is how many recent scrap buys of itemId still weigh on the price
+// at round now: the count, less one per Balance.ShopScrapDecayRounds since it
+// was last added to.
+func (si *ShopInventory) ScrapHeld(itemId int, now uint64) int {
+	if si == nil || si.Scrap == nil {
+		return 0
+	}
+	sc, ok := si.Scrap[itemId]
+	if !ok {
+		return 0
+	}
+	n := sc.Count
+	if rate := uint64(configs.GetBalanceConfig().ShopScrapDecayRounds); rate > 0 && now > sc.Round {
+		n -= int((now - sc.Round) / rate)
+	}
+	if n < 0 {
+		n = 0
+	}
+	return n
+}
+
+// AddScrap records one scrap buy of itemId at round now.
+func (si *ShopInventory) AddScrap(itemId int, now uint64) {
+	if si == nil {
+		return
+	}
+	n := si.ScrapHeld(itemId, now) + 1
+	if si.Scrap == nil {
+		si.Scrap = map[int]ScrapCount{}
+	}
+	si.Scrap[itemId] = ScrapCount{Count: n, Round: now}
 }

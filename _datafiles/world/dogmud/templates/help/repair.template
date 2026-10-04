@@ -15,7 +15,8 @@ Wear is slow. Well-made gear lasts longer: a pristine piece twice as long as
 a standard one. A piece shows <ansi fg="item-quality">(worn)</ansi> and then <ansi fg="item-quality">(badly worn)</ansi>, and works a
 little worse as it goes. When it shows <ansi fg="red">(broken)</ansi> a weapon hits feebly,
 armour barely protects, and a tool cannot be used at all, until it is mended.
-A merchant pays less for worn gear.
+A merchant pays less for worn gear, and buys broken or badly worn gear
+only as scrap.
 
 <ansi fg="yellow">━━━ Who mends what ━━━</ansi>
 

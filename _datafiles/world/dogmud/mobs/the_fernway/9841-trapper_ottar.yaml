@@ -43,6 +43,10 @@ character:
     - itemid: 10062   # camp hatchet
     - itemid: 40243   # flint scraper
     - itemid: 40244   # flint sickle
+    # Fletching supplies for archers (review): feathers and arrowheads.
+    - itemid: 40316   # feathers
+    - itemid: 40421   # iron arrowheads
+    - itemid: 40357   # bone arrowheads
   stats:
     perception:
       base: 108

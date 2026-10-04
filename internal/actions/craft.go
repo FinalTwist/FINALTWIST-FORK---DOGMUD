@@ -273,6 +273,7 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 	craftData := activity.CraftingData{
 		RecipeId:    recipe.RecipeId,
 		RoundsTotal: recipe.TimeRounds,
+		RoomId:      char.RoomId,
 	}
 	actorRef := state.ActorRef{
 		UserId:        actor.GetUserId(),
@@ -331,7 +332,10 @@ func RecipeGrade(char *characters.Character, recipe *crafting.RecipeSpec, cr *co
 			alwaysGraded = true
 		}
 	}
-	return gather.CraftGradeOutput(cr, consumed, hasTool, toolTier, alwaysGraded)
+	grade := gather.CraftGradeOutput(cr, consumed, hasTool, toolTier, alwaysGraded)
+	// An ungraded copy of a material the world grades (shop stock, which
+	// loses its grade) counts as standard for the input cap (review fix).
+	return capUngradedGradable(grade, consumed)
 }
 
 // CraftWood is the wood a crafted output inherits from what it was made of:
@@ -373,4 +377,25 @@ func WearRecipeTool(actor Actor, recipe *crafting.RecipeSpec) {
 // ToolName is a tool type as a player reads it ("bone saw").
 func ToolName(t items.ToolType) string {
 	return strings.ReplaceAll(string(t), `_`, ` `)
+}
+
+// AbandonCraft spends a craft's materials without making anything: the
+// crafter walked away from the work, or was carried off, before it was done
+// (wilderness trades review). The half-worked materials are ruined.
+func AbandonCraft(char *characters.Character, recipeId string) {
+	if char == nil {
+		return
+	}
+	recipe := crafting.GetRecipe(recipeId)
+	if recipe == nil {
+		return
+	}
+	char.Items, char.ComponentItems = crafting.ConsumeIngredients(char.Items, char.ComponentItems, recipe)
+}
+
+// JobLeftBehind reports whether an activity begun in startRoom must be given
+// up because the actor is now in a different room. startRoom 0 means the job
+// did not record one (any room will do).
+func JobLeftBehind(startRoom, currentRoom int) bool {
+	return startRoom != 0 && startRoom != currentRoom
 }

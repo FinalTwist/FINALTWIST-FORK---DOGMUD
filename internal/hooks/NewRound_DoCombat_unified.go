@@ -583,7 +583,7 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 	// Gear wear (wilderness trades): a critical hit this round may wear the
 	// attacker's weapon and one piece of the defender's armour.
 	if roundLandedCrit(res) {
-		gearWearOnCrit(atkChar, defChar)
+		gearWearOnMeleeCrit(atkChar, defChar, res)
 	}
 
 	// Crit message routing. Through the seam, so a reader who cannot see the

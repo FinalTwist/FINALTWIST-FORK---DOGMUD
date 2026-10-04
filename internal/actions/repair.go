@@ -100,7 +100,11 @@ func RepairCost(itm items.Item) int {
 	if f <= 0 {
 		return 0
 	}
-	cost := int(math.Ceil(float64(shops.GradedValue(itm)) * f * float64(configs.GetBalanceConfig().RepairCostRatio)))
+	ratio := float64(configs.GetBalanceConfig().RepairCostRatio)
+	if ratio <= 0 {
+		return 0 // RepairCostRatio 0: merchants mend for free
+	}
+	cost := int(math.Ceil(float64(shops.GradedValue(itm)) * f * ratio))
 	if cost < 1 {
 		cost = 1
 	}

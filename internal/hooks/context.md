@@ -2246,6 +2246,12 @@ harvested goods.
 A finished Salvaging activity keyed `actions.ChopActivityPrefix` goes to
 `actions.ResolveChop`.
 
-**gear_wear.go** (wilderness trades): sets `combat.OnCritLanded` and provides
-`gearWearOnCrit` (players only; tells a player when gear breaks) and
-`roundLandedCrit`, called from `dispatchCritAndMessaging` for melee rounds.
+**gear_wear.go** (wilderness trades): sets `combat.OnCritLanded` to
+`gearWearOnCrit` (wears the move's striking item) and provides
+`gearWearOnMeleeCrit` (wears each weapon whose swing crit, read from
+`WeaponHitInfo.Weapon`) and `roundLandedCrit`, called from
+`dispatchCritAndMessaging` for melee rounds. Players only; tells a player
+when gear breaks. The round tick in NewRound_UserRoundTick.go abandons a
+craft or salvage job whose `RoomId` is not the player's room
+(`actions.JobLeftBehind`; a craft's materials are spent by
+`actions.AbandonCraft`) and re-checks a craft's tool at completion.

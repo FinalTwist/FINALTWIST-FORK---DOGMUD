@@ -62,3 +62,48 @@ func TestEvaluateBuyRules_WalkInEntryUsesFlatSlope(t *testing.T) {
 		t.Errorf("second pelt paid %d, more than the first (%d)", second, first)
 	}
 }
+
+// Review fix: a shop must never pay more for a walk-in good than BuyRatio of
+// what it would charge for that same unit once it holds it, or a player buys
+// one back cheap and sells it again at a profit.
+func TestEvaluateBuyRules_WalkInNoBuyBackProfit(t *testing.T) {
+	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		500: {ItemId: 500, Name: "Wolf Pelt", Value: 200, Type: items.Object, IsComponent: true, VendorCategories: []string{"tailoring"}},
+	})
+	defer cleanup()
+	shop := &ShopInventory{Gold: 1000000, StartingGold: 1000000, CraftSupport: CraftSupportTailoring}
+	cfg := DefaultPricingConfig()
+	for held := 0; held < 19; held++ {
+		pays := EvaluateBuyRules(items.Item{ItemId: 500}, shop, "", false, cfg, nil).Price
+		entry := shop.GetStock(500)
+		charges := CalcSellPrice(200, held+1, PricingBaseline(entry, cfg), cfg)
+		if pays >= charges {
+			t.Fatalf("holding %d the shop pays %d but resells for %d", held, pays, charges)
+		}
+		shop.AddStock(500, 1)
+	}
+}
+
+// Review fix: goods a shop scraps (forged tools, broken gear) still slide in
+// price per recent unit, and the memory wears off with time.
+func TestScrapSlidesAndWearsOff(t *testing.T) {
+	cleanup := items.SeedItemsForTest(map[int]*items.ItemSpec{
+		501: {ItemId: 501, Name: "Steel Pick", Value: 200, Type: items.Object, VendorCategories: []string{"blacksmithing"}},
+	})
+	defer cleanup()
+	shop := &ShopInventory{Gold: 1000000, StartingGold: 1000000, CraftSupport: CraftSupportBlacksmithing}
+	cfg := DefaultPricingConfig()
+	first := EvaluateBuyRules(items.Item{ItemId: 501}, shop, "", false, cfg, nil).Price
+	for i := 0; i < 10; i++ {
+		shop.AddScrap(501, 0)
+	}
+	if got := shop.ScrapHeld(501, 0); got != 10 {
+		t.Fatalf("ten scrap buys held, got %d", got)
+	}
+	if later := EvaluateBuyRules(items.Item{ItemId: 501}, shop, "", false, cfg, nil).Price; first == 0 || later >= first {
+		t.Errorf("the eleventh pick should pay less than the first: %d vs %d", later, first)
+	}
+	if got := shop.ScrapHeld(501, 1000000); got != 0 {
+		t.Errorf("scrap memory should wear off, still %d", got)
+	}
+}

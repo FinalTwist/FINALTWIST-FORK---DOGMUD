@@ -361,8 +361,22 @@ func TestToolLadderContent(t *testing.T) {
 		}
 	}
 	for _, id := range []int{9137, 9840, 9841} {
-		if m, ok := templates[id]; ok && m.ShopCraftSupport != `hunting` {
+		m, ok := templates[id]
+		if !ok {
+			continue
+		}
+		if m.ShopCraftSupport != `hunting` {
 			t.Errorf("mob %d %s is a hunting merchant, craft_support %q", id, m.Character.Name, m.ShopCraftSupport)
+		}
+		// Every merchant that buys carcass goods sells fletching supplies.
+		sells := map[int]bool{}
+		for _, si := range m.Character.Shop {
+			sells[si.ItemId] = true
+		}
+		for _, want := range []int{40316, 40421, 40357} {
+			if !sells[want] {
+				t.Errorf("hunting merchant %d %s does not sell item %d (feathers / arrowheads)", id, m.Character.Name, want)
+			}
 		}
 	}
 }

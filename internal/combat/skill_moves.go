@@ -5,6 +5,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -95,6 +96,12 @@ type SkillMoveParams struct {
 
 	// BonusCritMultiplier scales the crit mean only. 0 means 1.0.
 	BonusCritMultiplier float64
+
+	// StrikeWith points at the attacker's item that delivers the move (the
+	// sword of a counter-swing, the shield of a bash), so a critical hit
+	// wears that item. nil for moves made with the body (kick, trip, bite):
+	// those wear nothing of the attacker's (wilderness trades review).
+	StrikeWith *items.Item
 
 	// KnockdownToSupine: false (default) → defender falls face-forward
 	// to Prone (TriggerKnockdownFaceForward). true → defender knocked
@@ -253,7 +260,7 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 		p.Defender.ApplyHarm(characters.PoolHealth, result.Damage,
 			state.ActorRef{UserId: p.Attacker.GetUserId(), MobInstanceId: p.Attacker.MobInstanceId})
 		if result.Crit && OnCritLanded != nil {
-			OnCritLanded(p.Attacker, p.Defender)
+			OnCritLanded(p.Attacker, p.Defender, p.StrikeWith)
 		}
 	}
 
@@ -333,7 +340,8 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 }
 
 // OnCritLanded, when set, runs after a skill move or shot lands a critical
-// hit that dealt damage. internal/hooks sets it to wear the attacker's weapon
-// and the defender's armour (wilderness trades gear wear); it is nil in this
-// package's own tests.
-var OnCritLanded func(attacker, defender *characters.Character)
+// hit that dealt damage. internal/hooks sets it to wear the striking item
+// (SkillMoveParams.StrikeWith; nil for a kick or a bite) and the defender's
+// armour (wilderness trades gear wear); it is nil in this package's own
+// tests.
+var OnCritLanded func(attacker, defender *characters.Character, strikeWith *items.Item)

@@ -107,7 +107,17 @@ func EvaluateBuyRules(
 		if entry != nil {
 			current = entry.Current
 		}
+		// Goods it bought and scrapped (forged tools, broken gear) weigh
+		// on the price too, so they slide like shelved ones (review fix).
+		current += shopInv.ScrapHeld(spec.ItemId, now)
 		price = WalkInBuyPrice(value, current, cfg)
+		// Never pay more than the shop's own resale would justify: once it
+		// holds this unit it sells at the scarcity price for current+1, and
+		// paying above BuyRatio of that let a player buy one back cheaply
+		// and sell it again at a profit, round after round (review fix).
+		if limit := CalcBuyPrice(value, current+1, PricingBaseline(entry, cfg), cfg); price > limit {
+			price = limit
+		}
 	}
 
 	// Gold-reserve gate.

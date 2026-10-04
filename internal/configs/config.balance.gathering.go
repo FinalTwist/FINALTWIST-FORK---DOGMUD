@@ -3,10 +3,21 @@ package configs
 // validateGathering sets defaults for the wilderness-trades gathering knobs:
 // the gathering roll, tool tier multipliers and material grade sell values.
 //
-// Every knob uses the <=0 idiom. None of them has a meaningful zero: a zero
-// skill weight is the only candidate, and "skill does nothing at all" is a
-// design change that should be made by editing this file, not by a config
-// typo that silently erases it.
+// Most knobs use the <=0 idiom: a zero there is meaningless (a zero tool
+// multiplier, a zero durability) and is replaced by the default.
+//
+// The knobs below have a meaningful zero and are defaulted only when
+// NEGATIVE, as StaminaPerStrength is: 0 turns the feature off. Like every
+// legal-zero knob, leaving one out of config.yaml reads as 0.
+//
+//	GatherCarcassEase, GatherSizeDifficultyMedium/Large, GatherTargetedDifficulty,
+//	TimberEase, MiningEase                 0 = no ease / no extra difficulty
+//	GatherRareBaseChance, MiningGemChance  0 = no rare parts / no gems
+//	ShopWalkInDevaluePerUnit               0 = walk-in goods never slide
+//	GearCritWearChance, GearArmorCritWearChance, BowShotWearChance
+//	                                       0 = that gear never wears
+//	RepairCostRatio                        0 = merchants mend for free
+//	WornSellPenalty                        0 = worn gear sells at full price
 func (b *Balance) validateGathering() {
 	if b.GatherSkillWeight <= 0 {
 		b.GatherSkillWeight = 1.5
@@ -50,16 +61,16 @@ func (b *Balance) validateGathering() {
 	if b.GatherStatPoolDifficulty <= 0 {
 		b.GatherStatPoolDifficulty = 0.2
 	}
-	if b.GatherCarcassEase <= 0 {
+	if b.GatherCarcassEase < 0 {
 		b.GatherCarcassEase = 20
 	}
-	if b.GatherSizeDifficultyMedium <= 0 {
+	if b.GatherSizeDifficultyMedium < 0 {
 		b.GatherSizeDifficultyMedium = 5
 	}
-	if b.GatherSizeDifficultyLarge <= 0 {
+	if b.GatherSizeDifficultyLarge < 0 {
 		b.GatherSizeDifficultyLarge = 15
 	}
-	if b.GatherTargetedDifficulty <= 0 {
+	if b.GatherTargetedDifficulty < 0 {
 		b.GatherTargetedDifficulty = 15
 	}
 	if b.GatherJobRoundsSmall <= 0 {
@@ -71,7 +82,7 @@ func (b *Balance) validateGathering() {
 	if b.GatherJobRoundsLarge <= 0 {
 		b.GatherJobRoundsLarge = 6
 	}
-	if b.GatherRareBaseChance <= 0 {
+	if b.GatherRareBaseChance < 0 {
 		b.GatherRareBaseChance = 0.15
 	}
 	if b.GatherStatPerBonusUnit <= 0 {
@@ -83,11 +94,15 @@ func (b *Balance) validateGathering() {
 	if b.CorpseMeatLostAt <= 0 {
 		b.CorpseMeatLostAt = 0.75
 	}
-	if b.ShopWalkInDevaluePerUnit <= 0 {
+	if b.ShopWalkInDevaluePerUnit < 0 {
 		b.ShopWalkInDevaluePerUnit = 0.02
 	}
 
-	if b.TimberEase <= 0 {
+	if b.ShopScrapDecayRounds <= 0 {
+		b.ShopScrapDecayRounds = 900
+	}
+
+	if b.TimberEase < 0 {
 		b.TimberEase = 10
 	}
 	if b.TimberTierDifficulty <= 0 {
@@ -187,7 +202,7 @@ func (b *Balance) validateGathering() {
 		b.GradeArmorPristine = 1.25
 	}
 
-	if b.MiningEase <= 0 {
+	if b.MiningEase < 0 {
 		b.MiningEase = 5
 	}
 	if b.MiningTierDifficulty <= 0 {
@@ -211,7 +226,7 @@ func (b *Balance) validateGathering() {
 	if b.MiningMaxOre <= 0 {
 		b.MiningMaxOre = 3
 	}
-	if b.MiningGemChance <= 0 {
+	if b.MiningGemChance < 0 {
 		b.MiningGemChance = 0.04
 	}
 
@@ -221,13 +236,13 @@ func (b *Balance) validateGathering() {
 	if b.GearDurabilityArmor <= 0 {
 		b.GearDurabilityArmor = 30
 	}
-	if b.GearCritWearChance <= 0 {
+	if b.GearCritWearChance < 0 {
 		b.GearCritWearChance = 0.5
 	}
-	if b.GearArmorCritWearChance <= 0 {
+	if b.GearArmorCritWearChance < 0 {
 		b.GearArmorCritWearChance = 0.5
 	}
-	if b.BowShotWearChance <= 0 {
+	if b.BowShotWearChance < 0 {
 		b.BowShotWearChance = 0.04
 	}
 	if b.GearWornMult <= 0 {
@@ -239,10 +254,10 @@ func (b *Balance) validateGathering() {
 	if b.GearBrokenMult <= 0 {
 		b.GearBrokenMult = 0.25
 	}
-	if b.RepairCostRatio <= 0 {
+	if b.RepairCostRatio < 0 {
 		b.RepairCostRatio = 0.5
 	}
-	if b.WornSellPenalty <= 0 {
+	if b.WornSellPenalty < 0 {
 		b.WornSellPenalty = 0.6
 	}
 }

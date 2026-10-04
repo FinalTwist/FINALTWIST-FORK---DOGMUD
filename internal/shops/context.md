@@ -398,7 +398,12 @@ freshness. Items the shop does not authored-stock (no entry, or an entry with
 RestockQty 0) are priced by `WalkInBuyPrice`: flat value times BuyRatio, less
 `ShopWalkInDevaluePerUnit` per unit on hand, floored at PriceFloor. This
 replaced the scarcity curve for those entries, which priced the second unit
-of a walk-in good at about four times the first.
+of a walk-in good at about four times the first. The walk-in price is capped
+at `CalcBuyPrice(value, held + 1)` so a shop never pays more than BuyRatio of
+what it will charge for the unit (no buy-back profit). `ShopInventory.Scrap`
+(`ScrapHeld`, `AddScrap`) remembers recent buys it scrapped instead of
+shelving (forged tools, broken and badly worn gear) and counts them as held,
+one unit wearing off per Balance `ShopScrapDecayRounds`.
 
 ## Hunting merchants and saved-shop reconcile (wilderness trades review)
 

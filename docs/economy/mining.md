@@ -23,6 +23,9 @@ keyed on it, the same way timber is:
 - A **room pool** replaces both. The four drifts of the Pothole Coulee
   basalt-iron mine (5255 to 5258) carry the richest silver and gold, and
   monsters guard them.
+- **Rift rooms** have no ore: they are rebuilt every run, so a vein there
+  would be fresh each day. `actions.RoomVein` refuses any room with the
+  `rift_run` temp key. Rifts have their own ore through forage.
 - **Excluded zones** have no ore even in cave rooms. Thornwall City's 26
   cave rooms are drains, cellars and a lair, and the one cave room on the
   Marches Spur Road is a back room.

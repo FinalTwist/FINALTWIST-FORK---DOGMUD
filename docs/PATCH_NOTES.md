@@ -1,5 +1,27 @@
 # DOGMud Patch Notes
 
+## 2026-10-04: Trade fixes
+
+- **Stay with your work.** A craft, mine, chop or carcass job now finishes
+  only where you started it. Walk away, recall, flee or get carried off and
+  the job ends; a craft's half-worked materials are ruined.
+- A craft also checks at the end that you still hold its tool.
+- **Shops no longer lose money to buy-and-sell-back loops.** A shop never
+  pays more for something than its own resale price justifies.
+- **Broken and badly worn gear sells only as scrap.** It is no longer put back
+  on the shelf as new. Shops remember the scrap and forged tools they buy
+  lately, so each one fetches a little less.
+- **Shop goods count as standard grade.** Materials bought from a shop have
+  lost their grade, so they make at most fine work; superb and pristine work
+  needs fine or better materials you gathered yourself.
+- A weapon wears only from critical hits it lands itself: a critical kick no
+  longer wears your sword, a shield bash wears the shield, and when you fight
+  with two weapons only the one that struck wears.
+- Rift rooms can no longer be mined or felled.
+- `harvest roe deer` now lists the deer instead of cutting its hide.
+- Trappers and hunters (Delk, Maudry, Ottar) sell feathers and iron and bone
+  arrowheads for fletching.
+
 ## 2026-10-04: Gear wears out, and can be mended
 
 - **Weapons, armour, shields and tools now wear with use** (`help repair`).

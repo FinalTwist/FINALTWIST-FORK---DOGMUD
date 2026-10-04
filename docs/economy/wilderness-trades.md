@@ -257,7 +257,7 @@ ingredient somewhere.
   (in `GetSpec`) and the shot's accuracy; the nocked arrow's wood
   (`Item.LoadedWood`, set when chambering) scales the shot's damage and
   accuracy, and its `recovery` is the chance chambering spends no arrow.
-  Bows do not wear, so a wood's toughness shows in its arrows.
+  A bow wears per arrow fired (see Gear wear below).
 
 ## Gear wear and repair
 
@@ -274,9 +274,14 @@ ingredient somewhere.
 - **Where it wears**: a melee round with a landed critical hit
   (`hooks.dispatchCritAndMessaging`, `roundLandedCrit`) and a skill move or
   shot that lands one (`combat.OnCritLanded`, set by `internal/hooks`) roll
-  `GearCritWearChance` (0.5) to wear the attacker's weapon and
+  `GearCritWearChance` (0.5) to wear the item that struck and
   `GearArmorCritWearChance` (0.5) to wear one random armour piece of the
-  defender (`Character.CritWearWeapon`, `CritWearArmor`). Shooters (bows,
+  defender (`Character.CritWearStriker`, `CritWearArmor`). The item that
+  struck is the weapon whose swing crit (`WeaponHitInfo.Weapon`; when dual
+  wielding only that hand wears, and a bare fist wears nothing), or the
+  move's `SkillMoveParams.StrikeWith`: the wielded weapon for a
+  counter-swing, the shield for a bash or block-crit bash, nil for kicks,
+  trips, bites and other body moves. Shooters (bows,
   crossbows, slings) never wear on crits; `ExecuteFire` rolls
   `BowShotWearChance` (0.04) per shot (`WearBowOnShot`). Only players' gear
   wears. The rolls use `math/rand/v2`, not `util.Rand`, so seeded combat
@@ -290,7 +295,45 @@ ingredient somewhere.
   item's vendor categories, else blacksmithing) charges `RepairCost` (graded
   value x wear fraction x `RepairCostRatio` 0.5, at least 1), paid into the
   shop's gold. Shops pay `1 - wear x WornSellPenalty` (0.6) of value for
-  worn gear.
+  worn gear. Broken and badly worn gear (`items.BadlyWornFraction`, 85%) is
+  bought as scrap and never shelved, like forged tools, so selling it does
+  not turn it into a fresh copy on the shelf.
+
+## Review fixes (after the gear wear pass)
+
+- **No buy-back profit.** For goods a shop does not authored-stock, what it
+  pays is capped at `CalcBuyPrice(value, held + 1)`: BuyRatio of what it will
+  charge once it holds the unit. The flat walk-in slope alone let a player
+  buy one at the 0.25 floor and sell it back for about 0.42 of value.
+- **Scrap memory.** `ShopInventory.Scrap` counts recent scrap buys (forged
+  tools, broken gear) per item; `ScrapHeld` adds them to the walk-in count so
+  their price slides per unit too. One unit wears off per
+  `ShopScrapDecayRounds` (900).
+- **Jobs finish where they began.** `CraftingData.RoomId` and
+  `SalvagingData.RoomId` record the start room; the round tick abandons a
+  job when the player is anywhere else (recall, teleport, flee, a rift
+  ending), via `actions.JobLeftBehind`. An abandoned craft spends its
+  materials (`actions.AbandonCraft`), and walking away (`go`) does too. Mine,
+  chop and carcass jobs just end.
+- **The recipe tool is checked again at completion.** A crafter who gave the
+  tool away mid-work gets nothing and keeps the materials.
+- **Ungraded copies of graded materials cap at fine.** `actions.RecipeGrade`
+  runs `capUngradedGradable`: an ungraded consumed input that the world can
+  grade (a carcass part, log, ore, gem, or a recipe output made from those or
+  with a tool: `gradableSets`) counts as standard for the one-above-the-worst
+  cap. So shop leather or shop ingots make at most fine gear, and superb or
+  pristine work needs fine or better gathered materials. Materials that are
+  never graded (thread, bottles) do not cap.
+- **Rift rooms** (temp data `rift_run`) have no vein and no timber stand:
+  they are rebuilt every run, so they would be an endless fresh supply.
+- **`harvest roe deer`** lists the carcass when every word names the corpse
+  (`phraseNamesCorpse`), rather than reading "deer" as a part.
+- **Knobs with a meaningful zero** (the eases and difficulties, the rare and
+  gem chances, the walk-in slope, the three wear chances, `RepairCostRatio`,
+  `WornSellPenalty`) are defaulted only when negative, so 0 turns the
+  feature off. See `config.balance.gathering.go`.
+- **Fletching supplies.** The hunting merchants (Delk, Maudry, Ottar) sell
+  feathers, iron arrowheads and bone arrowheads.
 
 ## Deferred
 
@@ -298,8 +341,8 @@ ingredient somewhere.
   killing blow recorded on the corpse; not done.
 - NPC salvagers and the companion's butcher pastime still use corpse
   salvage, not skin and butcher.
-- A shop resells bought goods ungraded (forged tools are no longer resold
-  at all).
+- A shop resells bought goods ungraded (forged tools and broken gear are
+  not resold at all); ungraded copies cap crafts at fine.
 - Grades scale jewelry's protection and weight but not its stat mods.
 - A recipe takes whichever stave or shafts come first; a player who wants a
   yew bow carries only yew staves.
@@ -308,4 +351,5 @@ ingredient somewhere.
 - Felling hazards and the `hunt` command are phase 7.
 - Still unused: flight feathers, musk gland, silk gland and bear bile (no
   recipe), and the trowel tool (no item). Yew and black walnut share their
-  tags with ash and oak, so a yew bow is no better than an ash one.
+  tags with ash and oak for recipes; their `bow:` and `arrow:` traits still
+  set them apart once a stave or shaft carries the wood.

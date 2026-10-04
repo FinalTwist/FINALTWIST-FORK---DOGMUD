@@ -519,6 +519,16 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					case activity.Salvaging:
 						// Salvaging tick — advance round via Activity machine.
 						sd, complete := user.Character.Activity.AdvanceSalvagingRound()
+						// Wilderness trades review: a job finishes only where
+						// it began. Recall, a teleport or a flee abandons it.
+						if actions.JobLeftBehind(sd.RoomId, user.Character.RoomId) {
+							_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
+								Trigger: activity.TriggerMovementInterrupt,
+								Actor:   user.Character.Activity.Self(),
+							})
+							user.SendText(messaging.CategorySystem, `<ansi fg="red">You are no longer where you were working, and the job is abandoned.</ansi>`)
+							break
+						}
 						isCarcassJob := strings.HasPrefix(sd.ItemUuid, actions.HarvestActivityPrefix)
 						isChopJob := strings.HasPrefix(sd.ItemUuid, actions.ChopActivityPrefix)
 						isMineJob := strings.HasPrefix(sd.ItemUuid, actions.MineActivityPrefix)
@@ -589,6 +599,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					case activity.Crafting:
 						// Crafting tick — advance round via Activity machine.
 						cd, complete := user.Character.Activity.AdvanceCraftingRound()
+						// Wilderness trades review: leaving the work ruins it,
+						// materials and all.
+						if actions.JobLeftBehind(cd.RoomId, user.Character.RoomId) {
+							_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
+								Trigger: activity.TriggerMovementInterrupt,
+								Actor:   user.Character.Activity.Self(),
+							})
+							actions.AbandonCraft(user.Character, cd.RecipeId)
+							user.SendText(messaging.CategorySystem, `<ansi fg="red">You left your work unfinished, and the materials are ruined.</ansi>`)
+							break
+						}
 						if !complete {
 							user.SendText(messaging.CategorySystem, fmt.Sprintf(
 								`<ansi fg="yellow">You continue working on %s... (%d/%d)</ansi>`,
@@ -600,7 +621,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								Trigger: activity.TriggerCraftComplete,
 								Actor:   user.Character.Activity.Self(),
 							})
-							if recipe != nil {
+							if recipe != nil && !actions.ToolSatisfied(user.Character, recipe) {
+								// Wilderness trades review: the tool is checked
+								// again at the end, so one tool cannot serve a
+								// crafter who handed it on mid-work.
+								user.SendText(messaging.CategorySystem, fmt.Sprintf(
+									`<ansi fg="red">You no longer have the %s this work needs, and you set the materials aside unfinished.</ansi>`,
+									actions.ToolName(recipe.Tool)))
+							} else if recipe != nil {
 								sl := user.Character.Skills[recipe.Skill]
 
 								// U10b-1b: craft is an ordinary contest. The

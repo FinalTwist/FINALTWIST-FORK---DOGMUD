@@ -227,6 +227,13 @@ func (i *Item) WearFraction() float64 {
 // Repair clears all wear.
 func (i *Item) Repair() { i.Wear = 0 }
 
+// BadlyWornFraction is the wear fraction at which gear reads "(badly worn)"
+// and works worse; WornFraction is where it first reads "(worn)".
+const (
+	WornFraction      = 0.60
+	BadlyWornFraction = 0.85
+)
+
 // ConditionMult is the multiplier wear puts on how well gear works: 1 until
 // it is worn (60%), then Balance GearWornMult, GearBadlyWornMult (85%) and
 // GearBrokenMult when broken.
@@ -239,9 +246,9 @@ func (i *Item) ConditionMult() float64 {
 	switch {
 	case f >= 1:
 		return float64(b.GearBrokenMult)
-	case f >= 0.85:
+	case f >= BadlyWornFraction:
 		return float64(b.GearBadlyWornMult)
-	case f >= 0.60:
+	case f >= WornFraction:
 		return float64(b.GearWornMult)
 	}
 	return 1
@@ -256,9 +263,9 @@ func (i *Item) wearSuffix() string {
 	switch f := i.WearFraction(); {
 	case f >= 1:
 		return ` <ansi fg="red">(broken)</ansi>`
-	case f >= 0.85:
+	case f >= BadlyWornFraction:
 		return ` <ansi fg="item-quality">(badly worn)</ansi>`
-	case f >= 0.60:
+	case f >= WornFraction:
 		return ` <ansi fg="item-quality">(worn)</ansi>`
 	}
 	return ``

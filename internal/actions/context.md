@@ -1944,7 +1944,11 @@ unfloored static-difficulty read; exempt in the floor and contest-site guards).
 **Woods and grades** (wilderness trades): `CraftWood(consumed)` and
 `StampWood` give a crafted `carries_wood` output the wood of its stave,
 shafts or log (both craft paths). `RecipeGrade` grades every crafted tool
-and piece of gear. `chamberNextRound` records the nocked arrow's wood on the
+and piece of gear, and (gradable.go `capUngradedGradable`) caps the grade at
+fine when an input is an ungraded copy of a material the world grades
+(`gradableSets`: carcass parts, logs, ores, gems and what recipes make from
+them or with a tool). `AbandonCraft` spends a craft's materials when the
+crafter leaves; `JobLeftBehind(start, current)` is the room test. `chamberNextRound` records the nocked arrow's wood on the
 weapon (`Item.LoadedWood`) and, by the wood's recovery chance, spends no
 arrow (`ReloadResult.Recovered`); `ExecuteFire` multiplies the shot's attack
 by the bow's and arrow's accuracy and its damage by the arrow's.

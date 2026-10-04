@@ -2107,8 +2107,10 @@ it is safe on every load.
 
 ## Gear wear in a fight (gear_wear.go)
 
-`CritWearWeapon` (the weapon that landed a critical hit, either hand when
-dual wielding, never a shooter), `CritWearArmor` (one random worn armour piece
+`CritWearStriker(strike)` (the item that landed a critical hit: the weapon
+that swung or the shield of a bash; nil wears nothing; never a shooter),
+`EquippedItemPtr`, `WieldedWeaponPtr` and `ShieldPtr` (pointers into the
+equipment for it), `CritWearArmor` (one random worn armour piece
 or shield) and `WearBowOnShot` roll Balance `GearCritWearChance`,
 `GearArmorCritWearChance` and `BowShotWearChance` with `math/rand/v2` (not
 `util.Rand`, so seeded combat tests are undisturbed) and report a break.

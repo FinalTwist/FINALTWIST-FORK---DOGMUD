@@ -241,6 +241,9 @@ func planHarvest(in planInputs) (takes []HarvestTake, missed []species.HarvestEn
 			if base <= 0 {
 				base = float64(b.GatherRareBaseChance)
 			}
+			if base <= 0 {
+				continue // GatherRareBaseChance 0: rare parts are off
+			}
 			// Perception notices the part; a better tool gets it off whole.
 			chance := base * float64(in.Perception) / 100.0 * gather.RareMult(tier)
 			chance = math.Max(0.02, math.Min(0.9, chance))

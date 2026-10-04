@@ -72,6 +72,7 @@ func Chop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		activity.SalvagingData{
 			ItemUuid:    fmt.Sprintf(`%s%d`, actions.ChopActivityPrefix, room.RoomId),
 			RoundsTotal: rounds,
+			RoomId:      room.RoomId,
 		},
 		state.TransitionReason{
 			Trigger: activity.TriggerSalvageBegin,

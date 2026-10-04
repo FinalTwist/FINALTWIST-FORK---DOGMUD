@@ -34,6 +34,11 @@ func RoomStand(room *rooms.Room, now uint64) (timber.Stand, *timber.Species, boo
 	if room == nil {
 		return timber.Stand{}, nil, false
 	}
+	// Rift rooms are rebuilt every run; a stand there would be fresh each
+	// day (review fix, as RoomVein).
+	if room.GetTempData(`rift_run`) != nil {
+		return timber.Stand{}, nil, false
+	}
 	// The room's own biome, else its zone's default. Read directly rather than
 	// through GetBiome, which substitutes the registry default for an unknown
 	// id and would make a mistyped biome choppable or not by accident.

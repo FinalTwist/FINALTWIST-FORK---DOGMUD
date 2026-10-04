@@ -1838,6 +1838,10 @@ Balance:
   # Shops price an item they do not stock flat, less this per unit on hand
   # (floored at ShopPriceFloor), so bulk raw goods slide gently.
   ShopWalkInDevaluePerUnit: 0.02
+  # Forged tools and broken or badly worn gear are bought as scrap, never
+  # shelved; the shop remembers recent scrap buys so their price slides per
+  # unit too. One remembered unit wears off per this many rounds.
+  ShopScrapDecayRounds: 900
   # Lumberjacking: a chop scores avg(strength, vitality) * axe multiplier
   # against GatherBaseDifficulty - TimberEase + (tier - 1) * TimberTierDifficulty.
   # Each forest room holds TimberStandMin..TimberStandMax trees, regrowing one

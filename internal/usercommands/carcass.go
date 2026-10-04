@@ -47,11 +47,11 @@ func Harvest(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		return harvestPart(user, room, strings.TrimSpace(after), strings.TrimSpace(before))
 	}
 
-	// "wolf": the whole phrase is a corpse.
-	if _, ok := room.FindCorpse(rest); ok {
-		if words := strings.Fields(rest); len(words) == 1 {
-			return listCarcass(user, room, rest)
-		}
+	// "wolf" or "roe deer": the whole phrase names a corpse. Every word must
+	// be in the corpse's name, so "wolf fang" (a part) does not list the
+	// wolf, while "roe deer" lists the deer rather than cutting its hide.
+	if corpse, ok := room.FindCorpse(rest); ok && phraseNamesCorpse(rest, corpse.Character.Name) {
+		return listCarcass(user, room, rest)
 	}
 
 	// "wolf fang": the longest leading phrase that names a corpse, the rest a part.
@@ -130,6 +130,7 @@ func startCarcassJob(user *users.UserRecord, room *rooms.Room, corpseName, secti
 		activity.SalvagingData{
 			ItemUuid:    fmt.Sprintf(`%s%s:%d`, actions.HarvestActivityPrefix, section, corpse.MobId),
 			RoundsTotal: rounds,
+			RoomId:      user.Character.RoomId,
 		},
 		state.TransitionReason{
 			Trigger: activity.TriggerSalvageBegin,
@@ -217,4 +218,23 @@ func listCarcass(user *users.UserRecord, room *rooms.Room, corpseName string) (b
 	}
 	user.SendText(messaging.CategorySystem, strings.Join(lines, "\n"))
 	return true, nil
+}
+
+// phraseNamesCorpse reports whether every word of phrase appears among the
+// words of a corpse's name (or is the word "corpse").
+func phraseNamesCorpse(phrase, corpseName string) bool {
+	name := map[string]bool{`corpse`: true}
+	for _, w := range strings.Fields(strings.ToLower(corpseName)) {
+		name[w] = true
+	}
+	words := strings.Fields(strings.ToLower(phrase))
+	if len(words) == 0 {
+		return false
+	}
+	for _, w := range words {
+		if !name[w] {
+			return false
+		}
+	}
+	return true
 }

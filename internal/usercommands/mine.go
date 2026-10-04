@@ -71,6 +71,7 @@ func Mine(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		activity.SalvagingData{
 			ItemUuid:    fmt.Sprintf(`%s%d`, actions.MineActivityPrefix, room.RoomId),
 			RoundsTotal: rounds,
+			RoomId:      room.RoomId,
 		},
 		state.TransitionReason{
 			Trigger: activity.TriggerSalvageBegin,

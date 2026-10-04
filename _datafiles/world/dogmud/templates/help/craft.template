@@ -49,6 +49,10 @@ numbered list to choose from.
   4. Wait for the work to complete (several rounds).
   5. Use, equip, or enchant the result.
 
+Stay with the work. If you walk away, or are carried off, before it is
+done, the half-worked materials are ruined. The recipe's tool must still be
+in your hands when you finish.
+
 Higher skill means fewer wasted materials. A seasoned crafter rarely
 fails, but even masters are not perfect.
 
@@ -57,6 +61,8 @@ fails, but even masters are not perfect.
 Every weapon, piece of armour, shield and piece of jewelry you craft comes
 out graded by how well the work went: <ansi fg="item-quality">crude</ansi>, standard, <ansi fg="item-quality">fine</ansi>,
 <ansi fg="item-quality">superb</ansi> or <ansi fg="item-quality">pristine</ansi>. Good materials and tools raise the ceiling.
+Goods bought from a shop have lost their grade and count as standard, so
+the finest work needs fine or better materials you gathered yourself.
 
                  damage   speed   weight   protection
   crude          -15%     -15%    +5%      -15%

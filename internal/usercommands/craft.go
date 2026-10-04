@@ -421,6 +421,7 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 		RecipeId:    recipe.RecipeId,
 		RoundsTotal: recipe.TimeRounds,
 		TargetSlot:  slotLabel,
+		RoomId:      user.Character.RoomId,
 	}
 	if err := user.Character.Activity.TransitionToCrafting(
 		craftData,

@@ -625,6 +625,10 @@ type Balance struct {
 	// CoffeeMud's raw-resource devaluation) keeps a hunter's tenth pelt worth
 	// selling and stops the second from paying four times the first.
 	ShopWalkInDevaluePerUnit ConfigFloat `yaml:"ShopWalkInDevaluePerUnit"` // default 0.02
+	// A shop scraps what it will not shelve (forged tools, broken and badly
+	// worn gear) but remembers recent scrap buys so their price slides per
+	// unit too; one remembered unit wears off per this many rounds.
+	ShopScrapDecayRounds ConfigInt `yaml:"ShopScrapDecayRounds"` // default 900
 
 	// Lumberjacking (wilderness trades, phase 4). A chop scores
 	// avg(strength, vitality) * axeMult against GatherBaseDifficulty -

@@ -31,6 +31,14 @@ func RoomVein(room *rooms.Room, now uint64) (mining.Vein, *mining.Ore, bool) {
 	if room == nil {
 		return mining.Vein{}, nil, false
 	}
+	// Rift rooms are rebuilt every run with empty long-term data, so a vein
+	// there would be a fresh, full one each day. Rifts have their own ore
+	// through forage instead (review fix). rift_run is the temp key
+	// internal/rifts stamps on every room it builds (rifts imports actions,
+	// so the key is read here rather than calling rifts.IsRiftRoom).
+	if room.GetTempData(`rift_run`) != nil {
+		return mining.Vein{}, nil, false
+	}
 	biome := room.Biome
 	if biome == `` {
 		biome = rooms.GetZoneBiome(room.Zone)
@@ -182,7 +190,11 @@ type MineResult struct {
 
 // gemChance is the chance a successful job also turns up a gem.
 func gemChance(perception int, pickTier items.ToolTier) float64 {
-	c := float64(configs.GetBalanceConfig().MiningGemChance) * float64(perception) / 100.0 * gather.RareMult(pickTier)
+	base := float64(configs.GetBalanceConfig().MiningGemChance)
+	if base <= 0 {
+		return 0 // MiningGemChance 0 turns gems off
+	}
+	c := base * float64(perception) / 100.0 * gather.RareMult(pickTier)
 	return math.Max(0.005, math.Min(0.25, c))
 }
 
