@@ -53,6 +53,8 @@ type Item struct {
 	MakerName        string         `yaml:"maker_name,omitempty"`        // Cosmetic crafter attribution (skill 30+)
 	Quality          Quality        `yaml:"quality,omitempty"`           // Material grade (crude..pristine) from gathering; 0 = ungraded. See quality.go
 	Wear             int            `yaml:"wear,omitempty"`              // Tool wear: finished jobs done with this tool; breaks at ToolDurability. See tools.go
+	Wood             string         `yaml:"wood,omitempty"`              // Timber species this was worked from (bow staves, shafts, bows, arrows); see grade_effects.go and internal/timber/wood.go
+	LoadedWood       string         `yaml:"loadedwood,omitempty"`        // Ranged weapons: the wood of the arrow now nocked (from its bundle's Wood)
 	Spec             *ItemSpec      `yaml:"overrides,omitempty"`
 	Affixed          bool           `yaml:"affixed,omitempty"`         // Instance-loot affix-scaled item (sellable + value-scaled; distinct from enchanted)
 	Uncursed         bool           `yaml:"uncursed,omitempty"`        // Is this item uncursed?
@@ -337,7 +339,22 @@ func (i *Item) IsBetterThan(otherItm Item) bool {
 	return i.GetSpec().Value > otherItm.GetSpec().Value
 }
 
+// GetSpec is the spec this instance works by: its override or template,
+// with its gear grade and its bow wood applied (grade_effects.go). Code that
+// builds a new override from an item must start from GetRawSpec instead, or
+// the grade would be baked in and then applied again.
 func (i *Item) GetSpec() ItemSpec {
+	spec := i.GetRawSpec()
+	if i.Bauble != `` {
+		return spec
+	}
+	spec = applyGrade(spec, i.Quality)
+	return applyBowWood(spec, i.Wood)
+}
+
+// GetRawSpec is the override or template as authored, with no grade or wood
+// applied.
+func (i *Item) GetRawSpec() ItemSpec {
 	if i.Spec != nil {
 		return *i.Spec
 	}
@@ -562,7 +579,7 @@ func (i *Item) displayNameFrom(spec ItemSpec) string {
 		prefix = `<ansi fg="questflag">★</ansi>`
 	}
 
-	suffix := i.Quality.qualitySuffix() + i.wearSuffix()
+	suffix := i.woodSuffix() + i.Quality.qualitySuffix() + i.wearSuffix()
 	if adjLen := len(i.Adjectives); adjLen > 0 {
 		suffix += ` <ansi fg="black-bold">(`
 		for i, adj := range i.Adjectives {

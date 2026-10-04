@@ -168,6 +168,30 @@ func TestTimberContent(t *testing.T) {
 			t.Errorf("%s log %d is not sold anywhere", sp.Name, sp.LogItemId)
 		}
 	}
+	// Every bow wood gives its bows something, and every shaft wood its
+	// arrows: the wood a bow or quiver names must mean something.
+	for _, sp := range species {
+		log := items.GetItemSpec(sp.LogItemId)
+		if log == nil {
+			continue
+		}
+		switch log.ComponentTag {
+		case `bow-wood-log`:
+			if sp.Bow == (timber.BowTraits{}) {
+				t.Errorf("%s makes bow staves but has no bow traits", sp.Name)
+			}
+		case `softwood-log`:
+			if sp.Arrow == (timber.ArrowTraits{}) {
+				t.Errorf("%s makes arrow shafts but has no arrow traits", sp.Name)
+			}
+		}
+	}
+	for _, id := range []int{40419, 40420, 10057, 10041, 10058, 10059, 30062, 30063} {
+		if spec := items.GetItemSpec(id); spec == nil || !spec.CarriesWood {
+			t.Errorf("item %d should carry its wood", id)
+		}
+	}
+
 	for _, biome := range []string{`forest`, `dense_forest`, `swamp`} {
 		if !timber.IsChoppable(biome) {
 			t.Errorf("biome %s should grow timber", biome)

@@ -137,4 +137,53 @@ func (b *Balance) validateGathering() {
 	if b.RareToolMultMasterwork <= 0 {
 		b.RareToolMultMasterwork = 2.0
 	}
+
+	if b.GradeDamageCrude <= 0 {
+		b.GradeDamageCrude = 0.85
+	}
+	if b.GradeDamageFine <= 0 {
+		b.GradeDamageFine = 1.08
+	}
+	if b.GradeDamageSuperb <= 0 {
+		b.GradeDamageSuperb = 1.16
+	}
+	if b.GradeDamagePristine <= 0 {
+		b.GradeDamagePristine = 1.25
+	}
+	if b.GradeSpeedCrude <= 0 {
+		b.GradeSpeedCrude = 0.85
+	}
+	if b.GradeSpeedFine <= 0 {
+		b.GradeSpeedFine = 1.05
+	}
+	if b.GradeSpeedSuperb <= 0 {
+		b.GradeSpeedSuperb = 1.1
+	}
+	if b.GradeSpeedPristine <= 0 {
+		b.GradeSpeedPristine = 1.15
+	}
+	if b.GradeWeightCrude <= 0 {
+		b.GradeWeightCrude = 1.05
+	}
+	if b.GradeWeightFine <= 0 {
+		b.GradeWeightFine = 0.97
+	}
+	if b.GradeWeightSuperb <= 0 {
+		b.GradeWeightSuperb = 0.94
+	}
+	if b.GradeWeightPristine <= 0 {
+		b.GradeWeightPristine = 0.9
+	}
+	if b.GradeArmorCrude <= 0 {
+		b.GradeArmorCrude = 0.85
+	}
+	if b.GradeArmorFine <= 0 {
+		b.GradeArmorFine = 1.08
+	}
+	if b.GradeArmorSuperb <= 0 {
+		b.GradeArmorSuperb = 1.16
+	}
+	if b.GradeArmorPristine <= 0 {
+		b.GradeArmorPristine = 1.25
+	}
 }

@@ -1860,6 +1860,24 @@ Balance:
   RareToolMultIron: 1.0
   RareToolMultSteel: 1.5
   RareToolMultMasterwork: 2.0
+  # Gear grades: multipliers on a crafted weapon's damage and speed, any
+  # graded gear's weight, and armour and shield protection. Standard is 1.0.
+  GradeDamageCrude: 0.85
+  GradeDamageFine: 1.08
+  GradeDamageSuperb: 1.16
+  GradeDamagePristine: 1.25
+  GradeSpeedCrude: 0.85
+  GradeSpeedFine: 1.05
+  GradeSpeedSuperb: 1.1
+  GradeSpeedPristine: 1.15
+  GradeWeightCrude: 1.05
+  GradeWeightFine: 0.97
+  GradeWeightSuperb: 0.94
+  GradeWeightPristine: 0.9
+  GradeArmorCrude: 0.85
+  GradeArmorFine: 1.08
+  GradeArmorSuperb: 1.16
+  GradeArmorPristine: 1.25
 
   # ── RECIPE DISCOVERY ──────────────────────────────────────────────────────
   # Chance to learn a new recipe on a successful craft.

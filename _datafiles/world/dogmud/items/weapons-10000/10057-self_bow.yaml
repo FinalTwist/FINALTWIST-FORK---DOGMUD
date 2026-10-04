@@ -20,3 +20,4 @@ value: 40
 rarity_tier: 30
 vendor_categories:
 - woodwork
+carries_wood: true

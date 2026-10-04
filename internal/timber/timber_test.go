@@ -113,3 +113,31 @@ func TestMinAxe(t *testing.T) {
 		}
 	}
 }
+
+// Wood traits parse, validate and read back; unknown woods are neutral.
+func TestWoodTraits(t *testing.T) {
+	d, err := Parse([]byte("species:\n  - {id: yew, name: yew, log: 7, tier: 3, bow: {speed: 1.1, accuracy: 1.05}}\n  - {id: cedar, name: cedar, log: 8, tier: 2, arrow: {damage: 1.04, recovery: 0.2}}\nbiomes:\n  forest: [{species: yew, weight: 1}]\n"), World{})
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	Install(d)
+	t.Cleanup(func() { Install(nil) })
+	if b := BowWood(`yew`); b.SpeedMult() != 1.1 || b.AccuracyMult() != 1.05 || b.WeightMult() != 1.0 {
+		t.Errorf("yew bow traits %+v", b)
+	}
+	if a := ArrowWood(`cedar`); a.DamageMult() != 1.04 || a.Recovery != 0.2 || a.AccuracyMult() != 1.0 {
+		t.Errorf("cedar arrow traits %+v", a)
+	}
+	if b := BowWood(`nonesuch`); b.SpeedMult() != 1.0 {
+		t.Error("an unknown wood is neutral")
+	}
+	if sp := SpeciesForLog(8); sp == nil || sp.Id != `cedar` {
+		t.Errorf("log 8 is cedar, got %+v", sp)
+	}
+	if WoodName(`yew`) != `yew` || WoodName(``) != `` {
+		t.Error("WoodName")
+	}
+	if _, err := Parse([]byte("species:\n  - {id: bad, name: bad, log: 1, tier: 1, bow: {speed: 3}}\n"), World{}); err == nil {
+		t.Error("a bow speed of 3 must be refused")
+	}
+}

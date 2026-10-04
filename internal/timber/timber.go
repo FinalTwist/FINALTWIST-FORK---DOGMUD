@@ -39,6 +39,10 @@ type Species struct {
 	BarkItemId int    `yaml:"bark"` // optional bark that may come off with it
 	Tier       int    `yaml:"tier"` // 1 common .. 4 rare; harder to fell, worth more
 	Note       string `yaml:"note"` // one line for survey: what the wood is good for
+	// Bow and Arrow are what this wood gives a bow made from its staves and
+	// arrows made from its shafts (wood.go). Zero values are neutral.
+	Bow   BowTraits   `yaml:"bow,omitempty"`
+	Arrow ArrowTraits `yaml:"arrow,omitempty"`
 }
 
 // MinAxe is the poorest axe tier (items.ToolTier: 1 crude .. 4 masterwork)
@@ -105,6 +109,12 @@ func Parse(raw []byte, w World) (*Data, error) {
 		}
 		if s.Tier < 1 || s.Tier > 4 {
 			return nil, fmt.Errorf("species %q: tier must be 1..4, got %d", s.Id, s.Tier)
+		}
+		if err := s.Bow.validate(); err != nil {
+			return nil, fmt.Errorf("species %q bow: %v", s.Id, err)
+		}
+		if err := s.Arrow.validate(); err != nil {
+			return nil, fmt.Errorf("species %q arrow: %v", s.Id, err)
 		}
 		if w.ItemExists != nil {
 			if !w.ItemExists(s.LogItemId) {

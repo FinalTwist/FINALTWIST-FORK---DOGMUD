@@ -1,5 +1,19 @@
 # DOGMud Patch Notes
 
+## 2026-10-04: Gear grades matter, and bows know their wood
+
+- **Grades now change how gear works**, not only what it sells for. Every
+  crafted weapon, armour piece, shield and piece of jewelry comes out graded
+  by how well the work went. A crude weapon hits 15% softer and swings 15%
+  slower; a pristine one hits 25% harder, swings 15% faster and weighs 10%
+  less. Armour and shields protect 15% less when crude and 25% more when
+  pristine. Fine and superb sit in between (`help craft`).
+- **Bows and arrows name their wood**: a longbow (yew), a quiver of arrows
+  (cedar). Staves and shafts remember the tree they came from. Ash bows draw
+  faster, elm bows aim steadier, and yew is the best of both. Cedar and spruce
+  arrows fly truer, juniper, larch and birch hit harder, and willow, cypress
+  and birch arrows are often picked up whole after a shot (`help woodwork`).
+
 ## 2026-10-04: Hunter's gear: rare parts in jewelry, smithing and tailoring
 
 The rare parts you take off a carcass now go into some of the best gear in

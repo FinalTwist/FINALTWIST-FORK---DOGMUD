@@ -13,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
+	"github.com/GoMudEngine/GoMud/internal/timber"
 )
 
 // CraftResult describes the outcome of an InitiateCraft call.
@@ -240,7 +241,9 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 		// An instant recipe runs no contest, so its grade comes from its
 		// inputs and tool alone (gather.CraftGrade with no result). Read the
 		// inputs BEFORE they are consumed.
-		grade := RecipeGrade(char, recipe, nil, crafting.SelectIngredients(char.Items, char.ComponentItems, recipe))
+		selected := crafting.SelectIngredients(char.Items, char.ComponentItems, recipe)
+		grade := RecipeGrade(char, recipe, nil, selected)
+		wood := CraftWood(selected)
 		// Provident Hands may preserve the materials entirely (efficient craft).
 		if !char.CraftMaterialsSaved() {
 			char.Items, char.ComponentItems = crafting.ConsumeIngredients(
@@ -249,6 +252,7 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 		for n := 0; n < recipe.OutputCount(); n++ {
 			newItem := items.New(recipe.Output.ItemId)
 			newItem.Quality = grade
+			StampWood(&newItem, wood)
 			newItem.CraftSkill = char.CraftQualityLevel(skillLevel) // Faithwrought quality lift
 			// Maker's mark — same policy as the async completion path
 			// (crafting.ShouldStampMakerName): components stamp regardless of
@@ -314,17 +318,47 @@ func RecipeToolTier(char *characters.Character, recipe *crafting.RecipeSpec) (it
 }
 
 // RecipeGrade is the grade a craft gives its output (gather.CraftGradeOutput):
-// graded inputs, a recipe tool and a tool as the output each make it graded.
-// cr is nil for an instant recipe. consumed is what the craft will spend.
+// graded inputs, a recipe tool, or an output that is a tool or a piece of
+// gear (a weapon, armour, a shield, jewelry: items.IsGearType) each make it
+// graded, so every crafted weapon and armour piece is graded by the
+// crafter's margin and works accordingly (items/grade_effects.go). cr is nil
+// for an instant recipe. consumed is what the craft will spend.
 func RecipeGrade(char *characters.Character, recipe *crafting.RecipeSpec, cr *contest.Result, consumed []items.Item) items.Quality {
 	toolTier, hasTool := RecipeToolTier(char, recipe)
-	outputIsTool := false
+	alwaysGraded := false
 	if recipe != nil {
-		if spec := items.GetItemSpec(recipe.Output.ItemId); spec != nil && spec.Tool != nil {
-			outputIsTool = true
+		if spec := items.GetItemSpec(recipe.Output.ItemId); spec != nil && (spec.Tool != nil || items.IsGearType(spec.Type)) {
+			alwaysGraded = true
 		}
 	}
-	return gather.CraftGradeOutput(cr, consumed, hasTool, toolTier, outputIsTool)
+	return gather.CraftGradeOutput(cr, consumed, hasTool, toolTier, alwaysGraded)
+}
+
+// CraftWood is the wood a crafted output inherits from what it was made of:
+// the first consumed item that carries a wood (a stave, a bundle of shafts),
+// else the first log of a known timber species. "" when nothing was wooden.
+func CraftWood(consumed []items.Item) string {
+	for _, itm := range consumed {
+		if itm.Wood != `` {
+			return itm.Wood
+		}
+	}
+	for _, itm := range consumed {
+		if sp := timber.SpeciesForLog(itm.ItemId); sp != nil {
+			return sp.Id
+		}
+	}
+	return ``
+}
+
+// StampWood gives a newly crafted item its wood when its spec carries one.
+func StampWood(itm *items.Item, wood string) {
+	if wood == `` || itm == nil {
+		return
+	}
+	if spec := items.GetItemSpec(itm.ItemId); spec != nil && spec.CarriesWood {
+		itm.Wood = wood
+	}
 }
 
 // WearRecipeTool wears the tool a finished craft used, if the recipe has one.

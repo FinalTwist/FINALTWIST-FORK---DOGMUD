@@ -616,6 +616,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								// ungraded otherwise). Read from the same
 								// selection the roll priced, before it is spent.
 								craftGrade := actions.RecipeGrade(user.Character, recipe, &craftResult, consumed)
+								craftWood := actions.CraftWood(consumed)
 								// The recipe's tool wears whether the work
 								// came out or not.
 								actions.WearRecipeTool(&actions.UserActor{User: user, Room: room}, recipe)
@@ -692,6 +693,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 										for n := 0; n < recipe.OutputCount(); n++ {
 											newItem := items.New(recipe.Output.ItemId)
 											newItem.Quality = craftGrade
+											actions.StampWood(&newItem, craftWood)
 											newItem.CraftedRound = util.GetRoundCount()
 											newItem.CraftSkill = user.Character.CraftQualityLevel(user.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))) // Faithwrought quality lift
 											if bottleAgingMult > 0 {

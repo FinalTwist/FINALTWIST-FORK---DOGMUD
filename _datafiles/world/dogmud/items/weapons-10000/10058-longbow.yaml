@@ -2,7 +2,7 @@ itemid: 10058
 name: Longbow
 namesimple: longbow
 description: >
-  A tall bow nearly the height of a man, cut from a single stave of yew.
+  A tall bow nearly the height of a man, cut from a single stave.
   It takes a strong back to draw and drives an arrow through a hide at
   long range.
 type: weapon
@@ -22,3 +22,4 @@ value: 300
 rarity_tier: 30
 vendor_categories:
 - woodwork
+carries_wood: true

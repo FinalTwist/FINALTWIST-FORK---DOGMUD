@@ -14,3 +14,4 @@ is_component: true
 vendor_categories:
 - woodwork
 material_tier: 2
+carries_wood: true

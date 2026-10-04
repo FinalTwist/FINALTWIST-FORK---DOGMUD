@@ -22,3 +22,4 @@ rarity_tier: 30
 vendor_categories:
 - woodwork
 - blacksmithing
+carries_wood: true

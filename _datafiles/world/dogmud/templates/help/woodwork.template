@@ -35,6 +35,24 @@ horn from butchering, feathers from birds, and arrowheads from a smith or a
 jeweler (iron or bone). The grade of your lumber, and of your tools, carries
 into what you make.
 
+<ansi fg="yellow">━━━ Woods ━━━</ansi>
+
+Staves and shafts remember the wood they were cut from, and so do the bows
+and arrows made from them: a longbow (yew), a quiver of arrows (cedar).
+
+  Bows       <ansi fg="yellow">ash</ansi>      quick to draw (+8% speed) and light
+             <ansi fg="yellow">elm</ansi>      steady (+5% accuracy), a little heavy
+             <ansi fg="yellow">yew</ansi>      the best: +6% speed, +6% accuracy, lighter
+  Arrows     <ansi fg="yellow">cedar</ansi>    +6% accuracy      <ansi fg="yellow">spruce</ansi>   +4% accuracy
+             <ansi fg="yellow">juniper</ansi>  +5% damage, tough <ansi fg="yellow">larch</ansi>    +4% damage, +2% accuracy
+             <ansi fg="yellow">birch</ansi>    +3% damage, tough <ansi fg="yellow">cypress</ansi>  +3% accuracy, tougher
+             <ansi fg="yellow">willow</ansi>   toughest, -3% accuracy
+             <ansi fg="yellow">alder</ansi>, <ansi fg="yellow">pine</ansi>  plain and cheap
+
+A tough arrow is often picked up whole after a shot instead of being used
+up. You cannot choose which staves or shafts a recipe takes, so carry only
+the wood you want to work. Yew needs an iron axe to fell.
+
 <ansi fg="yellow">━━━ Skill Progression ━━━</ansi>
 
 Woodwork improves through use. Each completed craft attempt (success or

@@ -42,3 +42,12 @@ felling, regrowth and the re-roll signal, and the neighbour lean.
 `Species.MinAxe` is the poorest axe tier (as an int, `items.ToolTier` values)
 that can fell a species: crude for tiers 1 and 2, iron for tier 3 (yew,
 walnut), steel for tier 4 (ironwood).
+
+## Wood traits (wood.go)
+
+`Species.Bow` (`BowTraits`: speed, weight, accuracy multipliers) and
+`Species.Arrow` (`ArrowTraits`: damage and accuracy multipliers, recovery
+chance), validated by `Parse` (multipliers 0.5..1.5 or omitted, recovery
+0..0.9). `BowWood`, `ArrowWood`, `WoodName`, `SpeciesForLog`. Read by
+`items.GetSpec` (bow speed and weight) and by `actions.ExecuteFire` and
+`chamberNextRound` (accuracy, arrow damage, recovery).

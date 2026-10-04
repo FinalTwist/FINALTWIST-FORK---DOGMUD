@@ -48,6 +48,10 @@ func SameStack(a, b Item) bool {
 	if a.Wear != b.Wear {
 		return false
 	}
+	// Wood: yew shafts and pine shafts are different goods.
+	if a.Wood != b.Wood {
+		return false
+	}
 	// Spoiling raw goods: two cuts harvested at different times rot at
 	// different times, and storage keeps one representative per stack, so
 	// merging them would reset or advance every cut's clock.

@@ -1486,3 +1486,14 @@ different harvest rounds apart.
 `ItemSpec.Furnishing` (`furnishing:`) marks crafted furniture; `Validate`
 rejects an unknown kind. `postDetuneBows` (detune_migration.go) lists bows
 authored after U10d that need no migration entry.
+
+**grade_effects.go** (wilderness trades): `GetSpec` returns the override or
+template with the instance's gear grade (`applyGrade`, `GearGradeMults`,
+Balance `Grade*`) and bow wood (`applyBowWood`, `timber.BowWood`) applied to
+the copy; `GetRawSpec` is the authored spec, and anything that builds a new
+override from an item must start from it (the affix generator does).
+`IsGearType`, `IsBow`. `Item.Wood` (the timber species a crafted bow, stave,
+shaft or arrow bundle came from; shown as a name suffix; `SameStack` keeps
+woods apart) and `Item.LoadedWood` (the wood of the arrow a ranged weapon
+has nocked). `ItemSpec.CarriesWood` (`carries_wood`) marks items that take a
+wood when crafted.

@@ -238,6 +238,27 @@ ingredient somewhere.
 - Values sit at roughly 1.4 times the materials' value, above the stat-implied
   value (`tools/item_value_audit.py` flags them as pinnacle pieces).
 
+## Gear grades and woods
+
+- **Grade effects** (`internal/items/grade_effects.go`): `Item.GetSpec`
+  applies the instance grade to gear (`IsGearType`: weapons, shields, armour
+  and jewelry slots) on the copy it returns: weapon `DamageMultiplier` and
+  `SpeedMultiplier`, armour mitigations and `BlockRating`, and weight, by
+  Balance `Grade{Damage,Speed,Weight,Armor}{Crude,Fine,Superb,Pristine}`
+  (shipped 0.85 / 1.08 / 1.16 / 1.25 damage and armour, 0.85 / 1.05 / 1.10 /
+  1.15 speed, 1.05 / 0.97 / 0.94 / 0.90 weight). `GetRawSpec` is the
+  authored spec; the affix generator builds from it. `actions.RecipeGrade`
+  grades every crafted tool and gear piece by the crafter's margin.
+- **Woods** (`internal/timber/wood.go`, timber.yaml `bow:` and `arrow:`):
+  `Item.Wood` is stamped on crafted outputs whose spec has `carries_wood`
+  (bow staves, arrow shafts, the four bows, quivers and bolt cases) from the
+  consumed stave or shafts, or the log's species (`actions.CraftWood`,
+  `StampWood`). The name shows it. A bow's wood scales its speed and weight
+  (in `GetSpec`) and the shot's accuracy; the nocked arrow's wood
+  (`Item.LoadedWood`, set when chambering) scales the shot's damage and
+  accuracy, and its `recovery` is the chance chambering spends no arrow.
+  Bows do not wear, so a wood's toughness shows in its arrows.
+
 ## Deferred
 
 - The kill-damage penalty (fire, acid or overkill spoiling a hide) needs the
@@ -246,8 +267,9 @@ ingredient somewhere.
   salvage, not skin and butcher.
 - A shop resells bought goods ungraded (forged tools are no longer resold
   at all).
-- Crafted grade raises value only; superb and pristine weapons and armour do
-  not yet get a stat bump.
+- Grades scale jewelry's protection and weight but not its stat mods.
+- A recipe takes whichever stave or shafts come first; a player who wants a
+  yew bow carries only yew staves.
 - No Thornwall bowyer or lumber merchant yet, though Thornwall now has a
   woodworking bench.
 - Felling hazards and the `hunt` command are phase 7.

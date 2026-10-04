@@ -658,6 +658,29 @@ type Balance struct {
 	RareToolMultSteel      ConfigFloat `yaml:"RareToolMultSteel"`      // default 1.5
 	RareToolMultMasterwork ConfigFloat `yaml:"RareToolMultMasterwork"` // default 2.0
 
+	// Gear grades (wilderness trades): a graded weapon, armour piece or
+	// shield works better or worse than its template. Each knob is a
+	// multiplier on the template value for that grade; standard is 1.0 and
+	// has no knob. Damage scales the weapon damage multiplier, Speed its
+	// speed multiplier, Weight any graded gear's weight, Armor the physical,
+	// magical and conviction mitigation and a shield's block rating.
+	GradeDamageCrude    ConfigFloat `yaml:"GradeDamageCrude"`    // default 0.85
+	GradeDamageFine     ConfigFloat `yaml:"GradeDamageFine"`     // default 1.08
+	GradeDamageSuperb   ConfigFloat `yaml:"GradeDamageSuperb"`   // default 1.16
+	GradeDamagePristine ConfigFloat `yaml:"GradeDamagePristine"` // default 1.25
+	GradeSpeedCrude     ConfigFloat `yaml:"GradeSpeedCrude"`     // default 0.85
+	GradeSpeedFine      ConfigFloat `yaml:"GradeSpeedFine"`      // default 1.05
+	GradeSpeedSuperb    ConfigFloat `yaml:"GradeSpeedSuperb"`    // default 1.10
+	GradeSpeedPristine  ConfigFloat `yaml:"GradeSpeedPristine"`  // default 1.15
+	GradeWeightCrude    ConfigFloat `yaml:"GradeWeightCrude"`    // default 1.05
+	GradeWeightFine     ConfigFloat `yaml:"GradeWeightFine"`     // default 0.97
+	GradeWeightSuperb   ConfigFloat `yaml:"GradeWeightSuperb"`   // default 0.94
+	GradeWeightPristine ConfigFloat `yaml:"GradeWeightPristine"` // default 0.90
+	GradeArmorCrude     ConfigFloat `yaml:"GradeArmorCrude"`     // default 0.85
+	GradeArmorFine      ConfigFloat `yaml:"GradeArmorFine"`      // default 1.08
+	GradeArmorSuperb    ConfigFloat `yaml:"GradeArmorSuperb"`    // default 1.16
+	GradeArmorPristine  ConfigFloat `yaml:"GradeArmorPristine"`  // default 1.25
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.
