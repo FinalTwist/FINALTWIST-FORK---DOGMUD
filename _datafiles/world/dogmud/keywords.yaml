@@ -189,6 +189,7 @@ help:
       - cooking
       - jewelcrafting
       - enchanting
+      - carpentry
       - weapon-combat
       - unarmed-combat
       - ranged-combat
@@ -266,6 +267,8 @@ help-aliases:
   tailoring:        [tailor, sewing, weaving, clothwork]
   cooking:          [cook, baking, food, meals]
   jewelcrafting:    [jeweler, jewelry, gemwork, gemcutting, jewel]
+  carpentry:        [carpenter, woodworking, woodwork, bowyer, fletching, joinery]
+  tools:            [tool, tool quality, tool tier, skinning knife, felling axe]
   manifestation:    [manifest, summon, conjure, necromancy, raise]
   charm:            [mesmerize, dominate, control, bewitch, enthral]
   assess:           [examine corpse, study corpse, evaluate corpse, inspect corpse]

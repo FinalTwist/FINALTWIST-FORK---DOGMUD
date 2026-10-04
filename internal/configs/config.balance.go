@@ -565,6 +565,34 @@ type Balance struct {
 	CraftFloor   ConfigFloat `yaml:"CraftFloor"`   // Mercy band for craft contests; reproduces the 5/95 clamp (default 0.05)
 	SalvageFloor ConfigFloat `yaml:"SalvageFloor"` // Mercy band for salvage contests; reproduces the 15/85 clamp (default 0.15)
 
+	// ── GATHERING (wilderness trades) ─────────────────────────────────────────
+	// Skinning, butchering, chopping and the other gathering jobs score
+	//   avg(two job stats) * toolMult + skill * GatherSkillWeight
+	// against GatherBaseDifficulty plus the target's own tier. The skill weight
+	// is deliberately far below SkillWeight (5.0): gathering is meant to be
+	// driven by the body and the tool, with skill a modest edge. At 1.5, thirty
+	// ranks are worth about what a better tool is worth.
+	GatherSkillWeight    ConfigFloat `yaml:"GatherSkillWeight"`    // Score per skill rank on a gathering roll (default 1.5)
+	GatherBaseDifficulty ConfigInt   `yaml:"GatherBaseDifficulty"` // Difficulty anchor before the target's tier; the human stat baseline (default 100)
+	// Each grade above standard needs this many roll standard deviations of
+	// margin: standard on any win, fine at 1x, superb at 2x, pristine at 3x.
+	GatherGradeStepSigma ConfigFloat `yaml:"GatherGradeStepSigma"` // Margin per grade step, in roll standard deviations (default 1.0)
+
+	// Tool tiers multiply the gatherer's stat term. Crude is below 1.0 on
+	// purpose: an improvised blade or a stone axe is a handicap, not neutral.
+	ToolMultCrude      ConfigFloat `yaml:"ToolMultCrude"`      // default 0.8
+	ToolMultIron       ConfigFloat `yaml:"ToolMultIron"`       // default 1.0
+	ToolMultSteel      ConfigFloat `yaml:"ToolMultSteel"`      // default 1.15
+	ToolMultMasterwork ConfigFloat `yaml:"ToolMultMasterwork"` // default 1.3
+
+	// Sell-value multiplier by material grade (items.Quality). An ungraded
+	// item (every item that predates grading) always sells at 1.0.
+	QualityValueCrude    ConfigFloat `yaml:"QualityValueCrude"`    // default 0.4
+	QualityValueStandard ConfigFloat `yaml:"QualityValueStandard"` // default 1.0
+	QualityValueFine     ConfigFloat `yaml:"QualityValueFine"`     // default 1.6
+	QualityValueSuperb   ConfigFloat `yaml:"QualityValueSuperb"`   // default 2.5
+	QualityValuePristine ConfigFloat `yaml:"QualityValuePristine"` // default 4.0
+
 	// Material tier band. items.MaterialTierMultiplier spreads the five authored
 	// buckets evenly between these, so tier 1 sits at Min and tier 5 at Max:
 	// 0.95 / 0.975 / 1.0 / 1.025 / 1.05.
@@ -1336,6 +1364,7 @@ func (b *Balance) Validate() {
 	b.validateSpells()
 	b.validateDiscovery()
 	b.validateShops()
+	b.validateGathering()
 	b.validateBaubles()
 	b.validateMisc()
 	b.validateLighting()

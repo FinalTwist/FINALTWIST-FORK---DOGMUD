@@ -21,6 +21,7 @@ const (
 	CraftSupportCooking       = "cooking"
 	CraftSupportJewelcrafting = "jewelcrafting"
 	CraftSupportEnchanting    = "enchanting"
+	CraftSupportCarpentry     = "carpentry"
 	CraftSupportGeneral       = "general"
 )
 
@@ -33,6 +34,7 @@ var ValidCraftSupports = []string{
 	CraftSupportCooking,
 	CraftSupportJewelcrafting,
 	CraftSupportEnchanting,
+	CraftSupportCarpentry,
 	CraftSupportGeneral,
 }
 
@@ -51,6 +53,7 @@ var ValidVendorCategories = []string{
 	CraftSupportCooking,
 	CraftSupportJewelcrafting,
 	CraftSupportEnchanting,
+	CraftSupportCarpentry,
 }
 
 // IsValidVendorCategory reports whether v is one of ValidVendorCategories.

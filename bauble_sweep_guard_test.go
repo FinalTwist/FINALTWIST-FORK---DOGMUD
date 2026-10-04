@@ -51,6 +51,7 @@ var transientItemHolders = map[string]string{
 	`internal/combat.weaponSetup`:                `one attack's weapon, alive for one call`,
 	`internal/events.EquipmentChange`:            `an event carrying a copy of an item that lives in a store, handled within the tick`,
 	`internal/events.ItemOwnership`:              `an event carrying a copy of an item that lives in a store, handled within the tick`,
+	`internal/gather.Tool`:                       `a copy of the tool a gathering roll used, alive for one call; the tool itself stays in the character's inventory`,
 	`internal/events.StorageItemSeized`:          `an event moving a seized bank item to the auction queue within the tick`,
 	`internal/hooks.WeaponBreakResult`:           `a weapon break's result, alive for one call`,
 	`internal/hooks.plannedSeizure`:              `a storage fee's plan, alive for one call`,

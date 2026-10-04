@@ -137,7 +137,7 @@ func salvageCorpse(actor Actor, room *rooms.Room, opts SalvageOptions, score flo
 		if mobSpec == nil {
 			continue
 		}
-		if len(crafting.LookupCorpseSalvage(mobSpec.Groups)) > 0 {
+		if len(crafting.LookupCorpseSalvageForMob(mobSpec.Groups, mobSpec.Character.SpeciesId)) > 0 {
 			target = c
 			found = true
 			break
@@ -178,7 +178,7 @@ func salvageCorpse(actor Actor, room *rooms.Room, opts SalvageOptions, score flo
 	result.RollHappened = true
 
 	mobSpec := mobs.GetMobSpec(mobs.MobId(target.MobId))
-	returns := crafting.LookupCorpseSalvage(mobSpec.Groups)
+	returns := crafting.LookupCorpseSalvageForMob(mobSpec.Groups, mobSpec.Character.SpeciesId)
 	// A corpse was never crafted, so there is no recipe to derive a difficulty
 	// from. Uses the documented fallback, which is deliberately untuned.
 	recovered := crafting.RollSalvageReturnsFromSpec(returns, score, crafting.FallbackSalvageDifficulty())

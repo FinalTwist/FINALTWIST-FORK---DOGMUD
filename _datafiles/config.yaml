@@ -1408,6 +1408,7 @@ Balance:
     cooking: 1.56
     jewelcrafting: 1.56
     enchanting: 1.56
+    carpentry: 1.56
 
   # ── SALVAGE ────────────────────────────────────────────────────────────────
   SalvageMinChance: 0.15      # Per-ingredient recovery chance at skill 1
@@ -1795,6 +1796,27 @@ Balance:
 
   CraftFloor: 0.05
   SalvageFloor: 0.15
+
+  # ── GATHERING (wilderness trades) ──────────────────────────────────────────
+  # Skin, butcher, chop and the other gathering jobs score
+  #   avg(two job stats) * toolMult + skill * GatherSkillWeight
+  # against GatherBaseDifficulty plus the target's tier. Skill is a light edge
+  # (1.5 per rank, against SkillWeight 5.0 for crafts): stats and the tool do
+  # most of the work. Each grade above standard needs GatherGradeStepSigma
+  # roll standard deviations of margin, and the tool's tier caps the grade.
+  GatherSkillWeight: 1.5
+  GatherBaseDifficulty: 100
+  GatherGradeStepSigma: 1.0
+  ToolMultCrude: 0.8
+  ToolMultIron: 1.0
+  ToolMultSteel: 1.15
+  ToolMultMasterwork: 1.3
+  # Sell value by material grade. Ungraded items always sell at 1.0.
+  QualityValueCrude: 0.4
+  QualityValueStandard: 1.0
+  QualityValueFine: 1.6
+  QualityValueSuperb: 2.5
+  QualityValuePristine: 4.0
 
   # ── RECIPE DISCOVERY ──────────────────────────────────────────────────────
   # Chance to learn a new recipe on a successful craft.

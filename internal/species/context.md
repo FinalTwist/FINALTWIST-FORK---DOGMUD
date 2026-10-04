@@ -130,3 +130,12 @@ Species are consulted at:
 ## Stage Roadmap
 
 - **chunk 2.5** (in progress) — body-plan gating, intrinsic mutations
+
+## Harvest tables (wilderness trades)
+
+**harvest.go**: `HarvestEntry` (component tag, quantity for a medium body,
+tool, rare flag; `ToolOrDefault` is knife), `HarvestTable` (skin and butcher
+sections, `Empty`, `Validate`), `MergeHarvest` (a mob's non-empty section
+replaces the species section), `ScaleHarvestQty` (small halves, large
+doubles, never below one) and `ValidateSpeciesHarvest`, called from main
+after items load. `Species.Harvest` is authored as `harvest:`.

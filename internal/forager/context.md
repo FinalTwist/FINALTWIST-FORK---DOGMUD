@@ -185,3 +185,10 @@ time; once fill drops to ≤ `ChestBackpressureResumePct`, the forager resumes.
 - `loadRoomFn` is a package-level seam (`var loadRoomFn = rooms.LoadRoom`)
   that tests override to inject fake rooms without touching the real room
   loader.
+
+## Biome fill and iron ore (wilderness trades phase 0)
+
+`plains`, `dense_forest` and `river` have forage difficulties and yields
+(plains and dense forest also get the night Moonpetal). Caves and mountains
+yield iron ore (40236) where they used to yield the finished iron ingot;
+ore is smelted at a forge (`smelt-iron-ore`) and sits in the base bucket.

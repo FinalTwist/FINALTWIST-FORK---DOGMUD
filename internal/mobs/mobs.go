@@ -83,10 +83,14 @@ type Mob struct {
 	Zone           string `yaml:"zone,omitempty"`
 	StatPool       int    `yaml:"statpool,omitempty"` // Stat points randomly distributed across stats on spawn
 	ItemDropChance int    // chance in 100
-	LootPool       []int  `yaml:"loot_pool,omitempty"`     // Item IDs for instance loot generation
-	ActivityLevel  int    `yaml:"activitylevel,omitempty"` // 1-100%
-	InstanceId     int    `yaml:"-"`
-	HomeRoomId     int    `yaml:"-"`
+	LootPool       []int  `yaml:"loot_pool,omitempty"` // Item IDs for instance loot generation
+	// Harvest overrides this mob's species harvest table per section (see
+	// species.MergeHarvest): a unique pelt or a rare organ lives here rather
+	// than in carried loot. Nil means "the species table as is".
+	Harvest       *species.HarvestTable `yaml:"harvest,omitempty"`
+	ActivityLevel int                   `yaml:"activitylevel,omitempty"` // 1-100%
+	InstanceId    int                   `yaml:"-"`
+	HomeRoomId    int                   `yaml:"-"`
 	// LegacyHostile is the backward-compat YAML field. Loaders read `hostile:`
 	// and copy to AutoAggro in Validate(). New YAML should use `auto_aggro: true`.
 	// MUST stay exported: yaml unmarshal silently skips unexported fields — the

@@ -7,6 +7,7 @@ package items
 // differentiates them visually or mechanically is equal:
 //   - ItemId
 //   - Uses
+//   - Quality (material grade; ungraded only stacks with ungraded)
 //   - EnchantType
 //   - EnchantTier
 //   - BottleMultiplier (different bottles age potions at different rates)
@@ -35,6 +36,12 @@ func SameStack(a, b Item) bool {
 		return false
 	}
 	if a.Uses != b.Uses {
+		return false
+	}
+	// Material grade: a fine pelt and a crude one are different goods with
+	// different prices. Storage keeps one representative per stack, so
+	// merging them would re-grade every pelt in the stack.
+	if a.Quality != b.Quality {
 		return false
 	}
 	if a.EnchantType != b.EnchantType {

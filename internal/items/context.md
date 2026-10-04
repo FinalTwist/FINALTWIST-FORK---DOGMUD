@@ -1454,3 +1454,18 @@ built on it: `characters.Character` and `Worn`, `users.UserRecord`,
 `rooms.Room`, `mobs.Mob`, `shops.ShopInventory`, `guilds.Guild`,
 `sealedcrate.Crate`, `modules/auctions.AuctionManager`. The bauble catalog
 sweep (`internal/baubles/sweep.go`) reads every live item through them.
+
+## Material grades and tools (wilderness trades)
+
+- **quality.go**: `Quality` (crude 1 to pristine 5; `QualityNone` 0 is
+  ungraded, not a grade), `String`, `Valid`, `Clamp`, `ParseQuality`,
+  `QualityValueMultiplier` (Balance `QualityValue*`; ungraded is 1.0) and the
+  display suffix. `Item.Quality` lives on the instance; `SameStack` keeps
+  grades apart; `displayNameFrom` prints the grade except for standard.
+- **tools.go**: `ToolType` and `AllToolTypes`, `ToolTier` (crude, iron,
+  steel, masterwork) with `MaxGrade`, `ToolSpec` (authored as `tool:` on an
+  item: type, tier, speed), `IsKnownToolType`, `EffectiveToolTier` (a
+  pristine tool works one tier up, a crude one one tier down) and
+  `ImprovisedTool` (one-handed stabbing or slashing weapons as crude knives,
+  one-handed cleaving weapons as crude cleavers and axes).
+  `ItemSpec.Validate` rejects an unknown tool type or tier.

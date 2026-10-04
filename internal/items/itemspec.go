@@ -362,6 +362,7 @@ type ItemSpec struct {
 	IsBandolier       bool            `yaml:"is_bandolier,omitempty"`       // Belt item that holds potions
 	BandolierCapacity int             `yaml:"bandolier_capacity,omitempty"` // Max potions storable in bandolier
 	SalvageReturns    []SalvageReturn `yaml:"salvage_returns,omitempty"`    // Custom salvage returns for non-crafted items
+	Tool              *ToolSpec       `yaml:"tool,omitempty"`               // Marks this item as a gathering/processing tool (knife, axe, saw...). See tools.go
 	RarityTier        int             `yaml:"rarity_tier,omitempty"`        // Vendor stock cap tier (50/40/30/20/10). Used by shops.EffectiveMaxStock with mob.StockMultiplier. 0 = untiered (quest items, defer-to-3.0e items). NOT a difficulty signal — see MaterialTier.
 	// MaterialTier is how RARE/DEMANDING a crafting material is, 1 (common) to
 	// 5 (rarest). It scales craft difficulty via items.MaterialTierMultiplier.
@@ -763,6 +764,18 @@ func (i *ItemSpec) Validate() error {
 
 	if i.Value < 1 {
 		i.AutoCalculateValue()
+	}
+
+	if i.Tool != nil {
+		if !IsKnownToolType(i.Tool.Type) {
+			return fmt.Errorf("item %d: unknown tool type %q (known: %v)", i.ItemId, i.Tool.Type, AllToolTypes)
+		}
+		if !i.Tool.Tier.Valid() {
+			return fmt.Errorf("item %d: tool tier %d out of range (1 crude .. 4 masterwork)", i.ItemId, i.Tool.Tier)
+		}
+		if i.Tool.Speed <= 0 {
+			i.Tool.Speed = 1.0
+		}
 	}
 
 	for idx, p := range i.Procs {

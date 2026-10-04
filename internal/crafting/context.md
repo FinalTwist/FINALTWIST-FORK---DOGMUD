@@ -437,3 +437,11 @@ pieces (blacksmithing, forge), each the original recipe plus lenses:
 `glass-facet-buckler` (42; steel buckler + 15 → 20101). Harder, a third of
 the weight, escape modifier 0.5, and `return_damage` 5/3/4 (12% for the
 set, physical, mitigated by the attacker's armour).
+
+## Corpse salvage species fallback
+
+`LookupCorpseSalvageFor(groups, speciesName)` and
+`LookupCorpseSalvageForMob(groups, speciesId)` (corpse_salvage.go) try the
+group table first and then `speciesCorpseSalvage`, keyed by species name.
+Only warm-blooded game is listed. Every caller with a mob spec uses the
+`ForMob` form so the command, the resolver and the companion agree.

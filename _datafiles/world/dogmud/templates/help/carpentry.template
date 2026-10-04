@@ -1,0 +1,36 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="skill">carpentry</ansi> (skill)
+
+Carpentry is woodworking: turning planks and timber into weapons, shields,
+bows and arrows, furniture and fittings. It is governed by
+<ansi fg="yellow">Dexterity</ansi>, since joinery and shaping reward a steady, precise hand.
+
+<ansi fg="yellow">━━━ Requirements ━━━</ansi>
+
+  Station:   A <ansi fg="yellow">woodworking bench</ansi> must be in the room with you.
+             Look for one at the Woodworker's House in Amber Valley, the
+             Timber Yard at Kilnreach, the Lumber Camp on Cascade Pass Road,
+             the Woodcutter's Camp on the North Road, and the Fletcher's Ledge
+             in Pothole Coulee.
+  Materials: Wooden planks, with leather strips for grips and bindings.
+
+<ansi fg="yellow">━━━ Known Recipes ━━━</ansi>
+
+  <ansi fg="command">wooden-club</ansi>   A simple hardwood club (minimum 0).
+
+More carpentry is on the way: sawing logs into planks and staves, bows,
+arrows, wooden shields and furniture.
+
+<ansi fg="yellow">━━━ Skill Progression ━━━</ansi>
+
+Carpentry improves through use. Each completed craft attempt (success or
+failure) has a chance to advance the skill.
+
+<ansi fg="yellow">━━━ Commands ━━━</ansi>
+
+  <ansi fg="command">craft list</ansi>          Show all recipes, including carpentry ones, with status.
+  <ansi fg="command">craft <recipe></ansi>      Begin crafting a carpentry recipe.
+  <ansi fg="command">skills</ansi>              Check your current carpentry skill level.
+
+<ansi fg="yellow">See Also:</ansi>
+
+  <ansi fg="command">help craft</ansi>, <ansi fg="command">help skills</ansi>, <ansi fg="command">help tools</ansi>

@@ -128,14 +128,21 @@ func butcherable(c *rooms.Corpse, ownerUserId int, meat bool) bool {
 		return false
 	}
 	spec := mobs.GetMobSpec(mobs.MobId(c.MobId))
-	if spec == nil || len(crafting.LookupCorpseSalvage(spec.Groups)) == 0 {
+	if spec == nil {
+		return false
+	}
+	returns := crafting.LookupCorpseSalvageForMob(spec.Groups, spec.Character.SpeciesId)
+	if len(returns) == 0 {
 		return false
 	}
 	if !meat {
 		return true
 	}
-	for _, g := range spec.Groups {
-		if g == `animal` || g == `rodent` {
+	// Game is any body whose salvage yields meat. Reading the returns rather
+	// than the group tags keeps this in step with the species fallback: a
+	// steppe wolf grouped `canine` is game even though it is not `animal`.
+	for _, r := range returns {
+		if r.ItemTag == `raw-meat` || r.ItemTag == `wild-hare-meat` {
 			return true
 		}
 	}

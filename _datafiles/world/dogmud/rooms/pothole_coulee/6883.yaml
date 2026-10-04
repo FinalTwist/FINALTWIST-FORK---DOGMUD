@@ -18,6 +18,7 @@ coord:
   z: 0
 mutators:
 - mutatorid: sanctuary
+station: woodworking_bench
 exits:
   east:
     roomid: 6881

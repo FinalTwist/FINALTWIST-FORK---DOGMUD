@@ -73,12 +73,18 @@ func EvaluateBuyRules(
 	//     rejecting cattail cloak, Kerra rejecting arena tower shield.)
 	// Both round UP to the next gold, as every sell price does (owner
 	// ruling 2026-09-30).
+	//
+	// The material grade scales the base value before either path: a pristine
+	// pelt is worth four standard ones whether or not the shop stocks pelts.
+	// Ungraded items (everything that predates grading) scale by 1.0.
+	value := GradedValue(item)
+
 	var price int
 	entry := shopInv.GetStock(spec.ItemId)
 	if entry != nil {
-		price = CalcBuyPrice(spec.Value, entry.Current, PricingBaseline(entry, cfg), cfg)
+		price = CalcBuyPrice(value, entry.Current, PricingBaseline(entry, cfg), cfg)
 	} else {
-		flat := int(math.Ceil(float64(spec.Value) * cfg.BuyRatio))
+		flat := int(math.Ceil(float64(value) * cfg.BuyRatio))
 		if flat < 1 {
 			flat = 1
 		}
@@ -144,4 +150,19 @@ func isPotionDeclining(item items.Item, spec *items.ItemSpec) bool {
 	effectiveSpeed := items.CalcEffectiveAgingSpeed(bottleMult, item.CraftSkill)
 	phase, _ := items.GetAgingPhase(elapsed, spec.Aging, effectiveSpeed)
 	return phase == items.PhaseDeclining || phase == items.PhaseSpoiled
+}
+
+// GradedValue is the item's spec value scaled by its material grade
+// (items.QualityValueMultiplier), rounded up. Ungraded items return the spec
+// value unchanged. A graded item never prices below 1 gold.
+func GradedValue(item items.Item) int {
+	base := item.GetSpec().Value
+	if !item.Quality.Valid() {
+		return base
+	}
+	v := int(math.Ceil(float64(base) * items.QualityValueMultiplier(item.Quality)))
+	if v < 1 && base > 0 {
+		v = 1
+	}
+	return v
 }

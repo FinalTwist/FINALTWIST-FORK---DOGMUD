@@ -385,3 +385,10 @@ shelving a hot item: the bauble sale's offer in `internal/actions` refuses
 with it, and the auction shopkeeper's `Receive` skips the shelve and lets
 the item leave the world instead. Every mutation runs in a command or a
 sale under the mud lock; a caller that changes a living shop saves it.
+
+## Graded sell value and carpentry
+
+`GradedValue(item)` (buyrules.go) scales the spec value by the item's
+material grade before `EvaluateBuyRules` prices it, on both the stocked and
+the flat path. `CraftSupportCarpentry` is a valid craft support and vendor
+category.

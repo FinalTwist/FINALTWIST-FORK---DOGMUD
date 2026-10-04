@@ -1,5 +1,35 @@
 # DOGMud Patch Notes
 
+## 2026-10-03: Wilderness trades, phases 0 and 1
+
+Groundwork for hunting, butchery and lumberjacking as ways to play
+(`docs/economy/wilderness-trades.md`).
+
+- Every warm-blooded animal can now be salvaged for meat, leather and sinew.
+  The steppe wolves, the boars, the pronghorn, the steppe hare and the
+  Pothole Coulee hounds used to leave a corpse with nothing on it.
+- Plains, deep forest and river banks can be foraged.
+- Caves and mountains give iron ore instead of finished iron ingots; smelt
+  two ore into an ingot at a forge (`craft smelt`).
+- The thick predator-pelt becomes a Predator-Pelt Mantle (tailoring 30),
+  and skitter-shrimp shells a Skitter-Shell Bracer (jewelcrafting 10).
+- Pack-hide pelts can be tanned into leather strips at a tanning rack
+  (tailoring 5). Tanning racks are in the New Plymouth tannery, the
+  Stillwater tannery shed, Kilnreach and Amber Valley.
+- New skill: **carpentry** (dexterity), worked at a woodworking bench in
+  Amber Valley, Kilnreach, the Cascade Pass lumber camp, the North Road
+  woodcutter's camp and the Fletcher's Ledge. First recipe: the wooden club.
+  Bows and arrows now count as carpentry goods as well as smithing goods.
+  New professions: carpenter, bowyer.
+- Tools: smiths can forge skinning knives, a cleaver, a bone saw, a hide
+  scraper, a woodcutter's axe, a steel felling axe, a bow saw, a whittling
+  knife and a sickle (`help tools`). The Fernway handaxe and the obsidian
+  knife count as iron tools. Nothing uses tools yet; skinning and
+  butchering arrive in phase 2.
+- Materials can now carry a grade (crude, standard, fine, superb,
+  pristine), shown after the name and paid for by merchants. Nothing is
+  graded yet; ungraded items sell exactly as before.
+
 ## 2026-10-03: Animals are what they look like
 
 Thirty-two creatures had the wrong species, and since creatures hunt and

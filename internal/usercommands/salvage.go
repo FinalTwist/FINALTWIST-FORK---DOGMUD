@@ -157,7 +157,7 @@ func startCorpseSalvage(user *users.UserRecord, corpse rooms.Corpse) (bool, erro
 		return true, nil
 	}
 
-	returns := crafting.LookupCorpseSalvage(mobSpec.Groups)
+	returns := crafting.LookupCorpseSalvageForMob(mobSpec.Groups, mobSpec.Character.SpeciesId)
 	if len(returns) == 0 {
 		user.SendText(messaging.CategorySystem, `<ansi fg="red">There's nothing useful to recover here.</ansi>`)
 		return true, nil

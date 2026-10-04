@@ -1184,3 +1184,10 @@ the registry under its own instance id, unchanged. With `DestroyInstance` it
 lets a caller park a mob out of the world and bring the same creature back
 (internal/rifts: the Facet Hunter following its quarry room to room).
 Placing it in a room is the caller's.
+
+## Harvest (wilderness trades)
+
+`Mob.Harvest` (`harvest:`) overrides the species harvest table per section.
+**harvest.go**: `HarvestTagExists`, `ResolveHarvest` (species table merged
+with the mob's) and `ValidateMobHarvest`, called from main after mobs load.
+`ValidateMobSpec` also validates the table for builder saves.

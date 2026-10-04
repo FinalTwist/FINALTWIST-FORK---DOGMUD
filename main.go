@@ -1752,6 +1752,10 @@ func loadAllDataFiles(isReload bool) {
 	mutations.ValidateGraph()
 	species.ValidateBodyPartTags(mutations.HasSpec)
 	species.ValidateSpeciesConditionIds(conditions.HasSpec)
+	// Wilderness trades: every harvest entry on a species or a mob must name
+	// a material some item supplies.
+	species.ValidateSpeciesHarvest(mobs.HarvestTagExists)
+	mobs.ValidateMobHarvest()
 
 	// Slice C: a non-secret condition without authored start/end text still speaks
 	// (the generic notice), but say so at boot. The root guard blocks a merge.
