@@ -40,6 +40,9 @@ character:
   speciesid: 1
   level: 1
   gold: 35
+  equipment:
+    light:
+      itemid: 40038   # oil lantern: a shop must be light enough to trade in at night
   stats:
     perception:
       base: 113

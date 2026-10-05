@@ -1280,6 +1280,7 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 // entry stale -- exactly the signal that tells whoever ships the fix to also
 // update the audit and this registry.
 var narrationViewpointRegistry = map[string]narrationEntry{
+	"actions/repair.go|<ansi fg=\"green\">You work the wear out of your <ansi fg=\"itemname\">%s</ansi> the":                {verdictCorrect, true, false, true, "self-repair of the actor's own gear -- the target is an item, so there is no actee; the room sees the work (wilderness trades, actions/repair.go)"},
 	"actions/defuse.go|<ansi fg=\"green\">You carefully disarm the trap mechanism.</ansi>":                                  {verdictCorrect, true, false, true, "audit: exit trap disarmed -- target is the lock (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, actions/defuse.go:269)"},
 	"actions/defuse.go|<ansi fg=\"red-bold\">The trap triggers as you fumble the mechanism!</ansi>":                         {verdictCorrect, true, false, true, "audit: trap fires after a failed defuse -- target is the trap, not a character (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, actions/defuse.go:161)"},
 	"actions/drink.go|You drink the <ansi fg=\"itemname\">%s</ansi>.":                                                       {verdictCorrect, true, false, true, "audit: drinks a potion normally -- self-targeted (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/drink.go:227; moved unchanged to actions/drink.go by drink path unification, 2026-09-28)"},
