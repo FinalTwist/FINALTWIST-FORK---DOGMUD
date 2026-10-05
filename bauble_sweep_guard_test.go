@@ -47,6 +47,8 @@ var transientItemHolders = map[string]string{
 	`internal/characters.SlotChoice`:             `a view: pointers into Worn plus the items one equip displaces, alive for one call`,
 	`internal/characters.WornSlot`:               `a view: a pointer into Worn (AllSlots), which Worn.WalkItems walks`,
 	`internal/characters.slotCandidate`:          `one equip's candidate slot, alive for one call`,
+	`internal/combat.SkillMoveParams`:            `a skill move's arguments, alive for one call; StrikeWith points into the attacker's Worn, which Worn.WalkItems walks`,
+	`internal/combat.WeaponHitInfo`:              `one swing's record inside an AttackResult, alive for one combat round; Weapon is a copy of an equipped item`,
 	`internal/combat.DisarmResult`:               `an attack's result, alive for one call`,
 	`internal/combat.weaponSetup`:                `one attack's weapon, alive for one call`,
 	`internal/events.EquipmentChange`:            `an event carrying a copy of an item that lives in a store, handled within the tick`,
